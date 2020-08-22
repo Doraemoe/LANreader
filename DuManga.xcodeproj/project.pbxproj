@@ -1,0 +1,599 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		7D354CA024F1316800617F4A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354C9F24F1316800617F4A /* AppDelegate.swift */; };
+		7D354CA224F1316800617F4A /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354CA124F1316800617F4A /* SceneDelegate.swift */; };
+		7D354CA424F1316800617F4A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354CA324F1316800617F4A /* ContentView.swift */; };
+		7D354CA624F1316D00617F4A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CA524F1316D00617F4A /* Assets.xcassets */; };
+		7D354CA924F1316D00617F4A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CA824F1316D00617F4A /* Preview Assets.xcassets */; };
+		7D354CAC24F1316D00617F4A /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CAA24F1316D00617F4A /* LaunchScreen.storyboard */; };
+		7D354CB724F1316E00617F4A /* DuMangaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354CB624F1316E00617F4A /* DuMangaTests.swift */; };
+		7D354CC224F1316E00617F4A /* DuMangaUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354CC124F1316E00617F4A /* DuMangaUITests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7D354CB324F1316E00617F4A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7D354C9424F1316800617F4A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7D354C9B24F1316800617F4A;
+			remoteInfo = DuManga;
+		};
+		7D354CBE24F1316E00617F4A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7D354C9424F1316800617F4A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7D354C9B24F1316800617F4A;
+			remoteInfo = DuManga;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		7D354C9C24F1316800617F4A /* DuManga.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DuManga.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7D354C9F24F1316800617F4A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		7D354CA124F1316800617F4A /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		7D354CA324F1316800617F4A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		7D354CA524F1316D00617F4A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7D354CA824F1316D00617F4A /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		7D354CAB24F1316D00617F4A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		7D354CAD24F1316D00617F4A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7D354CB224F1316E00617F4A /* DuMangaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DuMangaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7D354CB624F1316E00617F4A /* DuMangaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuMangaTests.swift; sourceTree = "<group>"; };
+		7D354CB824F1316E00617F4A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7D354CBD24F1316E00617F4A /* DuMangaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DuMangaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7D354CC124F1316E00617F4A /* DuMangaUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuMangaUITests.swift; sourceTree = "<group>"; };
+		7D354CC324F1316E00617F4A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		7D354C9924F1316800617F4A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7D354CAF24F1316E00617F4A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7D354CBA24F1316E00617F4A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		7D354C9324F1316800617F4A = {
+			isa = PBXGroup;
+			children = (
+				7D354C9E24F1316800617F4A /* DuManga */,
+				7D354CB524F1316E00617F4A /* DuMangaTests */,
+				7D354CC024F1316E00617F4A /* DuMangaUITests */,
+				7D354C9D24F1316800617F4A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		7D354C9D24F1316800617F4A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				7D354C9C24F1316800617F4A /* DuManga.app */,
+				7D354CB224F1316E00617F4A /* DuMangaTests.xctest */,
+				7D354CBD24F1316E00617F4A /* DuMangaUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7D354C9E24F1316800617F4A /* DuManga */ = {
+			isa = PBXGroup;
+			children = (
+				7D354C9F24F1316800617F4A /* AppDelegate.swift */,
+				7D354CA124F1316800617F4A /* SceneDelegate.swift */,
+				7D354CA324F1316800617F4A /* ContentView.swift */,
+				7D354CA524F1316D00617F4A /* Assets.xcassets */,
+				7D354CAA24F1316D00617F4A /* LaunchScreen.storyboard */,
+				7D354CAD24F1316D00617F4A /* Info.plist */,
+				7D354CA724F1316D00617F4A /* Preview Content */,
+			);
+			path = DuManga;
+			sourceTree = "<group>";
+		};
+		7D354CA724F1316D00617F4A /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				7D354CA824F1316D00617F4A /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		7D354CB524F1316E00617F4A /* DuMangaTests */ = {
+			isa = PBXGroup;
+			children = (
+				7D354CB624F1316E00617F4A /* DuMangaTests.swift */,
+				7D354CB824F1316E00617F4A /* Info.plist */,
+			);
+			path = DuMangaTests;
+			sourceTree = "<group>";
+		};
+		7D354CC024F1316E00617F4A /* DuMangaUITests */ = {
+			isa = PBXGroup;
+			children = (
+				7D354CC124F1316E00617F4A /* DuMangaUITests.swift */,
+				7D354CC324F1316E00617F4A /* Info.plist */,
+			);
+			path = DuMangaUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		7D354C9B24F1316800617F4A /* DuManga */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7D354CC624F1316E00617F4A /* Build configuration list for PBXNativeTarget "DuManga" */;
+			buildPhases = (
+				7D354C9824F1316800617F4A /* Sources */,
+				7D354C9924F1316800617F4A /* Frameworks */,
+				7D354C9A24F1316800617F4A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DuManga;
+			productName = DuManga;
+			productReference = 7D354C9C24F1316800617F4A /* DuManga.app */;
+			productType = "com.apple.product-type.application";
+		};
+		7D354CB124F1316E00617F4A /* DuMangaTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7D354CC924F1316E00617F4A /* Build configuration list for PBXNativeTarget "DuMangaTests" */;
+			buildPhases = (
+				7D354CAE24F1316E00617F4A /* Sources */,
+				7D354CAF24F1316E00617F4A /* Frameworks */,
+				7D354CB024F1316E00617F4A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7D354CB424F1316E00617F4A /* PBXTargetDependency */,
+			);
+			name = DuMangaTests;
+			productName = DuMangaTests;
+			productReference = 7D354CB224F1316E00617F4A /* DuMangaTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		7D354CBC24F1316E00617F4A /* DuMangaUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7D354CCC24F1316E00617F4A /* Build configuration list for PBXNativeTarget "DuMangaUITests" */;
+			buildPhases = (
+				7D354CB924F1316E00617F4A /* Sources */,
+				7D354CBA24F1316E00617F4A /* Frameworks */,
+				7D354CBB24F1316E00617F4A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7D354CBF24F1316E00617F4A /* PBXTargetDependency */,
+			);
+			name = DuMangaUITests;
+			productName = DuMangaUITests;
+			productReference = 7D354CBD24F1316E00617F4A /* DuMangaUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		7D354C9424F1316800617F4A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1160;
+				LastUpgradeCheck = 1160;
+				ORGANIZATIONNAME = "Jin Yifan";
+				TargetAttributes = {
+					7D354C9B24F1316800617F4A = {
+						CreatedOnToolsVersion = 11.6;
+					};
+					7D354CB124F1316E00617F4A = {
+						CreatedOnToolsVersion = 11.6;
+						TestTargetID = 7D354C9B24F1316800617F4A;
+					};
+					7D354CBC24F1316E00617F4A = {
+						CreatedOnToolsVersion = 11.6;
+						TestTargetID = 7D354C9B24F1316800617F4A;
+					};
+				};
+			};
+			buildConfigurationList = 7D354C9724F1316800617F4A /* Build configuration list for PBXProject "DuManga" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 7D354C9324F1316800617F4A;
+			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				7D354C9B24F1316800617F4A /* DuManga */,
+				7D354CB124F1316E00617F4A /* DuMangaTests */,
+				7D354CBC24F1316E00617F4A /* DuMangaUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		7D354C9A24F1316800617F4A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7D354CAC24F1316D00617F4A /* LaunchScreen.storyboard in Resources */,
+				7D354CA924F1316D00617F4A /* Preview Assets.xcassets in Resources */,
+				7D354CA624F1316D00617F4A /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7D354CB024F1316E00617F4A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7D354CBB24F1316E00617F4A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		7D354C9824F1316800617F4A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7D354CA024F1316800617F4A /* AppDelegate.swift in Sources */,
+				7D354CA224F1316800617F4A /* SceneDelegate.swift in Sources */,
+				7D354CA424F1316800617F4A /* ContentView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7D354CAE24F1316E00617F4A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7D354CB724F1316E00617F4A /* DuMangaTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7D354CB924F1316E00617F4A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7D354CC224F1316E00617F4A /* DuMangaUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7D354CB424F1316E00617F4A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7D354C9B24F1316800617F4A /* DuManga */;
+			targetProxy = 7D354CB324F1316E00617F4A /* PBXContainerItemProxy */;
+		};
+		7D354CBF24F1316E00617F4A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7D354C9B24F1316800617F4A /* DuManga */;
+			targetProxy = 7D354CBE24F1316E00617F4A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		7D354CAA24F1316D00617F4A /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				7D354CAB24F1316D00617F4A /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		7D354CC424F1316E00617F4A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		7D354CC524F1316E00617F4A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		7D354CC724F1316E00617F4A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
+				DEVELOPMENT_TEAM = UUEBW58SA6;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = DuManga/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7D354CC824F1316E00617F4A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
+				DEVELOPMENT_TEAM = UUEBW58SA6;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = DuManga/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		7D354CCA24F1316E00617F4A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = UUEBW58SA6;
+				INFOPLIST_FILE = DuMangaTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuMangaTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DuManga.app/DuManga";
+			};
+			name = Debug;
+		};
+		7D354CCB24F1316E00617F4A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = UUEBW58SA6;
+				INFOPLIST_FILE = DuMangaTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuMangaTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DuManga.app/DuManga";
+			};
+			name = Release;
+		};
+		7D354CCD24F1316E00617F4A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = UUEBW58SA6;
+				INFOPLIST_FILE = DuMangaUITests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuMangaUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = DuManga;
+			};
+			name = Debug;
+		};
+		7D354CCE24F1316E00617F4A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = UUEBW58SA6;
+				INFOPLIST_FILE = DuMangaUITests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuMangaUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = DuManga;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7D354C9724F1316800617F4A /* Build configuration list for PBXProject "DuManga" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7D354CC424F1316E00617F4A /* Debug */,
+				7D354CC524F1316E00617F4A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7D354CC624F1316E00617F4A /* Build configuration list for PBXNativeTarget "DuManga" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7D354CC724F1316E00617F4A /* Debug */,
+				7D354CC824F1316E00617F4A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7D354CC924F1316E00617F4A /* Build configuration list for PBXNativeTarget "DuMangaTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7D354CCA24F1316E00617F4A /* Debug */,
+				7D354CCB24F1316E00617F4A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7D354CCC24F1316E00617F4A /* Build configuration list for PBXNativeTarget "DuMangaUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7D354CCD24F1316E00617F4A /* Debug */,
+				7D354CCE24F1316E00617F4A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 7D354C9424F1316800617F4A /* Project object */;
+}
