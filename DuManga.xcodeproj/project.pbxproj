@@ -30,6 +30,7 @@
 		7D354D0524F2387900617F4A /* ArchiveItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0424F2387900617F4A /* ArchiveItem.swift */; };
 		7D354D0724F23A2700617F4A /* ArchiveList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0624F23A2700617F4A /* ArchiveList.swift */; };
 		7D354D0B24F23FC700617F4A /* LANraragiConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0A24F23FC700617F4A /* LANraragiConfigView.swift */; };
+		7D354D1024F282D400617F4A /* ArchivePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0F24F282D300617F4A /* ArchivePage.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -76,6 +77,7 @@
 		7D354D0624F23A2700617F4A /* ArchiveList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveList.swift; sourceTree = "<group>"; };
 		7D354D0A24F23FC700617F4A /* LANraragiConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LANraragiConfigView.swift; sourceTree = "<group>"; };
 		7D354D0C24F251D600617F4A /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/LaunchScreen.strings"; sourceTree = "<group>"; };
+		7D354D0F24F282D300617F4A /* ArchivePage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivePage.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -230,6 +232,7 @@
 				7D354D0024F2379000617F4A /* ArchiveRow.swift */,
 				7D354D0624F23A2700617F4A /* ArchiveList.swift */,
 				7D354D0A24F23FC700617F4A /* LANraragiConfigView.swift */,
+				7D354D0F24F282D300617F4A /* ArchivePage.swift */,
 			);
 			name = Views;
 			sourceTree = "<group>";
@@ -385,6 +388,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7D354CD724F1398C00617F4A /* LANraragiClient.swift in Sources */,
+				7D354D1024F282D400617F4A /* ArchivePage.swift in Sources */,
 				7D354D0124F2379000617F4A /* ArchiveRow.swift in Sources */,
 				7D354D0724F23A2700617F4A /* ArchiveList.swift in Sources */,
 				7D354D0524F2387900617F4A /* ArchiveItem.swift in Sources */,

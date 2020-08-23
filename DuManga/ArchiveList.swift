@@ -20,17 +20,24 @@ struct ArchiveList: View {
     }
     
     var body: some View {
-        List(Array(archiveItems.values)) { item in
-            ArchiveRow(archiveItem: item)
+        NavigationView {
+            List(Array(archiveItems.values)) { (item: ArchiveItem) in
+                NavigationLink(destination: ArchivePage(id: item.id)) {
+                    ArchiveRow(archiveItem: item)
+                        .onAppear(perform: { self.loadArchiveThumbnail(id: item.id)
+                        })
+                }
+            }
+            .navigationBarTitle(Text("Archives"))
+            .onAppear(perform: loadData)
         }
-        .onAppear(perform: loadData)
+        .navigationViewStyle(StackNavigationViewStyle())
     }
     
     func loadData() {
         client.getArchiveIndex {(items: [ArchiveIndexResponse]?) in
             items?.forEach { item in
                 self.archiveItems[item.arcid] = (ArchiveItem(id: item.arcid, name: item.title, thumbnail: Image("placeholder")))
-                self.loadArchiveThumbnail(id: item.arcid)
             }
         }
     }
