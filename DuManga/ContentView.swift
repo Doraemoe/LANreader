@@ -9,13 +9,22 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State var settingView = UserDefaults.standard.dictionary(forKey: "LANraragi") == nil
+    
     var body: some View {
-        Text("Hello, World!")
+            VStack(alignment: .leading) {
+                if (self.settingView) {
+                    LANraragiConfigView(settingView: $settingView)
+                } else {
+                    ArchiveList()
+                }
+            }
     }
 }
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        UserDefaults.standard.removeObject(forKey: "LANraragi")
+        return ContentView()
     }
 }

@@ -26,6 +26,10 @@
 		7D354CEF24F2084900617F4A /* placeholder.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CEE24F2084800617F4A /* placeholder.jpg */; };
 		7D354CF124F21B3400617F4A /* ArchiveExtractResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CF024F21B3400617F4A /* ArchiveExtractResponse.json */; };
 		7D354CF324F222FC00617F4A /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CF224F222FC00617F4A /* README.md */; };
+		7D354D0124F2379000617F4A /* ArchiveRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0024F2379000617F4A /* ArchiveRow.swift */; };
+		7D354D0524F2387900617F4A /* ArchiveItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0424F2387900617F4A /* ArchiveItem.swift */; };
+		7D354D0724F23A2700617F4A /* ArchiveList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0624F23A2700617F4A /* ArchiveList.swift */; };
+		7D354D0B24F23FC700617F4A /* LANraragiConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0A24F23FC700617F4A /* LANraragiConfigView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,6 +71,11 @@
 		7D354CEE24F2084800617F4A /* placeholder.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = placeholder.jpg; sourceTree = "<group>"; };
 		7D354CF024F21B3400617F4A /* ArchiveExtractResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveExtractResponse.json; sourceTree = "<group>"; };
 		7D354CF224F222FC00617F4A /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		7D354D0024F2379000617F4A /* ArchiveRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveRow.swift; sourceTree = "<group>"; };
+		7D354D0424F2387900617F4A /* ArchiveItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveItem.swift; sourceTree = "<group>"; };
+		7D354D0624F23A2700617F4A /* ArchiveList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveList.swift; sourceTree = "<group>"; };
+		7D354D0A24F23FC700617F4A /* LANraragiConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LANraragiConfigView.swift; sourceTree = "<group>"; };
+		7D354D0C24F251D600617F4A /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/LaunchScreen.strings"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -122,6 +131,8 @@
 		7D354C9E24F1316800617F4A /* DuManga */ = {
 			isa = PBXGroup;
 			children = (
+				7D354D0324F2383A00617F4A /* Views */,
+				7D354CF424F22C8300617F4A /* Resources */,
 				7D354CD524F1395700617F4A /* LANraragi */,
 				7D354C9F24F1316800617F4A /* AppDelegate.swift */,
 				7D354CA124F1316800617F4A /* SceneDelegate.swift */,
@@ -165,18 +176,18 @@
 		7D354CD524F1395700617F4A /* LANraragi */ = {
 			isa = PBXGroup;
 			children = (
-				7D354CD824F13B3A00617F4A /* Model */,
+				7D354CD824F13B3A00617F4A /* Models */,
 				7D354CD624F1398C00617F4A /* LANraragiClient.swift */,
 			);
 			path = LANraragi;
 			sourceTree = "<group>";
 		};
-		7D354CD824F13B3A00617F4A /* Model */ = {
+		7D354CD824F13B3A00617F4A /* Models */ = {
 			isa = PBXGroup;
 			children = (
 				7D354CD924F13C4900617F4A /* LANraragiResponse.swift */,
 			);
-			path = Model;
+			path = Models;
 			sourceTree = "<group>";
 		};
 		7D354CDB24F140E700617F4A /* LANRaragi */ = {
@@ -190,11 +201,37 @@
 		7D354CEB24F1FBEE00617F4A /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				7D354CEE24F2084800617F4A /* placeholder.jpg */,
 				7D354CEC24F1FC3000617F4A /* ArchiveIndexResponse.json */,
 				7D354CF024F21B3400617F4A /* ArchiveExtractResponse.json */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		7D354CF424F22C8300617F4A /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				7D354CEE24F2084800617F4A /* placeholder.jpg */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		7D354D0224F237AE00617F4A /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				7D354D0424F2387900617F4A /* ArchiveItem.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		7D354D0324F2383A00617F4A /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7D354D0224F237AE00617F4A /* Models */,
+				7D354D0024F2379000617F4A /* ArchiveRow.swift */,
+				7D354D0624F23A2700617F4A /* ArchiveList.swift */,
+				7D354D0A24F23FC700617F4A /* LANraragiConfigView.swift */,
+			);
+			name = Views;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -291,6 +328,7 @@
 			knownRegions = (
 				en,
 				Base,
+				"zh-Hans",
 			);
 			mainGroup = 7D354C9324F1316800617F4A;
 			packageReferences = (
@@ -347,8 +385,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				7D354CD724F1398C00617F4A /* LANraragiClient.swift in Sources */,
+				7D354D0124F2379000617F4A /* ArchiveRow.swift in Sources */,
+				7D354D0724F23A2700617F4A /* ArchiveList.swift in Sources */,
+				7D354D0524F2387900617F4A /* ArchiveItem.swift in Sources */,
 				7D354CA024F1316800617F4A /* AppDelegate.swift in Sources */,
 				7D354CA224F1316800617F4A /* SceneDelegate.swift in Sources */,
+				7D354D0B24F23FC700617F4A /* LANraragiConfigView.swift in Sources */,
 				7D354CA424F1316800617F4A /* ContentView.swift in Sources */,
 				7D354CDA24F13C4900617F4A /* LANraragiResponse.swift in Sources */,
 			);
@@ -391,6 +433,7 @@
 			isa = PBXVariantGroup;
 			children = (
 				7D354CAB24F1316D00617F4A /* Base */,
+				7D354D0C24F251D600617F4A /* zh-Hans */,
 			);
 			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";
@@ -402,6 +445,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -462,6 +506,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
