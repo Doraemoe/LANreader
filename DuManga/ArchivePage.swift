@@ -25,14 +25,29 @@ struct ArchivePage: View {
     }
     
     var body: some View {
-        currentPage
-            .resizable()
-            .scaledToFit()
-            .onTapGesture(perform: nextPage)
-            .onLongPressGesture(perform: { self.navBarHidden.toggle() })
-            .navigationBarHidden(navBarHidden)
-            .navigationBarTitle("")
-            .onAppear(perform: { self.postExtract(id: self.id)})
+        ZStack {
+            currentPage
+                .resizable()
+                .scaledToFit()
+                .navigationBarHidden(navBarHidden)
+                .navigationBarTitle("")
+                .onAppear(perform: { self.postExtract(id: self.id)})
+            HStack {
+                Rectangle()
+                    .opacity(0.0001) // opaque object does not response to tap event
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: nextPage)
+                Rectangle()
+                    .opacity(0.0001)
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: {self.navBarHidden.toggle()})
+                Rectangle()
+                    .opacity(0.0001)
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: previousPage)
+            }
+        }
+        
     }
     
     func postExtract(id: String) {
@@ -57,6 +72,18 @@ struct ArchivePage: View {
     func nextPage() {
         currentIndex += 1
         if currentIndex < allPages.count {
+            client.getArchivePage(page: allPages[currentIndex]) {
+                (image: UIImage?) in
+                if let img = image {
+                    self.currentPage = Image(uiImage: img)
+                }
+            }
+        }
+    }
+    
+    func previousPage() {
+        currentIndex -= 1
+        if currentIndex >= 0 {
             client.getArchivePage(page: allPages[currentIndex]) {
                 (image: UIImage?) in
                 if let img = image {
