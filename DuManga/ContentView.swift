@@ -16,7 +16,7 @@ struct ContentView: View {
                 if (self.settingView) {
                     LANraragiConfigView(settingView: $settingView)
                 } else {
-                    ArchiveList()
+                    ArchiveList(settingView: $settingView)
                 }
             }
     }

@@ -15,9 +15,9 @@ struct LANraragiConfigView: View {
     
     var body: some View {
         VStack {
-            TextField("Host address", text: self.$url)
+            TextField("Host address, with http(s):// protocol", text: self.$url)
                 .padding()
-            SecureField("API Key", text: self.$apiKey)
+            SecureField("API Key, can be set in settings. This is not your password.", text: self.$apiKey)
                 .padding()
             Button(action: {
                 let config = ["url": self.url, "apiKey": self.apiKey]

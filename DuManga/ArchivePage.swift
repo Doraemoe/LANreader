@@ -25,16 +25,14 @@ struct ArchivePage: View {
     }
     
     var body: some View {
-        Group {
-            currentPage
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .onTapGesture(perform: nextPage)
-                .onLongPressGesture(perform: { self.navBarHidden.toggle() })
-        }
-        .navigationBarHidden(navBarHidden)
-        .navigationBarTitle("")
-        .onAppear(perform: { self.postExtract(id: self.id)})
+        currentPage
+            .resizable()
+            .scaledToFit()
+            .onTapGesture(perform: nextPage)
+            .onLongPressGesture(perform: { self.navBarHidden.toggle() })
+            .navigationBarHidden(navBarHidden)
+            .navigationBarTitle("")
+            .onAppear(perform: { self.postExtract(id: self.id)})
     }
     
     func postExtract(id: String) {
