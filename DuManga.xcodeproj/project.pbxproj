@@ -31,6 +31,7 @@
 		7D354D0724F23A2700617F4A /* ArchiveList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0624F23A2700617F4A /* ArchiveList.swift */; };
 		7D354D0B24F23FC700617F4A /* LANraragiConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0A24F23FC700617F4A /* LANraragiConfigView.swift */; };
 		7D354D1024F282D400617F4A /* ArchivePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0F24F282D300617F4A /* ArchivePage.swift */; };
+		7D7B26A224F4D13600149341 /* LICENSE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7D7B26A124F4D13600149341 /* LICENSE.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -78,6 +79,7 @@
 		7D354D0A24F23FC700617F4A /* LANraragiConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LANraragiConfigView.swift; sourceTree = "<group>"; };
 		7D354D0C24F251D600617F4A /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/LaunchScreen.strings"; sourceTree = "<group>"; };
 		7D354D0F24F282D300617F4A /* ArchivePage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivePage.swift; sourceTree = "<group>"; };
+		7D7B26A124F4D13600149341 /* LICENSE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LICENSE.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,6 +114,7 @@
 		7D354C9324F1316800617F4A = {
 			isa = PBXGroup;
 			children = (
+				7D7B26A124F4D13600149341 /* LICENSE.md */,
 				7D354CF224F222FC00617F4A /* README.md */,
 				7D354C9E24F1316800617F4A /* DuManga */,
 				7D354CB524F1316E00617F4A /* DuMangaTests */,
@@ -356,6 +359,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7D7B26A224F4D13600149341 /* LICENSE.md in Resources */,
 				7D354CAC24F1316D00617F4A /* LaunchScreen.storyboard in Resources */,
 				7D354CA924F1316D00617F4A /* Preview Assets.xcassets in Resources */,
 				7D354CF324F222FC00617F4A /* README.md in Resources */,

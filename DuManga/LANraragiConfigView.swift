@@ -1,10 +1,4 @@
-//
-//  LANraragiConfigView.swift
-//  DuManga
-//
-//  Created by Jin Yifan on 23/8/20.
-//  Copyright © 2020 Jin Yifan. All rights reserved.
-//
+//  Created 23/8/20.
 
 import SwiftUI
 

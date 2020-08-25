@@ -1,10 +1,4 @@
-//
-//  ArchiveIndexResponse.swift
-//  DuManga
-//
-//  Created by Jin Yifan on 22/8/20.
-//  Copyright © 2020 Jin Yifan. All rights reserved.
-//
+//  Created 22/8/20.
 
 struct ArchiveIndexResponse: Decodable {
     let arcid: String
