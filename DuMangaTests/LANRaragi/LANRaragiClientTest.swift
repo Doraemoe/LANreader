@@ -172,4 +172,5 @@ class LANRaragiClientTest: XCTestCase {
         })
         wait(for: [expectation], timeout: 1.0)
     }
+
 }

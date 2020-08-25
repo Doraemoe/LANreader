@@ -10,12 +10,13 @@ class LANRaragiClient {
     
     let url: String
     let auth: String
+    let imageDownloader = ImageDownloader()
     
     init(url: String, apiKey: String) {
         self.url = url
         self.auth = apiKey.data(using: .utf8)!.base64EncodedString()
     }
-
+    
     func getArchiveIndex(completionHandler: @escaping ([ArchiveIndexResponse]?) -> Void)  {
         let headers: HTTPHeaders = [
             "Authorization": "Bearer \(auth)"
@@ -23,11 +24,10 @@ class LANRaragiClient {
         AF.request("\(url)/api/archives", headers: headers)
             .validate()
             .responseDecodable(of: [ArchiveIndexResponse].self) { response in
-                do {
-                    let archiveIndex = try response.result.get()
+                if let archiveIndex = response.value {
                     completionHandler(archiveIndex)
-                } catch {
-                    LANRaragiClient.logger.error("Error retrieving the index: \(error)")
+                } else {
+                    LANRaragiClient.logger.error("Error retrieving the index. response=\"\(response.debugDescription)\"")
                     completionHandler(nil)
                 }
         }
@@ -38,16 +38,19 @@ class LANRaragiClient {
             "Authorization": "Bearer \(auth)"
         ]
         ImageResponseSerializer.addAcceptableImageContentTypes(["application/x-download"])
-        AF.request("\(url)/api/archives/\(id)/thumbnail", headers: headers)
-        .validate()
-        .responseImage { response in
-            do {
-                let thumbnail = try response.result.get()
-                completionHandler(thumbnail)
-            } catch {
-                LANRaragiClient.logger.error("Error retrieving thumbnail: \(error)")
-                completionHandler(nil)
+        do {
+            let request = try URLRequest(url: "\(url)/api/archives/\(id)/thumbnail", method: .get, headers: headers)
+            imageDownloader.download(request) { response in
+                if let thumbnail = response.value {
+                    completionHandler(thumbnail)
+                } else {
+                    LANRaragiClient.logger.error("Faile to retrieve thumbnail. response=\"\(response.debugDescription)\"")
+                    completionHandler(nil)
+                }
             }
+        } catch {
+            LANRaragiClient.logger.error("Error retrieving thumbnail. \(error)")
+            completionHandler(nil)
         }
     }
     
@@ -58,11 +61,10 @@ class LANRaragiClient {
         AF.request("\(url)/api/archives/\(id)/extract", method: .post, headers: headers)
             .validate()
             .responseDecodable(of: ArchiveExtractResponse.self) { response in
-                do {
-                    let pages = try response.result.get()
+                if let pages = response.value {
                     completionHandler(pages)
-                } catch {
-                    LANRaragiClient.logger.error("Error extracting archive: \(error)")
+                } else {
+                    LANRaragiClient.logger.error("Error extracting archive. response=\"\(response.debugDescription)\"")
                     completionHandler(nil)
                 }
         }
@@ -73,18 +75,21 @@ class LANRaragiClient {
             "Authorization": "Bearer \(auth)"
         ]
         ImageResponseSerializer.addAcceptableImageContentTypes(["application/x-download"])
-        AF.request("\(url)/\(page)", headers: headers)
-        .validate()
-        .responseImage { response in
-            do {
-                let page = try response.result.get()
-                completionHandler(page)
-            } catch {
-                LANRaragiClient.logger.error("Error retrieving page: \(error)")
-                completionHandler(nil)
+        do {
+            let request = try URLRequest(url: "\(url)/\(page)", method: .get, headers: headers)
+            imageDownloader.download(request) { response in
+                if let page = response.value {
+                    completionHandler(page)
+                } else {
+                    LANRaragiClient.logger.error("Faile to retrieve page. response=\"\(response.debugDescription)\"")
+                    completionHandler(nil)
+                }
             }
+        } catch {
+            LANRaragiClient.logger.error("Error retrieving page. \(error)")
+            completionHandler(nil)
         }
     }
-
+    
 }
 
