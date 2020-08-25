@@ -12,6 +12,7 @@ struct ArchiveRow: View {
                 .scaledToFit()
                 .frame(width: 100, height: 125)
             Text(archiveItem.name)
+                .font(.title)
             Spacer()
         }
     }

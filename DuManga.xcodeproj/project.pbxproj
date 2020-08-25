@@ -32,6 +32,7 @@
 		7D354D0B24F23FC700617F4A /* LANraragiConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0A24F23FC700617F4A /* LANraragiConfigView.swift */; };
 		7D354D1024F282D400617F4A /* ArchivePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0F24F282D300617F4A /* ArchivePage.swift */; };
 		7D7B26A224F4D13600149341 /* LICENSE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7D7B26A124F4D13600149341 /* LICENSE.md */; };
+		7D7B26A924F52A7F00149341 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7D7B26AB24F52A7F00149341 /* Localizable.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +81,9 @@
 		7D354D0C24F251D600617F4A /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/LaunchScreen.strings"; sourceTree = "<group>"; };
 		7D354D0F24F282D300617F4A /* ArchivePage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivePage.swift; sourceTree = "<group>"; };
 		7D7B26A124F4D13600149341 /* LICENSE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LICENSE.md; sourceTree = "<group>"; };
+		7D7B26A624F526EF00149341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
+		7D7B26AA24F52A7F00149341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		7D7B26AC24F52A8200149341 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -114,6 +118,7 @@
 		7D354C9324F1316800617F4A = {
 			isa = PBXGroup;
 			children = (
+				7D7B26AB24F52A7F00149341 /* Localizable.strings */,
 				7D7B26A124F4D13600149341 /* LICENSE.md */,
 				7D354CF224F222FC00617F4A /* README.md */,
 				7D354C9E24F1316800617F4A /* DuManga */,
@@ -360,6 +365,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7D7B26A224F4D13600149341 /* LICENSE.md in Resources */,
+				7D7B26A924F52A7F00149341 /* Localizable.strings in Resources */,
 				7D354CAC24F1316D00617F4A /* LaunchScreen.storyboard in Resources */,
 				7D354CA924F1316D00617F4A /* Preview Assets.xcassets in Resources */,
 				7D354CF324F222FC00617F4A /* README.md in Resources */,
@@ -442,8 +448,18 @@
 			children = (
 				7D354CAB24F1316D00617F4A /* Base */,
 				7D354D0C24F251D600617F4A /* zh-Hans */,
+				7D7B26A624F526EF00149341 /* en */,
 			);
 			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		7D7B26AB24F52A7F00149341 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				7D7B26AA24F52A7F00149341 /* en */,
+				7D7B26AC24F52A8200149341 /* zh-Hans */,
+			);
+			name = Localizable.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
