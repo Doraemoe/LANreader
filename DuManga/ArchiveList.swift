@@ -25,11 +25,11 @@ struct ArchiveList: View {
                 }
             }
             .onAppear(perform: loadData)
-            .navigationBarTitle(Text("Archives"))
+            .navigationBarTitle(Text("archive.list.title"))
             .navigationBarItems(trailing:Button(action: {
                 self.settingView.toggle()
             }) {
-                Text("Settings")
+                Text("archive.list.settings")
             } )
         }
         .navigationViewStyle(StackNavigationViewStyle())
