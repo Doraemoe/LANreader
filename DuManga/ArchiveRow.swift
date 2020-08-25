@@ -9,6 +9,7 @@ struct ArchiveRow: View {
         HStack {
             archiveItem.thumbnail
                 .resizable()
+                .scaledToFit()
                 .frame(width: 100, height: 125)
             Text(archiveItem.name)
             Spacer()
