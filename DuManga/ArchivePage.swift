@@ -64,8 +64,8 @@ struct ArchivePage: View {
     }
     
     func nextPage() {
-        currentIndex += 1
-        if currentIndex < allPages.count {
+        if currentIndex < allPages.count - 1 {
+            currentIndex += 1
             client.getArchivePage(page: allPages[currentIndex]) {
                 (image: UIImage?) in
                 if let img = image {
@@ -76,8 +76,8 @@ struct ArchivePage: View {
     }
     
     func previousPage() {
-        currentIndex -= 1
-        if currentIndex >= 0 {
+        if currentIndex > 0 {
+            currentIndex -= 1
             client.getArchivePage(page: allPages[currentIndex]) {
                 (image: UIImage?) in
                 if let img = image {
