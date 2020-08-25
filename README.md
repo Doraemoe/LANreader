@@ -13,3 +13,7 @@ DuReader is a manga reader for [LANraragi](https://github.com/Difegue/LANraragi)
 - Clone this project
 - Open it in Xcode
 - Follow [this guide](https://developer.apple.com/documentation/xcode/running_your_app_in_the_simulator_or_on_a_device)
+
+## License
+
+MIT
