@@ -1,5 +1,6 @@
 "library" = "Library";
 "settings" = "Settings";
+"loading" = "Loading...";
 
 "lanraragi.config.url" = "http(s)://10.0.1.10:3000";
 "lanraragi.config.apiKey" = "API Key, can be set in settings. This is NOT your password";
