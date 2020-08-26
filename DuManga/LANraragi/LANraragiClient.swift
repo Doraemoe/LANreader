@@ -91,5 +91,59 @@ class LANRaragiClient {
         }
     }
     
+    func getCategories(completionHandler: @escaping ([ArchiveCategoriesResponse]?) -> Void) {
+        let headers: HTTPHeaders = [
+            "Authorization": "Bearer \(auth)"
+        ]
+        AF.request("\(url)/api/categories", headers: headers)
+            .validate()
+            .responseDecodable(of: [ArchiveCategoriesResponse].self) { response in
+                if let archiveCategories = response.value {
+                    completionHandler(archiveCategories)
+                } else {
+                    LANRaragiClient.logger.error("Error retrieving archive categories. response=\"\(response.debugDescription)\"")
+                    completionHandler(nil)
+                }
+        }
+    }
+    
+    func searchArchiveIndex(category: String?,
+                            filter: String?,
+                            start: String?,
+                            sortby: String?,
+                            order: String?,
+                            completionHandler: @escaping (ArchiveSearchResponse?) -> Void) {
+        let headers: HTTPHeaders = [
+            "Authorization": "Bearer \(auth)"
+        ]
+        var query = [String: String]()
+        if let it = category {
+            query["category"] = it
+        }
+        if let it = filter {
+            query["filter"] = it
+        }
+        if let it = start {
+            query["start"] = it
+        }
+        if let it = sortby {
+            query["sortby"] = it
+        }
+        if let it = order {
+            query["order"] = it
+        }
+        
+        AF.request("\(url)/api/search", parameters: query, headers: headers)
+            .validate()
+            .responseDecodable(of: ArchiveSearchResponse.self) { response in
+                if let archiveSearchResult = response.value {
+                    completionHandler(archiveSearchResult)
+                } else {
+                    LANRaragiClient.logger.error("Error search archive. response=\"\(response.debugDescription)\"")
+                    completionHandler(nil)
+                }
+        }
+    }
+    
 }
 

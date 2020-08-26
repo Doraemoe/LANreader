@@ -1,0 +1,24 @@
+[
+    {
+        "archives": [
+            "abcd",
+            "efgh",
+            "1234",
+            "5678",
+            "zzzz"
+        ],
+        "id": "SET_1234567",
+        "last_used": "12345678",
+        "name": "static",
+        "pinned": "0",
+        "search": ""
+    },
+    {
+        "archives": [],
+        "id": "SET_0987654",
+        "last_used": "098765432",
+        "name": "dynamic",
+        "pinned": "0",
+        "search": "keyword"
+    }
+]

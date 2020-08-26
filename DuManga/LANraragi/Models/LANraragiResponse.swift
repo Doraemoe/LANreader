@@ -10,3 +10,19 @@ struct ArchiveIndexResponse: Decodable {
 struct ArchiveExtractResponse: Decodable {
     let pages: [String]
 }
+
+struct ArchiveCategoriesResponse: Decodable {
+    let archives: [String]
+    let id: String
+    let last_used: String
+    let name: String
+    let pinned: String
+    let search: String
+}
+
+struct ArchiveSearchResponse: Decodable {
+    let data: [ArchiveIndexResponse]
+    let draw: Int
+    let recordsFiltered: Int
+    let recordsTotal: Int
+}

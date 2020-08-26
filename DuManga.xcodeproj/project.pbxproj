@@ -34,6 +34,8 @@
 		7D7B26A224F4D13600149341 /* LICENSE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7D7B26A124F4D13600149341 /* LICENSE.md */; };
 		7D7B26A924F52A7F00149341 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7D7B26AB24F52A7F00149341 /* Localizable.strings */; };
 		7D80326A24F684D800AA8BD2 /* ActivityIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D80326924F684D800AA8BD2 /* ActivityIndicator.swift */; };
+		7D80326C24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D80326B24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json */; };
+		7D80326E24F68F6900AA8BD2 /* ArchiveSearchResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D80326D24F68F6900AA8BD2 /* ArchiveSearchResponse.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -86,6 +88,8 @@
 		7D7B26AA24F52A7F00149341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		7D7B26AC24F52A8200149341 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		7D80326924F684D800AA8BD2 /* ActivityIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityIndicator.swift; sourceTree = "<group>"; };
+		7D80326B24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveCategoriesResponse.json; sourceTree = "<group>"; };
+		7D80326D24F68F6900AA8BD2 /* ArchiveSearchResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveSearchResponse.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -215,6 +219,8 @@
 			children = (
 				7D354CEC24F1FC3000617F4A /* ArchiveIndexResponse.json */,
 				7D354CF024F21B3400617F4A /* ArchiveExtractResponse.json */,
+				7D80326B24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json */,
+				7D80326D24F68F6900AA8BD2 /* ArchiveSearchResponse.json */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -381,8 +387,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				7D354CED24F1FC3000617F4A /* ArchiveIndexResponse.json in Resources */,
+				7D80326C24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json in Resources */,
 				7D354CEF24F2084900617F4A /* placeholder.jpg in Resources */,
 				7D354CF124F21B3400617F4A /* ArchiveExtractResponse.json in Resources */,
+				7D80326E24F68F6900AA8BD2 /* ArchiveSearchResponse.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
