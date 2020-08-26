@@ -7,6 +7,7 @@ struct ArchivePage: View {
     @State var currentIndex = 0
     @State var allPages = [String]()
     @State var navBarHidden = true
+    @State var isLoading = false
     let id: String
     
     private let config: [String: String]
@@ -19,31 +20,44 @@ struct ArchivePage: View {
     }
     
     var body: some View {
-        ZStack {
-            currentPage
-                .resizable()
-                .scaledToFit()
-                .navigationBarHidden(navBarHidden)
-                .navigationBarTitle("")
-                .onAppear(perform: { self.postExtract(id: self.id)})
-            HStack {
-                Rectangle()
-                    .opacity(0.0001) // opaque object does not response to tap event
-                    .contentShape(Rectangle())
-                    .onTapGesture(perform: nextPage)
-                Rectangle()
-                    .opacity(0.0001)
-                    .contentShape(Rectangle())
-                    .onTapGesture(perform: {self.navBarHidden.toggle()})
-                Rectangle()
-                    .opacity(0.0001)
-                    .contentShape(Rectangle())
-                    .onTapGesture(perform: previousPage)
+        GeometryReader { geometry in
+            ZStack {
+                self.currentPage
+                    .resizable()
+                    .scaledToFit()
+                    .navigationBarHidden(self.navBarHidden)
+                    .navigationBarTitle("")
+                    .onAppear(perform: { self.postExtract(id: self.id)})
+                HStack {
+                    Rectangle()
+                        .opacity(0.0001) // opaque object does not response to tap event
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: self.nextPage)
+                    Rectangle()
+                        .opacity(0.0001)
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: {self.navBarHidden.toggle()})
+                    Rectangle()
+                        .opacity(0.0001)
+                        .contentShape(Rectangle())
+                        .onTapGesture(perform: self.previousPage)
+                }
+                VStack {
+                    Text("loading")
+                    ActivityIndicator(isAnimating: self.$isLoading, style: .large)
+                }
+                .frame(width: geometry.size.width / 3,
+                       height: geometry.size.height / 5)
+                    .background(Color.secondary.colorInvert())
+                    .foregroundColor(Color.primary)
+                    .cornerRadius(20)
+                    .opacity(self.isLoading ? 1 : 0)
             }
         }
     }
     
     func postExtract(id: String) {
+        self.isLoading = true
         client.postArchiveExtract(id: id) { (response: ArchiveExtractResponse?) in
             if let res = response {
                 for (index, page) in res.pages.enumerated() {
@@ -59,6 +73,7 @@ struct ArchivePage: View {
                     }
                 }
             }
+            self.isLoading = false
         }
     }
     

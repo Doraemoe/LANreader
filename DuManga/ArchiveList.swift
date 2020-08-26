@@ -4,6 +4,7 @@ import SwiftUI
 
 struct ArchiveList: View {
     @State var archiveItems = [String: ArchiveItem]()
+    @State var isLoading = false
     @Binding var navBarTitle: String
     
     private let config: [String: String]
@@ -16,24 +17,44 @@ struct ArchiveList: View {
     }
     
     var body: some View {
-            List(Array(archiveItems.values)) { (item: ArchiveItem) in
-                NavigationLink(destination: ArchivePage(id: item.id)) {
-                    ArchiveRow(archiveItem: item)
-                        .onAppear(perform: { self.loadArchiveThumbnail(id: item.id)
-                        })
+        GeometryReader { geometry in
+            ZStack {
+                List(Array(self.archiveItems.values)) { (item: ArchiveItem) in
+                    NavigationLink(destination: ArchivePage(id: item.id)) {
+                        ArchiveRow(archiveItem: item)
+                            .onAppear(perform: { self.loadArchiveThumbnail(id: item.id)
+                            })
+                    }
                 }
+                .onAppear(perform: { self.navBarTitle = "library" })
+                .onAppear(perform: self.loadData)
+                
+                VStack {
+                    Text("loading")
+                    ActivityIndicator(isAnimating: self.$isLoading, style: .large)
+                }
+                .frame(width: geometry.size.width / 3,
+                       height: geometry.size.height / 5)
+                    .background(Color.secondary.colorInvert())
+                    .foregroundColor(Color.primary)
+                    .cornerRadius(20)
+                    .opacity(self.isLoading ? 1 : 0)
             }
-            .onAppear(perform: { self.navBarTitle = "library" })
-            .onAppear(perform: loadData)        
+        }
     }
     
     func loadData() {
+        if (self.archiveItems.count > 0) {
+            return
+        }
+        self.isLoading = true
         client.getArchiveIndex {(items: [ArchiveIndexResponse]?) in
             items?.forEach { item in
                 if self.archiveItems[item.arcid] == nil {
                     self.archiveItems[item.arcid] = (ArchiveItem(id: item.arcid, name: item.title, thumbnail: Image("placeholder")))
                 }
             }
+            self.isLoading = false
         }
     }
     

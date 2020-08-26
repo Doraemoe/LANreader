@@ -1,5 +1,6 @@
 "library" = "库";
 "settings" = "设置";
+"loading" = "加载中";
 
 "lanraragi.config.url" = "http(s)://10.0.1.10:3000";
 "lanraragi.config.apiKey" = "API Key, 可以在设置里设定. 这不是你的密码";
