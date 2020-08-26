@@ -41,7 +41,6 @@ struct ArchivePage: View {
                     .onTapGesture(perform: previousPage)
             }
         }
-        
     }
     
     func postExtract(id: String) {

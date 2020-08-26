@@ -1,6 +1,6 @@
-"archive.list.title" = "Archives";
-"archive.list.settings" = "Settings";
+"library" = "Library";
+"settings" = "Settings";
 
-"lanraragi.config.url" = "Host address, with http(s):// protocol";
-"lanraragi.config.apiKey" = "API Key, can be set in settings. This is not your password";
+"lanraragi.config.url" = "http(s)://10.0.1.10:3000";
+"lanraragi.config.apiKey" = "API Key, can be set in settings. This is NOT your password";
 "lanraragi.config.submit" = "Submit";

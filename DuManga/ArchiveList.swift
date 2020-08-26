@@ -4,19 +4,18 @@ import SwiftUI
 
 struct ArchiveList: View {
     @State var archiveItems = [String: ArchiveItem]()
-    @Binding var settingView: Bool
+    @Binding var navBarTitle: String
     
     private let config: [String: String]
     private let client: LANRaragiClient
     
-    init(settingView: Binding<Bool>) {
+    init(navBarTitle: Binding<String>) {
         self.config = UserDefaults.standard.dictionary(forKey: "LANraragi") as? [String: String] ?? [String: String]()
         self.client = LANRaragiClient(url: config["url"]!, apiKey: config["apiKey"]!)
-        self._settingView = settingView
+        self._navBarTitle = navBarTitle
     }
     
     var body: some View {
-        NavigationView {
             List(Array(archiveItems.values)) { (item: ArchiveItem) in
                 NavigationLink(destination: ArchivePage(id: item.id)) {
                     ArchiveRow(archiveItem: item)
@@ -24,15 +23,8 @@ struct ArchiveList: View {
                         })
                 }
             }
-            .onAppear(perform: loadData)
-            .navigationBarTitle(Text("archive.list.title"))
-            .navigationBarItems(trailing:Button(action: {
-                self.settingView.toggle()
-            }) {
-                Text("archive.list.settings")
-            } )
-        }
-        .navigationViewStyle(StackNavigationViewStyle())
+            .onAppear(perform: { self.navBarTitle = "library" })
+            .onAppear(perform: loadData)        
     }
     
     func loadData() {
@@ -61,6 +53,6 @@ struct ArchiveList_Previews: PreviewProvider {
     static var previews: some View {
         let config = ["url": "http://localhost", "apiKey": "apiKey"]
         UserDefaults.standard.set(config, forKey: "LANraragi")
-        return ArchiveList(settingView: Binding.constant(false))
+        return ArchiveList(navBarTitle: Binding.constant("library"))
     }
 }
