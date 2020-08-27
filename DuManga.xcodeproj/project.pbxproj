@@ -27,7 +27,7 @@
 		7D354CF124F21B3400617F4A /* ArchiveExtractResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CF024F21B3400617F4A /* ArchiveExtractResponse.json */; };
 		7D354CF324F222FC00617F4A /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CF224F222FC00617F4A /* README.md */; };
 		7D354D0124F2379000617F4A /* ArchiveRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0024F2379000617F4A /* ArchiveRow.swift */; };
-		7D354D0524F2387900617F4A /* ArchiveItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0424F2387900617F4A /* ArchiveItem.swift */; };
+		7D354D0524F2387900617F4A /* ViewItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0424F2387900617F4A /* ViewItem.swift */; };
 		7D354D0724F23A2700617F4A /* ArchiveList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0624F23A2700617F4A /* ArchiveList.swift */; };
 		7D354D0B24F23FC700617F4A /* LANraragiConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0A24F23FC700617F4A /* LANraragiConfigView.swift */; };
 		7D354D1024F282D400617F4A /* ArchivePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0F24F282D300617F4A /* ArchivePage.swift */; };
@@ -36,6 +36,7 @@
 		7D80326A24F684D800AA8BD2 /* ActivityIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D80326924F684D800AA8BD2 /* ActivityIndicator.swift */; };
 		7D80326C24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D80326B24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json */; };
 		7D80326E24F68F6900AA8BD2 /* ArchiveSearchResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D80326D24F68F6900AA8BD2 /* ArchiveSearchResponse.json */; };
+		7DA47B6F24F7C051000FB4CF /* CategoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DA47B6E24F7C051000FB4CF /* CategoryList.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -78,7 +79,7 @@
 		7D354CF024F21B3400617F4A /* ArchiveExtractResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveExtractResponse.json; sourceTree = "<group>"; };
 		7D354CF224F222FC00617F4A /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		7D354D0024F2379000617F4A /* ArchiveRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveRow.swift; sourceTree = "<group>"; };
-		7D354D0424F2387900617F4A /* ArchiveItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveItem.swift; sourceTree = "<group>"; };
+		7D354D0424F2387900617F4A /* ViewItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewItem.swift; sourceTree = "<group>"; };
 		7D354D0624F23A2700617F4A /* ArchiveList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveList.swift; sourceTree = "<group>"; };
 		7D354D0A24F23FC700617F4A /* LANraragiConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LANraragiConfigView.swift; sourceTree = "<group>"; };
 		7D354D0C24F251D600617F4A /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/LaunchScreen.strings"; sourceTree = "<group>"; };
@@ -90,6 +91,7 @@
 		7D80326924F684D800AA8BD2 /* ActivityIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityIndicator.swift; sourceTree = "<group>"; };
 		7D80326B24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveCategoriesResponse.json; sourceTree = "<group>"; };
 		7D80326D24F68F6900AA8BD2 /* ArchiveSearchResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveSearchResponse.json; sourceTree = "<group>"; };
+		7DA47B6E24F7C051000FB4CF /* CategoryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryList.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -236,7 +238,7 @@
 		7D354D0224F237AE00617F4A /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				7D354D0424F2387900617F4A /* ArchiveItem.swift */,
+				7D354D0424F2387900617F4A /* ViewItem.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -250,6 +252,7 @@
 				7D354D0A24F23FC700617F4A /* LANraragiConfigView.swift */,
 				7D354D0F24F282D300617F4A /* ArchivePage.swift */,
 				7D80326924F684D800AA8BD2 /* ActivityIndicator.swift */,
+				7DA47B6E24F7C051000FB4CF /* CategoryList.swift */,
 			);
 			name = Views;
 			sourceTree = "<group>";
@@ -412,13 +415,14 @@
 				7D354D1024F282D400617F4A /* ArchivePage.swift in Sources */,
 				7D354D0124F2379000617F4A /* ArchiveRow.swift in Sources */,
 				7D354D0724F23A2700617F4A /* ArchiveList.swift in Sources */,
-				7D354D0524F2387900617F4A /* ArchiveItem.swift in Sources */,
+				7D354D0524F2387900617F4A /* ViewItem.swift in Sources */,
 				7D80326A24F684D800AA8BD2 /* ActivityIndicator.swift in Sources */,
 				7D354CA024F1316800617F4A /* AppDelegate.swift in Sources */,
 				7D354CA224F1316800617F4A /* SceneDelegate.swift in Sources */,
 				7D354D0B24F23FC700617F4A /* LANraragiConfigView.swift in Sources */,
 				7D354CA424F1316800617F4A /* ContentView.swift in Sources */,
 				7D354CDA24F13C4900617F4A /* LANraragiResponse.swift in Sources */,
+				7DA47B6F24F7C051000FB4CF /* CategoryList.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

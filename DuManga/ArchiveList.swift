@@ -10,9 +10,16 @@ struct ArchiveList: View {
     private let config: [String: String]
     private let client: LANRaragiClient
     
-    init(navBarTitle: Binding<String>) {
+    private let searchKeyword: String?
+    private let categoryArchives: [String]?
+    private let navBarTitleOverride: String?
+    
+    init(navBarTitle: Binding<String>, searchKeyword: String? = nil, categoryArchives: [String]? = nil, navBarTitleOverride: String? = nil) {
         self.config = UserDefaults.standard.dictionary(forKey: "LANraragi") as? [String: String] ?? [String: String]()
         self.client = LANRaragiClient(url: config["url"]!, apiKey: config["apiKey"]!)
+        self.searchKeyword = searchKeyword
+        self.categoryArchives = categoryArchives
+        self.navBarTitleOverride = navBarTitleOverride
         self._navBarTitle = navBarTitle
     }
     
@@ -26,7 +33,9 @@ struct ArchiveList: View {
                             })
                     }
                 }
-                .onAppear(perform: { self.navBarTitle = "library" })
+                .onAppear(perform: {
+                    self.navBarTitle = self.navBarTitleOverride ?? "library"
+                })
                 .onAppear(perform: self.loadData)
                 
                 VStack {
@@ -48,13 +57,24 @@ struct ArchiveList: View {
             return
         }
         self.isLoading = true
-        client.getArchiveIndex {(items: [ArchiveIndexResponse]?) in
-            items?.forEach { item in
-                if self.archiveItems[item.arcid] == nil {
-                    self.archiveItems[item.arcid] = (ArchiveItem(id: item.arcid, name: item.title, thumbnail: Image("placeholder")))
+        if searchKeyword != nil {
+            client.searchArchiveIndex(filter: searchKeyword) {(result: ArchiveSearchResponse?) in
+                result?.data.forEach { item in
+                    if self.archiveItems[item.arcid] == nil {
+                        self.archiveItems[item.arcid] = (ArchiveItem(id: item.arcid, name: item.title, thumbnail: Image("placeholder")))
+                    }
                 }
+                self.isLoading = false
             }
-            self.isLoading = false
+        } else {
+            client.getArchiveIndex {(items: [ArchiveIndexResponse]?) in
+                items?.forEach { item in
+                    if self.archiveItems[item.arcid] == nil {
+                        self.archiveItems[item.arcid] = (ArchiveItem(id: item.arcid, name: item.title, thumbnail: Image("placeholder")))
+                    }
+                }
+                self.isLoading = false
+            }
         }
     }
     
