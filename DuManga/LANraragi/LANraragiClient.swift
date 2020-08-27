@@ -33,6 +33,22 @@ class LANRaragiClient {
         }
     }
     
+    func getArchiveMetadata(id: String, completionHandler: @escaping (ArchiveIndexResponse?) -> Void) {
+        let headers: HTTPHeaders = [
+            "Authorization": "Bearer \(auth)"
+        ]
+        AF.request("\(url)/api/archives/\(id)/metadata", headers: headers)
+            .validate()
+            .responseDecodable(of: ArchiveIndexResponse.self) { response in
+                if let archiveMetadata = response.value {
+                    completionHandler(archiveMetadata)
+                } else {
+                    LANRaragiClient.logger.error("Error retrieving archive metadata. response=\"\(response.debugDescription)\"")
+                    completionHandler(nil)
+                }
+        }
+    }
+    
     func getArchiveThumbnail(id: String, completionHandler: @escaping (Image?) -> Void) {
         let headers: HTTPHeaders = [
             "Authorization": "Bearer \(auth)"
