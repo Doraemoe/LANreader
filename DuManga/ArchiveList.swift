@@ -57,7 +57,7 @@ struct ArchiveList: View {
             return
         }
         self.isLoading = true
-        if searchKeyword != nil {
+        if searchKeyword != nil && !searchKeyword!.isEmpty {
             client.searchArchiveIndex(filter: searchKeyword) {(result: ArchiveSearchResponse?) in
                 result?.data.forEach { item in
                     if self.archiveItems[item.arcid] == nil {
@@ -66,6 +66,17 @@ struct ArchiveList: View {
                 }
                 self.isLoading = false
             }
+        } else if categoryArchives != nil && !categoryArchives!.isEmpty {
+            categoryArchives?.forEach { archiveId in
+                client.getArchiveMetadata(id: archiveId) { (item: ArchiveIndexResponse?) in
+                    if let it = item {
+                        if self.archiveItems[it.arcid] == nil {
+                            self.archiveItems[it.arcid] = (ArchiveItem(id: it.arcid, name: it.title, thumbnail: Image("placeholder")))
+                        }
+                    }
+                }
+            }
+            self.isLoading = false
         } else {
             client.getArchiveIndex {(items: [ArchiveIndexResponse]?) in
                 items?.forEach { item in
