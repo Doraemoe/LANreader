@@ -107,30 +107,30 @@ class LANRaragiClient {
         }
     }
     
-    func searchArchiveIndex(category: String?,
-                            filter: String?,
-                            start: String?,
-                            sortby: String?,
-                            order: String?,
+    func searchArchiveIndex(category: String? = nil,
+                            filter: String? = nil,
+                            start: String? = nil,
+                            sortby: String? = nil,
+                            order: String? = nil,
                             completionHandler: @escaping (ArchiveSearchResponse?) -> Void) {
         let headers: HTTPHeaders = [
             "Authorization": "Bearer \(auth)"
         ]
         var query = [String: String]()
-        if let it = category {
-            query["category"] = it
+        if category != nil {
+            query["category"] = category
         }
-        if let it = filter {
-            query["filter"] = it
+        if filter != nil {
+            query["filter"] = filter
         }
-        if let it = start {
-            query["start"] = it
+        if start != nil {
+            query["start"] = start
         }
-        if let it = sortby {
-            query["sortby"] = it
+        if sortby != nil {
+            query["sortby"] = sortby
         }
-        if let it = order {
-            query["order"] = it
+        if order != nil {
+            query["order"] = order
         }
         
         AF.request("\(url)/api/search", parameters: query, headers: headers)

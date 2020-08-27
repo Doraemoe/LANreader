@@ -17,8 +17,12 @@ struct ContentView: View {
                             .tabItem {
                                 Text("library")
                         }
+                        CategoryList(navBarTitle: $navBarTitle)
+                            .tabItem {
+                                Text("category")
+                        }
                     }
-                    .navigationBarTitle(Text(navBarTitle), displayMode: .inline)
+                    .navigationBarTitle(Text(NSLocalizedString(navBarTitle, comment: "String will not be localized without force use NSLocalizedString")), displayMode: .inline)
                     .navigationBarItems(trailing:Button(action: {
                         self.settingView.toggle()
                     }) {

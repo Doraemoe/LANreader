@@ -8,3 +8,10 @@ struct ArchiveItem: Identifiable {
     let name: String
     var thumbnail: Image
 }
+
+struct CategoryItem: Identifiable {
+    let id: String
+    let name: String
+    let archives: [String]
+    let search: String
+}
