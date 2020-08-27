@@ -57,6 +57,48 @@ class LANRaragiClientTest: XCTestCase {
         wait(for: [expectation], timeout: 1.0)
     }
     
+    func testGetArchiveMetadata() throws {
+        stub(condition: isHost("localhost")
+            && isPath("/api/archives/id/metadata")
+            && isMethodGET()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
+            return HTTPStubsResponse(
+            fileAtPath: OHPathForFile("ArchiveMetadataResponse.json", type(of: self))!, statusCode: 200, headers: ["Content-Type":"application/json"])
+        }
+        
+        let client = LANRaragiClient(url: url, apiKey: apiKey)
+        
+        let expectation = XCTestExpectation(description: "testGetArchiveMetadata")
+        client.getArchiveMetadata(id: "id") { (res: ArchiveIndexResponse?) in
+            XCTAssertNotNil(res)
+            XCTAssertEqual(res?.arcid, "abcd1234")
+            XCTAssertEqual(res?.isnew, "false")
+            XCTAssertEqual(res?.tags, "artist:abc, language:def, parody:ghi, category:jkl")
+            XCTAssertEqual(res?.title, "title")
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
+    }
+    
+    func testGetArchiveMetadataFailure() throws {
+        stub(condition: isHost("localhost")
+            && isPath("/api/archives/id/metadata")
+            && isMethodGET()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
+            return HTTPStubsResponse(
+                jsonObject: ["error": "This API is protected and requires login or an API Key."], statusCode: 401, headers: ["Content-Type":"application/json"])
+        }
+        
+        let client = LANRaragiClient(url: url, apiKey: apiKey)
+        
+        let expectation = XCTestExpectation(description: "testGetArchiveMetadataFailure")
+        client.getArchiveMetadata(id: "id") { (res: ArchiveIndexResponse?) in
+            XCTAssertNil(res)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
+    }
+    
     func testGetArchiveThumbnail() throws {
         stub(condition: isHost("localhost")
             && isPath("/api/archives/1/thumbnail")
@@ -238,7 +280,7 @@ class LANRaragiClientTest: XCTestCase {
         let client = LANRaragiClient(url: url, apiKey: apiKey)
         
         let expectation = XCTestExpectation(description: "testSearchArchiveIndex")
-        client.searchArchiveIndex(category: "SET_12345678", filter: nil, start: nil, sortby: nil, order: nil) { (res: ArchiveSearchResponse?) in
+        client.searchArchiveIndex(category: "SET_12345678") { (res: ArchiveSearchResponse?) in
             XCTAssertNotNil(res)
             XCTAssertEqual(res?.data.count, 1)
             XCTAssertEqual(res?.draw, 0)
@@ -262,7 +304,7 @@ class LANRaragiClientTest: XCTestCase {
         let client = LANRaragiClient(url: url, apiKey: apiKey)
         
         let expectation = XCTestExpectation(description: "testSearchArchiveIndexFailure")
-        client.getArchiveIndex() { (res: ArchiveSearchResponse?) in
+        client.searchArchiveIndex(category: "SET_12345678") { (res: ArchiveSearchResponse?) in
             XCTAssertNil(res)
             expectation.fulfill()
         }
