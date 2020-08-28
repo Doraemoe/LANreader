@@ -42,6 +42,14 @@ struct ArchivePage: View {
                         .contentShape(Rectangle())
                         .onTapGesture(perform: self.previousPage)
                 }
+                .gesture(DragGesture(minimumDistance: 50, coordinateSpace: .global).onEnded { value in
+                    if value.translation.width < 0 {
+                        self.nextPage()
+                    }
+                    else if value.translation.width > 0 {
+                        self.previousPage()
+                    }
+                })
                 VStack {
                     Text("loading")
                     ActivityIndicator(isAnimating: self.$isLoading, style: .large)
