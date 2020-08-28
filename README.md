@@ -4,9 +4,9 @@ DuReader is a manga reader for [LANraragi](https://github.com/Difegue/LANraragi)
 
 ## Control in Read View
 
-- Next page: tap left side of the screen
+- Next page: tap left side of the screen or swipe to left
 - Navigation menu: tap middle of the screen
-- Previous page: tap right side of the screen
+- Previous page: tap right side of the screen or swipe to right
 
 ## Test on your device
 
