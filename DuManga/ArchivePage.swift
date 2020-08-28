@@ -4,9 +4,9 @@ import SwiftUI
 
 struct ArchivePage: View {
     @State var currentPage = Image("placeholder")
-    @State var currentIndex = 0
+    @State var currentIndex: Double = 0
     @State var allPages = [String]()
-    @State var navBarHidden = true
+    @State var controlUiHidden = true
     @State var isLoading = false
     let id: String
     
@@ -25,7 +25,7 @@ struct ArchivePage: View {
                 self.currentPage
                     .resizable()
                     .scaledToFit()
-                    .navigationBarHidden(self.navBarHidden)
+                    .navigationBarHidden(self.controlUiHidden)
                     .navigationBarTitle("")
                     .onAppear(perform: { self.postExtract(id: self.id)})
                 HStack {
@@ -36,7 +36,7 @@ struct ArchivePage: View {
                     Rectangle()
                         .opacity(0.0001)
                         .contentShape(Rectangle())
-                        .onTapGesture(perform: {self.navBarHidden.toggle()})
+                        .onTapGesture(perform: {self.controlUiHidden.toggle()})
                     Rectangle()
                         .opacity(0.0001)
                         .contentShape(Rectangle())
@@ -51,6 +51,22 @@ struct ArchivePage: View {
                     }
                 })
                 VStack {
+                    Spacer()
+                    VStack {
+                        Text(String(format: "%.0f/%d", self.currentIndex + 1, self.allPages.count))
+                            .bold()
+                        Slider(value: self.$currentIndex, in: self.getSliderRange(), step: 1) { onSlider in
+                            if (!onSlider) {
+                                self.jumpToPage(self.currentIndex)
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding()
+                    .background(Color.primary.colorInvert().opacity(self.controlUiHidden ? 0 : 0.9))
+                    .opacity(self.controlUiHidden ? 0 : 1)
+                }
+                VStack {
                     Text("loading")
                     ActivityIndicator(isAnimating: self.$isLoading, style: .large)
                 }
@@ -64,6 +80,18 @@ struct ArchivePage: View {
         }
     }
     
+    func getSliderRange() -> ClosedRange<Double> {
+        if self.allPages.isEmpty {
+            return 0...1
+        } else {
+            return 0...Double(self.allPages.count - 1)
+        }
+    }
+    
+    func getIntPart(_ number: Double) -> Int {
+        return Int(exactly: number.rounded()) ?? 0
+    }
+    
     func postExtract(id: String) {
         self.isLoading = true
         client.postArchiveExtract(id: id) { (response: ArchiveExtractResponse?) in
@@ -72,12 +100,7 @@ struct ArchivePage: View {
                     let normalizedPage = String(page.dropFirst(2))
                     self.allPages.append(normalizedPage)
                     if (index == 0) {
-                        self.client.getArchivePage(page: normalizedPage) {
-                            (image: UIImage?) in
-                            if let img = image {
-                                self.currentPage = Image(uiImage: img)
-                            }
-                        }
+                        self.jumpToPage(Double(index))
                     }
                 }
             }
@@ -86,25 +109,24 @@ struct ArchivePage: View {
     }
     
     func nextPage() {
-        if currentIndex < allPages.count - 1 {
-            currentIndex += 1
-            client.getArchivePage(page: allPages[currentIndex]) {
-                (image: UIImage?) in
-                if let img = image {
-                    self.currentPage = Image(uiImage: img)
-                }
-            }
-        }
+        jumpToPage(currentIndex + 1)
     }
     
     func previousPage() {
-        if currentIndex > 0 {
-            currentIndex -= 1
-            client.getArchivePage(page: allPages[currentIndex]) {
+        jumpToPage(currentIndex - 1)
+    }
+    
+    func jumpToPage(_ page: Double) {
+        let index = getIntPart(page)
+        if (0..<self.allPages.count).contains(index) {
+            client.getArchivePage(page: allPages[index]) {
                 (image: UIImage?) in
                 if let img = image {
                     self.currentPage = Image(uiImage: img)
+                } else {
+                    self.currentPage = Image("placeholder")
                 }
+                self.currentIndex = page.rounded()
             }
         }
     }
