@@ -6,9 +6,9 @@ struct ReadSettings: View {
     var body: some View {
         List {
             Picker("settings.read.tap.left", selection: Binding(
-                get: { PageControl(rawValue: UserDefaults.standard.object(forKey: "settings.read.tap.left") as? String ?? "next") ?? .next },
+                get: { PageControl(rawValue: UserDefaults.standard.object(forKey: SettingsKey.tapLeftKey) as? String ?? PageControl.next.rawValue) ?? .next },
                 set: {
-                    UserDefaults.standard.set($0.rawValue, forKey: "settings.read.tap.left")
+                    UserDefaults.standard.set($0.rawValue, forKey: SettingsKey.tapLeftKey)
             }
             )) {
                 Text("settings.nextPage").tag(PageControl.next)
@@ -17,9 +17,9 @@ struct ReadSettings: View {
             }
             .padding()
             Picker("settings.read.tap.middle", selection: Binding(
-                get: { PageControl(rawValue: UserDefaults.standard.object(forKey: "settings.read.tap.middle") as? String ?? "navigation") ?? .navigation },
+                get: { PageControl(rawValue: UserDefaults.standard.object(forKey: SettingsKey.tapMiddleKey) as? String ?? PageControl.navigation.rawValue) ?? .navigation },
                 set: {
-                    UserDefaults.standard.set($0.rawValue, forKey: "settings.read.tap.middle")
+                    UserDefaults.standard.set($0.rawValue, forKey: SettingsKey.tapMiddleKey)
             })) {
                 Text("settings.nextPage").tag(PageControl.next)
                 Text("settings.previousPage").tag(PageControl.previous)
@@ -27,9 +27,9 @@ struct ReadSettings: View {
             }
             .padding()
             Picker("settings.read.tap.right", selection: Binding(
-                get: { PageControl(rawValue: UserDefaults.standard.object(forKey: "settings.read.tap.right") as? String ?? "previous") ?? .previous },
+                get: { PageControl(rawValue: UserDefaults.standard.object(forKey: SettingsKey.tapRightKey) as? String ?? PageControl.previous.rawValue) ?? .previous },
                 set: {
-                    UserDefaults.standard.set($0.rawValue, forKey: "settings.read.tap.right")
+                    UserDefaults.standard.set($0.rawValue, forKey: SettingsKey.tapRightKey)
             })) {
                 Text("settings.nextPage").tag(PageControl.next)
                 Text("settings.previousPage").tag(PageControl.previous)
@@ -37,9 +37,9 @@ struct ReadSettings: View {
             }
             .padding()
             Picker("settings.read.swipe.left", selection: Binding(
-                get: { PageControl(rawValue: UserDefaults.standard.object(forKey: "settings.read.swipe.left") as? String ?? "next") ?? .previous },
+                get: { PageControl(rawValue: UserDefaults.standard.object(forKey: SettingsKey.swipeLeftKey) as? String ?? PageControl.next.rawValue) ?? .next },
                 set: {
-                    UserDefaults.standard.set($0.rawValue, forKey: "settings.read.swipe.left")
+                    UserDefaults.standard.set($0.rawValue, forKey: SettingsKey.swipeLeftKey)
             })) {
                 Text("settings.nextPage").tag(PageControl.next)
                 Text("settings.previousPage").tag(PageControl.previous)
@@ -47,9 +47,9 @@ struct ReadSettings: View {
             }
             .padding()
             Picker("settings.read.swipe.right", selection: Binding(
-                get: { PageControl(rawValue: UserDefaults.standard.object(forKey: "settings.read.swipe.right") as? String ?? "previous") ?? .previous },
+                get: { PageControl(rawValue: UserDefaults.standard.object(forKey: SettingsKey.swipeRightKey) as? String ?? PageControl.previous.rawValue) ?? .previous },
                 set: {
-                    UserDefaults.standard.set($0.rawValue, forKey: "settings.read.swipe.right")
+                    UserDefaults.standard.set($0.rawValue, forKey: SettingsKey.swipeRightKey)
             })) {
                 Text("settings.nextPage").tag(PageControl.next)
                 Text("settings.previousPage").tag(PageControl.previous)

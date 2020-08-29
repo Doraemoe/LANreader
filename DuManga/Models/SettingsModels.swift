@@ -9,3 +9,11 @@ enum PageControl: String, CaseIterable, Identifiable {
     
     var id: String { self.rawValue }
 }
+
+struct SettingsKey {
+    static let tapLeftKey = "settings.read.tap.left"
+    static let tapMiddleKey = "settings.read.tap.middle"
+    static let tapRightKey = "settings.read.tap.right"
+    static let swipeLeftKey = "settings.read.swipe.left"
+    static let swipeRightKey = "settings.read.swipe.right"
+}
