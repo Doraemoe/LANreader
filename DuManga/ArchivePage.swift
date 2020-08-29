@@ -10,11 +10,6 @@ struct ArchivePage: View {
     @State var isLoading = false
     
     let id: String
-    let tapLeftKey = "settings.read.tap.left"
-    let tapMiddleKey = "settings.read.tap.middle"
-    let tapRightKey = "settings.read.tap.right"
-    let swipeLeftKey = "settings.read.swipe.left"
-    let swipeRightKey = "settings.read.swipe.right"
     
     private let config: [String: String]
     private let client: LANRaragiClient
@@ -38,22 +33,22 @@ struct ArchivePage: View {
                     Rectangle()
                         .opacity(0.0001) // opaque object does not response to tap event
                         .contentShape(Rectangle())
-                        .onTapGesture(perform: { self.performActionBasedOnSettings(key: self.tapLeftKey, defaultAction: .next) })
+                        .onTapGesture(perform: { self.performActionBasedOnSettings(key: SettingsKey.tapLeftKey, defaultAction: .next) })
                     Rectangle()
                         .opacity(0.0001)
                         .contentShape(Rectangle())
-                        .onTapGesture(perform: { self.performActionBasedOnSettings(key: self.tapMiddleKey, defaultAction: .navigation) })
+                        .onTapGesture(perform: { self.performActionBasedOnSettings(key: SettingsKey.tapMiddleKey, defaultAction: .navigation) })
                     Rectangle()
                         .opacity(0.0001)
                         .contentShape(Rectangle())
-                        .onTapGesture(perform: { self.performActionBasedOnSettings(key: self.tapRightKey, defaultAction: .previous) })
+                        .onTapGesture(perform: { self.performActionBasedOnSettings(key: SettingsKey.tapRightKey, defaultAction: .previous) })
                 }
                 .gesture(DragGesture(minimumDistance: 50, coordinateSpace: .global).onEnded { value in
                     if value.translation.width < 0 {
-                        self.performActionBasedOnSettings(key: self.swipeLeftKey, defaultAction: .next)
+                        self.performActionBasedOnSettings(key: SettingsKey.swipeLeftKey, defaultAction: .next)
                     }
                     else if value.translation.width > 0 {
-                        self.performActionBasedOnSettings(key: self.swipeRightKey, defaultAction: .previous)
+                        self.performActionBasedOnSettings(key: SettingsKey.swipeRightKey, defaultAction: .previous)
                     }
                 })
                 VStack {
