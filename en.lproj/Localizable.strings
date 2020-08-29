@@ -6,3 +6,14 @@
 "lanraragi.config.url" = "http(s)://10.0.1.10:3000";
 "lanraragi.config.apiKey" = "API Key, can be set in settings. This is NOT your password";
 "lanraragi.config.submit" = "Submit";
+
+"settings.read" = "Read settings";
+"settings.read.tap.left" = "Tap on left side of the screen";
+"settings.read.tap.middle" = "Tap on middle of the screen";
+"settings.read.tap.right" = "Tap on right side of the screen";
+"settings.read.swipe.left" = "Swipe left";
+"settings.read.swipe.right" = "Swipe right";
+
+"settings.nextPage" = "Next page";
+"settings.previousPage" = "Previous page";
+"settings.navigation" = "Toggle navigation";

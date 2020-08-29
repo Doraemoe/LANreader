@@ -11,8 +11,10 @@ struct LANraragiConfigView: View {
         VStack {
             TextField("lanraragi.config.url", text: self.$url)
                 .padding()
+                .textFieldStyle(RoundedBorderTextFieldStyle())
             SecureField("lanraragi.config.apiKey", text: self.$apiKey)
                 .padding()
+                .textFieldStyle(RoundedBorderTextFieldStyle())
             Button(action: {
                 let config = ["url": self.url, "apiKey": self.apiKey]
                 UserDefaults.standard.set(config, forKey: "LANraragi")

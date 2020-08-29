@@ -6,3 +6,14 @@
 "lanraragi.config.url" = "http(s)://10.0.1.10:3000";
 "lanraragi.config.apiKey" = "API Key, 可以在设置里设定. 这不是你的密码";
 "lanraragi.config.submit" = "提交";
+
+"settings.read" = "阅读设定";
+"settings.read.tap.left" = "点击屏幕左侧";
+"settings.read.tap.middle" = "点击屏幕中间";
+"settings.read.tap.right" = "点击片屏幕右侧";
+"settings.read.swipe.left" = "向左滑动";
+"settings.read.swipe.right" = "向右滑动";
+
+"settings.nextPage" = "下一页";
+"settings.previousPage" = "上一页";
+"settings.navigation" = "切换导航";
