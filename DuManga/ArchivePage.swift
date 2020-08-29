@@ -8,7 +8,13 @@ struct ArchivePage: View {
     @State var allPages = [String]()
     @State var controlUiHidden = true
     @State var isLoading = false
+    
     let id: String
+    let tapLeftKey = "settings.read.tap.left"
+    let tapMiddleKey = "settings.read.tap.middle"
+    let tapRightKey = "settings.read.tap.right"
+    let swipeLeftKey = "settings.read.swipe.left"
+    let swipeRightKey = "settings.read.swipe.right"
     
     private let config: [String: String]
     private let client: LANRaragiClient
@@ -32,22 +38,22 @@ struct ArchivePage: View {
                     Rectangle()
                         .opacity(0.0001) // opaque object does not response to tap event
                         .contentShape(Rectangle())
-                        .onTapGesture(perform: self.nextPage)
+                        .onTapGesture(perform: { self.performActionBasedOnSettings(key: self.tapLeftKey, defaultAction: .next) })
                     Rectangle()
                         .opacity(0.0001)
                         .contentShape(Rectangle())
-                        .onTapGesture(perform: {self.controlUiHidden.toggle()})
+                        .onTapGesture(perform: { self.performActionBasedOnSettings(key: self.tapMiddleKey, defaultAction: .navigation) })
                     Rectangle()
                         .opacity(0.0001)
                         .contentShape(Rectangle())
-                        .onTapGesture(perform: self.previousPage)
+                        .onTapGesture(perform: { self.performActionBasedOnSettings(key: self.tapRightKey, defaultAction: .previous) })
                 }
                 .gesture(DragGesture(minimumDistance: 50, coordinateSpace: .global).onEnded { value in
                     if value.translation.width < 0 {
-                        self.nextPage()
+                        self.performActionBasedOnSettings(key: self.swipeLeftKey, defaultAction: .next)
                     }
                     else if value.translation.width > 0 {
-                        self.previousPage()
+                        self.performActionBasedOnSettings(key: self.swipeRightKey, defaultAction: .previous)
                     }
                 })
                 VStack {
@@ -128,6 +134,18 @@ struct ArchivePage: View {
                 }
                 self.currentIndex = page.rounded()
             }
+        }
+    }
+    
+    func performActionBasedOnSettings(key:String, defaultAction: PageControl) {
+        let action = PageControl(rawValue: UserDefaults.standard.object(forKey: key) as? String ?? defaultAction.rawValue) ?? defaultAction
+        switch action {
+        case .next:
+            nextPage()
+        case .previous:
+            previousPage()
+        case .navigation:
+            self.controlUiHidden.toggle()
         }
     }
 }
