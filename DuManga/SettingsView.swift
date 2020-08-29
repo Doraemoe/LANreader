@@ -15,6 +15,7 @@ struct SettingsView: View {
                 ReadSettings()
             }
         }
+        .onAppear(perform: { self.navBarTitle = "settings" })
     }
 }
 
