@@ -14,6 +14,12 @@ struct SettingsView: View {
             Section(header: Text("settings.read")) {
                 ReadSettings()
             }
+            Section(header: Text("settings.host")) {
+                NavigationLink(destination: LANraragiConfigView(settingView: Binding.constant(true))) {
+                    Text("settings.host.config")
+                    .padding()
+                }
+            }
         }
         .onAppear(perform: { self.navBarTitle = "settings" })
     }

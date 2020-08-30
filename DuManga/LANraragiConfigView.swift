@@ -3,9 +3,11 @@
 import SwiftUI
 
 struct LANraragiConfigView: View {
-    @State var url: String = ""
-    @State var apiKey: String = ""
+    @State var url: String = (UserDefaults.standard.dictionary(forKey: "LANraragi") as? [String: String])?["url"] ?? ""
+    @State var apiKey: String = (UserDefaults.standard.dictionary(forKey: "LANraragi") as? [String: String])?["apiKey"] ?? ""
     @Binding var settingView: Bool
+    
+    @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
         VStack {
@@ -19,6 +21,7 @@ struct LANraragiConfigView: View {
                 let config = ["url": self.url, "apiKey": self.apiKey]
                 UserDefaults.standard.set(config, forKey: "LANraragi")
                 self.settingView.toggle()
+                self.presentationMode.wrappedValue.dismiss()
             }) {
                 Text("lanraragi.config.submit")
                     .font(.headline)
