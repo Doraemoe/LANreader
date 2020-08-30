@@ -16,6 +16,9 @@
 "settings.read.split.page" = "Split page";
 "settings.read.split.page.priority.left" = "Show left side of split page first";
 
+"settings.host" = "Host settings";
+"settings.host.config" = "Host";
+
 "settings.nextPage" = "Next page";
 "settings.previousPage" = "Previous page";
 "settings.navigation" = "Toggle navigation";

@@ -27,11 +27,6 @@ struct ContentView: View {
                         }
                     }
                     .navigationBarTitle(Text(NSLocalizedString(navBarTitle, comment: "String will not be localized without force use NSLocalizedString")), displayMode: .inline)
-                    .navigationBarItems(trailing:Button(action: {
-                        self.settingView.toggle()
-                    }) {
-                        Text("settings")
-                    } )
                 }
                 .navigationViewStyle(StackNavigationViewStyle())
             }
