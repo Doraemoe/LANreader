@@ -2,12 +2,27 @@
 
 import SwiftUI
 
+enum InternalPageSplitState: String, CaseIterable {
+    case off
+    case first
+    case last
+}
+
+enum PageFlipAction: String, CaseIterable {
+    case next
+    case previous
+    case jump
+}
+
 struct ArchivePage: View {
     @State var currentPage = Image("placeholder")
     @State var currentIndex: Double = 0
     @State var allPages = [String]()
     @State var controlUiHidden = true
     @State var isLoading = false
+    @State var leftHalfPage = Image("placeholder")
+    @State var rightHalfPage = Image("placeholder")
+    @State var isCurrentSplittingPage = InternalPageSplitState.off
     
     let id: String
     
@@ -58,7 +73,7 @@ struct ArchivePage: View {
                             .bold()
                         Slider(value: self.$currentIndex, in: self.getSliderRange(), step: 1) { onSlider in
                             if (!onSlider) {
-                                self.jumpToPage(self.currentIndex)
+                                self.jumpToPage(self.currentIndex, action: .jump)
                             }
                         }
                         .padding(.horizontal)
@@ -101,7 +116,7 @@ struct ArchivePage: View {
                     let normalizedPage = String(page.dropFirst(2))
                     self.allPages.append(normalizedPage)
                     if (index == 0) {
-                        self.jumpToPage(Double(index))
+                        self.jumpToPage(Double(index), action: .next)
                     }
                 }
             }
@@ -110,26 +125,99 @@ struct ArchivePage: View {
     }
     
     func nextPage() {
-        jumpToPage(currentIndex + 1)
+        jumpToPage(currentIndex + 1, action: .next)
     }
     
     func previousPage() {
-        jumpToPage(currentIndex - 1)
+        jumpToPage(currentIndex - 1, action: .previous)
     }
     
-    func jumpToPage(_ page: Double) {
+    func jumpToPage(_ page: Double, action: PageFlipAction) {
+        if self.isCurrentSplittingPage == .first && action == .next {
+            nextInternalPage()
+            return
+        } else if self.isCurrentSplittingPage == .last && action == .previous {
+            previousInternalPage()
+            return
+        }
+        
+        self.isCurrentSplittingPage = .off
         let index = getIntPart(page)
         if (0..<self.allPages.count).contains(index) {
             client.getArchivePage(page: allPages[index]) {
                 (image: UIImage?) in
                 if let img = image {
-                    self.currentPage = Image(uiImage: img)
+                    if UserDefaults.standard.bool(forKey: SettingsKey.splitPage) && img.size.width / img.size.height > 1.2 {
+                        let success = self.cropAndSetInternalImage(image: img)
+                        if success {
+                            self.jumpToInternalPage(action: action)
+                        } else {
+                            self.currentPage = Image("placeholder")
+                        }
+                    } else {
+                        self.currentPage = Image(uiImage: img)
+                    }
                 } else {
                     self.currentPage = Image("placeholder")
                 }
                 self.currentIndex = page.rounded()
             }
         }
+    }
+    
+    func nextInternalPage() {
+        if UserDefaults.standard.bool(forKey: SettingsKey.splitPagePriorityLeft) {
+            self.currentPage = self.rightHalfPage
+        } else {
+            self.currentPage = self.leftHalfPage
+        }
+        self.isCurrentSplittingPage = .last
+    }
+    
+    func previousInternalPage() {
+        if UserDefaults.standard.bool(forKey: SettingsKey.splitPagePriorityLeft) {
+            self.currentPage = self.leftHalfPage
+        } else {
+            self.currentPage = self.rightHalfPage
+        }
+        self.isCurrentSplittingPage = .first
+    }
+    
+    func jumpToInternalPage(action: PageFlipAction) {
+        switch action {
+        case .next, .jump:
+            if UserDefaults.standard.bool(forKey: SettingsKey.splitPagePriorityLeft) {
+                self.currentPage = self.leftHalfPage
+            } else {
+                self.currentPage = self.rightHalfPage
+            }
+            self.isCurrentSplittingPage = .first
+        case .previous:
+            if UserDefaults.standard.bool(forKey: SettingsKey.splitPagePriorityLeft) {
+                self.currentPage = self.rightHalfPage
+            } else {
+                self.currentPage = self.leftHalfPage
+            }
+            self.isCurrentSplittingPage = .last
+        }
+    }
+    
+    func cropAndSetInternalImage(image: UIImage) -> Bool {
+        if let cgImage = image.cgImage {
+            if let leftHalf = cgImage.cropping(to: CGRect(x: 0, y: 0, width: cgImage.width / 2, height: cgImage.height)) {
+                self.leftHalfPage = Image(uiImage: UIImage(cgImage: leftHalf))
+            } else {
+                return false
+            }
+            if let rightHalf = cgImage.cropping(to: CGRect(x: cgImage.width / 2, y: 0, width: cgImage.width, height: cgImage.height)) {
+                self.rightHalfPage = Image(uiImage: UIImage(cgImage: rightHalf))
+            } else {
+                return false
+            }
+        } else {
+            return false
+        }
+        return true
     }
     
     func performActionBasedOnSettings(key:String, defaultAction: PageControl) {
