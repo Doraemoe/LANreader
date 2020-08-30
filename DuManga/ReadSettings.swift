@@ -56,6 +56,22 @@ struct ReadSettings: View {
                 Text("settings.navigation").tag(PageControl.navigation)
             }
             .padding()
+            Toggle(isOn: Binding(
+                get: { UserDefaults.standard.bool(forKey: SettingsKey.splitPage) },
+                set: {
+                    UserDefaults.standard.set($0, forKey: SettingsKey.splitPage)
+            })) {
+                Text("settings.read.split.page")
+            }
+            .padding()
+            Toggle(isOn: Binding(
+                get: { UserDefaults.standard.bool(forKey: SettingsKey.splitPagePriorityLeft) },
+                set: {
+                    UserDefaults.standard.set($0, forKey: SettingsKey.splitPagePriorityLeft)
+            })) {
+                Text("settings.read.split.page.priority.left")
+            }
+            .padding()
         }
     }
     
