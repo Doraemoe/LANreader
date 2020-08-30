@@ -133,21 +133,24 @@ struct ArchivePage: View {
     }
     
     func jumpToPage(_ page: Double, action: PageFlipAction) {
-        if self.isCurrentSplittingPage == .first && action == .next {
-            nextInternalPage()
-            return
-        } else if self.isCurrentSplittingPage == .last && action == .previous {
-            previousInternalPage()
-            return
+        if UIDevice.current.orientation.isPortrait {
+            if self.isCurrentSplittingPage == .first && action == .next {
+                nextInternalPage()
+                return
+            } else if self.isCurrentSplittingPage == .last && action == .previous {
+                previousInternalPage()
+                return
+            }
         }
-        
         self.isCurrentSplittingPage = .off
         let index = getIntPart(page)
         if (0..<self.allPages.count).contains(index) {
             client.getArchivePage(page: allPages[index]) {
                 (image: UIImage?) in
                 if let img = image {
-                    if UserDefaults.standard.bool(forKey: SettingsKey.splitPage) && img.size.width / img.size.height > 1.2 {
+                    if UserDefaults.standard.bool(forKey: SettingsKey.splitPage)
+                        && UIDevice.current.orientation.isPortrait
+                        && img.size.width / img.size.height > 1.2 {
                         let success = self.cropAndSetInternalImage(image: img)
                         if success {
                             self.jumpToInternalPage(action: action)
