@@ -24,9 +24,15 @@ struct ArchiveList: View {
     }
     
     var body: some View {
-        GeometryReader { geometry in
+        let archives: [ArchiveItem]
+        if !UserDefaults.standard.bool(forKey: SettingsKey.archiveListRandom) {
+            archives = Array(self.archiveItems.values).sorted(by: { $0.name < $1.name })
+        } else {
+            archives = Array(self.archiveItems.values)
+        }
+        return GeometryReader { geometry in
             ZStack {
-                List(Array(self.archiveItems.values)) { (item: ArchiveItem) in
+                List(archives) { (item: ArchiveItem) in
                     NavigationLink(destination: ArchivePage(id: item.id)) {
                         ArchiveRow(archiveItem: item)
                             .onAppear(perform: { self.loadArchiveThumbnail(id: item.id)

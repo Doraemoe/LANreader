@@ -15,6 +15,7 @@
 "settings.read.swipe.right" = "Swipe right";
 "settings.read.split.page" = "Split page";
 "settings.read.split.page.priority.left" = "Show left side of split page first";
+"settings.archive.list.random" = "Randomized archive list";
 
 "settings.host" = "Host settings";
 "settings.host.config" = "Host";

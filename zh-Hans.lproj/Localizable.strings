@@ -15,6 +15,7 @@
 "settings.read.swipe.right" = "向右滑动";
 "settings.read.split.page" = "自动分页";
 "settings.read.split.page.priority.left" = "优先显示左侧的分割后页面";
+"settings.archive.list.random" = "随机化漫画列表视图";
 
 "settings.host" = "服务器设定";
 "settings.host.config" = "服务器";

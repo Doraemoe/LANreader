@@ -72,6 +72,14 @@ struct ReadSettings: View {
                 Text("settings.read.split.page.priority.left")
             }
             .padding()
+            Toggle(isOn: Binding(
+                get: { UserDefaults.standard.bool(forKey: SettingsKey.archiveListRandom) },
+                set: {
+                    UserDefaults.standard.set($0, forKey: SettingsKey.archiveListRandom)
+            })) {
+                Text("settings.archive.list.random")
+            }
+            .padding()
         }
     }
     
