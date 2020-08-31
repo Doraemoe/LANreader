@@ -18,4 +18,5 @@ struct SettingsKey {
     static let swipeRightKey = "settings.read.swipe.right"
     static let splitPage = "settings.read.split.page"
     static let splitPagePriorityLeft = "settings.read.split.page.priority.left"
+    static let archiveListRandom = "settings.archive.list.random"
 }
