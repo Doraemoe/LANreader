@@ -7,7 +7,7 @@
 "lanraragi.config.apiKey" = "API Key, can be set in settings. This is NOT your password";
 "lanraragi.config.submit" = "Submit";
 
-"settings.read" = "Read settings";
+"settings.read" = "Read Settings";
 "settings.read.tap.left" = "Tap on left side of the screen";
 "settings.read.tap.middle" = "Tap on middle of the screen";
 "settings.read.tap.right" = "Tap on right side of the screen";
@@ -15,7 +15,10 @@
 "settings.read.swipe.right" = "Swipe right";
 "settings.read.split.page" = "Split page";
 "settings.read.split.page.priority.left" = "Show left side of split page first";
+
+"settings.view" = "View Settings";
 "settings.archive.list.random" = "Randomized archive list";
+"settings.archive.list.view" = "Use list view";
 
 "settings.host" = "Host settings";
 "settings.host.config" = "Host";

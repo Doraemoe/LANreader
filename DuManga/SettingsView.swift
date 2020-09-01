@@ -20,6 +20,9 @@ struct SettingsView: View {
                     .padding()
                 }
             }
+            Section(header: Text("settings.view")) {
+                ViewSettings()
+            }
         }
         .onAppear(perform: { self.navBarTitle = "settings" })
     }

@@ -1,6 +1,8 @@
 //  Created 23/8/20.
 
 import SwiftUI
+// TODO: Replace with LazyVGrid in iOS 14
+import ASCollectionView
 
 struct ArchiveList: View {
     @State var archiveItems = [String: ArchiveItem]()
@@ -32,17 +34,33 @@ struct ArchiveList: View {
         }
         return GeometryReader { geometry in
             ZStack {
-                List(archives) { (item: ArchiveItem) in
-                    NavigationLink(destination: ArchivePage(id: item.id)) {
-                        ArchiveRow(archiveItem: item)
-                            .onAppear(perform: { self.loadArchiveThumbnail(id: item.id)
-                            })
+                if UserDefaults.standard.bool(forKey: SettingsKey.useListView) {
+                    List(archives) { (item: ArchiveItem) in
+                        NavigationLink(destination: ArchivePage(id: item.id)) {
+                            ArchiveRow(archiveItem: item)
+                                .onAppear(perform: { self.loadArchiveThumbnail(id: item.id)
+                                })
+                        }
+                    }
+                } else {
+                    ASCollectionView(data: archives) {  (item: ArchiveItem, _) in
+                        ZStack {
+                            ArchiveGrid(archiveItem: item)
+                            .onAppear(perform: { self.loadArchiveThumbnail(id: item.id) })
+                            NavigationLink(destination: ArchivePage(id: item.id)) {
+                                Rectangle()
+                                .opacity(0.0001)
+                                .contentShape(Rectangle())
+                            }
+                        }
+                    }.layout {
+                        .grid(layoutMode: .adaptive(withMinItemSize: 200),
+                              itemSpacing: 5,
+                              lineSpacing: 10,
+                              itemSize: .absolute(220))
                     }
                 }
-                .onAppear(perform: {
-                    self.navBarTitle = self.navBarTitleOverride ?? "library"
-                })
-                .onAppear(perform: self.loadData)
+                
                 
                 VStack {
                     Text("loading")
@@ -55,6 +73,10 @@ struct ArchiveList: View {
                     .cornerRadius(20)
                     .opacity(self.isLoading ? 1 : 0)
             }
+            .onAppear(perform: {
+                self.navBarTitle = self.navBarTitleOverride ?? "library"
+            })
+                .onAppear(perform: self.loadData)
         }
     }
     
