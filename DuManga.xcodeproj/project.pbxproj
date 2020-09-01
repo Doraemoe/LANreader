@@ -31,6 +31,9 @@
 		7D354D0724F23A2700617F4A /* ArchiveList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0624F23A2700617F4A /* ArchiveList.swift */; };
 		7D354D0B24F23FC700617F4A /* LANraragiConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0A24F23FC700617F4A /* LANraragiConfigView.swift */; };
 		7D354D1024F282D400617F4A /* ArchivePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0F24F282D300617F4A /* ArchivePage.swift */; };
+		7D7A683524FE56D70051F232 /* ArchiveGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D7A683424FE56D70051F232 /* ArchiveGrid.swift */; };
+		7D7A683824FE58420051F232 /* ASCollectionView in Frameworks */ = {isa = PBXBuildFile; productRef = 7D7A683724FE58420051F232 /* ASCollectionView */; };
+		7D7A683C24FE5EC60051F232 /* ViewSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D7A683B24FE5EC60051F232 /* ViewSettings.swift */; };
 		7D7B26A224F4D13600149341 /* LICENSE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7D7B26A124F4D13600149341 /* LICENSE.md */; };
 		7D7B26A924F52A7F00149341 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7D7B26AB24F52A7F00149341 /* Localizable.strings */; };
 		7D80326A24F684D800AA8BD2 /* ActivityIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D80326924F684D800AA8BD2 /* ActivityIndicator.swift */; };
@@ -88,6 +91,8 @@
 		7D354D0A24F23FC700617F4A /* LANraragiConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LANraragiConfigView.swift; sourceTree = "<group>"; };
 		7D354D0C24F251D600617F4A /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/LaunchScreen.strings"; sourceTree = "<group>"; };
 		7D354D0F24F282D300617F4A /* ArchivePage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivePage.swift; sourceTree = "<group>"; };
+		7D7A683424FE56D70051F232 /* ArchiveGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveGrid.swift; sourceTree = "<group>"; };
+		7D7A683B24FE5EC60051F232 /* ViewSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewSettings.swift; sourceTree = "<group>"; };
 		7D7B26A124F4D13600149341 /* LICENSE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LICENSE.md; sourceTree = "<group>"; };
 		7D7B26A624F526EF00149341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
 		7D7B26AA24F52A7F00149341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -110,6 +115,7 @@
 				7D354CE224F15F1800617F4A /* Logging in Frameworks */,
 				7D354CD124F1390400617F4A /* Alamofire in Frameworks */,
 				7D354CD424F1393100617F4A /* AlamofireImage in Frameworks */,
+				7D7A683824FE58420051F232 /* ASCollectionView in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,12 +264,14 @@
 			children = (
 				7D354D0224F237AE00617F4A /* Models */,
 				7D354D0024F2379000617F4A /* ArchiveRow.swift */,
+				7D7A683424FE56D70051F232 /* ArchiveGrid.swift */,
 				7D354D0624F23A2700617F4A /* ArchiveList.swift */,
 				7D354D0A24F23FC700617F4A /* LANraragiConfigView.swift */,
 				7D354D0F24F282D300617F4A /* ArchivePage.swift */,
 				7D80326924F684D800AA8BD2 /* ActivityIndicator.swift */,
 				7DA47B6E24F7C051000FB4CF /* CategoryList.swift */,
 				7DEB113E24FA4BB90081A905 /* SettingsView.swift */,
+				7D7A683B24FE5EC60051F232 /* ViewSettings.swift */,
 				7DEB114024FA4CC30081A905 /* ReadSettings.swift */,
 			);
 			name = Views;
@@ -289,6 +297,7 @@
 				7D354CD024F1390400617F4A /* Alamofire */,
 				7D354CD324F1393100617F4A /* AlamofireImage */,
 				7D354CE124F15F1800617F4A /* Logging */,
+				7D7A683724FE58420051F232 /* ASCollectionView */,
 			);
 			productName = DuManga;
 			productReference = 7D354C9C24F1316800617F4A /* DuManga.app */;
@@ -371,6 +380,7 @@
 				7D354CD224F1393100617F4A /* XCRemoteSwiftPackageReference "AlamofireImage" */,
 				7D354CE024F15F1800617F4A /* XCRemoteSwiftPackageReference "swift-log" */,
 				7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */,
+				7D7A683624FE58420051F232 /* XCRemoteSwiftPackageReference "ASCollectionView" */,
 			);
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
 			projectDirPath = "";
@@ -426,8 +436,10 @@
 			files = (
 				7D354CD724F1398C00617F4A /* LANraragiClient.swift in Sources */,
 				7D354D1024F282D400617F4A /* ArchivePage.swift in Sources */,
+				7D7A683C24FE5EC60051F232 /* ViewSettings.swift in Sources */,
 				7D354D0124F2379000617F4A /* ArchiveRow.swift in Sources */,
 				7D354D0724F23A2700617F4A /* ArchiveList.swift in Sources */,
+				7D7A683524FE56D70051F232 /* ArchiveGrid.swift in Sources */,
 				7DEB114324FA4EB80081A905 /* SettingsModels.swift in Sources */,
 				7D354D0524F2387900617F4A /* ViewItem.swift in Sources */,
 				7D80326A24F684D800AA8BD2 /* ActivityIndicator.swift in Sources */,
@@ -555,6 +567,7 @@
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -609,6 +622,7 @@
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -811,6 +825,14 @@
 				minimumVersion = 9.0.0;
 			};
 		};
+		7D7A683624FE58420051F232 /* XCRemoteSwiftPackageReference "ASCollectionView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apptekstudios/ASCollectionView";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.7.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -833,6 +855,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */;
 			productName = OHHTTPStubsSwift;
+		};
+		7D7A683724FE58420051F232 /* ASCollectionView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7D7A683624FE58420051F232 /* XCRemoteSwiftPackageReference "ASCollectionView" */;
+			productName = ASCollectionView;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
