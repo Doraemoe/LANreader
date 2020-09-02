@@ -31,11 +31,11 @@ struct SearchView: View {
                     
                 }
                 .onAppear(perform: { self.navBarTitle = "search" })
-                if !showSearchResult {
+                if !showSearchResult || self.keyword.isEmpty {
                     Spacer()
                 }
             }
-            if showSearchResult {
+            if showSearchResult && !self.keyword.isEmpty {
                 ArchiveList(navBarTitle: self.$navBarTitle, searchKeyword: self.keyword, navBarTitleOverride: "search")
             }
         }
