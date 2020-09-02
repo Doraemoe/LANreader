@@ -54,10 +54,10 @@ struct ArchiveList: View {
                             }
                         }
                     }.layout {
-                        .grid(layoutMode: .adaptive(withMinItemSize: 200),
-                              itemSpacing: 5,
-                              lineSpacing: 10,
-                              itemSize: .absolute(220))
+                        .grid(layoutMode: .adaptive(withMinItemSize: 190),
+                              itemSpacing: 30,
+                              lineSpacing: 30,
+                              itemSize: .absolute(260))
                     }
                 }
                 
