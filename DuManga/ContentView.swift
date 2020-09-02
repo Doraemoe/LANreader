@@ -21,6 +21,10 @@ struct ContentView: View {
                             .tabItem {
                                 Text("category")
                         }
+                        SearchView(navBarTitle: $navBarTitle)
+                            .tabItem {
+                                Text("search")
+                        }
                         SettingsView(navBarTitle: $navBarTitle)
                             .tabItem {
                                 Text("settings")
