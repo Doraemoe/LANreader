@@ -18,7 +18,7 @@ struct SearchView: View {
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.gray)
-                        .padding(.leading, 8)
+                        .padding()
                     TextField("Search", text: $keyword, onEditingChanged: { change in
                         if change {
                             self.showSearchResult = false
@@ -26,8 +26,8 @@ struct SearchView: View {
                             self.showSearchResult = true
                         }
                     })
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding(.trailing, 8)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding([.top, .bottom, .trailing])
                     
                 }
                 .onAppear(perform: { self.navBarTitle = "search" })
@@ -36,7 +36,7 @@ struct SearchView: View {
                 }
             }
             if showSearchResult {
-                ArchiveList(navBarTitle: self.$navBarTitle, searchKeyword: self.keyword)
+                ArchiveList(navBarTitle: self.$navBarTitle, searchKeyword: self.keyword, navBarTitleOverride: "search")
             }
         }
         
