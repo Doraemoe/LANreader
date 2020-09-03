@@ -35,6 +35,7 @@
 		7D7A683824FE58420051F232 /* ASCollectionView in Frameworks */ = {isa = PBXBuildFile; productRef = 7D7A683724FE58420051F232 /* ASCollectionView */; };
 		7D7A683C24FE5EC60051F232 /* ViewSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D7A683B24FE5EC60051F232 /* ViewSettings.swift */; };
 		7D7A683E24FFACFC0051F232 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D7A683D24FFACFC0051F232 /* SearchView.swift */; };
+		7D7A6840250104E70051F232 /* ArchiveDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D7A683F250104E70051F232 /* ArchiveDetails.swift */; };
 		7D7B26A224F4D13600149341 /* LICENSE.md in Resources */ = {isa = PBXBuildFile; fileRef = 7D7B26A124F4D13600149341 /* LICENSE.md */; };
 		7D7B26A924F52A7F00149341 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7D7B26AB24F52A7F00149341 /* Localizable.strings */; };
 		7D80326A24F684D800AA8BD2 /* ActivityIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D80326924F684D800AA8BD2 /* ActivityIndicator.swift */; };
@@ -95,6 +96,7 @@
 		7D7A683424FE56D70051F232 /* ArchiveGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveGrid.swift; sourceTree = "<group>"; };
 		7D7A683B24FE5EC60051F232 /* ViewSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewSettings.swift; sourceTree = "<group>"; };
 		7D7A683D24FFACFC0051F232 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
+		7D7A683F250104E70051F232 /* ArchiveDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveDetails.swift; sourceTree = "<group>"; };
 		7D7B26A124F4D13600149341 /* LICENSE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LICENSE.md; sourceTree = "<group>"; };
 		7D7B26A624F526EF00149341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/LaunchScreen.strings; sourceTree = "<group>"; };
 		7D7B26AA24F52A7F00149341 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -276,6 +278,7 @@
 				7D7A683B24FE5EC60051F232 /* ViewSettings.swift */,
 				7DEB114024FA4CC30081A905 /* ReadSettings.swift */,
 				7D7A683D24FFACFC0051F232 /* SearchView.swift */,
+				7D7A683F250104E70051F232 /* ArchiveDetails.swift */,
 			);
 			name = Views;
 			sourceTree = "<group>";
@@ -447,6 +450,7 @@
 				7D354D0524F2387900617F4A /* ViewItem.swift in Sources */,
 				7D80326A24F684D800AA8BD2 /* ActivityIndicator.swift in Sources */,
 				7D354CA024F1316800617F4A /* AppDelegate.swift in Sources */,
+				7D7A6840250104E70051F232 /* ArchiveDetails.swift in Sources */,
 				7D7A683E24FFACFC0051F232 /* SearchView.swift in Sources */,
 				7D354CA224F1316800617F4A /* SceneDelegate.swift in Sources */,
 				7DEB114124FA4CC30081A905 /* ReadSettings.swift in Sources */,

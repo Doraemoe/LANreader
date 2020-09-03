@@ -19,7 +19,7 @@ struct SearchView: View {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.gray)
                         .padding()
-                    TextField("Search", text: $keyword, onEditingChanged: { change in
+                    TextField("search", text: $keyword, onEditingChanged: { change in
                         if change {
                             self.showSearchResult = false
                         } else {
