@@ -2,6 +2,7 @@
 "category" = "Category";
 "search" = "Search";
 "settings" = "Settings";
+"details" = "Details";
 "loading" = "Loading...";
 
 "lanraragi.config.url" = "http(s)://10.0.1.10:3000";

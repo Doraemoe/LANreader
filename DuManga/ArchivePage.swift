@@ -24,13 +24,13 @@ struct ArchivePage: View {
     @State var rightHalfPage = Image("placeholder")
     @State var isCurrentSplittingPage = InternalPageSplitState.off
     
-    let id: String
+    let item: ArchiveItem
     
     private let config: [String: String]
     private let client: LANRaragiClient
     
-    init(id: String) {
-        self.id = id
+    init(item: ArchiveItem) {
+        self.item = item
         self.config = UserDefaults.standard.dictionary(forKey: "LANraragi") as? [String: String] ?? [String: String]()
         self.client = LANRaragiClient(url: config["url"]!, apiKey: config["apiKey"]!)
     }
@@ -43,7 +43,8 @@ struct ArchivePage: View {
                     .scaledToFit()
                     .navigationBarHidden(self.controlUiHidden)
                     .navigationBarTitle("")
-                    .onAppear(perform: { self.postExtract(id: self.id)})
+                    .navigationBarItems(trailing: NavigationLink(destination: ArchiveDetails(item: self.item)) { Text("details") })
+                    .onAppear(perform: { self.postExtract(id: self.item.id)})
                 HStack {
                     Rectangle()
                         .opacity(0.0001) // opaque object does not response to tap event
@@ -109,6 +110,9 @@ struct ArchivePage: View {
     }
     
     func postExtract(id: String) {
+        if !allPages.isEmpty {
+            return
+        }
         self.isLoading = true
         client.postArchiveExtract(id: id) { (response: ArchiveExtractResponse?) in
             if let res = response {
@@ -240,6 +244,6 @@ struct ArchivePage_Previews: PreviewProvider {
     static var previews: some View {
         let config = ["url": "http://localhost", "apiKey": "apiKey"]
         UserDefaults.standard.set(config, forKey: "LANraragi")
-        return ArchivePage(id: "id")
+        return ArchivePage(item: ArchiveItem(id: "id", name: "name", tags: "tags", thumbnail: Image("placeholder")))
     }
 }

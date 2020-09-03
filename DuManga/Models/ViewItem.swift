@@ -6,6 +6,7 @@ import SwiftUI
 struct ArchiveItem: Identifiable {
     let id: String
     let name: String
+    let tags: String
     var thumbnail: Image
 }
 

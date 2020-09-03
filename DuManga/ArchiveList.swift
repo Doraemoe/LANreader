@@ -36,7 +36,7 @@ struct ArchiveList: View {
             ZStack {
                 if UserDefaults.standard.bool(forKey: SettingsKey.useListView) {
                     List(archives) { (item: ArchiveItem) in
-                        NavigationLink(destination: ArchivePage(id: item.id)) {
+                        NavigationLink(destination: ArchivePage(item: item)) {
                             ArchiveRow(archiveItem: item)
                                 .onAppear(perform: { self.loadArchiveThumbnail(id: item.id)
                                 })
@@ -47,7 +47,7 @@ struct ArchiveList: View {
                         ZStack {
                             ArchiveGrid(archiveItem: item)
                             .onAppear(perform: { self.loadArchiveThumbnail(id: item.id) })
-                            NavigationLink(destination: ArchivePage(id: item.id)) {
+                            NavigationLink(destination: ArchivePage(item: item)) {
                                 Rectangle()
                                 .opacity(0.0001)
                                 .contentShape(Rectangle())
@@ -89,7 +89,7 @@ struct ArchiveList: View {
             client.searchArchiveIndex(filter: searchKeyword) {(result: ArchiveSearchResponse?) in
                 result?.data.forEach { item in
                     if self.archiveItems[item.arcid] == nil {
-                        self.archiveItems[item.arcid] = (ArchiveItem(id: item.arcid, name: item.title, thumbnail: Image("placeholder")))
+                        self.archiveItems[item.arcid] = (ArchiveItem(id: item.arcid, name: item.title, tags: item.tags, thumbnail: Image("placeholder")))
                     }
                 }
                 self.isLoading = false
@@ -99,7 +99,7 @@ struct ArchiveList: View {
                 client.getArchiveMetadata(id: archiveId) { (item: ArchiveIndexResponse?) in
                     if let it = item {
                         if self.archiveItems[it.arcid] == nil {
-                            self.archiveItems[it.arcid] = (ArchiveItem(id: it.arcid, name: it.title, thumbnail: Image("placeholder")))
+                            self.archiveItems[it.arcid] = (ArchiveItem(id: it.arcid, name: it.title, tags: it.tags, thumbnail: Image("placeholder")))
                         }
                     }
                 }
@@ -109,7 +109,7 @@ struct ArchiveList: View {
             client.getArchiveIndex {(items: [ArchiveIndexResponse]?) in
                 items?.forEach { item in
                     if self.archiveItems[item.arcid] == nil {
-                        self.archiveItems[item.arcid] = (ArchiveItem(id: item.arcid, name: item.title, thumbnail: Image("placeholder")))
+                        self.archiveItems[item.arcid] = (ArchiveItem(id: item.arcid, name: item.title, tags: item.tags, thumbnail: Image("placeholder")))
                     }
                 }
                 self.isLoading = false
