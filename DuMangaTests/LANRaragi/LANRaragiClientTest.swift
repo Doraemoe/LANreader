@@ -13,6 +13,44 @@ class LANRaragiClientTest: XCTestCase {
     override func tearDownWithError() throws {
         HTTPStubs.removeAllStubs()
     }
+    
+    func testHealthCheck() throws {
+        stub(condition: isHost("localhost")
+            && isPath("/api/info")
+            && isMethodGET()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
+            return HTTPStubsResponse(
+            fileAtPath: OHPathForFile("ServerInfoResponse.json", type(of: self))!, statusCode: 200, headers: ["Content-Type":"application/json"])
+        }
+        
+        let client = LANRaragiClient(url: url, apiKey: apiKey)
+        
+        let expectation = XCTestExpectation(description: "testHealthCheck")
+        client.healthCheck { healthy in
+            XCTAssertTrue(healthy)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
+    }
+    
+    func testHealthCheckFailure() throws {
+        stub(condition: isHost("localhost")
+            && isPath("/api/info")
+            && isMethodGET()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
+            return HTTPStubsResponse(
+                jsonObject: ["error": "This API is protected and requires login or an API Key."], statusCode: 401, headers: ["Content-Type":"application/json"])
+        }
+        
+        let client = LANRaragiClient(url: url, apiKey: apiKey)
+        
+        let expectation = XCTestExpectation(description: "testHealthCheckFailure")
+        client.healthCheck() { healthy in
+            XCTAssertFalse(healthy)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
+    }
 
     func testGetArchiveIndex() throws {
         stub(condition: isHost("localhost")

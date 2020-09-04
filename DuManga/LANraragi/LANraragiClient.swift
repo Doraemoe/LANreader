@@ -17,6 +17,24 @@ class LANRaragiClient {
         self.auth = apiKey.data(using: .utf8)!.base64EncodedString()
     }
     
+    func healthCheck(completionHandler: @escaping (Bool) -> Void) {
+        let headers: HTTPHeaders = [
+            "Authorization": "Bearer \(auth)"
+        ]
+        let cacher = ResponseCacher(behavior: .doNotCache)
+        AF.request("\(url)/api/info", headers: headers)
+            .cacheResponse(using: cacher)
+            .validate(statusCode: 200...200)
+            .responseJSON { response in
+                switch response.result {
+                case .success:
+                    completionHandler(true)
+                case .failure:
+                    completionHandler(false)
+                }
+        }
+    }
+    
     func getArchiveIndex(completionHandler: @escaping ([ArchiveIndexResponse]?) -> Void)  {
         let headers: HTTPHeaders = [
             "Authorization": "Bearer \(auth)"

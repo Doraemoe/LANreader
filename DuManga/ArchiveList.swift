@@ -3,8 +3,12 @@
 import SwiftUI
 // TODO: Replace with LazyVGrid in iOS 14
 import ASCollectionView
+import NotificationBannerSwift
 
 struct ArchiveList: View {
+    
+    static let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"), subtitle: NSLocalizedString("error.list", comment: "list error"), style: .danger)
+    
     @State var archiveItems = [String: ArchiveItem]()
     @State var isLoading = false
     @Binding var navBarTitle: String
@@ -87,6 +91,9 @@ struct ArchiveList: View {
         self.isLoading = true
         if searchKeyword != nil && !searchKeyword!.isEmpty {
             client.searchArchiveIndex(filter: searchKeyword) {(result: ArchiveSearchResponse?) in
+                if result == nil {
+                    ArchiveList.banner.show()
+                }
                 result?.data.forEach { item in
                     if self.archiveItems[item.arcid] == nil {
                         self.archiveItems[item.arcid] = (ArchiveItem(id: item.arcid, name: item.title, tags: item.tags, thumbnail: Image("placeholder")))
@@ -107,6 +114,9 @@ struct ArchiveList: View {
             self.isLoading = false
         } else {
             client.getArchiveIndex {(items: [ArchiveIndexResponse]?) in
+                if items == nil {
+                    ArchiveList.banner.show()
+                }
                 items?.forEach { item in
                     if self.archiveItems[item.arcid] == nil {
                         self.archiveItems[item.arcid] = (ArchiveItem(id: item.arcid, name: item.title, tags: item.tags, thumbnail: Image("placeholder")))
