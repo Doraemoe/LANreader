@@ -4,6 +4,7 @@
 "settings" = "Settings";
 "details" = "Details";
 "loading" = "Loading...";
+"error" = "Error";
 
 "lanraragi.config.url" = "http(s)://10.0.1.10:3000";
 "lanraragi.config.apiKey" = "API Key, can be set in settings. This is NOT your password";
@@ -28,3 +29,8 @@
 "settings.nextPage" = "Next page";
 "settings.previousPage" = "Previous page";
 "settings.navigation" = "Toggle navigation";
+
+"error.host" = "Cannot connect to server, please check your settings";
+"error.list" = "Cannot load library, please try again or check your server settings";
+"error.extract" = "Cannot archive, please try again";
+"error.load.page" = "Cannot load page, please try again";

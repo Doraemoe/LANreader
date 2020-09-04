@@ -1,6 +1,7 @@
 //  Created 23/8/20.
 
 import SwiftUI
+import NotificationBannerSwift
 
 enum InternalPageSplitState: String, CaseIterable {
     case off
@@ -15,6 +16,10 @@ enum PageFlipAction: String, CaseIterable {
 }
 
 struct ArchivePage: View {
+    
+    static let extractErrorBanner = NotificationBanner(title: NSLocalizedString("error", comment: "error"), subtitle: NSLocalizedString("error.extract", comment: "extract error"), style: .danger)
+    static let loadPageErrorBanner = NotificationBanner(title: NSLocalizedString("error", comment: "error"), subtitle: NSLocalizedString("error.load.page", comment: "load page error"), style: .danger)
+    
     @State var currentPage = Image("placeholder")
     @State var currentIndex: Double = 0
     @State var allPages = [String]()
@@ -123,6 +128,8 @@ struct ArchivePage: View {
                         self.jumpToPage(Double(index), action: .next)
                     }
                 }
+            } else {
+                ArchivePage.extractErrorBanner.show()
             }
             self.isLoading = false
         }
@@ -159,12 +166,14 @@ struct ArchivePage: View {
                         if success {
                             self.jumpToInternalPage(action: action)
                         } else {
+                            ArchivePage.loadPageErrorBanner.show()
                             self.currentPage = Image("placeholder")
                         }
                     } else {
                         self.currentPage = Image(uiImage: img)
                     }
                 } else {
+                    ArchivePage.loadPageErrorBanner.show()
                     self.currentPage = Image("placeholder")
                 }
                 self.currentIndex = page.rounded()

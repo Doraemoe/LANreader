@@ -1,0 +1,11 @@
+{
+    "archives_per_page": "100",
+    "debug_mode": "0",
+    "has_password": "1",
+    "motd": "Welcome to this Library running LANraragi!",
+    "name": "LANraragi",
+    "nofun_mode": "1",
+    "server_resizes_images": "0",
+    "version": "0.7.2",
+    "version_name": "Neighborhood Threat"
+}

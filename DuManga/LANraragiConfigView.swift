@@ -1,8 +1,11 @@
 //  Created 23/8/20.
 
 import SwiftUI
+import NotificationBannerSwift
 
 struct LANraragiConfigView: View {
+    static let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"), subtitle: NSLocalizedString("error.host", comment: "host error"), style: .danger)
+    
     @State var url: String = (UserDefaults.standard.dictionary(forKey: "LANraragi") as? [String: String])?["url"] ?? ""
     @State var apiKey: String = (UserDefaults.standard.dictionary(forKey: "LANraragi") as? [String: String])?["apiKey"] ?? ""
     @Binding var settingView: Bool
@@ -18,10 +21,18 @@ struct LANraragiConfigView: View {
                 .padding()
                 .textFieldStyle(RoundedBorderTextFieldStyle())
             Button(action: {
-                let config = ["url": self.url, "apiKey": self.apiKey]
-                UserDefaults.standard.set(config, forKey: "LANraragi")
-                self.settingView.toggle()
-                self.presentationMode.wrappedValue.dismiss()
+                let client = LANRaragiClient(url: self.url, apiKey: self.apiKey)
+                client.healthCheck { healthy in
+                    if healthy {
+                        let config = ["url": self.url, "apiKey": self.apiKey]
+                        UserDefaults.standard.set(config, forKey: "LANraragi")
+                        self.settingView = false
+                        self.presentationMode.wrappedValue.dismiss()
+                    } else {
+                        LANraragiConfigView.banner.show()
+                    }
+                }
+                
             }) {
                 Text("lanraragi.config.submit")
                     .font(.headline)
