@@ -348,5 +348,43 @@ class LANRaragiClientTest: XCTestCase {
         }
         wait(for: [expectation], timeout: 1.0)
     }
+    
+    func testClearNewFlag() throws {
+        stub(condition: isHost("localhost")
+            && isPath("/api/archives/id/isnew")
+            && isMethodDELETE()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
+            return HTTPStubsResponse(
+            fileAtPath: OHPathForFile("ClearNewFlagResponse.json", type(of: self))!, statusCode: 200, headers: ["Content-Type":"application/json"])
+        }
+        
+        let client = LANRaragiClient(url: url, apiKey: apiKey)
+        
+        let expectation = XCTestExpectation(description: "testClearNewFlag")
+        client.clearNewFlag(id: "id") { success in
+            XCTAssertTrue(success)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
+    }
+    
+    func testClearNewFlagFailure() throws {
+        stub(condition: isHost("localhost")
+            && isPath("/api/archives/id/isnew")
+            && isMethodDELETE()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
+            return HTTPStubsResponse(
+                jsonObject: ["error": "This API is protected and requires login or an API Key."], statusCode: 401, headers: ["Content-Type":"application/json"])
+        }
+        
+        let client = LANRaragiClient(url: url, apiKey: apiKey)
+        
+        let expectation = XCTestExpectation(description: "testClearNewFlagFailure")
+        client.clearNewFlag(id: "id") { success in
+            XCTAssertFalse(success)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
+    }
 
 }

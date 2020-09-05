@@ -179,5 +179,22 @@ class LANRaragiClient {
         }
     }
     
+    func clearNewFlag(id: String, completionHandler: @escaping (Bool) -> Void) {
+        let headers: HTTPHeaders = [
+            "Authorization": "Bearer \(auth)"
+        ]
+        AF.request("\(url)/api/archives/\(id)/isnew", method: .delete, headers: headers)
+            .validate(statusCode: 200...200)
+            .responseJSON { response in
+                switch response.result {
+                case .success:
+                    completionHandler(true)
+                case .failure:
+                    LANRaragiClient.logger.error("Error clear new flag on archive. response=\"\(response.debugDescription)\"")
+                    completionHandler(false)
+                }
+        }
+    }
+    
 }
 
