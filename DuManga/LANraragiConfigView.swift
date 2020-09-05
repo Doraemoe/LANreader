@@ -15,6 +15,8 @@ struct LANraragiConfigView: View {
     var body: some View {
         VStack {
             TextField("lanraragi.config.url", text: self.$url)
+                .textContentType(.URL)
+                .keyboardType(.URL)
                 .padding()
                 .textFieldStyle(RoundedBorderTextFieldStyle())
             SecureField("lanraragi.config.apiKey", text: self.$apiKey)
