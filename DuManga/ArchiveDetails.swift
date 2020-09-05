@@ -12,21 +12,20 @@ struct ArchiveDetails: View {
     
     
     var body: some View {
-        HStack {
+        VStack {
+            Text(item.name)
+                .font(.title)
+                .padding()
             item.thumbnail
                 .resizable()
                 .scaledToFit()
                 .padding()
                 .frame(width: 200, height: 250)
-            VStack(alignment: .center, spacing: 50) {
-                Text(item.name)
-                    .font(.title)
+            ScrollView(.vertical) {
                 Text(item.tags)
+                    .padding()
             }
-            .padding()
-            Spacer()
         }
-        
     }
 }
 
