@@ -386,5 +386,47 @@ class LANRaragiClientTest: XCTestCase {
         }
         wait(for: [expectation], timeout: 1.0)
     }
+    
+    func testUpdateSearchCategory() throws {
+        stub(condition: isHost("localhost")
+            && isPath("/api/categories/SET_12345678")
+            && containsQueryParams(["name": "name", "search": "search", "pinned": "0"])
+            && isMethodPUT()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
+            return HTTPStubsResponse(
+            fileAtPath: OHPathForFile("UpdateSearchCategoryResponse.json", type(of: self))!, statusCode: 200, headers: ["Content-Type":"application/json"])
+        }
+        
+        let client = LANRaragiClient(url: url, apiKey: apiKey)
+        let item = CategoryItem(id: "SET_12345678", name: "name", archives: [], search: "search", pinned: "0")
+        
+        let expectation = XCTestExpectation(description: "testUpdateSearchCategory")
+        client.updateSearchCategory(item: item) { success in
+            XCTAssertTrue(success)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
+    }
+    
+    func testUpdateSearchCategoryFailure() throws {
+        stub(condition: isHost("localhost")
+            && isPath("/api/categories/SET_12345678")
+            && containsQueryParams(["name": "name", "search": "search", "pinned": "0"])
+            && isMethodPUT()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
+            return HTTPStubsResponse(
+                jsonObject: ["error": "This API is protected and requires login or an API Key."], statusCode: 401, headers: ["Content-Type":"application/json"])
+        }
+        
+        let client = LANRaragiClient(url: url, apiKey: apiKey)
+        let item = CategoryItem(id: "SET_12345678", name: "name", archives: [], search: "search", pinned: "0")
+        
+        let expectation = XCTestExpectation(description: "testUpdateSearchCategoryFailure")
+        client.updateSearchCategory(item: item) { success in
+            XCTAssertFalse(success)
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
+    }
 
 }

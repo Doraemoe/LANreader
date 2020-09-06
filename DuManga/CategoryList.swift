@@ -49,7 +49,7 @@ struct CategoryList: View {
         self.isLoading = true
         client.getCategories { (items: [ArchiveCategoriesResponse]?) in
             items?.forEach { item in
-                self.categoryItems.append(CategoryItem(id: item.id, name: item.name, archives: item.archives, search: item.search))
+                self.categoryItems.append(CategoryItem(id: item.id, name: item.name, archives: item.archives, search: item.search, pinned: item.pinned))
             }
             self.isLoading = false
         }

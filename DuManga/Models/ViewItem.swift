@@ -15,4 +15,5 @@ struct CategoryItem: Identifiable {
     let name: String
     let archives: [String]
     let search: String
+    let pinned: String
 }

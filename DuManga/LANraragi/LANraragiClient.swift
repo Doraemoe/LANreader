@@ -196,5 +196,26 @@ class LANRaragiClient {
         }
     }
     
+    func updateSearchCategory(item: CategoryItem, completionHandler: @escaping (Bool) -> Void) {
+        let headers: HTTPHeaders = [
+            "Authorization": "Bearer \(auth)"
+        ]
+        var query = [String: String]()
+        query["name"] = item.name
+        query["search"] = item.search
+        query["pinned"] = item.pinned
+        AF.request("\(url)/api/categories/\(item.id)", method: .put, parameters: query, encoding: URLEncoding.queryString, headers: headers)
+            .validate(statusCode: 200...200)
+            .responseJSON { response in
+                switch response.result {
+                case .success:
+                    completionHandler(true)
+                case .failure:
+                    LANRaragiClient.logger.error("Error updating category. response=\"\(response.debugDescription)\"")
+                    completionHandler(false)
+                }
+        }
+    }
+    
 }
 
