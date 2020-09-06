@@ -16,7 +16,7 @@
 "settings.read.tap.right" = "Tap on right side of the screen";
 "settings.read.swipe.left" = "Swipe left";
 "settings.read.swipe.right" = "Swipe right";
-"settings.read.split.page" = "Split page";
+"settings.read.split.page" = "Split page in portrait mode";
 "settings.read.split.page.priority.left" = "Show left side of split page first";
 
 "settings.view" = "View Settings";

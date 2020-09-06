@@ -177,6 +177,12 @@ struct ArchivePage: View {
                     self.currentPage = Image("placeholder")
                 }
                 self.currentIndex = page.rounded()
+                if index == self.allPages.count - 1 {
+                    self.client.clearNewFlag(id: self.item.id) { success in
+                        // NO-OP
+                        return
+                    }
+                }
             }
         }
     }
