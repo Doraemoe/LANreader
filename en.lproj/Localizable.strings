@@ -4,6 +4,8 @@
 "settings" = "Settings";
 "details" = "Details";
 "loading" = "Loading...";
+"done" = "Done";
+"cancel" = "Cancel";
 "error" = "Error";
 
 "lanraragi.config.url" = "http(s)://10.0.1.10:3000";
@@ -29,6 +31,11 @@
 "settings.nextPage" = "Next page";
 "settings.previousPage" = "Previous page";
 "settings.navigation" = "Toggle navigation";
+
+"category.edit" = "Edit category";
+"category.name" = "Category name";
+"category.search" = "Search keyword";
+
 
 "error.host" = "Cannot connect to server, please check your settings";
 "error.list" = "Cannot load library, please try again or check your server settings";

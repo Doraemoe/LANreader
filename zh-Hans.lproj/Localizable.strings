@@ -4,6 +4,8 @@
 "settings" = "设置";
 "details" = "详细";
 "loading" = "加载中";
+"done" = "完成";
+"cancel" = "取消";
 "error" = "错误";
 
 "lanraragi.config.url" = "http(s)://10.0.1.10:3000";
@@ -29,6 +31,10 @@
 "settings.nextPage" = "下一页";
 "settings.previousPage" = "上一页";
 "settings.navigation" = "切换导航";
+
+"category.edit" = "编辑类别";
+"category.name" = "类别名";
+"category.search" = "搜索关键词";
 
 "error.host" = "无法连接服务器，请检查设置";
 "error.list" = "无法加载媒体库，请重试或检查服务器设定";
