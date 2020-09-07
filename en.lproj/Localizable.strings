@@ -41,3 +41,4 @@
 "error.list" = "Cannot load library, please try again or check your server settings";
 "error.extract" = "Cannot archive, please try again";
 "error.load.page" = "Cannot load page, please try again";
+"error.category.update" = "Cannot update category, please try again";

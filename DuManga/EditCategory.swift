@@ -1,6 +1,7 @@
 //Created 6/9/20
 
 import SwiftUI
+import NotificationBannerSwift
 
 struct EditCategory: View {
     
@@ -52,9 +53,14 @@ struct EditCategory: View {
             }, trailing: Button(action: {
                 let updated: CategoryItem = CategoryItem(id: self.item.id, name: self.categoryName, archives: [], search: self.searchKeyword, pinned: self.item.pinned)
                 self.client.updateSearchCategory(item: updated) { success in
-                    // NO-OP
+                    if success {
+                        self.showSheetView = false
+                    } else {
+                        let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"), subtitle: NSLocalizedString("error.category.update", comment: "update category error"), style: .danger)
+                        banner.show()
+                    }
                 }
-                self.showSheetView = false
+                
             }) {
                 Text("done")
             })
