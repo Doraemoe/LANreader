@@ -5,6 +5,8 @@ import SwiftUI
 struct ContentView: View {
     @State var settingView = UserDefaults.standard.dictionary(forKey: "LANraragi") == nil
     @State var navBarTitle: String = ""
+    @State var editMode = EditMode.inactive
+    @State var tabName: String = ""
     
     var body: some View {
         VStack(alignment: .leading) {
@@ -12,25 +14,27 @@ struct ContentView: View {
                 LANraragiConfigView(settingView: $settingView)
             } else {
                 NavigationView {
-                    TabView{
+                    TabView(selection: $tabName) {
                         ArchiveList(navBarTitle: $navBarTitle)
                             .tabItem {
                                 Text("library")
-                        }
-                        CategoryList(navBarTitle: $navBarTitle)
+                        }.tag("library")
+                        CategoryList(navBarTitle: $navBarTitle, editMode: $editMode)
                             .tabItem {
                                 Text("category")
-                        }
+                        }.tag("category")
                         SearchView(navBarTitle: $navBarTitle)
                             .tabItem {
                                 Text("search")
-                        }
+                        }.tag("search")
                         SettingsView(navBarTitle: $navBarTitle)
                             .tabItem {
                                 Text("settings")
-                        }
+                        }.tag("settings")
                     }
                     .navigationBarTitle(Text(NSLocalizedString(navBarTitle, comment: "String will not be localized without force use NSLocalizedString")), displayMode: .inline)
+                    .navigationBarItems(trailing: self.tabName == "category" ? AnyView(EditButton()) : AnyView(EmptyView()))
+                    .environment(\.editMode, self.$editMode)
                 }
                 .navigationViewStyle(StackNavigationViewStyle())
             }

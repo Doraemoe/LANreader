@@ -1,0 +1,74 @@
+//Created 6/9/20
+
+import SwiftUI
+
+struct EditCategory: View {
+    
+    @State var categoryName = ""
+    @State var searchKeyword = ""
+    
+    @Binding var showSheetView: Bool
+    
+    let item: CategoryItem
+    private let config: [String: String]
+    private let client: LANRaragiClient
+    
+    init(item: CategoryItem, showSheetView: Binding<Bool>) {
+        self.item = item
+        self.config = UserDefaults.standard.dictionary(forKey: "LANraragi") as? [String: String] ?? [String: String]()
+        self.client = LANRaragiClient(url: config["url"]!, apiKey: config["apiKey"]!)
+        self._showSheetView = showSheetView
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                if item.archives.isEmpty {
+                    VStack(alignment: .leading) {
+                        Text("category.name")
+                        TextField("name", text: self.$categoryName)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                    }
+                    .padding()
+                    .onAppear(perform: {
+                        self.categoryName = self.item.name
+                        self.searchKeyword = self.item.search
+                    })
+                    VStack(alignment: .leading) {
+                        Text("category.search")
+                        TextField("search", text: self.$searchKeyword)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                    }
+                    .padding()
+                } else {
+                    Text("Only support dynamic category edit for now.")
+                }
+            }  
+            .navigationBarTitle("category.edit", displayMode: .inline)
+            .navigationBarItems(leading: Button(action: {
+                self.showSheetView = false
+            }) {
+                Text("cancel")
+            }, trailing: Button(action: {
+                let updated: CategoryItem = CategoryItem(id: self.item.id, name: self.categoryName, archives: [], search: self.searchKeyword, pinned: self.item.pinned)
+                self.client.updateSearchCategory(item: updated) { success in
+                    // NO-OP
+                }
+                self.showSheetView = false
+            }) {
+                Text("done")
+            })
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
+    }
+    
+    func saveSearchCategory() {
+        return
+    }
+}
+
+struct EditCategory_Previews: PreviewProvider {
+    static var previews: some View {
+        EditCategory(item: CategoryItem(id: "id", name: "name", archives: [], search: "search", pinned: "0"), showSheetView: Binding.constant(true))
+    }
+}
