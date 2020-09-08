@@ -119,7 +119,7 @@ struct ArchiveList: View {
                 }
                 items?.forEach { item in
                     if self.archiveItems[item.arcid] == nil {
-                        self.archiveItems[item.arcid] = (ArchiveItem(id: item.arcid, name: item.title, tags: item.tags, thumbnail: Image("placeholder")))
+                        self.archiveItems[item.arcid] = ArchiveItem(id: item.arcid, name: item.title, tags: item.tags, thumbnail: Image("placeholder"))
                     }
                 }
                 self.isLoading = false
