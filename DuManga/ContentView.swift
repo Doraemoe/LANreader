@@ -3,15 +3,16 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State var settingView = UserDefaults.standard.dictionary(forKey: "LANraragi") == nil
+    @EnvironmentObject var store: AppStore
+
     @State var navBarTitle: String = ""
     @State var editMode = EditMode.inactive
     @State var tabName: String = ""
     
     var body: some View {
         VStack(alignment: .leading) {
-            if (self.settingView) {
-                LANraragiConfigView(settingView: $settingView)
+            if (self.store.state.setting.url.isEmpty) {
+                LANraragiConfigView()
             } else {
                 NavigationView {
                     TabView(selection: $tabName) {
@@ -44,7 +45,6 @@ struct ContentView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        UserDefaults.standard.removeObject(forKey: "LANraragi")
-        return ContentView()
+        ContentView()
     }
 }

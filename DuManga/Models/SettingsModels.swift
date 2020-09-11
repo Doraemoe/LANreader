@@ -11,6 +11,8 @@ enum PageControl: String, CaseIterable, Identifiable {
 }
 
 struct SettingsKey {
+    static let lanraragiUrl = "settings.lanraragi.url"
+    static let lanraragiApiKey = "settings.lanraragi.apiKey"
     static let tapLeftKey = "settings.read.tap.left"
     static let tapMiddleKey = "settings.read.tap.middle"
     static let tapRightKey = "settings.read.tap.right"

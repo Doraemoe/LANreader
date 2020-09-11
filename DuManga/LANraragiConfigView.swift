@@ -4,48 +4,50 @@ import SwiftUI
 import NotificationBannerSwift
 
 struct LANraragiConfigView: View {
-    static let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"), subtitle: NSLocalizedString("error.host", comment: "host error"), style: .danger)
-    
-    @State var url: String = (UserDefaults.standard.dictionary(forKey: "LANraragi") as? [String: String])?["url"] ?? ""
-    @State var apiKey: String = (UserDefaults.standard.dictionary(forKey: "LANraragi") as? [String: String])?["apiKey"] ?? ""
-    @Binding var settingView: Bool
-    
+    @EnvironmentObject var store: AppStore
     @Environment(\.presentationMode) var presentationMode
-    
+
+    @State var url = ""
+    @State var apiKey = ""
+
     var body: some View {
-        VStack {
+        if store.state.setting.errorCode != nil {
+            let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                    subtitle: NSLocalizedString("error.host", comment: "host error"),
+                    style: .danger)
+            banner.show()
+            self.store.dispatch(.setting(action: .resetState))
+        } else if store.state.setting.savedSuccess {
+            self.store.dispatch(.setting(action: .resetState))
+            self.presentationMode.wrappedValue.dismiss()
+        }
+
+        return VStack {
             TextField("lanraragi.config.url", text: self.$url)
-                .textContentType(.URL)
-                .keyboardType(.URL)
-                .padding()
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .textContentType(.URL)
+                    .keyboardType(.URL)
+                    .padding()
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
             SecureField("lanraragi.config.apiKey", text: self.$apiKey)
-                .padding()
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
             Button(action: {
-                let client = LANRaragiClient(url: self.url, apiKey: self.apiKey)
-                client.healthCheck { healthy in
-                    if healthy {
-                        let config = ["url": self.url, "apiKey": self.apiKey]
-                        UserDefaults.standard.set(config, forKey: "LANraragi")
-                        self.settingView = false
-                        self.presentationMode.wrappedValue.dismiss()
-                    } else {
-                        LANraragiConfigView.banner.show()
-                    }
-                }
-                
+                self.store.dispatch(.setting(action: .verifyAndSaveLanraragiConfig(url: self.url, apiKey: self.apiKey)))
             }) {
                 Text("lanraragi.config.submit")
-                    .font(.headline)
+                        .font(.headline)
             }
-            .padding()
+                    .padding()
         }
+        .onAppear(perform: {
+            self.url = self.store.state.setting.url
+            self.apiKey = self.store.state.setting.apiKey
+        })
     }
 }
 
 struct LANraragiConfigView_Previews: PreviewProvider {
     static var previews: some View {
-        LANraragiConfigView(settingView: Binding.constant(true))
+        LANraragiConfigView()
     }
 }

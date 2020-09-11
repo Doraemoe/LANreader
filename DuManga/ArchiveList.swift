@@ -13,7 +13,6 @@ struct ArchiveList: View {
     @State var isLoading = false
     @Binding var navBarTitle: String
     
-    private let config: [String: String]
     private let client: LANRaragiClient
     
     private let searchKeyword: String?
@@ -21,8 +20,8 @@ struct ArchiveList: View {
     private let navBarTitleOverride: String?
     
     init(navBarTitle: Binding<String>, searchKeyword: String? = nil, categoryArchives: [String]? = nil, navBarTitleOverride: String? = nil) {
-        self.config = UserDefaults.standard.dictionary(forKey: "LANraragi") as? [String: String] ?? [String: String]()
-        self.client = LANRaragiClient(url: config["url"]!, apiKey: config["apiKey"]!)
+        self.client = LANRaragiClient(url: UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl)!,
+                apiKey: UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey)!)
         self.searchKeyword = searchKeyword
         self.categoryArchives = categoryArchives
         self.navBarTitleOverride = navBarTitleOverride
