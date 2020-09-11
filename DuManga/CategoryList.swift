@@ -12,12 +12,11 @@ struct CategoryList: View {
     @Binding var navBarTitle: String
     @Binding var editMode: EditMode
 
-    private let config: [String: String]
     private let client: LANRaragiClient
 
     init(navBarTitle: Binding<String>, editMode: Binding<EditMode>) {
-        self.config = UserDefaults.standard.dictionary(forKey: "LANraragi") as? [String: String] ?? [String: String]()
-        self.client = LANRaragiClient(url: config["url"]!, apiKey: config["apiKey"]!)
+        self.client = LANRaragiClient(url: UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl)!,
+                apiKey: UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey)!)
         self._navBarTitle = navBarTitle
         self._editMode = editMode
     }

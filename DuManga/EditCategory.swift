@@ -12,13 +12,12 @@ struct EditCategory: View {
     @Binding var categoryItems: [String: CategoryItem]
 
     let item: CategoryItem
-    private let config: [String: String]
     private let client: LANRaragiClient
 
     init(item: CategoryItem, showSheetView: Binding<Bool>, categoryItems: Binding<[String: CategoryItem]>) {
         self.item = item
-        self.config = UserDefaults.standard.dictionary(forKey: "LANraragi") as? [String: String] ?? [String: String]()
-        self.client = LANRaragiClient(url: config["url"]!, apiKey: config["apiKey"]!)
+        self.client = LANRaragiClient(url: UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl)!,
+                apiKey: UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey)!)
         self._showSheetView = showSheetView
         self._categoryItems = categoryItems
     }

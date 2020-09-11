@@ -31,13 +31,12 @@ struct ArchivePage: View {
     
     let item: ArchiveItem
     
-    private let config: [String: String]
     private let client: LANRaragiClient
     
     init(item: ArchiveItem) {
         self.item = item
-        self.config = UserDefaults.standard.dictionary(forKey: "LANraragi") as? [String: String] ?? [String: String]()
-        self.client = LANRaragiClient(url: config["url"]!, apiKey: config["apiKey"]!)
+        self.client = LANRaragiClient(url: UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl)!,
+                apiKey: UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey)!)
     }
     
     var body: some View {
