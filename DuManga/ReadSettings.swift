@@ -3,80 +3,73 @@
 import SwiftUI
 
 struct ReadSettings: View {
+    @EnvironmentObject var store: AppStore
+
     var body: some View {
-        List {
+        let pageControlSelectionView = Group {
+            Text("settings.nextPage").tag(PageControl.next)
+            Text("settings.previousPage").tag(PageControl.previous)
+            Text("settings.navigation").tag(PageControl.navigation)
+        }
+        return List {
             Picker("settings.read.tap.left", selection: Binding(
-                get: { PageControl(rawValue: UserDefaults.standard.object(forKey: SettingsKey.tapLeftKey) as? String ?? PageControl.next.rawValue) ?? .next },
-                set: {
-                    UserDefaults.standard.set($0.rawValue, forKey: SettingsKey.tapLeftKey)
-            }
+                    get: { self.store.state.setting.tapLeft },
+                    set: {
+                        self.store.dispatch(.setting(action: .saveTapLeftControlToUserDefaults(control: $0)))
+                    }
             )) {
-                Text("settings.nextPage").tag(PageControl.next)
-                Text("settings.previousPage").tag(PageControl.previous)
-                Text("settings.navigation").tag(PageControl.navigation)
+                pageControlSelectionView
             }
-            .padding()
+                    .padding()
             Picker("settings.read.tap.middle", selection: Binding(
-                get: { PageControl(rawValue: UserDefaults.standard.object(forKey: SettingsKey.tapMiddleKey) as? String ?? PageControl.navigation.rawValue) ?? .navigation },
-                set: {
-                    UserDefaults.standard.set($0.rawValue, forKey: SettingsKey.tapMiddleKey)
-            })) {
-                Text("settings.nextPage").tag(PageControl.next)
-                Text("settings.previousPage").tag(PageControl.previous)
-                Text("settings.navigation").tag(PageControl.navigation)
+                    get: { self.store.state.setting.tapMiddle },
+                    set: {
+                        self.store.dispatch(.setting(action: .saveTapMiddleControlToUserDefaults(control: $0)))
+                    })) {
+                pageControlSelectionView
             }
-            .padding()
+                    .padding()
             Picker("settings.read.tap.right", selection: Binding(
-                get: { PageControl(rawValue: UserDefaults.standard.object(forKey: SettingsKey.tapRightKey) as? String ?? PageControl.previous.rawValue) ?? .previous },
-                set: {
-                    UserDefaults.standard.set($0.rawValue, forKey: SettingsKey.tapRightKey)
-            })) {
-                Text("settings.nextPage").tag(PageControl.next)
-                Text("settings.previousPage").tag(PageControl.previous)
-                Text("settings.navigation").tag(PageControl.navigation)
+                    get: { self.store.state.setting.tapRight },
+                    set: {
+                        self.store.dispatch(.setting(action: .saveTapRightControlToUserDefaults(control: $0)))
+                    })) {
+                pageControlSelectionView
             }
-            .padding()
+                    .padding()
             Picker("settings.read.swipe.left", selection: Binding(
-                get: { PageControl(rawValue: UserDefaults.standard.object(forKey: SettingsKey.swipeLeftKey) as? String ?? PageControl.next.rawValue) ?? .next },
-                set: {
-                    UserDefaults.standard.set($0.rawValue, forKey: SettingsKey.swipeLeftKey)
-            })) {
-                Text("settings.nextPage").tag(PageControl.next)
-                Text("settings.previousPage").tag(PageControl.previous)
-                Text("settings.navigation").tag(PageControl.navigation)
+                    get: { self.store.state.setting.swipeLeft },
+                    set: {
+                        self.store.dispatch(.setting(action: .saveSwipeLeftControlToUserDefaults(control: $0)))
+                    })) {
+                pageControlSelectionView
             }
-            .padding()
+                    .padding()
             Picker("settings.read.swipe.right", selection: Binding(
-                get: { PageControl(rawValue: UserDefaults.standard.object(forKey: SettingsKey.swipeRightKey) as? String ?? PageControl.previous.rawValue) ?? .previous },
-                set: {
-                    UserDefaults.standard.set($0.rawValue, forKey: SettingsKey.swipeRightKey)
-            })) {
-                Text("settings.nextPage").tag(PageControl.next)
-                Text("settings.previousPage").tag(PageControl.previous)
-                Text("settings.navigation").tag(PageControl.navigation)
+                    get: { self.store.state.setting.swipeRight },
+                    set: {
+                        self.store.dispatch(.setting(action: .saveSwipeRightControlToUserDefaults(control: $0)))
+                    })) {
+                pageControlSelectionView
             }
-            .padding()
+                    .padding()
             Toggle(isOn: Binding(
-                get: { UserDefaults.standard.bool(forKey: SettingsKey.splitPage) },
-                set: {
-                    UserDefaults.standard.set($0, forKey: SettingsKey.splitPage)
-            })) {
+                    get: { self.store.state.setting.splitPage },
+                    set: {
+                        self.store.dispatch(.setting(action: .saveSplitPageToUserDefaults(split: $0)))
+                    })) {
                 Text("settings.read.split.page")
             }
-            .padding()
+                    .padding()
             Toggle(isOn: Binding(
-                get: { UserDefaults.standard.bool(forKey: SettingsKey.splitPagePriorityLeft) },
-                set: {
-                    UserDefaults.standard.set($0, forKey: SettingsKey.splitPagePriorityLeft)
-            })) {
+                    get: { self.store.state.setting.splitPagePriorityLeft },
+                    set: {
+                        self.store.dispatch(.setting(action: .saveSplitPagePriorityLeftToUserDefaults(priorityLeft: $0)))
+                    })) {
                 Text("settings.read.split.page.priority.left")
             }
-            .padding()
+                    .padding()
         }
-    }
-    
-    func savePageControlSettings(value: PageControl, key: String) {
-        UserDefaults.standard.set(value, forKey: key)
     }
 }
 
@@ -89,6 +82,6 @@ struct ReadSettings_Previews: PreviewProvider {
                 }
             }
         }
-        .navigationViewStyle(StackNavigationViewStyle())
+                .navigationViewStyle(StackNavigationViewStyle())
     }
 }

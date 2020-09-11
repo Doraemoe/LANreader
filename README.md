@@ -1,6 +1,6 @@
 # DuReader
 
-DuReader is a manga reader for [LANraragi](https://github.com/Difegue/LANraragi)
+DuReader is an iOS manga reader for [LANraragi](https://github.com/Difegue/LANraragi)
 
 ## Control in Read View
 
