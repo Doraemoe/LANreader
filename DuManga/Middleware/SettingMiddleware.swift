@@ -60,6 +60,19 @@ func settingMiddleware(service: SettingsService) -> Middleware<AppState, AppActi
                         AppAction.setting(action: .setSplitPagePriorityLeftToStore(priorityLeft: priorityLeft))
                     }
                     .eraseToAnyPublisher()
+                // view
+        case let .setting(action: .saveArchiveListRandomToUserDefaults(archiveListRandom)):
+            return service.saveArchiveListRandom(archiveListRandom: archiveListRandom)
+                    .map { _ in
+                        AppAction.setting(action: .setArchiveListRandomToStore(archiveListRandom: archiveListRandom))
+                    }
+                    .eraseToAnyPublisher()
+        case let .setting(action: .saveUseListViewToUserDefaults(useListView)):
+            return service.saveUseListView(useListView: useListView)
+                    .map { _ in
+                        AppAction.setting(action: .setUseListViewToStore(useListView: useListView))
+                    }
+                    .eraseToAnyPublisher()
         default:
             break
         }

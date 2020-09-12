@@ -16,6 +16,8 @@ struct SettingState {
     var swipeRight: PageControl
     var splitPage: Bool
     var splitPagePriorityLeft: Bool
+    var archiveListRandom: Bool
+    var useListView: Bool
 
     init() {
         // server
@@ -33,5 +35,8 @@ struct SettingState {
         // split
         self.splitPage = UserDefaults.standard.bool(forKey: SettingsKey.splitPage)
         self.splitPagePriorityLeft = UserDefaults.standard.bool(forKey: SettingsKey.splitPagePriorityLeft)
+        // view
+        self.archiveListRandom = UserDefaults.standard.bool(forKey: SettingsKey.archiveListRandom)
+        self.useListView = UserDefaults.standard.bool(forKey: SettingsKey.useListView)
     }
 }

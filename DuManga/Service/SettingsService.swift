@@ -50,4 +50,15 @@ class SettingsService {
         UserDefaults.standard.set(priorityLeft, forKey: SettingsKey.splitPagePriorityLeft)
         return Just(true).eraseToAnyPublisher()
     }
+
+    // view
+    func saveArchiveListRandom(archiveListRandom: Bool) -> AnyPublisher<Bool, Never> {
+        UserDefaults.standard.set(archiveListRandom, forKey: SettingsKey.archiveListRandom)
+        return Just(true).eraseToAnyPublisher()
+    }
+
+    func saveUseListView(useListView: Bool) -> AnyPublisher<Bool, Never> {
+        UserDefaults.standard.set(useListView, forKey: SettingsKey.useListView)
+        return Just(true).eraseToAnyPublisher()
+    }
 }

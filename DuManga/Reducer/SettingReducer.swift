@@ -34,6 +34,11 @@ func settingReducer(state: inout SettingState, action: SettingAction) {
         state.splitPage = split
     case let .setSplitPagePriorityLeftToStore(priorityLeft):
         state.splitPagePriorityLeft = priorityLeft
+            // view
+    case let .setArchiveListRandomToStore(archiveListRandom):
+        state.archiveListRandom = archiveListRandom
+    case let .setUseListViewToStore(useListView):
+        state.useListView = useListView
     default:
         break
     }

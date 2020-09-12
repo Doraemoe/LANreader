@@ -32,4 +32,10 @@ enum SettingAction {
     case setSplitPageToStore(split: Bool)
     case setSplitPagePriorityLeftToStore(priorityLeft: Bool)
 
+    //view
+    case saveArchiveListRandomToUserDefaults(archiveListRandom: Bool)
+    case saveUseListViewToUserDefaults(useListView: Bool)
+    case setArchiveListRandomToStore(archiveListRandom: Bool)
+    case setUseListViewToStore(useListView: Bool)
+
 }
