@@ -89,7 +89,7 @@ struct ArchivePage: View {
                 }
                 VStack {
                     Text("loading")
-                    ActivityIndicator(isAnimating: self.$isLoading, style: .large)
+                    ActivityIndicator(isAnimating: self.isLoading, style: .large)
                 }
                 .frame(width: geometry.size.width / 3,
                        height: geometry.size.height / 5)

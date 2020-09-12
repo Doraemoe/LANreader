@@ -4,25 +4,22 @@ import SwiftUI
 import NotificationBannerSwift
 
 struct CategoryList: View {
-    @State var categoryItems = [String: CategoryItem]()
-    @State var isLoading = false
+    @EnvironmentObject var store: AppStore
+
     @State var showSheetView = false
     @State var selectedCategoryItem: CategoryItem? = nil
 
     @Binding var navBarTitle: String
     @Binding var editMode: EditMode
 
-    private let client: LANRaragiClient
 
     init(navBarTitle: Binding<String>, editMode: Binding<EditMode>) {
-        self.client = LANRaragiClient(url: UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl)!,
-                apiKey: UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey)!)
         self._navBarTitle = navBarTitle
         self._editMode = editMode
     }
 
     var body: some View {
-        let categories = Array(self.categoryItems.values).sorted(by: { $0.name < $1.name })
+        let categories = Array(self.store.state.category.categoryItems.values).sorted(by: { $0.name < $1.name })
         return GeometryReader { geometry in
             ZStack {
                 List(categories) { (item: CategoryItem) in
@@ -50,45 +47,31 @@ struct CategoryList: View {
                 }
                         .sheet(isPresented: self.$showSheetView) {
                             EditCategory(item: self.selectedCategoryItem!,
-                                    showSheetView: self.$showSheetView,
-                                    categoryItems: self.$categoryItems)
+                                    showSheetView: self.$showSheetView)
+                                    .environmentObject(self.store)
                         }
                         .onAppear(perform: { self.navBarTitle = "category" })
                         .onAppear(perform: self.loadData)
 
                 VStack {
                     Text("loading")
-                    ActivityIndicator(isAnimating: self.$isLoading, style: .large)
+                    ActivityIndicator(isAnimating: self.store.state.category.loading, style: .large)
                 }
                         .frame(width: geometry.size.width / 3,
                                 height: geometry.size.height / 5)
                         .background(Color.secondary.colorInvert())
                         .foregroundColor(Color.primary)
                         .cornerRadius(20)
-                        .opacity(self.isLoading ? 1 : 0)
+                        .opacity(self.store.state.category.loading ? 1 : 0)
             }
         }
     }
 
     func loadData() {
-        if self.categoryItems.count > 0 {
+        if self.store.state.category.categoryItems.count > 0 {
             return
         }
-        self.isLoading = true
-        client.getCategories { (items: [ArchiveCategoriesResponse]?) in
-            if items == nil {
-                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                        subtitle: NSLocalizedString("error.category", comment: "category error"), style: .danger)
-                banner.show()
-            }
-            items?.forEach { item in
-                if self.categoryItems[item.id] == nil {
-                    self.categoryItems[item.id] = CategoryItem(id: item.id, name: item.name,
-                            archives: item.archives, search: item.search, pinned: item.pinned)
-                }
-            }
-            self.isLoading = false
-        }
+        self.store.dispatch(.category(action: .fetchCategory))
     }
 }
 

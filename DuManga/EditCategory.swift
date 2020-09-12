@@ -5,25 +5,32 @@ import NotificationBannerSwift
 
 struct EditCategory: View {
 
+    @EnvironmentObject var store: AppStore
+
     @State var categoryName = ""
     @State var searchKeyword = ""
 
     @Binding var showSheetView: Bool
-    @Binding var categoryItems: [String: CategoryItem]
 
     let item: CategoryItem
-    private let client: LANRaragiClient
 
-    init(item: CategoryItem, showSheetView: Binding<Bool>, categoryItems: Binding<[String: CategoryItem]>) {
+    init(item: CategoryItem, showSheetView: Binding<Bool>) {
         self.item = item
-        self.client = LANRaragiClient(url: UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl)!,
-                apiKey: UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey)!)
         self._showSheetView = showSheetView
-        self._categoryItems = categoryItems
     }
 
     var body: some View {
-        NavigationView {
+        if store.state.category.errorCode != nil {
+            let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                    subtitle: NSLocalizedString("error.category.update", comment: "update category error"),
+                    style: .danger)
+            banner.show()
+            self.store.dispatch(.category(action: .resetState))
+        } else if store.state.category.updateDynamicCategorySuccess {
+            self.store.dispatch(.category(action: .resetState))
+            self.showSheetView = false
+        }
+        return NavigationView {
             VStack {
                 if item.archives.isEmpty {
                     VStack(alignment: .leading) {
@@ -54,18 +61,7 @@ struct EditCategory: View {
                     }, trailing: Button(action: {
                         let updated: CategoryItem = CategoryItem(id: self.item.id,
                                 name: self.categoryName, archives: [], search: self.searchKeyword, pinned: self.item.pinned)
-                        self.client.updateSearchCategory(item: updated) { success in
-                            if success {
-                                self.categoryItems[updated.id] = updated
-                                self.showSheetView = false
-                            } else {
-                                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                                        subtitle: NSLocalizedString("error.category.update", comment: "update category error"),
-                                        style: .danger)
-                                banner.show()
-                            }
-                        }
-
+                        self.store.dispatch(.category(action: .updateDynamicCategory(category: updated)))
                     }) {
                         Text("done")
                     })
@@ -77,6 +73,6 @@ struct EditCategory: View {
 struct EditCategory_Previews: PreviewProvider {
     static var previews: some View {
         EditCategory(item: CategoryItem(id: "id", name: "name", archives: [], search: "search", pinned: "0"),
-                showSheetView: Binding.constant(true), categoryItems: Binding.constant([String: CategoryItem]()))
+                showSheetView: Binding.constant(true))
     }
 }
