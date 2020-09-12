@@ -25,6 +25,24 @@ class LANraragiService {
                 .publishString()
                 .value()
     }
+
+    func retrieveCategories() -> AnyPublisher<[ArchiveCategoriesResponse], AFError> {
+        session.request("\(self.url)/api/categories")
+                .validate()
+                .publishDecodable(type: [ArchiveCategoriesResponse].self)
+                .value()
+    }
+
+    func updateDynamicCategory(item: CategoryItem) -> AnyPublisher<String, AFError> {
+        var query = [String: String]()
+        query["name"] = item.name
+        query["search"] = item.search
+        query["pinned"] = item.pinned
+        return session.request("\(url)/api/categories/\(item.id)", method: .put, parameters: query)
+                .validate(statusCode: 200...200)
+                .publishString()
+                .value()
+    }
 }
 
 class AuthInterceptor: RequestInterceptor {

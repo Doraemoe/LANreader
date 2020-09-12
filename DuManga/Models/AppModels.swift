@@ -14,4 +14,6 @@ struct ErrorCode {
     }
 
     static let lanraragiServerError = ErrorCode(name: "error.host", code: 1000)
+    static let categoryFetchError = ErrorCode(name: "error.category", code: 2000)
+    static let categoryUpdateError = ErrorCode(name: "error.category.update", code: 2001)
 }
