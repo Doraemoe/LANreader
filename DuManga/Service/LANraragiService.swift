@@ -5,14 +5,24 @@
 import Foundation
 import Combine
 import Alamofire
+import AlamofireImage
 
 class LANraragiService {
     private var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
     private let authInterceptor = AuthInterceptor()
     private var session: Session
+    private let imageDownloader: ImageDownloader
 
     init() {
         self.session = Session(interceptor: authInterceptor)
+        let downloaderSession = Session(configuration: ImageDownloader.defaultURLSessionConfiguration(),
+                startRequestsImmediately: false,
+                interceptor: authInterceptor)
+        self.imageDownloader = ImageDownloader(session: downloaderSession,
+                downloadPrioritization: .fifo,
+                maximumActiveDownloads: 4,
+                imageCache: AutoPurgingImageCache())
+        ImageResponseSerializer.addAcceptableImageContentTypes(["application/x-download"])
     }
 
     func verifyClient(url: String, apiKey: String) -> AnyPublisher<String, AFError> {
@@ -23,6 +33,55 @@ class LANraragiService {
                 .cacheResponse(using: cacher)
                 .validate(statusCode: 200...500)
                 .publishString()
+                .value()
+    }
+
+    func retrieveArchiveIndex() -> AnyPublisher<[ArchiveIndexResponse], AFError> {
+        session.request("\(url)/api/archives")
+                .validate()
+                .publishDecodable(type: [ArchiveIndexResponse].self)
+                .value()
+    }
+
+    func retrieveArchiveThumbnail(id: String) -> AnyPublisher<Image, AFIError> {
+            let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
+            return Future<Image, AFIError> { promise in
+                self.imageDownloader.download(request) { response in
+                    switch response.result {
+                    case let .success(thumbnail):
+                        promise(.success(thumbnail))
+                    case let .failure(error):
+                        promise(.failure(error))
+                    }
+                }
+            }.eraseToAnyPublisher()
+    }
+
+    func searchArchiveIndex(category: String? = nil,
+                            filter: String? = nil,
+                            start: String? = nil,
+                            sortby: String? = nil,
+                            order: String? = nil) -> AnyPublisher<ArchiveSearchResponse, AFError>{
+        var query = [String: String]()
+        if category != nil {
+            query["category"] = category
+        }
+        if filter != nil {
+            query["filter"] = filter
+        }
+        if start != nil {
+            query["start"] = start
+        }
+        if sortby != nil {
+            query["sortby"] = sortby
+        }
+        if order != nil {
+            query["order"] = order
+        }
+
+        return session.request("\(url)/api/search", parameters: query)
+                .validate()
+                .publishDecodable(type: ArchiveSearchResponse.self)
                 .value()
     }
 

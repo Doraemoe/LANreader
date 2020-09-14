@@ -36,7 +36,7 @@ struct SearchView: View {
                 }
             }
             if showSearchResult && !self.keyword.isEmpty {
-                ArchiveList(navBarTitle: self.$navBarTitle, searchKeyword: self.keyword, navBarTitleOverride: "search")
+                ArchiveListContainer(navBarTitle: self.$navBarTitle, searchKeyword: self.keyword, navBarTitleOverride: "search")
             }
         }
         

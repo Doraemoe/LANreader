@@ -11,6 +11,8 @@ func appReducer(state: inout AppState, action: AppAction) {
     switch action {
     case let .setting(action):
         settingReducer(state: &state.setting, action: action)
+    case let .archive(action):
+        archiveReducer(state: &state.archive, action: action)
     case let .category(action):
         categoryReducer(state: &state.category, action: action)
     }

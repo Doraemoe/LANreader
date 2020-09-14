@@ -6,5 +6,6 @@ import Foundation
 
 enum AppAction {
     case setting(action: SettingAction)
+    case archive(action: ArchiveAction)
     case category(action: CategoryAction)
 }

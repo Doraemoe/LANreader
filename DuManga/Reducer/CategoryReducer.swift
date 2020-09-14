@@ -22,6 +22,6 @@ func categoryReducer(state: inout CategoryState, action: CategoryAction) {
         state.errorCode = nil
         state.updateDynamicCategorySuccess = false
     default:
-        break;
+        break
     }
 }

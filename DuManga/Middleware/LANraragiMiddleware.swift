@@ -4,6 +4,7 @@
 
 import Foundation
 import Combine
+import SwiftUI
 
 func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppAction> {
     { state, action in
@@ -13,7 +14,37 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     .map { _ in
                         AppAction.setting(action: .saveLanraragiConfigToUserDefaults(url: url, apiKey: apiKey))
                     }
-                    .replaceError(with: AppAction.setting(action: .error(errorCode: ErrorCode.lanraragiServerError)))
+                    .replaceError(with: AppAction.setting(action: .error(errorCode: .lanraragiServerError)))
+                    .eraseToAnyPublisher()
+        case .archive(action: .fetchArchive):
+            return service.retrieveArchiveIndex()
+                    .map { (response: [ArchiveIndexResponse]) in
+                        var archiveItems = [String: ArchiveItem]()
+                        response.forEach { item in
+                            archiveItems[item.arcid] = ArchiveItem(id: item.arcid, name: item.title,
+                                    tags: item.tags, thumbnail: Image("placeholder"))
+                        }
+                        return AppAction.archive(action: .fetchArchiveSuccess(archive: archiveItems))
+                    }
+                    .replaceError(with: AppAction.archive(action: .error(error: .archiveFetchError)))
+                    .eraseToAnyPublisher()
+        case let .archive(action: .fetchArchiveThumbnail(id)):
+            return service.retrieveArchiveThumbnail(id: id)
+                    .map { (img: UIImage) in
+                        AppAction.archive(action: .replaceArchiveThumbnail(id: id, image: Image(uiImage: img)))
+                    }
+                    .replaceError(with: AppAction.archive(action: .error(error: .archiveThumbnailError)))
+                    .eraseToAnyPublisher()
+        case let .archive(action: .fetchArchiveDynamicCategory(keyword)):
+            return service.searchArchiveIndex(filter: keyword)
+                    .map { (response: ArchiveSearchResponse) in
+                        var keys = [String]()
+                        response.data.forEach { item in
+                            keys.append(item.arcid)
+                        }
+                        return AppAction.archive(action: .fetchArchiveDynamicCategorySuccess(keys: keys))
+                    }
+                    .replaceError(with: AppAction.archive(action: .error(error: .archiveFetchError)))
                     .eraseToAnyPublisher()
         case .category(action: .fetchCategory):
             return service.retrieveCategories()
@@ -25,14 +56,14 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                         }
                         return AppAction.category(action: .fetchCategorySuccess(category: categoryItems))
                     }
-                    .replaceError(with: AppAction.category(action: .error(error: ErrorCode.categoryFetchError)))
+                    .replaceError(with: AppAction.category(action: .error(error: .categoryFetchError)))
                     .eraseToAnyPublisher()
         case let .category(action: .updateDynamicCategory(category)):
             return service.updateDynamicCategory(item: category)
                     .map { _ in
                         AppAction.category(action: .updateDynamicCategorySuccess(category: category))
                     }
-                    .replaceError(with: AppAction.category(action: .error(error: ErrorCode.categoryUpdateError)))
+                    .replaceError(with: AppAction.category(action: .error(error: .categoryUpdateError)))
                     .eraseToAnyPublisher()
         default:
             break

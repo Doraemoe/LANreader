@@ -7,10 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4BD8202CBB691F358BDDA9FE /* ArchiveReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82E3AAF924901BE111A11 /* ArchiveReducer.swift */; };
 		4BD82050C1FF8B40496FA855 /* LANraragiMiddleware.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82CBC1A68BB70CB0CC2D0 /* LANraragiMiddleware.swift */; };
 		4BD821631AB6950B54BEA209 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD828AA12AB6AEB96EB44BB /* Store.swift */; };
 		4BD821C3FDF1FC3B60AB4823 /* AppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD822BB67087E0A18F517BF /* AppModels.swift */; };
 		4BD8236A69BB648B5CC4EF24 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82A14F4C3D7950CCCC8C1 /* AppState.swift */; };
+		4BD823A4FE3B643E84113C5D /* ArchiveState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD829DF3149761EE3A81A1A /* ArchiveState.swift */; };
 		4BD823AC73ED9E45F8B7E436 /* ReadSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD825A4E56818113C2F7801 /* ReadSettings.swift */; };
 		4BD823F7B477CFE0048BB307 /* AppReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD823EC00313FB6857A6036 /* AppReducer.swift */; };
 		4BD825080375402B32F7762D /* CategoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82396734DD4176DD159EA /* CategoryList.swift */; };
@@ -25,6 +27,8 @@
 		4BD82CDA1A27B1462DCCF3F4 /* SettingAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8297C7ACE73E81F4F374F /* SettingAction.swift */; };
 		4BD82CED54A4C9689B0E9E55 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82694B57396B2CD6BACED /* ContentView.swift */; };
 		4BD82D8C887F9B6271C26BDA /* CategoryState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD822689B9BBADE3685F3D8 /* CategoryState.swift */; };
+		4BD82D948032095FF807F54E /* Selector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82A7A1E34456CEE443689 /* Selector.swift */; };
+		4BD82DB8FD68F4BE80E2B221 /* ArchiveAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD822A6C9B5C44B6110ADC3 /* ArchiveAction.swift */; };
 		4BD82DEEF7DD674ECA330193 /* SettingReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82868F18238BE763DACAF /* SettingReducer.swift */; };
 		4BD82E213F290392837D5019 /* EditCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82106749F5064FE4AB4B6 /* EditCategory.swift */; };
 		4BD82EA26FFA071989D51CF1 /* SettingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82C50F0B889D20B260924 /* SettingState.swift */; };
@@ -84,6 +88,7 @@
 		4BD82106749F5064FE4AB4B6 /* EditCategory.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = EditCategory.swift; path = DuManga/EditCategory.swift; sourceTree = SOURCE_ROOT; };
 		4BD82127C1FF73E283825D59 /* CategoryAction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryAction.swift; sourceTree = "<group>"; };
 		4BD822689B9BBADE3685F3D8 /* CategoryState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryState.swift; sourceTree = "<group>"; };
+		4BD822A6C9B5C44B6110ADC3 /* ArchiveAction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchiveAction.swift; sourceTree = "<group>"; };
 		4BD822BB67087E0A18F517BF /* AppModels.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppModels.swift; sourceTree = "<group>"; };
 		4BD82396734DD4176DD159EA /* CategoryList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = CategoryList.swift; path = DuManga/CategoryList.swift; sourceTree = SOURCE_ROOT; };
 		4BD823EC00313FB6857A6036 /* AppReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppReducer.swift; sourceTree = "<group>"; };
@@ -95,13 +100,16 @@
 		4BD828AA12AB6AEB96EB44BB /* Store.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
 		4BD8297C7ACE73E81F4F374F /* SettingAction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingAction.swift; sourceTree = "<group>"; };
 		4BD8297D9DA6589446C724EC /* ViewSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ViewSettings.swift; path = DuManga/ViewSettings.swift; sourceTree = SOURCE_ROOT; };
+		4BD829DF3149761EE3A81A1A /* ArchiveState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchiveState.swift; sourceTree = "<group>"; };
 		4BD82A14F4C3D7950CCCC8C1 /* AppState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		4BD82A7A1E34456CEE443689 /* Selector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Selector.swift; sourceTree = "<group>"; };
 		4BD82C50F0B889D20B260924 /* SettingState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingState.swift; sourceTree = "<group>"; };
 		4BD82CBC1A68BB70CB0CC2D0 /* LANraragiMiddleware.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LANraragiMiddleware.swift; sourceTree = "<group>"; };
 		4BD82CCF0CDAB88F4FC224D1 /* CategoryReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryReducer.swift; sourceTree = "<group>"; };
 		4BD82CD5954DDD63ABB7DD22 /* LANraragiConfigView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LANraragiConfigView.swift; path = DuManga/LANraragiConfigView.swift; sourceTree = SOURCE_ROOT; };
 		4BD82CEDE401CEFFBC864EA2 /* ActivityIndicator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ActivityIndicator.swift; path = DuManga/ActivityIndicator.swift; sourceTree = SOURCE_ROOT; };
 		4BD82D9D382800F9E46EF2FE /* SettingMiddleware.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingMiddleware.swift; sourceTree = "<group>"; };
+		4BD82E3AAF924901BE111A11 /* ArchiveReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchiveReducer.swift; sourceTree = "<group>"; };
 		4BD82FA7EAE6ED44136AA4E7 /* SettingsService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingsService.swift; sourceTree = "<group>"; };
 		4BD82FB85284818BED0DE580 /* AppAction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppAction.swift; sourceTree = "<group>"; };
 		7D354C9C24F1316800617F4A /* DuManga.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DuManga.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -177,6 +185,7 @@
 				4BD823EC00313FB6857A6036 /* AppReducer.swift */,
 				4BD82868F18238BE763DACAF /* SettingReducer.swift */,
 				4BD82CCF0CDAB88F4FC224D1 /* CategoryReducer.swift */,
+				4BD82E3AAF924901BE111A11 /* ArchiveReducer.swift */,
 			);
 			path = Reducer;
 			sourceTree = "<group>";
@@ -187,6 +196,7 @@
 				4BD82FB85284818BED0DE580 /* AppAction.swift */,
 				4BD8297C7ACE73E81F4F374F /* SettingAction.swift */,
 				4BD82127C1FF73E283825D59 /* CategoryAction.swift */,
+				4BD822A6C9B5C44B6110ADC3 /* ArchiveAction.swift */,
 			);
 			path = Action;
 			sourceTree = "<group>";
@@ -242,6 +252,7 @@
 				4BD82A14F4C3D7950CCCC8C1 /* AppState.swift */,
 				4BD82C50F0B889D20B260924 /* SettingState.swift */,
 				4BD822689B9BBADE3685F3D8 /* CategoryState.swift */,
+				4BD829DF3149761EE3A81A1A /* ArchiveState.swift */,
 			);
 			path = State;
 			sourceTree = "<group>";
@@ -305,6 +316,7 @@
 				4BD82228A995BCC00EDC8A0C /* Service */,
 				4BD824562009503E813A0D93 /* Middleware */,
 				4BD8260DA98B959BE0550327 /* Models */,
+				4BD82A7A1E34456CEE443689 /* Selector.swift */,
 			);
 			path = DuManga;
 			sourceTree = "<group>";
@@ -611,6 +623,10 @@
 				4BD82D8C887F9B6271C26BDA /* CategoryState.swift in Sources */,
 				4BD827862D48A4D0B32CCC08 /* CategoryAction.swift in Sources */,
 				4BD826B795F6A120E216A272 /* CategoryReducer.swift in Sources */,
+				4BD823A4FE3B643E84113C5D /* ArchiveState.swift in Sources */,
+				4BD8202CBB691F358BDDA9FE /* ArchiveReducer.swift in Sources */,
+				4BD82DB8FD68F4BE80E2B221 /* ArchiveAction.swift in Sources */,
+				4BD82D948032095FF807F54E /* Selector.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
