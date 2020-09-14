@@ -19,6 +19,12 @@ struct CategoryList: View {
     }
 
     var body: some View {
+        if store.state.category.errorCode != nil {
+            let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                    subtitle: NSLocalizedString("error.category", comment: "category error"), style: .danger)
+            banner.show()
+            store.dispatch(.category(action: .resetState))
+        }
         let categories = Array(self.store.state.category.categoryItems.values).sorted(by: { $0.name < $1.name })
         return GeometryReader { geometry in
             ZStack {
@@ -36,7 +42,7 @@ struct CategoryList: View {
                                     })
                         }
                     } else {
-                        NavigationLink(destination: ArchiveList(navBarTitle: self.$navBarTitle,
+                        NavigationLink(destination: ArchiveListContainer(navBarTitle: self.$navBarTitle,
                                 searchKeyword: item.search,
                                 categoryArchives: item.archives,
                                 navBarTitleOverride: "category")) {
@@ -59,7 +65,7 @@ struct CategoryList: View {
                 }
                         .frame(width: geometry.size.width / 3,
                                 height: geometry.size.height / 5)
-                        .background(Color.secondary.colorInvert())
+                        .background(Color.secondary)
                         .foregroundColor(Color.primary)
                         .cornerRadius(20)
                         .opacity(self.store.state.category.loading ? 1 : 0)

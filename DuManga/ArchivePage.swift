@@ -93,7 +93,7 @@ struct ArchivePage: View {
                 }
                 .frame(width: geometry.size.width / 3,
                        height: geometry.size.height / 5)
-                    .background(Color.secondary.colorInvert())
+                    .background(Color.secondary)
                     .foregroundColor(Color.primary)
                     .cornerRadius(20)
                     .opacity(self.isLoading ? 1 : 0)
