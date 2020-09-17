@@ -23,6 +23,8 @@ struct ErrorCode: Equatable {
 
     static let archiveFetchError = ErrorCode(name: "error.list", code: 2000)
     static let archiveThumbnailError = ErrorCode(name: "error.thumbnail", code: 2001)
+    static let archiveExtractError = ErrorCode(name: "error.extract", code: 2002)
+    static let archiveFetchPageError = ErrorCode(name: "error.load.page", code: 2003)
 
     static let categoryFetchError = ErrorCode(name: "error.category", code: 3000)
     static let categoryUpdateError = ErrorCode(name: "error.category.update", code: 3001)

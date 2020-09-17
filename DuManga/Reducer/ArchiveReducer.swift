@@ -17,6 +17,11 @@ func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
     case let .fetchArchiveDynamicCategorySuccess(keys):
         state.loading = false
         state.dynamicCategoryKeys = keys
+    case .extractArchive:
+        state.loading = true
+    case let .extractArchiveSuccess(id, pages):
+        state.loading = false
+        state.archivePages[id] = pages
     case let .replaceArchiveThumbnail(id, image):
         state.archiveItems[id]?.thumbnail = image
     case let .error(error):

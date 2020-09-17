@@ -8,7 +8,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
     let store = AppStore(initialState: .init(), reducer: appReducer, middlewares: [
         settingMiddleware(service: SettingsService()),
-        lanraragiMiddleware(service: LANraragiService())
+        lanraragiMiddleware(service: LANraragiService.shared)
     ])
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {

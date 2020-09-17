@@ -17,7 +17,7 @@ class Selector<B: Equatable, F: Equatable, R> {
 
     func select(base: B,
                 filter: F,
-                selector: @escaping (B, F) -> R) -> R {
+                selector: (B, F) -> R) -> R {
         if base != lastBase || filter != lastFilter {
             self.lastBase = base
             self.lastFilter = filter
