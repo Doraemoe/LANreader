@@ -46,6 +46,18 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     }
                     .replaceError(with: AppAction.archive(action: .error(error: .archiveFetchError)))
                     .eraseToAnyPublisher()
+        case let .archive(action: .extractArchive(id)):
+            return service.extractArchive(id: id)
+                    .map { (response: ArchiveExtractResponse) in
+                        var allPages = [String]()
+                        response.pages.forEach { page in
+                            let normalizedPage = String(page.dropFirst(2))
+                            allPages.append(normalizedPage)
+                        }
+                        return AppAction.archive(action: .extractArchiveSuccess(id: id, pages: allPages))
+                    }
+                    .replaceError(with: AppAction.archive(action: .error(error: .archiveExtractError)))
+                    .eraseToAnyPublisher()
         case .category(action: .fetchCategory):
             return service.retrieveCategories()
                     .map { (response: [ArchiveCategoriesResponse]) in

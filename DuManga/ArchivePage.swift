@@ -3,261 +3,268 @@
 import SwiftUI
 import NotificationBannerSwift
 
-enum InternalPageSplitState: String, CaseIterable {
-    case off
-    case first
-    case last
-}
+struct ArchivePageContainer: View {
+    @EnvironmentObject var store: AppStore
 
-enum PageFlipAction: String, CaseIterable {
-    case next
-    case previous
-    case jump
+    let item: ArchiveItem
+    var lastPage: String?
+
+    init(item: ArchiveItem) {
+        self.item = item
+    }
+
+    var body: some View {
+        ArchivePage(item: item,
+                pages: self.store.state.archive.archivePages[item.id],
+                loading: self.store.state.archive.loading,
+                tapLeft: self.store.state.setting.tapLeft,
+                tapMiddle: self.store.state.setting.tapMiddle,
+                tapRight: self.store.state.setting.tapRight,
+                swipeLeft: self.store.state.setting.swipeLeft,
+                swipeRight: self.store.state.setting.swipeRight,
+                splitPage: self.store.state.setting.splitPage,
+                splitPagePriorityLeft: self.store.state.setting.splitPagePriorityLeft,
+                errorCode: self.store.state.archive.errorCode,
+                reset: self.resetState)
+                .onAppear(perform: self.load)
+    }
+
+    private func load() {
+        if self.store.state.archive.archivePages[item.id]?.isEmpty ?? true {
+            self.store.dispatch(.archive(action: .extractArchive(id: item.id)))
+        }
+    }
+
+    private func resetState() {
+        self.store.dispatch(.archive(action: .resetState))
+    }
 }
 
 struct ArchivePage: View {
-    
-    static let extractErrorBanner = NotificationBanner(title: NSLocalizedString("error", comment: "error"), subtitle: NSLocalizedString("error.extract", comment: "extract error"), style: .danger)
-    static let loadPageErrorBanner = NotificationBanner(title: NSLocalizedString("error", comment: "error"), subtitle: NSLocalizedString("error.load.page", comment: "load page error"), style: .danger)
-    
-    @State var currentPage = Image("placeholder")
-    @State var currentIndex: Double = 0
-    @State var allPages = [String]()
-    @State var controlUiHidden = true
-    @State var isLoading = false
-    @State var leftHalfPage = Image("placeholder")
-    @State var rightHalfPage = Image("placeholder")
-    @State var isCurrentSplittingPage = InternalPageSplitState.off
-    
-    let item: ArchiveItem
-    
-    private let client: LANRaragiClient
-    
-    init(item: ArchiveItem) {
+
+    @ObservedObject private var internalModel = InternalPageModel()
+
+
+    private let pages: [String]?
+    private let item: ArchiveItem
+    private let loading: Bool
+    private let tapLeft: PageControl
+    private let tapMiddle: PageControl
+    private let tapRight: PageControl
+    private let swipeLeft: PageControl
+    private let swipeRight: PageControl
+    private let splitPage: Bool
+    private let splitPagePriorityLeft: Bool
+    private let errorCode: ErrorCode?
+    private let reset: () -> Void
+
+    init(item: ArchiveItem,
+         pages: [String]?,
+         loading: Bool,
+         tapLeft: PageControl,
+         tapMiddle: PageControl,
+         tapRight: PageControl,
+         swipeLeft: PageControl,
+         swipeRight: PageControl,
+         splitPage: Bool,
+         splitPagePriorityLeft: Bool,
+         errorCode: ErrorCode?,
+         reset: @escaping () -> Void) {
         self.item = item
-        self.client = LANRaragiClient(url: UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl)!,
-                apiKey: UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey)!)
+        self.pages = pages
+        self.loading = loading
+        self.tapLeft = tapLeft
+        self.tapMiddle = tapMiddle
+        self.tapRight = tapRight
+        self.swipeLeft = swipeLeft
+        self.swipeRight = swipeRight
+        self.splitPage = splitPage
+        self.splitPagePriorityLeft = splitPagePriorityLeft
+        self.errorCode = errorCode
+        self.reset = reset
+        self.loadStartImage()
     }
-    
+
     var body: some View {
-        GeometryReader { geometry in
+        handleError()
+        return GeometryReader { geometry in
             ZStack {
-                self.currentPage
-                    .resizable()
-                    .scaledToFit()
-                    .navigationBarHidden(self.controlUiHidden)
-                    .navigationBarTitle("")
-                    .navigationBarItems(trailing: NavigationLink(destination: ArchiveDetails(item: self.item)) { Text("details") })
-                    .onAppear(perform: { self.postExtract(id: self.item.id)})
+                self.internalModel.currentImage
+                        .resizable()
+                        .scaledToFit()
+                        .aspectRatio(contentMode: .fit)
+                        .navigationBarHidden(self.internalModel.controlUiHidden)
+                        .navigationBarTitle("")
+                        .navigationBarItems(trailing: NavigationLink(destination: ArchiveDetails(item: self.item)) {
+                            Text("details")
+                        })
                 HStack {
                     Rectangle()
-                        .opacity(0.0001) // opaque object does not response to tap event
-                        .contentShape(Rectangle())
-                        .onTapGesture(perform: { self.performActionBasedOnSettings(key: SettingsKey.tapLeftKey, defaultAction: .next) })
+                            .opacity(0.0001) // opaque object does not response to tap event
+                            .contentShape(Rectangle())
+                            .onTapGesture(perform: { self.performAction(self.tapLeft) })
                     Rectangle()
-                        .opacity(0.0001)
-                        .contentShape(Rectangle())
-                        .onTapGesture(perform: { self.performActionBasedOnSettings(key: SettingsKey.tapMiddleKey, defaultAction: .navigation) })
+                            .opacity(0.0001)
+                            .contentShape(Rectangle())
+                            .onTapGesture(perform: { self.performAction(self.tapMiddle) })
                     Rectangle()
-                        .opacity(0.0001)
-                        .contentShape(Rectangle())
-                        .onTapGesture(perform: { self.performActionBasedOnSettings(key: SettingsKey.tapRightKey, defaultAction: .previous) })
+                            .opacity(0.0001)
+                            .contentShape(Rectangle())
+                            .onTapGesture(perform: { self.performAction(self.tapRight) })
                 }
-                .gesture(DragGesture(minimumDistance: 50, coordinateSpace: .global).onEnded { value in
-                    if value.translation.width < 0 {
-                        self.performActionBasedOnSettings(key: SettingsKey.swipeLeftKey, defaultAction: .next)
-                    }
-                    else if value.translation.width > 0 {
-                        self.performActionBasedOnSettings(key: SettingsKey.swipeRightKey, defaultAction: .previous)
-                    }
-                })
+                        .gesture(DragGesture(minimumDistance: 50, coordinateSpace: .global).onEnded { value in
+                            if value.translation.width < 0 {
+                                self.performAction(self.swipeLeft)
+                            } else if value.translation.width > 0 {
+                                self.performAction(self.swipeRight)
+                            }
+                        })
                 VStack {
                     Spacer()
                     VStack {
-                        Text(String(format: "%.0f/%d", self.currentIndex + 1, self.allPages.count))
-                            .bold()
-                        Slider(value: self.$currentIndex, in: self.getSliderRange(), step: 1) { onSlider in
+                        Text(String(format: "%.0f/%d",
+                                self.internalModel.currentIndex + 1,
+                                self.pages?.count ?? 0))
+                                .bold()
+                        Slider(value: self.$internalModel.currentIndex, in: self.getSliderRange(), step: 1) { onSlider in
                             if (!onSlider) {
-                                self.jumpToPage(self.currentIndex, action: .jump)
+                                self.jumpToPage(self.internalModel.currentIndex, action: .jump)
                             }
                         }
-                        .padding(.horizontal)
+                                .padding(.horizontal)
                     }
-                    .padding()
-                    .background(Color.primary.colorInvert().opacity(self.controlUiHidden ? 0 : 0.9))
-                    .opacity(self.controlUiHidden ? 0 : 1)
+                            .padding()
+                            .background(Color.primary.colorInvert().opacity(self.internalModel.controlUiHidden ? 0 : 0.9))
+                            .opacity(self.internalModel.controlUiHidden ? 0 : 1)
                 }
                 VStack {
                     Text("loading")
-                    ActivityIndicator(isAnimating: self.isLoading, style: .large)
+                    ActivityIndicator(isAnimating: self.loading, style: .large)
                 }
-                .frame(width: geometry.size.width / 3,
-                       height: geometry.size.height / 5)
-                    .background(Color.secondary)
-                    .foregroundColor(Color.primary)
-                    .cornerRadius(20)
-                    .opacity(self.isLoading ? 1 : 0)
+                        .frame(width: geometry.size.width / 3,
+                                height: geometry.size.height / 5)
+                        .background(Color.secondary)
+                        .foregroundColor(Color.primary)
+                        .cornerRadius(20)
+                        .opacity(self.loading ? 1 : 0)
             }
         }
     }
-    
+
+    private func getIntPart(_ number: Double) -> Int {
+        Int(exactly: number.rounded()) ?? 0
+    }
+
+    func loadStartImage() {
+        if self.pages != nil {
+            self.jumpToPage(self.internalModel.currentIndex, action: .next)
+        }
+    }
+
     func getSliderRange() -> ClosedRange<Double> {
-        if self.allPages.isEmpty {
-            return 0...1
-        } else {
-            return 0...Double(self.allPages.count - 1)
-        }
+        0...Double((self.pages?.count ?? 2) - 1)
     }
-    
-    func getIntPart(_ number: Double) -> Int {
-        return Int(exactly: number.rounded()) ?? 0
-    }
-    
-    func postExtract(id: String) {
-        if !allPages.isEmpty {
-            return
-        }
-        self.isLoading = true
-        client.postArchiveExtract(id: id) { (response: ArchiveExtractResponse?) in
-            if let res = response {
-                for (index, page) in res.pages.enumerated() {
-                    let normalizedPage = String(page.dropFirst(2))
-                    self.allPages.append(normalizedPage)
-                    if (index == 0) {
-                        self.jumpToPage(Double(index), action: .next)
-                    }
-                }
-            } else {
-                ArchivePage.extractErrorBanner.show()
-            }
-            self.isLoading = false
-        }
-    }
-    
-    func nextPage() {
-        jumpToPage(currentIndex + 1, action: .next)
-    }
-    
-    func previousPage() {
-        jumpToPage(currentIndex - 1, action: .previous)
-    }
-    
-    func jumpToPage(_ page: Double, action: PageFlipAction) {
-        if UIDevice.current.orientation.isPortrait {
-            if self.isCurrentSplittingPage == .first && action == .next {
-                nextInternalPage()
-                return
-            } else if self.isCurrentSplittingPage == .last && action == .previous {
-                previousInternalPage()
-                return
-            }
-        }
-        self.isCurrentSplittingPage = .off
-        let index = getIntPart(page)
-        if (0..<self.allPages.count).contains(index) {
-            client.getArchivePage(page: allPages[index]) {
-                (image: UIImage?) in
-                if let img = image {
-                    if UserDefaults.standard.bool(forKey: SettingsKey.splitPage)
-                        && UIDevice.current.orientation.isPortrait
-                        && img.size.width / img.size.height > 1.2 {
-                        let success = self.cropAndSetInternalImage(image: img)
-                        if success {
-                            self.jumpToInternalPage(action: action)
-                        } else {
-                            ArchivePage.loadPageErrorBanner.show()
-                            self.currentPage = Image("placeholder")
-                        }
-                    } else {
-                        self.currentPage = Image(uiImage: img)
-                    }
-                } else {
-                    ArchivePage.loadPageErrorBanner.show()
-                    self.currentPage = Image("placeholder")
-                }
-                self.currentIndex = page.rounded()
-                if index == self.allPages.count - 1 {
-                    self.client.clearNewFlag(id: self.item.id) { success in
-                        // NO-OP
-                        return
-                    }
-                }
-            }
-        }
-    }
-    
-    func nextInternalPage() {
-        if UserDefaults.standard.bool(forKey: SettingsKey.splitPagePriorityLeft) {
-            self.currentPage = self.rightHalfPage
-        } else {
-            self.currentPage = self.leftHalfPage
-        }
-        self.isCurrentSplittingPage = .last
-    }
-    
-    func previousInternalPage() {
-        if UserDefaults.standard.bool(forKey: SettingsKey.splitPagePriorityLeft) {
-            self.currentPage = self.leftHalfPage
-        } else {
-            self.currentPage = self.rightHalfPage
-        }
-        self.isCurrentSplittingPage = .first
-    }
-    
-    func jumpToInternalPage(action: PageFlipAction) {
-        switch action {
-        case .next, .jump:
-            if UserDefaults.standard.bool(forKey: SettingsKey.splitPagePriorityLeft) {
-                self.currentPage = self.leftHalfPage
-            } else {
-                self.currentPage = self.rightHalfPage
-            }
-            self.isCurrentSplittingPage = .first
-        case .previous:
-            if UserDefaults.standard.bool(forKey: SettingsKey.splitPagePriorityLeft) {
-                self.currentPage = self.rightHalfPage
-            } else {
-                self.currentPage = self.leftHalfPage
-            }
-            self.isCurrentSplittingPage = .last
-        }
-    }
-    
-    func cropAndSetInternalImage(image: UIImage) -> Bool {
-        if let cgImage = image.cgImage {
-            if let leftHalf = cgImage.cropping(to: CGRect(x: 0, y: 0, width: cgImage.width / 2, height: cgImage.height)) {
-                self.leftHalfPage = Image(uiImage: UIImage(cgImage: leftHalf))
-            } else {
-                return false
-            }
-            if let rightHalf = cgImage.cropping(to: CGRect(x: cgImage.width / 2, y: 0, width: cgImage.width, height: cgImage.height)) {
-                self.rightHalfPage = Image(uiImage: UIImage(cgImage: rightHalf))
-            } else {
-                return false
-            }
-        } else {
-            return false
-        }
-        return true
-    }
-    
-    func performActionBasedOnSettings(key:String, defaultAction: PageControl) {
-        let action = PageControl(rawValue: UserDefaults.standard.object(forKey: key) as? String ?? defaultAction.rawValue) ?? defaultAction
+
+    func performAction(_ action: PageControl) {
         switch action {
         case .next:
             nextPage()
         case .previous:
             previousPage()
         case .navigation:
-            self.controlUiHidden.toggle()
+            self.internalModel.controlUiHidden.toggle()
+        }
+    }
+
+    func nextPage() {
+        jumpToPage(self.internalModel.currentIndex + 1, action: .next)
+    }
+
+    func previousPage() {
+        jumpToPage(self.internalModel.currentIndex - 1, action: .previous)
+    }
+
+    func jumpToPage(_ page: Double, action: PageFlipAction) {
+        if UIDevice.current.orientation.isPortrait {
+            if self.internalModel.isCurrentSplittingPage == .first && action == .next {
+                nextInternalPage()
+                return
+            } else if self.internalModel.isCurrentSplittingPage == .last && action == .previous {
+                previousInternalPage()
+                return
+            }
+        }
+        self.internalModel.isCurrentSplittingPage = .off
+        let index = getIntPart(page)
+        if (0..<(self.pages?.count ?? 1)).contains(index) {
+            self.internalModel.load(page: pages![index],
+                    split: self.splitPage && UIDevice.current.orientation.isPortrait,
+                    priorityLeft: self.splitPagePriorityLeft,
+                    action: action)
+            self.internalModel.currentIndex = page.rounded()
+            if index == (self.pages?.count ?? 0) - 1 {
+                self.internalModel.clearNewFlag(id: item.id)
+            }
+        }
+    }
+
+    func nextInternalPage() {
+        if self.splitPagePriorityLeft {
+            internalModel.setCurrentPageToRight()
+        } else {
+            internalModel.setCurrentPageToLeft()
+        }
+        self.internalModel.isCurrentSplittingPage = .last
+    }
+
+    func previousInternalPage() {
+        if self.splitPagePriorityLeft {
+            internalModel.setCurrentPageToLeft()
+        } else {
+            internalModel.setCurrentPageToRight()
+        }
+        self.internalModel.isCurrentSplittingPage = .first
+    }
+
+    func jumpToInternalPage(action: PageFlipAction) {
+        switch action {
+        case .next, .jump:
+            if self.splitPagePriorityLeft {
+                internalModel.setCurrentPageToLeft()
+            } else {
+                internalModel.setCurrentPageToRight()
+            }
+            self.internalModel.isCurrentSplittingPage = .first
+        case .previous:
+            if self.splitPagePriorityLeft {
+                internalModel.setCurrentPageToRight()
+            } else {
+                internalModel.setCurrentPageToLeft()
+            }
+            self.internalModel.isCurrentSplittingPage = .last
+        }
+    }
+
+    func handleError() {
+        if let error = self.errorCode {
+            switch error {
+            case .archiveExtractError:
+                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                        subtitle: NSLocalizedString("error.load.page", comment: "list error"),
+                        style: .danger)
+                banner.show()
+                reset()
+            default:
+                break
+            }
         }
     }
 }
 
-struct ArchivePage_Previews: PreviewProvider {
-    static var previews: some View {
-        let config = ["url": "http://localhost", "apiKey": "apiKey"]
-        UserDefaults.standard.set(config, forKey: "LANraragi")
-        return ArchivePage(item: ArchiveItem(id: "id", name: "name", tags: "tags", thumbnail: Image("placeholder")))
-    }
-}
+//struct ArchivePage_Previews: PreviewProvider {
+//    static var previews: some View {
+//        let config = ["url": "http://localhost", "apiKey": "apiKey"]
+//        UserDefaults.standard.set(config, forKey: "LANraragi")
+//        return ArchivePage(item: ArchiveItem(id: "id", name: "name", tags: "tags", thumbnail: Image("placeholder")))
+//    }
+//}

@@ -8,12 +8,14 @@ import Alamofire
 import AlamofireImage
 
 class LANraragiService {
+    static let shared = LANraragiService()
+
     private var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
     private let authInterceptor = AuthInterceptor()
     private var session: Session
     private let imageDownloader: ImageDownloader
 
-    init() {
+    private init() {
         self.session = Session(interceptor: authInterceptor)
         let downloaderSession = Session(configuration: ImageDownloader.defaultURLSessionConfiguration(),
                 startRequestsImmediately: false,
@@ -44,8 +46,9 @@ class LANraragiService {
     }
 
     func retrieveArchiveThumbnail(id: String) -> AnyPublisher<Image, AFIError> {
-            let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
-            return Future<Image, AFIError> { promise in
+        let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
+        return Deferred {
+            Future<Image, AFIError> { promise in
                 self.imageDownloader.download(request) { response in
                     switch response.result {
                     case let .success(thumbnail):
@@ -54,14 +57,15 @@ class LANraragiService {
                         promise(.failure(error))
                     }
                 }
-            }.eraseToAnyPublisher()
+            }
+        }.eraseToAnyPublisher()
     }
 
     func searchArchiveIndex(category: String? = nil,
                             filter: String? = nil,
                             start: String? = nil,
                             sortby: String? = nil,
-                            order: String? = nil) -> AnyPublisher<ArchiveSearchResponse, AFError>{
+                            order: String? = nil) -> AnyPublisher<ArchiveSearchResponse, AFError> {
         var query = [String: String]()
         if category != nil {
             query["category"] = category
@@ -98,6 +102,36 @@ class LANraragiService {
         query["search"] = item.search
         query["pinned"] = item.pinned
         return session.request("\(url)/api/categories/\(item.id)", method: .put, parameters: query)
+                .validate(statusCode: 200...200)
+                .publishString()
+                .value()
+    }
+
+    func extractArchive(id: String) -> AnyPublisher<ArchiveExtractResponse, AFError> {
+        session.request("\(url)/api/archives/\(id)/extract", method: .post)
+                .validate()
+                .publishDecodable(type: ArchiveExtractResponse.self)
+                .value()
+    }
+
+    func fetchArchivePage(page: String) -> AnyPublisher<Image, AFIError> {
+        let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
+        return Deferred {
+            Future<Image, AFIError> { promise in
+                self.imageDownloader.download(request) { response in
+                    switch response.result {
+                    case let .success(page):
+                        promise(.success(page))
+                    case let .failure(error):
+                        promise(.failure(error))
+                    }
+                }
+            }
+        }.eraseToAnyPublisher()
+    }
+
+    func clearNewFlag(id: String) -> AnyPublisher<String, AFError>{
+        session.request("\(url)/api/archives/\(id)/isnew", method: .delete)
                 .validate(statusCode: 200...200)
                 .publishString()
                 .value()
