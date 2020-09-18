@@ -95,14 +95,14 @@ class LANRaragiClient {
         ImageResponseSerializer.addAcceptableImageContentTypes(["application/x-download"])
         do {
             let request = try URLRequest(url: "\(url)/api/archives/\(id)/thumbnail", method: .get, headers: headers)
-            imageDownloader.download(request) { response in
+            imageDownloader.download(request, completion:  { response in
                 if let thumbnail = response.value {
                     completionHandler(thumbnail)
                 } else {
                     LANRaragiClient.logger.error("Faile to retrieve thumbnail. response=\"\(response.debugDescription)\"")
                     completionHandler(nil)
                 }
-            }
+            })
         } catch {
             LANRaragiClient.logger.error("Error retrieving thumbnail. \(error)")
             completionHandler(nil)
@@ -132,14 +132,14 @@ class LANRaragiClient {
         ImageResponseSerializer.addAcceptableImageContentTypes(["application/x-download"])
         do {
             let request = try URLRequest(url: "\(url)/\(page)", method: .get, headers: headers)
-            imageDownloader.download(request) { response in
+            imageDownloader.download(request, completion:  { response in
                 if let page = response.value {
                     completionHandler(page)
                 } else {
                     LANRaragiClient.logger.error("Faile to retrieve page. response=\"\(response.debugDescription)\"")
                     completionHandler(nil)
                 }
-            }
+            })
         } catch {
             LANRaragiClient.logger.error("Error retrieving page. \(error)")
             completionHandler(nil)

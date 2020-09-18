@@ -49,14 +49,14 @@ class LANraragiService {
         let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
         return Deferred {
             Future<Image, AFIError> { promise in
-                self.imageDownloader.download(request) { response in
+                self.imageDownloader.download(request, completion:  { response in
                     switch response.result {
                     case let .success(thumbnail):
                         promise(.success(thumbnail))
                     case let .failure(error):
                         promise(.failure(error))
                     }
-                }
+                })
             }
         }.eraseToAnyPublisher()
     }
@@ -118,14 +118,14 @@ class LANraragiService {
         let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
         return Deferred {
             Future<Image, AFIError> { promise in
-                self.imageDownloader.download(request) { response in
+                self.imageDownloader.download(request, completion:  { response in
                     switch response.result {
                     case let .success(page):
                         promise(.success(page))
                     case let .failure(error):
                         promise(.failure(error))
                     }
-                }
+                })
             }
         }.eraseToAnyPublisher()
     }
