@@ -49,7 +49,7 @@ class LANraragiService {
         let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
         return Deferred {
             Future<Image, AFIError> { promise in
-                self.imageDownloader.download(request, completion:  { response in
+                self.imageDownloader.download(request, completion: { response in
                     switch response.result {
                     case let .success(thumbnail):
                         promise(.success(thumbnail))
@@ -118,7 +118,7 @@ class LANraragiService {
         let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
         return Deferred {
             Future<Image, AFIError> { promise in
-                self.imageDownloader.download(request, completion:  { response in
+                self.imageDownloader.download(request, completion: { response in
                     switch response.result {
                     case let .success(page):
                         promise(.success(page))
@@ -130,7 +130,7 @@ class LANraragiService {
         }.eraseToAnyPublisher()
     }
 
-    func clearNewFlag(id: String) -> AnyPublisher<String, AFError>{
+    func clearNewFlag(id: String) -> AnyPublisher<String, AFError> {
         session.request("\(url)/api/archives/\(id)/isnew", method: .delete)
                 .validate(statusCode: 200...200)
                 .publishString()
@@ -146,7 +146,9 @@ class AuthInterceptor: RequestInterceptor {
         self.apiKey = apiKey
     }
 
-    func adapt(_ urlRequest: URLRequest, for session: Session, completion: @escaping (Result<URLRequest, Error>) -> Void) {
+    func adapt(_ urlRequest: URLRequest,
+               for session: Session,
+               completion: @escaping (Result<URLRequest, Error>) -> Void) {
         var modifiedURLRequest = urlRequest
         modifiedURLRequest.headers.add(.authorization(bearerToken: apiKey.data(using: .utf8)!.base64EncodedString()))
         completion(.success(modifiedURLRequest))

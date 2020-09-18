@@ -3,14 +3,13 @@
 import SwiftUI
 
 struct ArchiveDetails: View {
-    
+
     let item: ArchiveItem
-    
+
     init(item: ArchiveItem) {
         self.item = item
     }
-    
-    
+
     var body: some View {
         VStack {
             Text(item.name)

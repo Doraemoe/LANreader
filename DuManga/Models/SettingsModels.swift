@@ -6,7 +6,7 @@ enum PageControl: String, CaseIterable, Identifiable {
     case next
     case previous
     case navigation
-    
+
     var id: String { self.rawValue }
 }
 

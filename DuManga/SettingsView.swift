@@ -4,11 +4,11 @@ import SwiftUI
 
 struct SettingsView: View {
     @Binding var navBarTitle: String
-    
+
     init(navBarTitle: Binding<String>) {
         self._navBarTitle = navBarTitle
     }
-    
+
     var body: some View {
         Form {
             Section(header: Text("settings.read")) {

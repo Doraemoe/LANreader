@@ -9,7 +9,7 @@ struct ArchiveItem: Identifiable, Equatable {
     let tags: String
     var thumbnail: Image
 
-    static func ==(lhs: ArchiveItem, rhs: ArchiveItem) -> Bool {
+    static func == (lhs: ArchiveItem, rhs: ArchiveItem) -> Bool {
         lhs.id == rhs.id
                 && lhs.name == rhs.name
                 && lhs.tags == rhs.tags

@@ -56,15 +56,16 @@ struct EditCategory: View {
                     .navigationBarTitle("category.edit", displayMode: .inline)
                     .navigationBarItems(leading: Button(action: {
                         self.showSheetView = false
-                    }) {
+                    }, label: {
                         Text("cancel")
-                    }, trailing: Button(action: {
+                    }), trailing: Button(action: {
                         let updated: CategoryItem = CategoryItem(id: self.item.id,
-                                name: self.categoryName, archives: [], search: self.searchKeyword, pinned: self.item.pinned)
+                                name: self.categoryName, archives: [],
+                                search: self.searchKeyword, pinned: self.item.pinned)
                         self.store.dispatch(.category(action: .updateDynamicCategory(category: updated)))
-                    }) {
+                    }, label: {
                         Text("done")
-                    })
+                    }))
         }
                 .navigationViewStyle(StackNavigationViewStyle())
     }

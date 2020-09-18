@@ -14,6 +14,7 @@ struct ArchiveExtractResponse: Decodable {
 struct ArchiveCategoriesResponse: Decodable {
     let archives: [String]
     let id: String
+    // swiftlint:disable identifier_name
     let last_used: String
     let name: String
     let pinned: String

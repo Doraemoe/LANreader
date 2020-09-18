@@ -23,8 +23,8 @@ final class Store<State, Action>: ObservableObject {
     func dispatch(_ action: Action) {
         reducer(&state, action)
         // Dispatch all middleware functions
-        for mw in middlewares {
-            guard let middleware = mw(state, action) else {
+        for middleware in middlewares {
+            guard let middleware = middleware(state, action) else {
                 break
             }
             middleware

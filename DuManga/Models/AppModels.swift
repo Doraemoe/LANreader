@@ -6,7 +6,7 @@ import Foundation
 
 struct ErrorCode: Equatable {
 
-    static func ==(lhs: ErrorCode, rhs: ErrorCode) -> Bool {
+    static func == (lhs: ErrorCode, rhs: ErrorCode) -> Bool {
         lhs.name == rhs.name
                 && lhs.code == rhs.code
     }

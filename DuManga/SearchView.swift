@@ -5,13 +5,13 @@ import SwiftUI
 struct SearchView: View {
     @State var keyword: String = ""
     @State var showSearchResult = false
-    
+
     @Binding var navBarTitle: String
-    
+
     init(navBarTitle: Binding<String>) {
         self._navBarTitle = navBarTitle
     }
-    
+
     var body: some View {
         VStack {
             VStack {
@@ -28,7 +28,7 @@ struct SearchView: View {
                     })
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .padding([.top, .bottom, .trailing])
-                    
+
                 }
                 .onAppear(perform: { self.navBarTitle = "search" })
                 if !showSearchResult || self.keyword.isEmpty {
@@ -36,10 +36,12 @@ struct SearchView: View {
                 }
             }
             if showSearchResult && !self.keyword.isEmpty {
-                ArchiveListContainer(navBarTitle: self.$navBarTitle, searchKeyword: self.keyword, navBarTitleOverride: "search")
+                ArchiveListContainer(navBarTitle: self.$navBarTitle,
+                        searchKeyword: self.keyword,
+                        navBarTitleOverride: "search")
             }
         }
-        
+
     }
 }
 

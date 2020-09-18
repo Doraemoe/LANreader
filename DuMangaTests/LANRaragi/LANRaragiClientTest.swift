@@ -19,9 +19,10 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/info")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("ServerInfoResponse.json", type(of: self))!, statusCode: 200, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    fileAtPath: OHPathForFile("ServerInfoResponse.json", type(of: self))!,
+                    statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
@@ -38,15 +39,16 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/info")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    jsonObject: ["error": "This API is protected and requires login or an API Key."], statusCode: 401, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    jsonObject: ["error": "This API is protected and requires login or an API Key."],
+                    statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
 
         let expectation = XCTestExpectation(description: "testHealthCheckFailure")
-        client.healthCheck() { healthy in
+        client.healthCheck { healthy in
             XCTAssertFalse(healthy)
             expectation.fulfill()
         }
@@ -57,15 +59,16 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("ArchiveIndexResponse.json", type(of: self))!, statusCode: 200, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    fileAtPath: OHPathForFile("ArchiveIndexResponse.json", type(of: self))!,
+                    statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
 
         let expectation = XCTestExpectation(description: "testGetArchiveIndex")
-        client.getArchiveIndex() { (res: [ArchiveIndexResponse]?) in
+        client.getArchiveIndex { (res: [ArchiveIndexResponse]?) in
             XCTAssertNotNil(res)
             XCTAssertEqual(res?.count, 1)
             XCTAssertEqual(res?[0].arcid, "abcd1234")
@@ -81,15 +84,16 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    jsonObject: ["error": "This API is protected and requires login or an API Key."], statusCode: 401, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    jsonObject: ["error": "This API is protected and requires login or an API Key."],
+                    statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
 
         let expectation = XCTestExpectation(description: "testGetArchiveIndexFailure")
-        client.getArchiveIndex() { (res: [ArchiveIndexResponse]?) in
+        client.getArchiveIndex { (res: [ArchiveIndexResponse]?) in
             XCTAssertNil(res)
             expectation.fulfill()
         }
@@ -100,9 +104,10 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/metadata")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("ArchiveMetadataResponse.json", type(of: self))!, statusCode: 200, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    fileAtPath: OHPathForFile("ArchiveMetadataResponse.json", type(of: self))!,
+                    statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
@@ -123,9 +128,10 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/metadata")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    jsonObject: ["error": "This API is protected and requires login or an API Key."], statusCode: 401, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    jsonObject: ["error": "This API is protected and requires login or an API Key."],
+                    statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
@@ -143,9 +149,10 @@ class LANRaragiClientTest: XCTestCase {
                 && isPath("/api/archives/id/metadata")
                 && isMethodPUT()
                 && hasBody("tags=tags&title=name".data(using: .utf8)!)
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("SetArchiveMetadataResponse.json", type(of: self))!, statusCode: 200, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    fileAtPath: OHPathForFile("SetArchiveMetadataResponse.json", type(of: self))!,
+                    statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
@@ -164,14 +171,15 @@ class LANRaragiClientTest: XCTestCase {
                 && isPath("/api/archives/id/metadata")
                 && isMethodPUT()
                 && hasBody("tags=tags&title=name".data(using: .utf8)!)
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    jsonObject: ["error": "This API is protected and requires login or an API Key."], statusCode: 401, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    jsonObject: ["error": "This API is protected and requires login or an API Key."],
+                    statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
         let metadata = ArchiveItem(id: "id", name: "name", tags: "tags", thumbnail: Image("placeholder"))
-        
+
         let expectation = XCTestExpectation(description: "testSetArchiveMetadataFailure")
         client.setArchiveMetaData(archiveMetadata: metadata) { success in
             XCTAssertFalse(success)
@@ -184,8 +192,8 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/1/thumbnail")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
                     fileAtPath: OHPathForFile("placeholder.jpg", type(of: self))!, statusCode: 200,
                     headers: ["Content-Type": "application/x-download;name=\"placeholder.jpg\""])
         }
@@ -204,8 +212,9 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/1/thumbnail")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(jsonObject: ["error": "This API is protected and requires login or an API Key."], statusCode: 401, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(jsonObject: ["error": "This API is protected and requires login or an API Key."],
+                    statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
@@ -222,8 +231,8 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/1/extract")
                 && isMethodPOST()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
                     fileAtPath: OHPathForFile("ArchiveExtractResponse.json", type(of: self))!, statusCode: 200,
                     headers: ["Content-Type": "application/json"])
         }
@@ -244,8 +253,9 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/1/extract")
                 && isMethodPOST()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(jsonObject: ["error": "This API is protected and requires login or an API Key."], statusCode: 401, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(jsonObject: ["error": "This API is protected and requires login or an API Key."],
+                    statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
@@ -262,8 +272,8 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/abc123/page")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
                     fileAtPath: OHPathForFile("placeholder.jpg", type(of: self))!, statusCode: 200,
                     headers: ["Content-Type": "application/x-download;name=\"placeholder.jpg\""])
         }
@@ -282,8 +292,9 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/abc123/page")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(jsonObject: ["error": "This API is protected and requires login or an API Key."], statusCode: 401, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(jsonObject: ["error": "This API is protected and requires login or an API Key."],
+                    statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
@@ -300,15 +311,16 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/categories")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("ArchiveCategoriesResponse.json", type(of: self))!, statusCode: 200, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    fileAtPath: OHPathForFile("ArchiveCategoriesResponse.json", type(of: self))!,
+                    statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
 
         let expectation = XCTestExpectation(description: "testGetCategories")
-        client.getCategories() { (res: [ArchiveCategoriesResponse]?) in
+        client.getCategories { (res: [ArchiveCategoriesResponse]?) in
             XCTAssertNotNil(res)
             XCTAssertEqual(res?.count, 2)
             XCTAssertEqual(res?[0].archives.count, 5)
@@ -333,15 +345,16 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/categories")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    jsonObject: ["error": "This API is protected and requires login or an API Key."], statusCode: 401, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    jsonObject: ["error": "This API is protected and requires login or an API Key."],
+                    statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
 
         let expectation = XCTestExpectation(description: "testGetCategoriesFailure")
-        client.getCategories() { (res: [ArchiveCategoriesResponse]?) in
+        client.getCategories { (res: [ArchiveCategoriesResponse]?) in
             XCTAssertNil(res)
             expectation.fulfill()
         }
@@ -353,9 +366,10 @@ class LANRaragiClientTest: XCTestCase {
                 && isPath("/api/search")
                 && containsQueryParams(["category": "SET_12345678"])
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("ArchiveSearchResponse.json", type(of: self))!, statusCode: 200, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    fileAtPath: OHPathForFile("ArchiveSearchResponse.json", type(of: self))!,
+                    statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
@@ -377,9 +391,10 @@ class LANRaragiClientTest: XCTestCase {
                 && isPath("/api/search")
                 && containsQueryParams(["category": "SET_12345678"])
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    jsonObject: ["error": "This API is protected and requires login or an API Key."], statusCode: 401, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    jsonObject: ["error": "This API is protected and requires login or an API Key."],
+                    statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
@@ -396,9 +411,10 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/isnew")
                 && isMethodDELETE()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("ClearNewFlagResponse.json", type(of: self))!, statusCode: 200, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    fileAtPath: OHPathForFile("ClearNewFlagResponse.json", type(of: self))!,
+                    statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
@@ -415,9 +431,10 @@ class LANRaragiClientTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/isnew")
                 && isMethodDELETE()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    jsonObject: ["error": "This API is protected and requires login or an API Key."], statusCode: 401, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    jsonObject: ["error": "This API is protected and requires login or an API Key."],
+                    statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
@@ -435,9 +452,10 @@ class LANRaragiClientTest: XCTestCase {
                 && isPath("/api/categories/SET_12345678")
                 && containsQueryParams(["name": "name", "search": "search", "pinned": "0"])
                 && isMethodPUT()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("UpdateSearchCategoryResponse.json", type(of: self))!, statusCode: 200, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    fileAtPath: OHPathForFile("UpdateSearchCategoryResponse.json", type(of: self))!,
+                    statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)
@@ -456,9 +474,10 @@ class LANRaragiClientTest: XCTestCase {
                 && isPath("/api/categories/SET_12345678")
                 && containsQueryParams(["name": "name", "search": "search", "pinned": "0"])
                 && isMethodPUT()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
-            return HTTPStubsResponse(
-                    jsonObject: ["error": "This API is protected and requires login or an API Key."], statusCode: 401, headers: ["Content-Type": "application/json"])
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    jsonObject: ["error": "This API is protected and requires login or an API Key."],
+                    statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
         let client = LANRaragiClient(url: url, apiKey: apiKey)

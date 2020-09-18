@@ -64,7 +64,8 @@ struct ReadSettings: View {
             Toggle(isOn: Binding(
                     get: { self.store.state.setting.splitPagePriorityLeft },
                     set: {
-                        self.store.dispatch(.setting(action: .saveSplitPagePriorityLeftToUserDefaults(priorityLeft: $0)))
+                        self.store.dispatch(.setting(action:
+                        .saveSplitPagePriorityLeftToUserDefaults(priorityLeft: $0)))
                     })) {
                 Text("settings.read.split.page.priority.left")
             }

@@ -6,6 +6,7 @@ import Foundation
 import Combine
 import SwiftUI
 
+// swiftlint:disable function_body_length
 func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppAction> {
     { state, action in
         switch action {
