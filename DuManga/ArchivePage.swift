@@ -25,8 +25,13 @@ struct ArchivePageContainer: View {
                 splitPage: self.store.state.setting.splitPage,
                 splitPagePriorityLeft: self.store.state.setting.splitPagePriorityLeft,
                 errorCode: self.store.state.archive.errorCode,
+                dispatchError: self.dispatchError,
                 reset: self.resetState)
                 .onAppear(perform: self.load)
+    }
+
+    private func dispatchError(errorCode: ErrorCode) {
+        self.store.dispatch(.archive(action: .error(error: errorCode)))
     }
 
     private func load() {
@@ -42,8 +47,7 @@ struct ArchivePageContainer: View {
 
 struct ArchivePage: View {
 
-    @ObservedObject private var internalModel = InternalPageModel()
-
+    @ObservedObject private var internalModel: InternalPageModel
 
     private let pages: [String]?
     private let item: ArchiveItem
@@ -69,6 +73,7 @@ struct ArchivePage: View {
          splitPage: Bool,
          splitPagePriorityLeft: Bool,
          errorCode: ErrorCode?,
+         dispatchError: @escaping (ErrorCode) ->Void,
          reset: @escaping () -> Void) {
         self.item = item
         self.pages = pages
@@ -82,6 +87,8 @@ struct ArchivePage: View {
         self.splitPagePriorityLeft = splitPagePriorityLeft
         self.errorCode = errorCode
         self.reset = reset
+
+        self.internalModel = InternalPageModel(dispatchError: dispatchError)
         self.loadStartImage()
     }
 
@@ -249,6 +256,12 @@ struct ArchivePage: View {
         if let error = self.errorCode {
             switch error {
             case .archiveExtractError:
+                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                        subtitle: NSLocalizedString("error.extract", comment: "list error"),
+                        style: .danger)
+                banner.show()
+                reset()
+            case .archiveFetchPageError:
                 let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
                         subtitle: NSLocalizedString("error.load.page", comment: "list error"),
                         style: .danger)

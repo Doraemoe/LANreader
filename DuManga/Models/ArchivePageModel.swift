@@ -30,6 +30,12 @@ class InternalPageModel: ObservableObject {
 
     private var cancellables: Set<AnyCancellable> = []
 
+    private let dispatchError: (ErrorCode) -> Void
+
+    init(dispatchError: @escaping (ErrorCode) -> Void) {
+        self.dispatchError = dispatchError
+    }
+
     func load(page: String, split: Bool, priorityLeft: Bool, action: PageFlipAction) {
         service.fetchArchivePage(page: page)
                 .map {
@@ -44,7 +50,10 @@ class InternalPageModel: ObservableObject {
                         return Image(uiImage: $0)
                     }
                 }
-                .replaceError(with: Image("placeholder"))
+                .catch { _ -> Just<Image> in
+                    self.dispatchError(.archiveFetchPageError)
+                    return Just(Image("placeholder"))
+                }
                 .receive(on: DispatchQueue.main)
                 .assign(to: \.currentImage, on: self)
                 .store(in: &cancellables)
