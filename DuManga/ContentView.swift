@@ -8,10 +8,10 @@ struct ContentView: View {
     @State var navBarTitle: String = ""
     @State var editMode = EditMode.inactive
     @State var tabName: String = ""
-    
+
     var body: some View {
         VStack(alignment: .leading) {
-            if (self.store.state.setting.url.isEmpty) {
+            if self.store.state.setting.url.isEmpty {
                 LANraragiConfigView()
             } else {
                 NavigationView {
@@ -33,8 +33,11 @@ struct ContentView: View {
                                 Text("settings")
                         }.tag("settings")
                     }
-                    .navigationBarTitle(Text(NSLocalizedString(navBarTitle, comment: "String will not be localized without force use NSLocalizedString")), displayMode: .inline)
-                    .navigationBarItems(trailing: self.tabName == "category" ? AnyView(EditButton()) : AnyView(EmptyView()))
+                    .navigationBarTitle(Text(NSLocalizedString(navBarTitle,
+                            comment: "String will not be localized without force use NSLocalizedString")),
+                            displayMode: .inline)
+                    .navigationBarItems(trailing: self.tabName == "category"
+                            ? AnyView(EditButton()) : AnyView(EmptyView()))
                     .environment(\.editMode, self.$editMode)
                 }
                 .navigationViewStyle(StackNavigationViewStyle())

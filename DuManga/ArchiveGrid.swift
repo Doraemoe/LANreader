@@ -4,7 +4,7 @@ import SwiftUI
 
 struct ArchiveGrid: View {
     var archiveItem: ArchiveItem
-    
+
     var body: some View {
         VStack(alignment: HorizontalAlignment.center, spacing: 2) {
             Text(archiveItem.name)

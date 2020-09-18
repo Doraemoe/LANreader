@@ -4,7 +4,7 @@ import SwiftUI
 
 struct ArchiveRow: View {
     var archiveItem: ArchiveItem
-    
+
     var body: some View {
         HStack {
             archiveItem.thumbnail

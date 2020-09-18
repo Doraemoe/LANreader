@@ -1,0 +1,18 @@
+disabled_rules:
+  - todo
+  - statement_position
+
+identifier_name:
+  excluded:
+    - id
+
+line_length:
+  ignores_comments: true
+
+type_body_length:
+  - 500
+  - 800
+
+file_length:
+  warning: 800
+  error: 1200

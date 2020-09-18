@@ -33,10 +33,10 @@ struct LANraragiConfigView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             Button(action: {
                 self.store.dispatch(.setting(action: .verifyAndSaveLanraragiConfig(url: self.url, apiKey: self.apiKey)))
-            }) {
+            }, label: {
                 Text("lanraragi.config.submit")
                         .font(.headline)
-            }
+            })
                     .padding()
         }
         .onAppear(perform: {

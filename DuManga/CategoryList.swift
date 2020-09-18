@@ -7,11 +7,10 @@ struct CategoryList: View {
     @EnvironmentObject var store: AppStore
 
     @State var showSheetView = false
-    @State var selectedCategoryItem: CategoryItem? = nil
+    @State var selectedCategoryItem: CategoryItem?
 
     @Binding var navBarTitle: String
     @Binding var editMode: EditMode
-
 
     init(navBarTitle: Binding<String>, editMode: Binding<EditMode>) {
         self._navBarTitle = navBarTitle

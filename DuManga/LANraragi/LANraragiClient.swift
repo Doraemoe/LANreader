@@ -5,6 +5,7 @@ import Alamofire
 import AlamofireImage
 import Logging
 
+// TODO: to be removed
 class LANRaragiClient {
     static let logger = Logger(label: "LANRaragiClient")
 

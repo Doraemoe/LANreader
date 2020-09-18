@@ -5,6 +5,8 @@
 import Foundation
 import Combine
 
+// swiftlint:disable cyclomatic_complexity
+// swiftlint:disable function_body_length
 func settingMiddleware(service: SettingsService) -> Middleware<AppState, AppAction> {
     { state, action in
         switch action {

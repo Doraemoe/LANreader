@@ -26,12 +26,17 @@ struct SettingState {
         self.errorCode = nil
         self.savedSuccess = false
         // tap
-        self.tapLeft = PageControl(rawValue: UserDefaults.standard.string(forKey: SettingsKey.tapLeftKey) ?? PageControl.next.rawValue)!
-        self.tapMiddle = PageControl(rawValue: UserDefaults.standard.string(forKey: SettingsKey.tapMiddleKey) ?? PageControl.navigation.rawValue)!
-        self.tapRight = PageControl(rawValue: UserDefaults.standard.string(forKey: SettingsKey.tapRightKey) ?? PageControl.previous.rawValue)!
+        self.tapLeft = PageControl(rawValue: UserDefaults.standard.string(forKey: SettingsKey.tapLeftKey)
+                ?? PageControl.next.rawValue)!
+        self.tapMiddle = PageControl(rawValue: UserDefaults.standard.string(forKey: SettingsKey.tapMiddleKey)
+                ?? PageControl.navigation.rawValue)!
+        self.tapRight = PageControl(rawValue: UserDefaults.standard.string(forKey: SettingsKey.tapRightKey)
+                ?? PageControl.previous.rawValue)!
         // swipe
-        self.swipeLeft = PageControl(rawValue: UserDefaults.standard.string(forKey: SettingsKey.swipeLeftKey) ?? PageControl.next.rawValue)!
-        self.swipeRight = PageControl(rawValue: UserDefaults.standard.string(forKey: SettingsKey.swipeRightKey) ?? PageControl.previous.rawValue)!
+        self.swipeLeft = PageControl(rawValue: UserDefaults.standard.string(forKey: SettingsKey.swipeLeftKey)
+                ?? PageControl.next.rawValue)!
+        self.swipeRight = PageControl(rawValue: UserDefaults.standard.string(forKey: SettingsKey.swipeRightKey)
+                ?? PageControl.previous.rawValue)!
         // split
         self.splitPage = UserDefaults.standard.bool(forKey: SettingsKey.splitPage)
         self.splitPagePriorityLeft = UserDefaults.standard.bool(forKey: SettingsKey.splitPagePriorityLeft)

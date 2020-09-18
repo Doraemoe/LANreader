@@ -5,6 +5,7 @@
 import Foundation
 import Combine
 
+// swiftlint:disable cyclomatic_complexity
 func settingReducer(state: inout SettingState, action: SettingAction) {
     switch action {
             // server

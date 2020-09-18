@@ -25,7 +25,10 @@ struct ArchiveListContainer: View {
     private let categoryArchives: [String]?
     private let navBarTitleOverride: String?
 
-    init(navBarTitle: Binding<String>, searchKeyword: String? = nil, categoryArchives: [String]? = nil, navBarTitleOverride: String? = nil) {
+    init(navBarTitle: Binding<String>,
+         searchKeyword: String? = nil,
+         categoryArchives: [String]? = nil,
+         navBarTitleOverride: String? = nil) {
         self.searchKeyword = searchKeyword
         self.categoryArchives = categoryArchives
         self.navBarTitleOverride = navBarTitleOverride
@@ -53,7 +56,7 @@ struct ArchiveListContainer: View {
         if searchKeyword != nil && !searchKeyword!.isEmpty {
             self.store.dispatch(.archive(action: .fetchArchiveDynamicCategory(keyword: searchKeyword!)))
         } else {
-            if (self.store.state.archive.archiveItems.isEmpty) {
+            if self.store.state.archive.archiveItems.isEmpty {
                 self.store.dispatch(.archive(action: .fetchArchive))
             }
         }
@@ -78,8 +81,7 @@ struct ArchiveListContainer: View {
         } else if categoryArchives != nil && !categoryArchives!.isEmpty {
             return ArchiveListContainer.staticCategorySelector.select(
                     base: self.store.state.archive.archiveItems,
-                    filter: categoryArchives!) {
-                (base, filter) in
+                    filter: categoryArchives!) { (base, filter) in
                 let filtered = base.filter { item in
                     filter.contains(item.key)
                 }
@@ -151,7 +153,6 @@ struct ArchiveList: View {
                     }
                 }
 
-
                 VStack {
                     Text("loading")
                     ActivityIndicator(isAnimating: self.loading, style: .large)
@@ -185,6 +186,6 @@ struct ArchiveList: View {
 struct ArchiveList_Previews: PreviewProvider {
     static var previews: some View {
         ArchiveList(archiveItems: [ArchiveItem](), useListView: false, loading: false,
-                errorCode: nil, loadThumbnail: { str in }, reset: {})
+                errorCode: nil, loadThumbnail: { _ in }, reset: {})
     }
 }

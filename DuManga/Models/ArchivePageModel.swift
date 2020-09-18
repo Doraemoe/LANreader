@@ -80,12 +80,14 @@ class InternalPageModel: ObservableObject {
 
     func cropAndSetInternalImage(image: UIImage) -> Bool {
         if let cgImage = image.cgImage {
-            if let leftHalf = cgImage.cropping(to: CGRect(x: 0, y: 0, width: cgImage.width / 2, height: cgImage.height)) {
+            if let leftHalf = cgImage.cropping(
+                    to: CGRect(x: 0, y: 0, width: cgImage.width / 2, height: cgImage.height)) {
                 self.leftHalfPage = Image(uiImage: UIImage(cgImage: leftHalf))
             } else {
                 return false
             }
-            if let rightHalf = cgImage.cropping(to: CGRect(x: cgImage.width / 2, y: 0, width: cgImage.width, height: cgImage.height)) {
+            if let rightHalf = cgImage.cropping(
+                    to: CGRect(x: cgImage.width / 2, y: 0, width: cgImage.width, height: cgImage.height)) {
                 self.rightHalfPage = Image(uiImage: UIImage(cgImage: rightHalf))
             } else {
                 return false

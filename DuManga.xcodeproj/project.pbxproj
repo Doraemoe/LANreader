@@ -16,6 +16,7 @@
 		4BD823A4FE3B643E84113C5D /* ArchiveState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD829DF3149761EE3A81A1A /* ArchiveState.swift */; };
 		4BD823AC73ED9E45F8B7E436 /* ReadSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD825A4E56818113C2F7801 /* ReadSettings.swift */; };
 		4BD823F7B477CFE0048BB307 /* AppReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD823EC00313FB6857A6036 /* AppReducer.swift */; };
+		4BD824056C5E892F44BE2D24 /* .swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 4BD8260539525571C37E4F39 /* .swiftlint.yml */; };
 		4BD825080375402B32F7762D /* CategoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82396734DD4176DD159EA /* CategoryList.swift */; };
 		4BD8252315A4CBC01ED5E1A3 /* AppAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82FB85284818BED0DE580 /* AppAction.swift */; };
 		4BD825A937D326CC71BA9EAF /* ArchiveList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8205FFBACCA9CCB78659E /* ArchiveList.swift */; };
@@ -98,6 +99,7 @@
 		4BD824A308A90B5740411016 /* LANraragiService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LANraragiService.swift; sourceTree = "<group>"; };
 		4BD825A4E56818113C2F7801 /* ReadSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ReadSettings.swift; path = DuManga/ReadSettings.swift; sourceTree = SOURCE_ROOT; };
 		4BD825AB0EEF9DE292B50E98 /* ArchiveDetails.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ArchiveDetails.swift; path = DuManga/ArchiveDetails.swift; sourceTree = SOURCE_ROOT; };
+		4BD8260539525571C37E4F39 /* .swiftlint.yml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
 		4BD82694B57396B2CD6BACED /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		4BD827ECEE1938273E758358 /* SettingsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = DuManga/SettingsView.swift; sourceTree = SOURCE_ROOT; };
 		4BD82837C2109B37482712EE /* ArchiveGrid.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ArchiveGrid.swift; path = DuManga/ArchiveGrid.swift; sourceTree = SOURCE_ROOT; };
@@ -305,6 +307,7 @@
 				7D354CB524F1316E00617F4A /* DuMangaTests */,
 				7D354CC024F1316E00617F4A /* DuMangaUITests */,
 				7D354C9D24F1316800617F4A /* Products */,
+				4BD8260539525571C37E4F39 /* .swiftlint.yml */,
 			);
 			sourceTree = "<group>";
 		};
@@ -573,6 +576,7 @@
 				7D354CA924F1316D00617F4A /* Preview Assets.xcassets in Resources */,
 				7D354CF324F222FC00617F4A /* README.md in Resources */,
 				7D354CA624F1316D00617F4A /* Assets.xcassets in Resources */,
+				4BD824056C5E892F44BE2D24 /* .swiftlint.yml in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

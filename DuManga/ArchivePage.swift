@@ -73,7 +73,7 @@ struct ArchivePage: View {
          splitPage: Bool,
          splitPagePriorityLeft: Bool,
          errorCode: ErrorCode?,
-         dispatchError: @escaping (ErrorCode) ->Void,
+         dispatchError: @escaping (ErrorCode) -> Void,
          reset: @escaping () -> Void) {
         self.item = item
         self.pages = pages
@@ -133,15 +133,18 @@ struct ArchivePage: View {
                                 self.internalModel.currentIndex + 1,
                                 self.pages?.count ?? 0))
                                 .bold()
-                        Slider(value: self.$internalModel.currentIndex, in: self.getSliderRange(), step: 1) { onSlider in
-                            if (!onSlider) {
+                        Slider(value: self.$internalModel.currentIndex,
+                                in: self.getSliderRange(),
+                                step: 1) { onSlider in
+                            if !onSlider {
                                 self.jumpToPage(self.internalModel.currentIndex, action: .jump)
                             }
                         }
                                 .padding(.horizontal)
                     }
                             .padding()
-                            .background(Color.primary.colorInvert().opacity(self.internalModel.controlUiHidden ? 0 : 0.9))
+                            .background(Color.primary.colorInvert()
+                                    .opacity(self.internalModel.controlUiHidden ? 0 : 0.9))
                             .opacity(self.internalModel.controlUiHidden ? 0 : 1)
                 }
                 VStack {
