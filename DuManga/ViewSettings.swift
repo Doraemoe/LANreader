@@ -3,23 +3,16 @@
 import SwiftUI
 
 struct ViewSettings: View {
-    @EnvironmentObject var store: AppStore
+    @AppStorage(SettingsKey.archiveListRandom) var archiveListRandom: Bool = false
+    @AppStorage(SettingsKey.useListView) var useListView: Bool = false
 
     var body: some View {
         List {
-            Toggle(isOn: Binding(
-                get: { self.store.state.setting.archiveListRandom },
-                set: {
-                    self.store.dispatch(.setting(action: .saveArchiveListRandomToUserDefaults(archiveListRandom: $0)))
-            })) {
+            Toggle(isOn: self.$archiveListRandom) {
                 Text("settings.archive.list.random")
             }
             .padding()
-            Toggle(isOn: Binding(
-                get: { self.store.state.setting.useListView },
-                set: {
-                    self.store.dispatch(.setting(action: .saveUseListViewToUserDefaults(useListView: $0)))
-            })) {
+            Toggle(isOn: self.$useListView) {
                 Text("settings.archive.list.view")
             }
             .padding()

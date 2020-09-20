@@ -3,7 +3,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject var store: AppStore
+    @AppStorage(SettingsKey.lanraragiUrl) var url: String = ""
 
     @State var navBarTitle: String = ""
     @State var editMode = EditMode.inactive
@@ -11,7 +11,7 @@ struct ContentView: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            if self.store.state.setting.url.isEmpty {
+            if self.url.isEmpty {
                 LANraragiConfigView()
             } else {
                 NavigationView {

@@ -17,13 +17,6 @@ struct ArchivePageContainer: View {
         ArchivePage(item: item,
                 pages: self.store.state.archive.archivePages[item.id],
                 loading: self.store.state.archive.loading,
-                tapLeft: self.store.state.setting.tapLeft,
-                tapMiddle: self.store.state.setting.tapMiddle,
-                tapRight: self.store.state.setting.tapRight,
-                swipeLeft: self.store.state.setting.swipeLeft,
-                swipeRight: self.store.state.setting.swipeRight,
-                splitPage: self.store.state.setting.splitPage,
-                splitPagePriorityLeft: self.store.state.setting.splitPagePriorityLeft,
                 errorCode: self.store.state.archive.errorCode,
                 dispatchError: self.dispatchError,
                 reset: self.resetState)
@@ -46,45 +39,30 @@ struct ArchivePageContainer: View {
 }
 
 struct ArchivePage: View {
-
+    @AppStorage(SettingsKey.tapLeftKey) var tapLeft: String = PageControl.next.rawValue
+    @AppStorage(SettingsKey.tapMiddleKey) var tapMiddle: String = PageControl.navigation.rawValue
+    @AppStorage(SettingsKey.tapRightKey) var tapRight: String = PageControl.previous.rawValue
+    @AppStorage(SettingsKey.swipeLeftKey) var swipeLeft: String = PageControl.next.rawValue
+    @AppStorage(SettingsKey.swipeRightKey) var swipeRight: String = PageControl.previous.rawValue
+    @AppStorage(SettingsKey.splitPage) var splitPage: Bool = false
+    @AppStorage(SettingsKey.splitPagePriorityLeft) var splitPagePriorityLeft: Bool = false
     @ObservedObject private var internalModel: InternalPageModel
 
     private let pages: [String]?
     private let item: ArchiveItem
     private let loading: Bool
-    private let tapLeft: PageControl
-    private let tapMiddle: PageControl
-    private let tapRight: PageControl
-    private let swipeLeft: PageControl
-    private let swipeRight: PageControl
-    private let splitPage: Bool
-    private let splitPagePriorityLeft: Bool
     private let errorCode: ErrorCode?
     private let reset: () -> Void
 
     init(item: ArchiveItem,
          pages: [String]?,
          loading: Bool,
-         tapLeft: PageControl,
-         tapMiddle: PageControl,
-         tapRight: PageControl,
-         swipeLeft: PageControl,
-         swipeRight: PageControl,
-         splitPage: Bool,
-         splitPagePriorityLeft: Bool,
          errorCode: ErrorCode?,
          dispatchError: @escaping (ErrorCode) -> Void,
          reset: @escaping () -> Void) {
         self.item = item
         self.pages = pages
         self.loading = loading
-        self.tapLeft = tapLeft
-        self.tapMiddle = tapMiddle
-        self.tapRight = tapRight
-        self.swipeLeft = swipeLeft
-        self.swipeRight = swipeRight
-        self.splitPage = splitPage
-        self.splitPagePriorityLeft = splitPagePriorityLeft
         self.errorCode = errorCode
         self.reset = reset
 
@@ -175,14 +153,17 @@ struct ArchivePage: View {
         0...Double((self.pages?.count ?? 2) - 1)
     }
 
-    func performAction(_ action: PageControl) {
+    func performAction(_ action: String) {
         switch action {
-        case .next:
+        case PageControl.next.rawValue:
             nextPage()
-        case .previous:
+        case PageControl.previous.rawValue:
             previousPage()
-        case .navigation:
+        case PageControl.navigation.rawValue:
             self.internalModel.controlUiHidden.toggle()
+        default:
+            // This should not happen
+            break
         }
     }
 
