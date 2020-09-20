@@ -19,6 +19,8 @@ struct ArchiveListContainer: View {
 
     @EnvironmentObject var store: AppStore
 
+    @AppStorage(SettingsKey.archiveListRandom) var archiveListRandom: Bool = false
+
     @Binding var navBarTitle: String
 
     private let searchKeyword: String?
@@ -37,7 +39,6 @@ struct ArchiveListContainer: View {
 
     var body: some View {
         ArchiveList(archiveItems: selectArchiveList(),
-                useListView: self.store.state.setting.useListView,
                 loading: self.store.state.archive.loading,
                 errorCode: self.store.state.archive.errorCode,
                 loadThumbnail: loadThumbnail,
@@ -88,7 +89,7 @@ struct ArchiveListContainer: View {
                 return Array(filtered.values).sorted(by: { $0.name < $1.name })
             }
         } else {
-            if self.store.state.setting.archiveListRandom {
+            if self.archiveListRandom {
                 return Array(self.store.state.archive.archiveItems.values)
             } else {
                 return Array(self.store.state.archive.archiveItems.values).sorted(by: { $0.name < $1.name })
@@ -99,22 +100,20 @@ struct ArchiveListContainer: View {
 }
 
 struct ArchiveList: View {
+    @AppStorage(SettingsKey.useListView) var useListView: Bool = false
 
     private let archiveItems: [ArchiveItem]
-    private let useListView: Bool
     private let loading: Bool
     private let errorCode: ErrorCode?
     private let loadThumbnail: (String) -> Void
     private let reset: () -> Void
 
     init(archiveItems: [ArchiveItem],
-         useListView: Bool,
          loading: Bool,
          errorCode: ErrorCode?,
          loadThumbnail: @escaping (String) -> Void,
          reset: @escaping () -> Void) {
         self.archiveItems = archiveItems
-        self.useListView = useListView
         self.loading = loading
         self.errorCode = errorCode
         self.loadThumbnail = loadThumbnail
@@ -185,7 +184,7 @@ struct ArchiveList: View {
 
 struct ArchiveList_Previews: PreviewProvider {
     static var previews: some View {
-        ArchiveList(archiveItems: [ArchiveItem](), useListView: false, loading: false,
+        ArchiveList(archiveItems: [ArchiveItem](), loading: false,
                 errorCode: nil, loadThumbnail: { _ in }, reset: {})
     }
 }

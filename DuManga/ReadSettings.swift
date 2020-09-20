@@ -3,70 +3,46 @@
 import SwiftUI
 
 struct ReadSettings: View {
-    @EnvironmentObject var store: AppStore
+    @AppStorage(SettingsKey.tapLeftKey) var tapLeft: String = PageControl.next.rawValue
+    @AppStorage(SettingsKey.tapMiddleKey) var tapMiddle: String = PageControl.navigation.rawValue
+    @AppStorage(SettingsKey.tapRightKey) var tapRight: String = PageControl.previous.rawValue
+    @AppStorage(SettingsKey.swipeLeftKey) var swipeLeft: String = PageControl.next.rawValue
+    @AppStorage(SettingsKey.swipeRightKey) var swipeRight: String = PageControl.previous.rawValue
+    @AppStorage(SettingsKey.splitPage) var splitPage: Bool = false
+    @AppStorage(SettingsKey.splitPagePriorityLeft) var splitPagePriorityLeft: Bool = false
 
     var body: some View {
         let pageControlSelectionView = Group {
-            Text("settings.nextPage").tag(PageControl.next)
-            Text("settings.previousPage").tag(PageControl.previous)
-            Text("settings.navigation").tag(PageControl.navigation)
+            Text("settings.nextPage").tag(PageControl.next.rawValue)
+            Text("settings.previousPage").tag(PageControl.previous.rawValue)
+            Text("settings.navigation").tag(PageControl.navigation.rawValue)
         }
         return List {
-            Picker("settings.read.tap.left", selection: Binding(
-                    get: { self.store.state.setting.tapLeft },
-                    set: {
-                        self.store.dispatch(.setting(action: .saveTapLeftControlToUserDefaults(control: $0)))
-                    }
-            )) {
+            Picker("settings.read.tap.left", selection: self.$tapLeft) {
                 pageControlSelectionView
             }
                     .padding()
-            Picker("settings.read.tap.middle", selection: Binding(
-                    get: { self.store.state.setting.tapMiddle },
-                    set: {
-                        self.store.dispatch(.setting(action: .saveTapMiddleControlToUserDefaults(control: $0)))
-                    })) {
+            Picker("settings.read.tap.middle", selection: self.$tapMiddle) {
                 pageControlSelectionView
             }
                     .padding()
-            Picker("settings.read.tap.right", selection: Binding(
-                    get: { self.store.state.setting.tapRight },
-                    set: {
-                        self.store.dispatch(.setting(action: .saveTapRightControlToUserDefaults(control: $0)))
-                    })) {
+            Picker("settings.read.tap.right", selection: self.$tapRight) {
                 pageControlSelectionView
             }
                     .padding()
-            Picker("settings.read.swipe.left", selection: Binding(
-                    get: { self.store.state.setting.swipeLeft },
-                    set: {
-                        self.store.dispatch(.setting(action: .saveSwipeLeftControlToUserDefaults(control: $0)))
-                    })) {
+            Picker("settings.read.swipe.left", selection: self.$swipeLeft) {
                 pageControlSelectionView
             }
                     .padding()
-            Picker("settings.read.swipe.right", selection: Binding(
-                    get: { self.store.state.setting.swipeRight },
-                    set: {
-                        self.store.dispatch(.setting(action: .saveSwipeRightControlToUserDefaults(control: $0)))
-                    })) {
+            Picker("settings.read.swipe.right", selection: self.$swipeRight) {
                 pageControlSelectionView
             }
                     .padding()
-            Toggle(isOn: Binding(
-                    get: { self.store.state.setting.splitPage },
-                    set: {
-                        self.store.dispatch(.setting(action: .saveSplitPageToUserDefaults(split: $0)))
-                    })) {
+            Toggle(isOn: self.$splitPage) {
                 Text("settings.read.split.page")
             }
                     .padding()
-            Toggle(isOn: Binding(
-                    get: { self.store.state.setting.splitPagePriorityLeft },
-                    set: {
-                        self.store.dispatch(.setting(action:
-                        .saveSplitPagePriorityLeftToUserDefaults(priorityLeft: $0)))
-                    })) {
+            Toggle(isOn: self.$splitPagePriorityLeft) {
                 Text("settings.read.split.page.priority.left")
             }
                     .padding()
