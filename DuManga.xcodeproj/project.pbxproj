@@ -41,8 +41,6 @@
 		4BD82EA26FFA071989D51CF1 /* SettingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82C50F0B889D20B260924 /* SettingState.swift */; };
 		4BD82F2BEC56B95FB9BC9841 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD827ECEE1938273E758358 /* SettingsView.swift */; };
 		4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD824A308A90B5740411016 /* LANraragiService.swift */; };
-		7D354CA024F1316800617F4A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354C9F24F1316800617F4A /* AppDelegate.swift */; };
-		7D354CA224F1316800617F4A /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354CA124F1316800617F4A /* SceneDelegate.swift */; };
 		7D354CA624F1316D00617F4A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CA524F1316D00617F4A /* Assets.xcassets */; };
 		7D354CA924F1316D00617F4A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CA824F1316D00617F4A /* Preview Assets.xcassets */; };
 		7D354CAC24F1316D00617F4A /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CAA24F1316D00617F4A /* LaunchScreen.storyboard */; };
@@ -56,6 +54,13 @@
 		7D354CF124F21B3400617F4A /* ArchiveExtractResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CF024F21B3400617F4A /* ArchiveExtractResponse.json */; };
 		7D354CF324F222FC00617F4A /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CF224F222FC00617F4A /* README.md */; };
 		7D354D0524F2387900617F4A /* ViewItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0424F2387900617F4A /* ViewItem.swift */; };
+		7D3DFED22517753E00686612 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CD024F1390400617F4A /* Alamofire */; };
+		7D3DFED32517753E00686612 /* AlamofireImage in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CD324F1393100617F4A /* AlamofireImage */; };
+		7D3DFED42517753E00686612 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE124F15F1800617F4A /* Logging */; };
+		7D3DFED52517753E00686612 /* ASCollectionView in Frameworks */ = {isa = PBXBuildFile; productRef = 7D7A683724FE58420051F232 /* ASCollectionView */; };
+		7D3DFED62517753E00686612 /* NotificationBannerSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D7A6842250239750051F232 /* NotificationBannerSwift */; };
+		7D3DFED72517753E00686612 /* OHHTTPStubsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE924F1660200617F4A /* OHHTTPStubsSwift */; };
+		7D3DFF16251777B200686612 /* DuMangaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D3DFF15251777B200686612 /* DuMangaApp.swift */; };
 		7D772E78250515C600070860 /* UpdateSearchCategoryResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D772E77250515C600070860 /* UpdateSearchCategoryResponse.json */; };
 		7D7A683E24FFACFC0051F232 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D7A683D24FFACFC0051F232 /* SearchView.swift */; };
 		7D7A6845250241D80051F232 /* ServerInfoResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D7A6844250241D80051F232 /* ServerInfoResponse.json */; };
@@ -122,8 +127,6 @@
 		4BD82FA7EAE6ED44136AA4E7 /* SettingsService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingsService.swift; sourceTree = "<group>"; };
 		4BD82FB85284818BED0DE580 /* AppAction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppAction.swift; sourceTree = "<group>"; };
 		7D354C9C24F1316800617F4A /* DuManga.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DuManga.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		7D354C9F24F1316800617F4A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		7D354CA124F1316800617F4A /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		7D354CA524F1316D00617F4A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7D354CA824F1316D00617F4A /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		7D354CAB24F1316D00617F4A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -143,6 +146,7 @@
 		7D354CF224F222FC00617F4A /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		7D354D0424F2387900617F4A /* ViewItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewItem.swift; sourceTree = "<group>"; };
 		7D354D0C24F251D600617F4A /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/LaunchScreen.strings"; sourceTree = "<group>"; };
+		7D3DFF15251777B200686612 /* DuMangaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuMangaApp.swift; sourceTree = "<group>"; };
 		7D772E77250515C600070860 /* UpdateSearchCategoryResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = UpdateSearchCategoryResponse.json; sourceTree = "<group>"; };
 		7D7A683D24FFACFC0051F232 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		7D7A6844250241D80051F232 /* ServerInfoResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ServerInfoResponse.json; sourceTree = "<group>"; };
@@ -163,6 +167,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7D3DFED42517753E00686612 /* Logging in Frameworks */,
+				7D3DFED22517753E00686612 /* Alamofire in Frameworks */,
+				7D3DFED32517753E00686612 /* AlamofireImage in Frameworks */,
+				7D3DFED62517753E00686612 /* NotificationBannerSwift in Frameworks */,
+				7D3DFED52517753E00686612 /* ASCollectionView in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -170,6 +179,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7D3DFED72517753E00686612 /* OHHTTPStubsSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -327,8 +337,6 @@
 				7D354D0324F2383A00617F4A /* Views */,
 				7D354CF424F22C8300617F4A /* Resources */,
 				7D354CD524F1395700617F4A /* LANraragi */,
-				7D354C9F24F1316800617F4A /* AppDelegate.swift */,
-				7D354CA124F1316800617F4A /* SceneDelegate.swift */,
 				7D354CA524F1316D00617F4A /* Assets.xcassets */,
 				7D354CAA24F1316D00617F4A /* LaunchScreen.storyboard */,
 				7D354CAD24F1316D00617F4A /* Info.plist */,
@@ -341,6 +349,7 @@
 				4BD824562009503E813A0D93 /* Middleware */,
 				4BD8260DA98B959BE0550327 /* Models */,
 				4BD82A7A1E34456CEE443689 /* Selector.swift */,
+				7D3DFF15251777B200686612 /* DuMangaApp.swift */,
 			);
 			path = DuManga;
 			sourceTree = "<group>";
@@ -464,11 +473,11 @@
 			);
 			name = DuManga;
 			packageProductDependencies = (
-				7D354CD024F1390400617F4A,
-				7D354CD324F1393100617F4A,
-				7D354CE124F15F1800617F4A,
-				7D7A683724FE58420051F232,
-				7D7A6842250239750051F232,
+				7D354CD024F1390400617F4A /* Alamofire */,
+				7D354CD324F1393100617F4A /* AlamofireImage */,
+				7D354CE124F15F1800617F4A /* Logging */,
+				7D7A683724FE58420051F232 /* ASCollectionView */,
+				7D7A6842250239750051F232 /* NotificationBannerSwift */,
 			);
 			productName = DuManga;
 			productReference = 7D354C9C24F1316800617F4A /* DuManga.app */;
@@ -489,7 +498,7 @@
 			);
 			name = DuMangaTests;
 			packageProductDependencies = (
-				7D354CE924F1660200617F4A,
+				7D354CE924F1660200617F4A /* OHHTTPStubsSwift */,
 			);
 			productName = DuMangaTests;
 			productReference = 7D354CB224F1316E00617F4A /* DuMangaTests.xctest */;
@@ -547,12 +556,12 @@
 			);
 			mainGroup = 7D354C9324F1316800617F4A;
 			packageReferences = (
-				7D354CCF24F1390400617F4A,
-				7D354CD224F1393100617F4A,
-				7D354CE024F15F1800617F4A,
-				7D354CE824F1660200617F4A,
-				7D7A683624FE58420051F232,
-				7D7A6841250239750051F232,
+				7D354CCF24F1390400617F4A /* XCRemoteSwiftPackageReference "Alamofire" */,
+				7D354CD224F1393100617F4A /* XCRemoteSwiftPackageReference "AlamofireImage" */,
+				7D354CE024F15F1800617F4A /* XCRemoteSwiftPackageReference "swift-log" */,
+				7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */,
+				7D7A683624FE58420051F232 /* XCRemoteSwiftPackageReference "ASCollectionView" */,
+				7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */,
 			);
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
 			projectDirPath = "";
@@ -611,12 +620,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7D3DFF16251777B200686612 /* DuMangaApp.swift in Sources */,
 				7D354CD724F1398C00617F4A /* LANraragiClient.swift in Sources */,
 				7DEB114324FA4EB80081A905 /* SettingsModels.swift in Sources */,
 				7D354D0524F2387900617F4A /* ViewItem.swift in Sources */,
-				7D354CA024F1316800617F4A /* AppDelegate.swift in Sources */,
 				7D7A683E24FFACFC0051F232 /* SearchView.swift in Sources */,
-				7D354CA224F1316800617F4A /* SceneDelegate.swift in Sources */,
 				7D354CDA24F13C4900617F4A /* LANraragiResponse.swift in Sources */,
 				4BD8236A69BB648B5CC4EF24 /* AppState.swift in Sources */,
 				4BD821631AB6950B54BEA209 /* Store.swift in Sources */,
@@ -761,7 +769,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -818,7 +826,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -995,7 +1003,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		7D354CCF24F1390400617F4A = {
+		7D354CCF24F1390400617F4A /* XCRemoteSwiftPackageReference "Alamofire" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
 			requirement = {
@@ -1003,7 +1011,7 @@
 				minimumVersion = 5.2.2;
 			};
 		};
-		7D354CD224F1393100617F4A = {
+		7D354CD224F1393100617F4A /* XCRemoteSwiftPackageReference "AlamofireImage" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Alamofire/AlamofireImage.git";
 			requirement = {
@@ -1011,7 +1019,7 @@
 				minimumVersion = 4.1.0;
 			};
 		};
-		7D354CE024F15F1800617F4A = {
+		7D354CE024F15F1800617F4A /* XCRemoteSwiftPackageReference "swift-log" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-log.git";
 			requirement = {
@@ -1019,7 +1027,7 @@
 				minimumVersion = 1.4.0;
 			};
 		};
-		7D354CE824F1660200617F4A = {
+		7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/AliSoftware/OHHTTPStubs";
 			requirement = {
@@ -1027,7 +1035,7 @@
 				minimumVersion = 9.0.0;
 			};
 		};
-		7D7A683624FE58420051F232 = {
+		7D7A683624FE58420051F232 /* XCRemoteSwiftPackageReference "ASCollectionView" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apptekstudios/ASCollectionView";
 			requirement = {
@@ -1035,7 +1043,7 @@
 				minimumVersion = 1.7.1;
 			};
 		};
-		7D7A6841250239750051F232 = {
+		7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Daltron/NotificationBanner";
 			requirement = {
@@ -1046,34 +1054,34 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		7D354CD024F1390400617F4A = {
+		7D354CD024F1390400617F4A /* Alamofire */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CCF24F1390400617F4A;
+			package = 7D354CCF24F1390400617F4A /* XCRemoteSwiftPackageReference "Alamofire" */;
 			productName = Alamofire;
 		};
-		7D354CD324F1393100617F4A = {
+		7D354CD324F1393100617F4A /* AlamofireImage */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CD224F1393100617F4A;
+			package = 7D354CD224F1393100617F4A /* XCRemoteSwiftPackageReference "AlamofireImage" */;
 			productName = AlamofireImage;
 		};
-		7D354CE124F15F1800617F4A = {
+		7D354CE124F15F1800617F4A /* Logging */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CE024F15F1800617F4A;
+			package = 7D354CE024F15F1800617F4A /* XCRemoteSwiftPackageReference "swift-log" */;
 			productName = Logging;
 		};
-		7D354CE924F1660200617F4A = {
+		7D354CE924F1660200617F4A /* OHHTTPStubsSwift */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CE824F1660200617F4A;
+			package = 7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */;
 			productName = OHHTTPStubsSwift;
 		};
-		7D7A683724FE58420051F232 = {
+		7D7A683724FE58420051F232 /* ASCollectionView */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D7A683624FE58420051F232;
+			package = 7D7A683624FE58420051F232 /* XCRemoteSwiftPackageReference "ASCollectionView" */;
 			productName = ASCollectionView;
 		};
-		7D7A6842250239750051F232 = {
+		7D7A6842250239750051F232 /* NotificationBannerSwift */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D7A6841250239750051F232;
+			package = 7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */;
 			productName = NotificationBannerSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
