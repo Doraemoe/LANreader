@@ -5,8 +5,6 @@
 import Foundation
 import Combine
 
-// swiftlint:disable cyclomatic_complexity
-// swiftlint:disable function_body_length
 func settingMiddleware(service: SettingsService) -> Middleware<AppState, AppAction> {
     { state, action in
         switch action {
@@ -15,64 +13,6 @@ func settingMiddleware(service: SettingsService) -> Middleware<AppState, AppActi
             return service.saveLanrargiServer(url: url, apiKey: apiKey)
                     .map { _ in
                         AppAction.setting(action: .saveLanraragiConfigToStore(url: url, apiKey: apiKey))
-                    }
-                    .eraseToAnyPublisher()
-                // tap
-        case let .setting(action: .saveTapLeftControlToUserDefaults(control)):
-            return service.saveTapLeftControl(control: control)
-                    .map { _ in
-                        AppAction.setting(action: .setTapLeftControlToStore(control: control))
-                    }
-                    .eraseToAnyPublisher()
-        case let .setting(action: .saveTapMiddleControlToUserDefaults(control)):
-            return service.saveTapMiddleControl(control: control)
-                    .map { _ in
-                        AppAction.setting(action: .setTapMiddleControlToStore(control: control))
-                    }
-                    .eraseToAnyPublisher()
-        case let .setting(action: .saveTapRightControlToUserDefaults(control)):
-            return service.saveTapRightControl(control: control)
-                    .map { _ in
-                        AppAction.setting(action: .setTapRightControlToStore(control: control))
-                    }
-                    .eraseToAnyPublisher()
-                // swipe
-        case let .setting(action: .saveSwipeLeftControlToUserDefaults(control)):
-            return service.saveSwipeLeftControl(control: control)
-                    .map { _ in
-                        AppAction.setting(action: .setSwipeLeftControlToStore(control: control))
-                    }
-                    .eraseToAnyPublisher()
-        case let .setting(action: .saveSwipeRightControlToUserDefaults(control)):
-            return service.saveSwipeRightControl(control: control)
-                    .map { _ in
-                        AppAction.setting(action: .setSwipeRightControlToStore(control: control))
-                    }
-                    .eraseToAnyPublisher()
-                // split
-        case let .setting(action: .saveSplitPageToUserDefaults(split)):
-            return service.saveSplitPage(split: split)
-                    .map { _ in
-                        AppAction.setting(action: .setSplitPageToStore(split: split))
-                    }
-                    .eraseToAnyPublisher()
-        case let .setting(action: .saveSplitPagePriorityLeftToUserDefaults(priorityLeft)):
-            return service.saveSplitPagePriorityLeft(priorityLeft: priorityLeft)
-                    .map { _ in
-                        AppAction.setting(action: .setSplitPagePriorityLeftToStore(priorityLeft: priorityLeft))
-                    }
-                    .eraseToAnyPublisher()
-                // view
-        case let .setting(action: .saveArchiveListRandomToUserDefaults(archiveListRandom)):
-            return service.saveArchiveListRandom(archiveListRandom: archiveListRandom)
-                    .map { _ in
-                        AppAction.setting(action: .setArchiveListRandomToStore(archiveListRandom: archiveListRandom))
-                    }
-                    .eraseToAnyPublisher()
-        case let .setting(action: .saveUseListViewToUserDefaults(useListView)):
-            return service.saveUseListView(useListView: useListView)
-                    .map { _ in
-                        AppAction.setting(action: .setUseListViewToStore(useListView: useListView))
                     }
                     .eraseToAnyPublisher()
         default:
