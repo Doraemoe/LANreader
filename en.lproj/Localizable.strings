@@ -5,6 +5,7 @@
 "details" = "Details";
 "loading" = "Loading...";
 "done" = "Done";
+"save" = "Save";
 "cancel" = "Cancel";
 "error" = "Error";
 
@@ -43,3 +44,4 @@
 "error.load.page" = "Cannot load page, please try again";
 "error.category" = "Cannot load category, please try again";
 "error.category.update" = "Cannot update category, please try again";
+"error.metadata.update" = "Cannot update archive metadata, please try again";

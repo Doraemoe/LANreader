@@ -6,16 +6,16 @@ import NotificationBannerSwift
 struct ArchivePageContainer: View {
     @EnvironmentObject var store: AppStore
 
-    let item: ArchiveItem
+    let itemId: String
     var lastPage: String?
 
-    init(item: ArchiveItem) {
-        self.item = item
+    init(itemId: String) {
+        self.itemId = itemId
     }
 
     var body: some View {
-        ArchivePage(item: item,
-                pages: self.store.state.archive.archivePages[item.id],
+        ArchivePage(item: self.store.state.archive.archiveItems[itemId],
+                pages: self.store.state.archive.archivePages[itemId],
                 loading: self.store.state.archive.loading,
                 errorCode: self.store.state.archive.errorCode,
                 dispatchError: self.dispatchError,
@@ -28,8 +28,8 @@ struct ArchivePageContainer: View {
     }
 
     private func load() {
-        if self.store.state.archive.archivePages[item.id]?.isEmpty ?? true {
-            self.store.dispatch(.archive(action: .extractArchive(id: item.id)))
+        if self.store.state.archive.archivePages[itemId]?.isEmpty ?? true {
+            self.store.dispatch(.archive(action: .extractArchive(id: itemId)))
         }
     }
 
@@ -49,12 +49,12 @@ struct ArchivePage: View {
     @ObservedObject private var internalModel: InternalPageModel
 
     private let pages: [String]?
-    private let item: ArchiveItem
+    private let item: ArchiveItem?
     private let loading: Bool
     private let errorCode: ErrorCode?
     private let reset: () -> Void
 
-    init(item: ArchiveItem,
+    init(item: ArchiveItem?,
          pages: [String]?,
          loading: Bool,
          errorCode: ErrorCode?,
@@ -80,7 +80,7 @@ struct ArchivePage: View {
                         .aspectRatio(contentMode: .fit)
                         .navigationBarHidden(self.internalModel.controlUiHidden)
                         .navigationBarTitle("")
-                        .navigationBarItems(trailing: NavigationLink(destination: ArchiveDetails(item: self.item)) {
+                        .navigationBarItems(trailing: NavigationLink(destination: ArchiveDetails(item: self.item!)) {
                             Text("details")
                         })
                 HStack {
@@ -194,7 +194,7 @@ struct ArchivePage: View {
                     action: action)
             self.internalModel.currentIndex = page.rounded()
             if index == (self.pages?.count ?? 0) - 1 {
-                self.internalModel.clearNewFlag(id: item.id)
+                self.internalModel.clearNewFlag(id: item!.id)
             }
         }
     }

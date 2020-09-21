@@ -78,6 +78,13 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     }
                     .replaceError(with: AppAction.category(action: .error(error: .categoryUpdateError)))
                     .eraseToAnyPublisher()
+        case let .archive(action: .updateArchiveMetadata(metadata)):
+            return service.updateArchiveMetaData(archiveMetadata: metadata)
+                    .map { _ in
+                        AppAction.archive(action: .updateArchiveMetadataSuccess(metadata: metadata))
+                    }
+                    .replaceError(with: AppAction.archive(action: .error(error: .archiveUpdateMetadataError)))
+                    .eraseToAnyPublisher()
         default:
             break
         }

@@ -5,6 +5,7 @@
 "details" = "详细";
 "loading" = "加载中";
 "done" = "完成";
+"save" = "保存";
 "cancel" = "取消";
 "error" = "错误";
 
@@ -42,3 +43,4 @@
 "error.load.page" = "无法加载图像，请重试";
 "error.category" = "无法加载类别，请重试";
 "error.category.update" = "无法更新类别，请重试";
+"error.metadata.update" = "无法更新压缩包信息，请重试";

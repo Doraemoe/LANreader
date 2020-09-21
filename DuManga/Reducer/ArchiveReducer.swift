@@ -4,6 +4,7 @@
 
 import Foundation
 
+// swiftlint:disable cyclomatic_complexity
 func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
     switch action {
     case .fetchArchive:
@@ -24,11 +25,15 @@ func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
         state.archivePages[id] = pages
     case let .replaceArchiveThumbnail(id, image):
         state.archiveItems[id]?.thumbnail = image
+    case let .updateArchiveMetadataSuccess(metadata):
+        state.archiveItems[metadata.id] = metadata
+        state.updateArchiveMetadataSuccess = true
     case let .error(error):
         state.loading = false
         state.errorCode = error
     case .resetState:
         state.errorCode = nil
+        state.updateArchiveMetadataSuccess = false
     default:
         break
     }
