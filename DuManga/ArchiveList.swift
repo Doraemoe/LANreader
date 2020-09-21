@@ -126,7 +126,7 @@ struct ArchiveList: View {
             ZStack {
                 if self.useListView {
                     List(self.archiveItems) { (item: ArchiveItem) in
-                        NavigationLink(destination: ArchivePageContainer(item: item)) {
+                        NavigationLink(destination: ArchivePageContainer(itemId: item.id)) {
                             ArchiveRow(archiveItem: item)
                                     .onAppear(perform: {
                                         self.loadThumbnail(item.id)
@@ -138,7 +138,7 @@ struct ArchiveList: View {
                         ZStack {
                             ArchiveGrid(archiveItem: item)
                                     .onAppear(perform: { self.loadThumbnail(item.id) })
-                            NavigationLink(destination: ArchivePageContainer(item: item)) {
+                            NavigationLink(destination: ArchivePageContainer(itemId: item.id)) {
                                 Rectangle()
                                         .opacity(0.0001)
                                         .contentShape(Rectangle())

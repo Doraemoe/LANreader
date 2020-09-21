@@ -136,6 +136,18 @@ class LANraragiService {
                 .publishString()
                 .value()
     }
+
+    func updateArchiveMetaData(archiveMetadata: ArchiveItem) -> AnyPublisher<String, AFError> {
+        var query = [String: String]()
+        query["title"] = archiveMetadata.name
+        query["tags"] = archiveMetadata.tags
+
+        return session.request("\(url)/api/archives/\(archiveMetadata.id)/metadata",
+                        method: .put, parameters: query)
+                .validate(statusCode: 200...200)
+                .publishString()
+                .value()
+    }
 }
 
 class AuthInterceptor: RequestInterceptor {

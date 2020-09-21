@@ -18,6 +18,9 @@ enum ArchiveAction {
     case extractArchive(id: String)
     case extractArchiveSuccess(id: String, pages: [String])
 
+    case updateArchiveMetadata(metadata: ArchiveItem)
+    case updateArchiveMetadataSuccess(metadata: ArchiveItem)
+
     case error(error: ErrorCode)
     case resetState
 }

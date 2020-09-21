@@ -1,9 +1,15 @@
 //Created 3/9/20
 
 import SwiftUI
+import NotificationBannerSwift
 
 struct ArchiveDetails: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.presentationMode) var presentationMode
 
+    @State var title = ""
+    @State var tags = ""
+    @State var saveButtonDisabled = false
     let item: ArchiveItem
 
     init(item: ArchiveItem) {
@@ -11,20 +17,48 @@ struct ArchiveDetails: View {
     }
 
     var body: some View {
-        VStack {
-            Text(item.name)
-                .font(.title)
+        if store.state.archive.errorCode != nil {
+            let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                    subtitle: NSLocalizedString("error.metadata.update", comment: "update metadata error"),
+                    style: .danger)
+            banner.show()
+            self.store.dispatch(.archive(action: .resetState))
+        } else if store.state.archive.updateArchiveMetadataSuccess {
+            self.store.dispatch(.archive(action: .resetState))
+            self.presentationMode.wrappedValue.dismiss()
+        }
+        return VStack {
+            TextField("", text: self.$title)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
             item.thumbnail
                 .resizable()
                 .scaledToFit()
                 .padding()
                 .frame(width: 200, height: 250)
-            ScrollView(.vertical) {
-                Text(item.tags)
-                    .padding()
-            }
+            TextEditor(text: self.$tags)
+                .border(Color.black, width: 1)
+                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: 200, alignment: .center)
+                .disableAutocorrection(true)
+                .padding()
+            Spacer()
         }
+        .navigationBarItems(trailing: Button(action: {
+            self.saveButtonDisabled = true
+            let updated = ArchiveItem(id: self.item.id,
+                    name: self.title,
+                    tags: self.tags,
+                    thumbnail: self.item.thumbnail)
+            self.store.dispatch(.archive(action: .updateArchiveMetadata(metadata: updated)))
+        }, label: {
+            Text("save")
+        })
+                .disabled(self.saveButtonDisabled)
+        )
+        .onAppear(perform: {
+            self.title = self.item.name
+            self.tags = self.item.tags
+        })
     }
 }
 
