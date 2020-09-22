@@ -9,7 +9,6 @@ struct ArchiveDetails: View {
 
     @State var title = ""
     @State var tags = ""
-    @State var saveButtonDisabled = false
     let item: ArchiveItem
 
     init(item: ArchiveItem) {
@@ -44,7 +43,6 @@ struct ArchiveDetails: View {
             Spacer()
         }
         .navigationBarItems(trailing: Button(action: {
-            self.saveButtonDisabled = true
             let updated = ArchiveItem(id: self.item.id,
                     name: self.title,
                     tags: self.tags,
@@ -53,7 +51,7 @@ struct ArchiveDetails: View {
         }, label: {
             Text("save")
         })
-                .disabled(self.saveButtonDisabled)
+                .disabled(self.store.state.archive.loading)
         )
         .onAppear(perform: {
             self.title = self.item.name

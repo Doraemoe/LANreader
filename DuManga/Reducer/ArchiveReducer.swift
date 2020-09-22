@@ -25,9 +25,12 @@ func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
         state.archivePages[id] = pages
     case let .replaceArchiveThumbnail(id, image):
         state.archiveItems[id]?.thumbnail = image
+    case .updateArchiveMetadata:
+        state.loading = true
     case let .updateArchiveMetadataSuccess(metadata):
         state.archiveItems[metadata.id] = metadata
         state.updateArchiveMetadataSuccess = true
+        state.loading = false
     case let .error(error):
         state.loading = false
         state.errorCode = error
