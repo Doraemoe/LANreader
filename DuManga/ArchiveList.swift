@@ -2,9 +2,6 @@
 
 import SwiftUI
 
-// TODO: Replace with LazyVGrid in iOS 14
-
-import ASCollectionView
 import NotificationBannerSwift
 
 struct ArchiveListContainer: View {
@@ -134,21 +131,24 @@ struct ArchiveList: View {
                         }
                     }
                 } else {
-                    ASCollectionView(data: self.archiveItems) { (item: ArchiveItem, _) in
-                        ZStack {
-                            ArchiveGrid(archiveItem: item)
-                                    .onAppear(perform: { self.loadThumbnail(item.id) })
-                            NavigationLink(destination: ArchivePageContainer(itemId: item.id)) {
-                                Rectangle()
-                                        .opacity(0.0001)
-                                        .contentShape(Rectangle())
+                    let columns = [
+                        GridItem(.adaptive(minimum: 180))
+                    ]
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 20) {
+                            ForEach(self.archiveItems) { (item: ArchiveItem) in
+                                ZStack {
+                                    ArchiveGrid(archiveItem: item)
+                                            .onAppear(perform: { self.loadThumbnail(item.id) })
+                                    NavigationLink(destination: ArchivePageContainer(itemId: item.id)) {
+                                        Rectangle()
+                                                .opacity(0.0001)
+                                                .contentShape(Rectangle())
+                                    }
+                                }
                             }
                         }
-                    }.layout {
-                        .grid(layoutMode: .adaptive(withMinItemSize: 190),
-                                itemSpacing: 30,
-                                lineSpacing: 30,
-                                itemSize: .absolute(260))
+                                .padding(.horizontal)
                     }
                 }
 

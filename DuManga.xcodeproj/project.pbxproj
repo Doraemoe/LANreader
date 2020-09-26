@@ -61,6 +61,11 @@
 		7D7B26A924F52A7F00149341 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7D7B26AB24F52A7F00149341 /* Localizable.strings */; };
 		7D80326C24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D80326B24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json */; };
 		7D80326E24F68F6900AA8BD2 /* ArchiveSearchResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D80326D24F68F6900AA8BD2 /* ArchiveSearchResponse.json */; };
+		7DDF3208251F833D005BA392 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CD024F1390400617F4A /* Alamofire */; };
+		7DDF3209251F833D005BA392 /* AlamofireImage in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CD324F1393100617F4A /* AlamofireImage */; };
+		7DDF320A251F833D005BA392 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE124F15F1800617F4A /* Logging */; };
+		7DDF320C251F833D005BA392 /* NotificationBannerSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D7A6842250239750051F232 /* NotificationBannerSwift */; };
+		7DDF320D251F833D005BA392 /* OHHTTPStubsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE924F1660200617F4A /* OHHTTPStubsSwift */; };
 		7DE5777A250780C100FD1603 /* SetArchiveMetadataResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7DE57779250780C100FD1603 /* SetArchiveMetadataResponse.json */; };
 		7DE70F562503C7B3006414DE /* ClearNewFlagResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7DE70F552503C7B3006414DE /* ClearNewFlagResponse.json */; };
 		7DEB114324FA4EB80081A905 /* SettingsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DEB114224FA4EB80081A905 /* SettingsModels.swift */; };
@@ -159,6 +164,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7DDF320A251F833D005BA392 /* Logging in Frameworks */,
+				7DDF3208251F833D005BA392 /* Alamofire in Frameworks */,
+				7DDF3209251F833D005BA392 /* AlamofireImage in Frameworks */,
+				7DDF320C251F833D005BA392 /* NotificationBannerSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -166,6 +175,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7DDF320D251F833D005BA392 /* OHHTTPStubsSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -458,11 +468,10 @@
 			);
 			name = DuManga;
 			packageProductDependencies = (
-				7D354CD024F1390400617F4A,
-				7D354CD324F1393100617F4A,
-				7D354CE124F15F1800617F4A,
-				7D7A683724FE58420051F232,
-				7D7A6842250239750051F232,
+				7D354CD024F1390400617F4A /* Alamofire */,
+				7D354CD324F1393100617F4A /* AlamofireImage */,
+				7D354CE124F15F1800617F4A /* Logging */,
+				7D7A6842250239750051F232 /* NotificationBannerSwift */,
 			);
 			productName = DuManga;
 			productReference = 7D354C9C24F1316800617F4A /* DuManga.app */;
@@ -483,7 +492,7 @@
 			);
 			name = DuMangaTests;
 			packageProductDependencies = (
-				7D354CE924F1660200617F4A,
+				7D354CE924F1660200617F4A /* OHHTTPStubsSwift */,
 			);
 			productName = DuMangaTests;
 			productReference = 7D354CB224F1316E00617F4A /* DuMangaTests.xctest */;
@@ -541,12 +550,11 @@
 			);
 			mainGroup = 7D354C9324F1316800617F4A;
 			packageReferences = (
-				7D354CCF24F1390400617F4A,
-				7D354CD224F1393100617F4A,
-				7D354CE024F15F1800617F4A,
-				7D354CE824F1660200617F4A,
-				7D7A683624FE58420051F232,
-				7D7A6841250239750051F232,
+				7D354CCF24F1390400617F4A /* XCRemoteSwiftPackageReference "Alamofire" */,
+				7D354CD224F1393100617F4A /* XCRemoteSwiftPackageReference "AlamofireImage" */,
+				7D354CE024F15F1800617F4A /* XCRemoteSwiftPackageReference "swift-log" */,
+				7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */,
+				7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */,
 			);
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
 			projectDirPath = "";
@@ -987,7 +995,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		7D354CCF24F1390400617F4A = {
+		7D354CCF24F1390400617F4A /* XCRemoteSwiftPackageReference "Alamofire" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
 			requirement = {
@@ -995,7 +1003,7 @@
 				minimumVersion = 5.2.2;
 			};
 		};
-		7D354CD224F1393100617F4A = {
+		7D354CD224F1393100617F4A /* XCRemoteSwiftPackageReference "AlamofireImage" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Alamofire/AlamofireImage.git";
 			requirement = {
@@ -1003,7 +1011,7 @@
 				minimumVersion = 4.1.0;
 			};
 		};
-		7D354CE024F15F1800617F4A = {
+		7D354CE024F15F1800617F4A /* XCRemoteSwiftPackageReference "swift-log" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-log.git";
 			requirement = {
@@ -1011,7 +1019,7 @@
 				minimumVersion = 1.4.0;
 			};
 		};
-		7D354CE824F1660200617F4A = {
+		7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/AliSoftware/OHHTTPStubs";
 			requirement = {
@@ -1019,15 +1027,7 @@
 				minimumVersion = 9.0.0;
 			};
 		};
-		7D7A683624FE58420051F232 = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apptekstudios/ASCollectionView";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.7.1;
-			};
-		};
-		7D7A6841250239750051F232 = {
+		7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Daltron/NotificationBanner";
 			requirement = {
@@ -1038,34 +1038,29 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		7D354CD024F1390400617F4A = {
+		7D354CD024F1390400617F4A /* Alamofire */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CCF24F1390400617F4A;
+			package = 7D354CCF24F1390400617F4A /* XCRemoteSwiftPackageReference "Alamofire" */;
 			productName = Alamofire;
 		};
-		7D354CD324F1393100617F4A = {
+		7D354CD324F1393100617F4A /* AlamofireImage */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CD224F1393100617F4A;
+			package = 7D354CD224F1393100617F4A /* XCRemoteSwiftPackageReference "AlamofireImage" */;
 			productName = AlamofireImage;
 		};
-		7D354CE124F15F1800617F4A = {
+		7D354CE124F15F1800617F4A /* Logging */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CE024F15F1800617F4A;
+			package = 7D354CE024F15F1800617F4A /* XCRemoteSwiftPackageReference "swift-log" */;
 			productName = Logging;
 		};
-		7D354CE924F1660200617F4A = {
+		7D354CE924F1660200617F4A /* OHHTTPStubsSwift */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CE824F1660200617F4A;
+			package = 7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */;
 			productName = OHHTTPStubsSwift;
 		};
-		7D7A683724FE58420051F232 = {
+		7D7A6842250239750051F232 /* NotificationBannerSwift */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D7A683624FE58420051F232;
-			productName = ASCollectionView;
-		};
-		7D7A6842250239750051F232 = {
-			isa = XCSwiftPackageProductDependency;
-			package = 7D7A6841250239750051F232;
+			package = 7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */;
 			productName = NotificationBannerSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
