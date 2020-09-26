@@ -60,7 +60,7 @@ struct CategoryList: View {
 
                 VStack {
                     Text("loading")
-                    ActivityIndicator(isAnimating: self.store.state.category.loading, style: .large)
+                    ProgressView()
                 }
                         .frame(width: geometry.size.width / 3,
                                 height: geometry.size.height / 5)
