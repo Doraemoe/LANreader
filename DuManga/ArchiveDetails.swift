@@ -36,7 +36,7 @@ struct ArchiveDetails: View {
                 .padding()
                 .frame(width: 200, height: 250)
             TextEditor(text: self.$tags)
-                .border(Color.black, width: 1)
+                .border(Color.secondary, width: 2)
                 .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: 200, alignment: .center)
                 .disableAutocorrection(true)
                 .padding()
