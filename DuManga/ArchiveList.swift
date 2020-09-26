@@ -154,7 +154,7 @@ struct ArchiveList: View {
 
                 VStack {
                     Text("loading")
-                    ActivityIndicator(isAnimating: self.loading, style: .large)
+                    ProgressView()
                 }
                         .frame(width: geometry.size.width / 3,
                                 height: geometry.size.height / 5)
