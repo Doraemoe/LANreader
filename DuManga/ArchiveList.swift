@@ -132,9 +132,10 @@ struct ArchiveList: View {
                     }
                 } else {
                     let columns = [
-                        GridItem(.adaptive(minimum: 180))
+                        GridItem(.adaptive(minimum: 160))
                     ]
                     ScrollView {
+                        Spacer(minLength: 20)
                         LazyVGrid(columns: columns, spacing: 20) {
                             ForEach(self.archiveItems) { (item: ArchiveItem) in
                                 ZStack {
