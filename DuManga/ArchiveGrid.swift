@@ -8,18 +8,18 @@ struct ArchiveGrid: View {
     var body: some View {
         VStack(alignment: HorizontalAlignment.center, spacing: 2) {
             Text(archiveItem.name)
-                    .frame(width: 150)
+                    .frame(width: 130)
                     .lineLimit(1)
             archiveItem.thumbnail
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 180, height: 225)
+                    .frame(width: 160, height: 200)
         }
                 .overlay(
                         RoundedRectangle(cornerRadius: 8)
                                 .stroke(Color.secondary, lineWidth: 2)
                                 .opacity(0.9)
-                                .frame(width: 180, height: 260, alignment: .center)
+                                .frame(width: 160, height: 230, alignment: .center)
                 )
     }
 }
