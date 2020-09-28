@@ -1,7 +1,6 @@
 //  Created 23/8/20.
 
 import SwiftUI
-
 import NotificationBannerSwift
 
 struct ArchiveListContainer: View {
@@ -99,6 +98,8 @@ struct ArchiveListContainer: View {
 struct ArchiveList: View {
     @AppStorage(SettingsKey.useListView) var useListView: Bool = false
 
+    @State private var nameFilter = ""
+
     private let archiveItems: [ArchiveItem]
     private let loading: Bool
     private let errorCode: ErrorCode?
@@ -119,15 +120,21 @@ struct ArchiveList: View {
 
     var body: some View {
         handleError()
+        let filteredItems = filterName()
         return GeometryReader { geometry in
             ZStack {
                 if self.useListView {
-                    List(self.archiveItems) { (item: ArchiveItem) in
-                        NavigationLink(destination: ArchivePageContainer(itemId: item.id)) {
-                            ArchiveRow(archiveItem: item)
-                                    .onAppear(perform: {
-                                        self.loadThumbnail(item.id)
-                                    })
+                    List {
+                        TextField("filter.name", text: self.$nameFilter)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .padding()
+                        ForEach(filteredItems) { (item: ArchiveItem) in
+                            NavigationLink(destination: ArchivePageContainer(itemId: item.id)) {
+                                ArchiveRow(archiveItem: item)
+                                        .onAppear(perform: {
+                                            self.loadThumbnail(item.id)
+                                        })
+                            }
                         }
                     }
                 } else {
@@ -136,8 +143,12 @@ struct ArchiveList: View {
                     ]
                     ScrollView {
                         Spacer(minLength: 20)
+                        TextField("filter.name", text: self.$nameFilter)
+                                .disableAutocorrection(true)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .padding([.leading, .bottom, .trailing])
                         LazyVGrid(columns: columns, spacing: 20) {
-                            ForEach(self.archiveItems) { (item: ArchiveItem) in
+                            ForEach(filteredItems) { (item: ArchiveItem) in
                                 ZStack {
                                     ArchiveGrid(archiveItem: item)
                                             .onAppear(perform: { self.loadThumbnail(item.id) })
@@ -164,6 +175,16 @@ struct ArchiveList: View {
                         .cornerRadius(20)
                         .opacity(self.loading ? 1 : 0)
             }
+        }
+    }
+
+    func filterName() -> [ArchiveItem] {
+        if !nameFilter.isEmpty {
+            return self.archiveItems.filter { item in
+                item.name.localizedCaseInsensitiveContains(self.nameFilter)
+            }
+        } else {
+            return self.archiveItems
         }
     }
 
