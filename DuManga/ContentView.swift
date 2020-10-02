@@ -16,7 +16,7 @@ struct ContentView: View {
             } else {
                 NavigationView {
                     TabView(selection: $tabName) {
-                        ArchiveListContainer(navBarTitle: $navBarTitle)
+                        ArchiveList(navBarTitle: $navBarTitle)
                             .tabItem {
                                 Text("library")
                         }.tag("library")

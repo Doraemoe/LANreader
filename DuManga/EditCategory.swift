@@ -6,9 +6,7 @@ import NotificationBannerSwift
 struct EditCategory: View {
 
     @EnvironmentObject var store: AppStore
-
-    @State var categoryName = ""
-    @State var searchKeyword = ""
+    @StateObject var editCategoryModel = EditCategoryModel()
 
     @Binding var showSheetView: Bool
 
@@ -20,32 +18,18 @@ struct EditCategory: View {
     }
 
     var body: some View {
-        if store.state.category.errorCode != nil {
-            let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                    subtitle: NSLocalizedString("error.category.update", comment: "update category error"),
-                    style: .danger)
-            banner.show()
-            self.store.dispatch(.category(action: .resetState))
-        } else if store.state.category.updateDynamicCategorySuccess {
-            self.store.dispatch(.category(action: .resetState))
-            self.showSheetView = false
-        }
-        return NavigationView {
+        NavigationView {
             VStack {
                 if item.archives.isEmpty {
                     VStack(alignment: .leading) {
                         Text("category.name")
-                        TextField("name", text: self.$categoryName)
+                        TextField("name", text: $editCategoryModel.categoryName)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                     }
                             .padding()
-                            .onAppear(perform: {
-                                self.categoryName = self.item.name
-                                self.searchKeyword = self.item.search
-                            })
                     VStack(alignment: .leading) {
                         Text("category.search")
-                        TextField("search", text: self.$searchKeyword)
+                        TextField("search", text: $editCategoryModel.searchKeyword)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                     }
                             .padding()
@@ -60,13 +44,34 @@ struct EditCategory: View {
                         Text("cancel")
                     }), trailing: Button(action: {
                         let updated: CategoryItem = CategoryItem(id: self.item.id,
-                                name: self.categoryName, archives: [],
-                                search: self.searchKeyword, pinned: self.item.pinned)
+                                name: editCategoryModel.categoryName, archives: [],
+                                search: editCategoryModel.searchKeyword, pinned: self.item.pinned)
                         self.store.dispatch(.category(action: .updateDynamicCategory(category: updated)))
                     }, label: {
                         Text("done")
                     }))
         }
+                .onAppear(perform: {
+                    editCategoryModel.load(state: store.state, name: self.item.name, keyword: self.item.search)
+                })
+                .onDisappear(perform: {
+                    editCategoryModel.unload()
+                })
+                .onChange(of: editCategoryModel.errorCode, perform: { errorCode in
+                    if errorCode != nil {
+                        let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                                subtitle: NSLocalizedString("error.category.update", comment: "update category error"),
+                                style: .danger)
+                        banner.show()
+                        self.store.dispatch(.category(action: .resetState))
+                    }
+                })
+                .onChange(of: editCategoryModel.updateDynamicCategorySuccess, perform: { success in
+                    if success {
+                        self.store.dispatch(.category(action: .resetState))
+                        self.showSheetView = false
+                    }
+                })
                 .navigationViewStyle(StackNavigationViewStyle())
     }
 }

@@ -3,7 +3,7 @@
 import SwiftUI
 import NotificationBannerSwift
 
-struct ArchiveListContainer: View {
+struct ArchiveList: View {
     private static let dynamicCategorySelector = Selector(
             initBase: [String: ArchiveItem](),
             initFilter: [String](),
@@ -13,9 +13,12 @@ struct ArchiveListContainer: View {
             initFilter: [String](),
             initResult: [ArchiveItem]())
 
+    @AppStorage(SettingsKey.useListView) var useListView: Bool = false
+    @AppStorage(SettingsKey.archiveListRandom) var archiveListRandom: Bool = false
+
     @EnvironmentObject var store: AppStore
 
-    @AppStorage(SettingsKey.archiveListRandom) var archiveListRandom: Bool = false
+    @StateObject private var archiveListModel = ArchiveListModel()
 
     @Binding var navBarTitle: String
 
@@ -34,105 +37,19 @@ struct ArchiveListContainer: View {
     }
 
     var body: some View {
-        ArchiveList(archiveItems: selectArchiveList(),
-                loading: self.store.state.archive.loading,
-                errorCode: self.store.state.archive.errorCode,
-                loadThumbnail: loadThumbnail,
-                reset: resetState)
-                .onAppear(perform: self.loadData)
-                .onAppear(perform: {
-                    self.navBarTitle = self.navBarTitleOverride ?? "library"
-                })
-    }
-
-    private func resetState() {
-        self.store.dispatch(.archive(action: .resetState))
-    }
-
-    private func loadData() {
-        if searchKeyword != nil && !searchKeyword!.isEmpty {
-            self.store.dispatch(.archive(action: .fetchArchiveDynamicCategory(keyword: searchKeyword!)))
-        } else {
-            if self.store.state.archive.archiveItems.isEmpty {
-                self.store.dispatch(.archive(action: .fetchArchive))
-            }
-        }
-    }
-
-    private func loadThumbnail(id: String) {
-        if self.store.state.archive.archiveItems[id]?.thumbnail == Image("placeholder") {
-            self.store.dispatch(.archive(action: .fetchArchiveThumbnail(id: id)))
-        }
-    }
-
-    private func selectArchiveList() -> [ArchiveItem] {
-        if searchKeyword != nil && !searchKeyword!.isEmpty {
-            return ArchiveListContainer.dynamicCategorySelector.select(
-                    base: self.store.state.archive.archiveItems,
-                    filter: self.store.state.archive.dynamicCategoryKeys) { (base, filter) in
-                let filtered = base.filter { item in
-                    filter.contains(item.key)
-                }
-                return Array(filtered.values).sorted(by: { $0.name < $1.name })
-            }
-        } else if categoryArchives != nil && !categoryArchives!.isEmpty {
-            return ArchiveListContainer.staticCategorySelector.select(
-                    base: self.store.state.archive.archiveItems,
-                    filter: categoryArchives!) { (base, filter) in
-                let filtered = base.filter { item in
-                    filter.contains(item.key)
-                }
-                return Array(filtered.values).sorted(by: { $0.name < $1.name })
-            }
-        } else {
-            if self.archiveListRandom {
-                return Array(self.store.state.archive.archiveItems.values)
-            } else {
-                return Array(self.store.state.archive.archiveItems.values).sorted(by: { $0.name < $1.name })
-            }
-        }
-    }
-
-}
-
-struct ArchiveList: View {
-    @AppStorage(SettingsKey.useListView) var useListView: Bool = false
-
-    @State private var nameFilter = ""
-
-    private let archiveItems: [ArchiveItem]
-    private let loading: Bool
-    private let errorCode: ErrorCode?
-    private let loadThumbnail: (String) -> Void
-    private let reset: () -> Void
-
-    init(archiveItems: [ArchiveItem],
-         loading: Bool,
-         errorCode: ErrorCode?,
-         loadThumbnail: @escaping (String) -> Void,
-         reset: @escaping () -> Void) {
-        self.archiveItems = archiveItems
-        self.loading = loading
-        self.errorCode = errorCode
-        self.loadThumbnail = loadThumbnail
-        self.reset = reset
-    }
-
-    var body: some View {
-        handleError()
-        let filteredItems = filterName()
+        let filteredItems = filterArchives()
         return GeometryReader { geometry in
             ZStack {
                 if self.useListView {
                     List {
-                        TextField("filter.name", text: self.$nameFilter)
+                        TextField("filter.name", text: $archiveListModel.nameFilter)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .padding()
                         ForEach(filteredItems) { (item: ArchiveItem) in
-                            NavigationLink(destination: ArchivePageContainer(itemId: item.id)) {
+                            NavigationLink(destination: ArchivePage(itemId: item.id)) {
                                 ArchiveRow(archiveItem: item)
                                         .onAppear(perform: {
-                                            self.loadThumbnail(item.id)
+                                            self.loadThumbnail(id: item.id)
                                         })
                             }
                         }
@@ -143,7 +60,7 @@ struct ArchiveList: View {
                     ]
                     ScrollView {
                         Spacer(minLength: 20)
-                        TextField("filter.name", text: self.$nameFilter)
+                        TextField("filter.name", text: $archiveListModel.nameFilter)
                                 .disableAutocorrection(true)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .padding([.leading, .bottom, .trailing])
@@ -151,8 +68,8 @@ struct ArchiveList: View {
                             ForEach(filteredItems) { (item: ArchiveItem) in
                                 ZStack {
                                     ArchiveGrid(archiveItem: item)
-                                            .onAppear(perform: { self.loadThumbnail(item.id) })
-                                    NavigationLink(destination: ArchivePageContainer(itemId: item.id)) {
+                                            .onAppear(perform: { self.loadThumbnail(id: item.id) })
+                                    NavigationLink(destination: ArchivePage(itemId: item.id)) {
                                         Rectangle()
                                                 .opacity(0.0001)
                                                 .contentShape(Rectangle())
@@ -173,40 +90,85 @@ struct ArchiveList: View {
                         .background(Color.secondary)
                         .foregroundColor(Color.primary)
                         .cornerRadius(20)
-                        .opacity(self.loading ? 1 : 0)
+                        .opacity(archiveListModel.loading ? 1 : 0)
+            }
+                    .onAppear(perform: {
+                        archiveListModel.load(state: store.state)
+                        self.navBarTitle = self.navBarTitleOverride ?? "library"
+                        self.loadData()
+                    })
+                    .onDisappear(perform: {
+                        archiveListModel.unload()
+                    })
+                    .onChange(of: archiveListModel.errorCode, perform: { errorCode in
+                        if errorCode != nil {
+                            let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                                    subtitle: NSLocalizedString("error.list", comment: "list error"),
+                                    style: .danger)
+                            banner.show()
+                            store.dispatch(.archive(action: .resetState))
+                        }
+                    })
+        }
+    }
+
+    private func loadData() {
+        if searchKeyword != nil && !searchKeyword!.isEmpty {
+            self.store.dispatch(.archive(action: .fetchArchiveDynamicCategory(keyword: searchKeyword!)))
+        } else {
+            if archiveListModel.archiveItems.isEmpty {
+                self.store.dispatch(.archive(action: .fetchArchive))
             }
         }
     }
 
-    func filterName() -> [ArchiveItem] {
-        if !nameFilter.isEmpty {
-            return self.archiveItems.filter { item in
-                item.name.localizedCaseInsensitiveContains(self.nameFilter)
+    private func loadThumbnail(id: String) {
+        if archiveListModel.archiveItems[id]?.thumbnail == Image("placeholder") {
+            self.store.dispatch(.archive(action: .fetchArchiveThumbnail(id: id)))
+        }
+    }
+
+    func filterArchives() -> [ArchiveItem] {
+        let archives: [ArchiveItem]
+        if searchKeyword != nil && !searchKeyword!.isEmpty {
+            archives = ArchiveList.dynamicCategorySelector.select(
+                    base: archiveListModel.archiveItems,
+                    filter: archiveListModel.dynamicCategoryKeys) { (base, filter) in
+                let filtered = base.filter { item in
+                    filter.contains(item.key)
+                }
+                return Array(filtered.values).sorted(by: { $0.name < $1.name })
+            }
+        } else if categoryArchives != nil && !categoryArchives!.isEmpty {
+            archives = ArchiveList.staticCategorySelector.select(
+                    base: archiveListModel.archiveItems,
+                    filter: categoryArchives!) { (base, filter) in
+                let filtered = base.filter { item in
+                    filter.contains(item.key)
+                }
+                return Array(filtered.values).sorted(by: { $0.name < $1.name })
             }
         } else {
-            return self.archiveItems
-        }
-    }
-
-    func handleError() {
-        if let error = errorCode {
-            switch error {
-            case .archiveFetchError:
-                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                        subtitle: NSLocalizedString("error.list", comment: "list error"),
-                        style: .danger)
-                banner.show()
-                reset()
-            default:
-                break
+            if self.archiveListRandom {
+                archives = Array(archiveListModel.archiveItems.values)
+            } else {
+                archives = Array(archiveListModel.archiveItems.values).sorted(by: { $0.name < $1.name })
             }
         }
+
+        if !archiveListModel.nameFilter.isEmpty {
+            return archives.filter { item in
+                item.name.localizedCaseInsensitiveContains(archiveListModel.nameFilter)
+            }
+        } else {
+            return archives
+        }
     }
 }
 
-struct ArchiveList_Previews: PreviewProvider {
-    static var previews: some View {
-        ArchiveList(archiveItems: [ArchiveItem](), loading: false,
-                errorCode: nil, loadThumbnail: { _ in }, reset: {})
-    }
-}
+//struct ArchiveList_Previews: PreviewProvider {
+//    static var previews: some View {
+//        ArchiveList(archiveItems: [ArchiveItem](), loading: false,
+//                errorCode: nil, loadThumbnail: { _ in }, reset: {})
+//    }
+//}

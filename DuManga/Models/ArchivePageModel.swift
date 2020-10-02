@@ -18,7 +18,7 @@ enum PageFlipAction: String, CaseIterable {
     case jump
 }
 
-class InternalPageModel: ObservableObject {
+class ArchivePageModel: ObservableObject {
     @Published var currentIndex: Double = 0.0
     @Published var controlUiHidden = true
     @Published var isCurrentSplittingPage = InternalPageSplitState.off
@@ -26,17 +26,38 @@ class InternalPageModel: ObservableObject {
     @Published var rightHalfPage = Image("placeholder")
     @Published var currentImage = Image("placeholder")
 
+    @Published private(set) var loading = false
+    @Published private(set) var archiveItems = [String: ArchiveItem]()
+    @Published private(set) var archivePages = [String: [String]]()
+    @Published private(set) var errorCode: ErrorCode?
+
     private let service = LANraragiService.shared
 
     private var cancellables: Set<AnyCancellable> = []
 
-    private let dispatchError: (ErrorCode) -> Void
+    func load(state: AppState) {
+        state.archive.$loading.receive(on: DispatchQueue.main)
+                .assign(to: \.loading, on: self)
+                .store(in: &cancellables)
 
-    init(dispatchError: @escaping (ErrorCode) -> Void) {
-        self.dispatchError = dispatchError
+        state.archive.$archiveItems.receive(on: DispatchQueue.main)
+                .assign(to: \.archiveItems, on: self)
+                .store(in: &cancellables)
+
+        state.archive.$archivePages.receive(on: DispatchQueue.main)
+                .assign(to: \.archivePages, on: self)
+                .store(in: &cancellables)
+
+        state.archive.$errorCode.receive(on: DispatchQueue.main)
+                .assign(to: \.errorCode, on: self)
+                .store(in: &cancellables)
     }
 
-    func load(page: String, split: Bool, priorityLeft: Bool, action: PageFlipAction) {
+    func unload() {
+        cancellables.forEach({ $0.cancel() })
+    }
+
+    func loadPage(page: String, split: Bool, priorityLeft: Bool, action: PageFlipAction) {
         service.fetchArchivePage(page: page)
                 .map {
                     if split && $0.size.width / $0.size.height > 1.2 {
@@ -51,7 +72,8 @@ class InternalPageModel: ObservableObject {
                     }
                 }
                 .catch { _ -> Just<Image> in
-                    self.dispatchError(.archiveFetchPageError)
+                    // TODO: Fix error dispatch
+//                    self.dispatchError(.archiveFetchPageError)
                     return Just(Image("placeholder"))
                 }
                 .receive(on: DispatchQueue.main)

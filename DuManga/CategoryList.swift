@@ -5,9 +5,7 @@ import NotificationBannerSwift
 
 struct CategoryList: View {
     @EnvironmentObject var store: AppStore
-
-    @State var showSheetView = false
-    @State var selectedCategoryItem: CategoryItem?
+    @StateObject var categoryListModel = CategoryListModel()
 
     @Binding var navBarTitle: String
     @Binding var editMode: EditMode
@@ -18,13 +16,7 @@ struct CategoryList: View {
     }
 
     var body: some View {
-        if store.state.category.errorCode != nil {
-            let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                    subtitle: NSLocalizedString("error.category", comment: "category error"), style: .danger)
-            banner.show()
-            store.dispatch(.category(action: .resetState))
-        }
-        let categories = Array(self.store.state.category.categoryItems.values).sorted(by: { $0.name < $1.name })
+        let categories = Array(categoryListModel.categoryItems.values).sorted(by: { $0.name < $1.name })
         return GeometryReader { geometry in
             ZStack {
                 List(categories) { (item: CategoryItem) in
@@ -36,12 +28,12 @@ struct CategoryList: View {
                                     .opacity(0.0001)
                                     .contentShape(Rectangle())
                                     .onTapGesture(perform: {
-                                        self.selectedCategoryItem = item
-                                        self.showSheetView = true
+                                        categoryListModel.selectedCategoryItem = item
+                                        categoryListModel.showSheetView = true
                                     })
                         }
                     } else {
-                        NavigationLink(destination: ArchiveListContainer(navBarTitle: self.$navBarTitle,
+                        NavigationLink(destination: ArchiveList(navBarTitle: self.$navBarTitle,
                                 searchKeyword: item.search,
                                 categoryArchives: item.archives,
                                 navBarTitleOverride: "category")) {
@@ -50,9 +42,9 @@ struct CategoryList: View {
                         }
                     }
                 }
-                        .sheet(isPresented: self.$showSheetView) {
-                            EditCategory(item: self.selectedCategoryItem!,
-                                    showSheetView: self.$showSheetView)
+                        .sheet(isPresented: $categoryListModel.showSheetView) {
+                            EditCategory(item: categoryListModel.selectedCategoryItem!,
+                                    showSheetView: $categoryListModel.showSheetView)
                                     .environmentObject(self.store)
                         }
                         .onAppear(perform: { self.navBarTitle = "category" })
@@ -67,13 +59,28 @@ struct CategoryList: View {
                         .background(Color.secondary)
                         .foregroundColor(Color.primary)
                         .cornerRadius(20)
-                        .opacity(self.store.state.category.loading ? 1 : 0)
+                        .opacity(self.categoryListModel.loading ? 1 : 0)
             }
+                    .onAppear(perform: {
+                        categoryListModel.load(state: self.store.state)
+                    })
+                    .onDisappear(perform: {
+                        categoryListModel.unload()
+                    })
+                    .onChange(of: self.categoryListModel.errorCode, perform: { code in
+                        if code != nil {
+                            let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                                    subtitle: NSLocalizedString("error.category", comment: "category error"),
+                                    style: .danger)
+                            banner.show()
+                            store.dispatch(.category(action: .resetState))
+                        }
+                    })
         }
     }
 
     func loadData() {
-        if self.store.state.category.categoryItems.count > 0 {
+        if self.categoryListModel.categoryItems.count > 0 {
             return
         }
         self.store.dispatch(.category(action: .fetchCategory))
