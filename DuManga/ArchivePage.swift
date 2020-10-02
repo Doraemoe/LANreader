@@ -3,41 +3,6 @@
 import SwiftUI
 import NotificationBannerSwift
 
-struct ArchivePageContainer: View {
-    @EnvironmentObject var store: AppStore
-
-    let itemId: String
-    var lastPage: String?
-
-    init(itemId: String) {
-        self.itemId = itemId
-    }
-
-    var body: some View {
-        ArchivePage(item: self.store.state.archive.archiveItems[itemId],
-                pages: self.store.state.archive.archivePages[itemId],
-                loading: self.store.state.archive.loading,
-                errorCode: self.store.state.archive.errorCode,
-                dispatchError: self.dispatchError,
-                reset: self.resetState)
-                .onAppear(perform: self.load)
-    }
-
-    private func dispatchError(errorCode: ErrorCode) {
-        self.store.dispatch(.archive(action: .error(error: errorCode)))
-    }
-
-    private func load() {
-        if self.store.state.archive.archivePages[itemId]?.isEmpty ?? true {
-            self.store.dispatch(.archive(action: .extractArchive(id: itemId)))
-        }
-    }
-
-    private func resetState() {
-        self.store.dispatch(.archive(action: .resetState))
-    }
-}
-
 struct ArchivePage: View {
     @AppStorage(SettingsKey.tapLeftKey) var tapLeft: String = PageControl.next.rawValue
     @AppStorage(SettingsKey.tapMiddleKey) var tapMiddle: String = PageControl.navigation.rawValue
@@ -46,41 +11,30 @@ struct ArchivePage: View {
     @AppStorage(SettingsKey.swipeRightKey) var swipeRight: String = PageControl.previous.rawValue
     @AppStorage(SettingsKey.splitPage) var splitPage: Bool = false
     @AppStorage(SettingsKey.splitPagePriorityLeft) var splitPagePriorityLeft: Bool = false
-    @ObservedObject private var internalModel: InternalPageModel
 
-    private let pages: [String]?
-    private let item: ArchiveItem?
-    private let loading: Bool
-    private let errorCode: ErrorCode?
-    private let reset: () -> Void
+    @EnvironmentObject var store: AppStore
 
-    init(item: ArchiveItem?,
-         pages: [String]?,
-         loading: Bool,
-         errorCode: ErrorCode?,
-         dispatchError: @escaping (ErrorCode) -> Void,
-         reset: @escaping () -> Void) {
-        self.item = item
-        self.pages = pages
-        self.loading = loading
-        self.errorCode = errorCode
-        self.reset = reset
+    @StateObject private var archivePageModel = ArchivePageModel()
 
-        self.internalModel = InternalPageModel(dispatchError: dispatchError)
-        self.loadStartImage()
+    let itemId: String
+
+    init(itemId: String) {
+        self.itemId = itemId
     }
 
     var body: some View {
-        handleError()
+        let item = archivePageModel.archiveItems[itemId] ??
+                ArchiveItem(id: "id", name: "name", tags: "tags", thumbnail: Image("placeholder"))
+        let pages = archivePageModel.archivePages[itemId]
         return GeometryReader { geometry in
             ZStack {
-                self.internalModel.currentImage
+                self.archivePageModel.currentImage
                         .resizable()
                         .scaledToFit()
                         .aspectRatio(contentMode: .fit)
-                        .navigationBarHidden(self.internalModel.controlUiHidden)
+                        .navigationBarHidden(self.archivePageModel.controlUiHidden)
                         .navigationBarTitle("")
-                        .navigationBarItems(trailing: NavigationLink(destination: ArchiveDetails(item: self.item!)) {
+                        .navigationBarItems(trailing: NavigationLink(destination: ArchiveDetails(item: item)) {
                             Text("details")
                         })
                 HStack {
@@ -108,22 +62,22 @@ struct ArchivePage: View {
                     Spacer()
                     VStack {
                         Text(String(format: "%.0f/%d",
-                                self.internalModel.currentIndex + 1,
-                                self.pages?.count ?? 0))
+                                self.archivePageModel.currentIndex + 1,
+                                pages?.count ?? 0))
                                 .bold()
-                        Slider(value: self.$internalModel.currentIndex,
-                                in: self.getSliderRange(),
+                        Slider(value: self.$archivePageModel.currentIndex,
+                                in: 0...Double((pages?.count ?? 2) - 1),
                                 step: 1) { onSlider in
                             if !onSlider {
-                                self.jumpToPage(self.internalModel.currentIndex, action: .jump)
+                                self.jumpToPage(self.archivePageModel.currentIndex, action: .jump)
                             }
                         }
                                 .padding(.horizontal)
                     }
                             .padding()
                             .background(Color.primary.colorInvert()
-                                    .opacity(self.internalModel.controlUiHidden ? 0 : 0.9))
-                            .opacity(self.internalModel.controlUiHidden ? 0 : 1)
+                                    .opacity(self.archivePageModel.controlUiHidden ? 0 : 0.9))
+                            .opacity(self.archivePageModel.controlUiHidden ? 0 : 1)
                 }
                 VStack {
                     Text("loading")
@@ -134,23 +88,48 @@ struct ArchivePage: View {
                         .background(Color.secondary)
                         .foregroundColor(Color.primary)
                         .cornerRadius(20)
-                        .opacity(self.loading ? 1 : 0)
+                        .opacity(archivePageModel.loading ? 1 : 0)
             }
+                    .onAppear(perform: {
+                        archivePageModel.load(state: store.state)
+                        self.extractArchive()
+                    })
+                    .onChange(of: archivePageModel.archivePages[itemId], perform: { page in
+                        if page != nil {
+                            self.jumpToPage(self.archivePageModel.currentIndex, action: .next)
+                        }
+                    })
+                    .onChange(of: archivePageModel.errorCode, perform: { errorCode in
+                        if errorCode != nil {
+                            switch errorCode! {
+                            case .archiveExtractError:
+                                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                                        subtitle: NSLocalizedString("error.extract", comment: "list error"),
+                                        style: .danger)
+                                banner.show()
+                                store.dispatch(.archive(action: .resetState))
+                            case .archiveFetchPageError:
+                                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                                        subtitle: NSLocalizedString("error.load.page", comment: "list error"),
+                                        style: .danger)
+                                banner.show()
+                                store.dispatch(.archive(action: .resetState))
+                            default:
+                                break
+                            }
+                        }
+                    })
+        }
+    }
+
+    private func extractArchive() {
+        if archivePageModel.archivePages[itemId]?.isEmpty ?? true {
+            self.store.dispatch(.archive(action: .extractArchive(id: itemId)))
         }
     }
 
     private func getIntPart(_ number: Double) -> Int {
         Int(exactly: number.rounded()) ?? 0
-    }
-
-    func loadStartImage() {
-        if self.pages != nil {
-            self.jumpToPage(self.internalModel.currentIndex, action: .next)
-        }
-    }
-
-    func getSliderRange() -> ClosedRange<Double> {
-        0...Double((self.pages?.count ?? 2) - 1)
     }
 
     func performAction(_ action: String) {
@@ -160,7 +139,7 @@ struct ArchivePage: View {
         case PageControl.previous.rawValue:
             previousPage()
         case PageControl.navigation.rawValue:
-            self.internalModel.controlUiHidden.toggle()
+            self.archivePageModel.controlUiHidden.toggle()
         default:
             // This should not happen
             break
@@ -168,92 +147,71 @@ struct ArchivePage: View {
     }
 
     func nextPage() {
-        jumpToPage(self.internalModel.currentIndex + 1, action: .next)
+        jumpToPage(self.archivePageModel.currentIndex + 1, action: .next)
     }
 
     func previousPage() {
-        jumpToPage(self.internalModel.currentIndex - 1, action: .previous)
+        jumpToPage(self.archivePageModel.currentIndex - 1, action: .previous)
     }
 
     func jumpToPage(_ page: Double, action: PageFlipAction) {
         if UIDevice.current.orientation.isPortrait {
-            if self.internalModel.isCurrentSplittingPage == .first && action == .next {
+            if self.archivePageModel.isCurrentSplittingPage == .first && action == .next {
                 nextInternalPage()
                 return
-            } else if self.internalModel.isCurrentSplittingPage == .last && action == .previous {
+            } else if self.archivePageModel.isCurrentSplittingPage == .last && action == .previous {
                 previousInternalPage()
                 return
             }
         }
-        self.internalModel.isCurrentSplittingPage = .off
+        self.archivePageModel.isCurrentSplittingPage = .off
         let index = getIntPart(page)
-        if (0..<(self.pages?.count ?? 1)).contains(index) {
-            self.internalModel.load(page: pages![index],
+        if (0..<(archivePageModel.archivePages[itemId]?.count ?? 1)).contains(index) {
+            self.archivePageModel.loadPage(page: archivePageModel.archivePages[itemId]![index],
                     split: self.splitPage && UIDevice.current.orientation.isPortrait,
                     priorityLeft: self.splitPagePriorityLeft,
                     action: action)
-            self.internalModel.currentIndex = page.rounded()
-            if index == (self.pages?.count ?? 0) - 1 {
-                self.internalModel.clearNewFlag(id: item!.id)
+            self.archivePageModel.currentIndex = page.rounded()
+            if index == (archivePageModel.archivePages[itemId]?.count ?? 0) - 1 {
+                self.archivePageModel.clearNewFlag(id: archivePageModel.archiveItems[itemId]!.id)
             }
         }
     }
 
     func nextInternalPage() {
         if self.splitPagePriorityLeft {
-            internalModel.setCurrentPageToRight()
+            archivePageModel.setCurrentPageToRight()
         } else {
-            internalModel.setCurrentPageToLeft()
+            archivePageModel.setCurrentPageToLeft()
         }
-        self.internalModel.isCurrentSplittingPage = .last
+        self.archivePageModel.isCurrentSplittingPage = .last
     }
 
     func previousInternalPage() {
         if self.splitPagePriorityLeft {
-            internalModel.setCurrentPageToLeft()
+            archivePageModel.setCurrentPageToLeft()
         } else {
-            internalModel.setCurrentPageToRight()
+            archivePageModel.setCurrentPageToRight()
         }
-        self.internalModel.isCurrentSplittingPage = .first
+        self.archivePageModel.isCurrentSplittingPage = .first
     }
 
     func jumpToInternalPage(action: PageFlipAction) {
         switch action {
         case .next, .jump:
             if self.splitPagePriorityLeft {
-                internalModel.setCurrentPageToLeft()
+                archivePageModel.setCurrentPageToLeft()
             } else {
-                internalModel.setCurrentPageToRight()
+                archivePageModel.setCurrentPageToRight()
             }
-            self.internalModel.isCurrentSplittingPage = .first
+            self.archivePageModel.isCurrentSplittingPage = .first
         case .previous:
             if self.splitPagePriorityLeft {
-                internalModel.setCurrentPageToRight()
+                archivePageModel.setCurrentPageToRight()
             } else {
-                internalModel.setCurrentPageToLeft()
+                archivePageModel.setCurrentPageToLeft()
             }
-            self.internalModel.isCurrentSplittingPage = .last
-        }
-    }
-
-    func handleError() {
-        if let error = self.errorCode {
-            switch error {
-            case .archiveExtractError:
-                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                        subtitle: NSLocalizedString("error.extract", comment: "list error"),
-                        style: .danger)
-                banner.show()
-                reset()
-            case .archiveFetchPageError:
-                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                        subtitle: NSLocalizedString("error.load.page", comment: "list error"),
-                        style: .danger)
-                banner.show()
-                reset()
-            default:
-                break
-            }
+            self.archivePageModel.isCurrentSplittingPage = .last
         }
     }
 }

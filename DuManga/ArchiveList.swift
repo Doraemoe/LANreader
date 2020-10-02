@@ -46,7 +46,7 @@ struct ArchiveList: View {
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .padding()
                         ForEach(filteredItems) { (item: ArchiveItem) in
-                            NavigationLink(destination: ArchivePageContainer(itemId: item.id)) {
+                            NavigationLink(destination: ArchivePage(itemId: item.id)) {
                                 ArchiveRow(archiveItem: item)
                                         .onAppear(perform: {
                                             self.loadThumbnail(id: item.id)
@@ -69,7 +69,7 @@ struct ArchiveList: View {
                                 ZStack {
                                     ArchiveGrid(archiveItem: item)
                                             .onAppear(perform: { self.loadThumbnail(id: item.id) })
-                                    NavigationLink(destination: ArchivePageContainer(itemId: item.id)) {
+                                    NavigationLink(destination: ArchivePage(itemId: item.id)) {
                                         Rectangle()
                                                 .opacity(0.0001)
                                                 .contentShape(Rectangle())
