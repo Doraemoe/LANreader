@@ -26,6 +26,7 @@
 		4BD826B795F6A120E216A272 /* CategoryReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82CCF0CDAB88F4FC224D1 /* CategoryReducer.swift */; };
 		4BD82760E9B084402AFE07F2 /* SettingsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82FA7EAE6ED44136AA4E7 /* SettingsService.swift */; };
 		4BD827862D48A4D0B32CCC08 /* CategoryAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82127C1FF73E283825D59 /* CategoryAction.swift */; };
+		4BD828F432CB9B8D26EEAB92 /* LANraragiConfigViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8293BAD09DE6D90D6A30C /* LANraragiConfigViewModel.swift */; };
 		4BD8291EBA7A94EE9E8C2ACE /* ArchiveGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82837C2109B37482712EE /* ArchiveGrid.swift */; };
 		4BD829CEC647540D32DA68C5 /* SettingMiddleware.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82D9D382800F9E46EF2FE /* SettingMiddleware.swift */; };
 		4BD82B6AD795154C1E915912 /* CategoryListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8286525C460863DC78CB9 /* CategoryListModel.swift */; };
@@ -107,6 +108,7 @@
 		4BD8286525C460863DC78CB9 /* CategoryListModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryListModel.swift; sourceTree = "<group>"; };
 		4BD82868F18238BE763DACAF /* SettingReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingReducer.swift; sourceTree = "<group>"; };
 		4BD828AA12AB6AEB96EB44BB /* Store.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
+		4BD8293BAD09DE6D90D6A30C /* LANraragiConfigViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LANraragiConfigViewModel.swift; path = DuManga/LANraragiConfigViewModel.swift; sourceTree = SOURCE_ROOT; };
 		4BD8297C7ACE73E81F4F374F /* SettingAction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingAction.swift; sourceTree = "<group>"; };
 		4BD8297D9DA6589446C724EC /* ViewSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ViewSettings.swift; path = DuManga/ViewSettings.swift; sourceTree = SOURCE_ROOT; };
 		4BD829DF3149761EE3A81A1A /* ArchiveState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchiveState.swift; sourceTree = "<group>"; };
@@ -264,6 +266,7 @@
 				4BD825A4E56818113C2F7801 /* ReadSettings.swift */,
 				4BD827ECEE1938273E758358 /* SettingsView.swift */,
 				4BD8297D9DA6589446C724EC /* ViewSettings.swift */,
+				4BD8293BAD09DE6D90D6A30C /* LANraragiConfigViewModel.swift */,
 			);
 			path = Setting;
 			sourceTree = "<group>";
@@ -649,6 +652,7 @@
 				4BD8291EBA7A94EE9E8C2ACE /* ArchiveGrid.swift in Sources */,
 				4BD82B6AD795154C1E915912 /* CategoryListModel.swift in Sources */,
 				4BD826130BCE1AC291C7D6A1 /* EditCategoryModel.swift in Sources */,
+				4BD828F432CB9B8D26EEAB92 /* LANraragiConfigViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
