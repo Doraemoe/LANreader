@@ -33,7 +33,7 @@ struct CategoryList: View {
                                     })
                         }
                     } else {
-                        NavigationLink(destination: ArchiveListContainer(navBarTitle: self.$navBarTitle,
+                        NavigationLink(destination: ArchiveList(navBarTitle: self.$navBarTitle,
                                 searchKeyword: item.search,
                                 categoryArchives: item.archives,
                                 navBarTitleOverride: "category")) {
