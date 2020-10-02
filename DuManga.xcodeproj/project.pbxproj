@@ -20,6 +20,7 @@
 		4BD825080375402B32F7762D /* CategoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82396734DD4176DD159EA /* CategoryList.swift */; };
 		4BD8252315A4CBC01ED5E1A3 /* AppAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82FB85284818BED0DE580 /* AppAction.swift */; };
 		4BD825A937D326CC71BA9EAF /* ArchiveList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8205FFBACCA9CCB78659E /* ArchiveList.swift */; };
+		4BD826130BCE1AC291C7D6A1 /* EditCategoryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD826826649FC2B0330FDDB /* EditCategoryModel.swift */; };
 		4BD8263D749DE92A214B2EEE /* ArchivePageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82275C0CACB680D202100 /* ArchivePageModel.swift */; };
 		4BD826672D530C0A98D313F7 /* ArchiveRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82B45987169916D0D32EF /* ArchiveRow.swift */; };
 		4BD826B795F6A120E216A272 /* CategoryReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82CCF0CDAB88F4FC224D1 /* CategoryReducer.swift */; };
@@ -27,6 +28,7 @@
 		4BD827862D48A4D0B32CCC08 /* CategoryAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82127C1FF73E283825D59 /* CategoryAction.swift */; };
 		4BD8291EBA7A94EE9E8C2ACE /* ArchiveGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82837C2109B37482712EE /* ArchiveGrid.swift */; };
 		4BD829CEC647540D32DA68C5 /* SettingMiddleware.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82D9D382800F9E46EF2FE /* SettingMiddleware.swift */; };
+		4BD82B6AD795154C1E915912 /* CategoryListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8286525C460863DC78CB9 /* CategoryListModel.swift */; };
 		4BD82C152E77BFD137EC03DD /* LANraragiConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82CD5954DDD63ABB7DD22 /* LANraragiConfigView.swift */; };
 		4BD82C7F9CB71CAF8F33C171 /* ViewSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8297D9DA6589446C724EC /* ViewSettings.swift */; };
 		4BD82CDA1A27B1462DCCF3F4 /* SettingAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8297C7ACE73E81F4F374F /* SettingAction.swift */; };
@@ -61,11 +63,6 @@
 		7D7B26A924F52A7F00149341 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7D7B26AB24F52A7F00149341 /* Localizable.strings */; };
 		7D80326C24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D80326B24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json */; };
 		7D80326E24F68F6900AA8BD2 /* ArchiveSearchResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D80326D24F68F6900AA8BD2 /* ArchiveSearchResponse.json */; };
-		7DDF3208251F833D005BA392 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CD024F1390400617F4A /* Alamofire */; };
-		7DDF3209251F833D005BA392 /* AlamofireImage in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CD324F1393100617F4A /* AlamofireImage */; };
-		7DDF320A251F833D005BA392 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE124F15F1800617F4A /* Logging */; };
-		7DDF320C251F833D005BA392 /* NotificationBannerSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D7A6842250239750051F232 /* NotificationBannerSwift */; };
-		7DDF320D251F833D005BA392 /* OHHTTPStubsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE924F1660200617F4A /* OHHTTPStubsSwift */; };
 		7DE5777A250780C100FD1603 /* SetArchiveMetadataResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7DE57779250780C100FD1603 /* SetArchiveMetadataResponse.json */; };
 		7DE70F562503C7B3006414DE /* ClearNewFlagResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7DE70F552503C7B3006414DE /* ClearNewFlagResponse.json */; };
 		7DEB114324FA4EB80081A905 /* SettingsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DEB114224FA4EB80081A905 /* SettingsModels.swift */; };
@@ -103,9 +100,11 @@
 		4BD825A4E56818113C2F7801 /* ReadSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ReadSettings.swift; path = DuManga/ReadSettings.swift; sourceTree = SOURCE_ROOT; };
 		4BD825AB0EEF9DE292B50E98 /* ArchiveDetails.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ArchiveDetails.swift; path = DuManga/ArchiveDetails.swift; sourceTree = SOURCE_ROOT; };
 		4BD8260539525571C37E4F39 /* .swiftlint.yml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
+		4BD826826649FC2B0330FDDB /* EditCategoryModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EditCategoryModel.swift; sourceTree = "<group>"; };
 		4BD82694B57396B2CD6BACED /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		4BD827ECEE1938273E758358 /* SettingsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = DuManga/SettingsView.swift; sourceTree = SOURCE_ROOT; };
 		4BD82837C2109B37482712EE /* ArchiveGrid.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ArchiveGrid.swift; path = DuManga/ArchiveGrid.swift; sourceTree = SOURCE_ROOT; };
+		4BD8286525C460863DC78CB9 /* CategoryListModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryListModel.swift; sourceTree = "<group>"; };
 		4BD82868F18238BE763DACAF /* SettingReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingReducer.swift; sourceTree = "<group>"; };
 		4BD828AA12AB6AEB96EB44BB /* Store.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
 		4BD8297C7ACE73E81F4F374F /* SettingAction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingAction.swift; sourceTree = "<group>"; };
@@ -164,10 +163,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7DDF320A251F833D005BA392 /* Logging in Frameworks */,
-				7DDF3208251F833D005BA392 /* Alamofire in Frameworks */,
-				7DDF3209251F833D005BA392 /* AlamofireImage in Frameworks */,
-				7DDF320C251F833D005BA392 /* NotificationBannerSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -175,7 +170,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7DDF320D251F833D005BA392 /* OHHTTPStubsSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -298,6 +292,8 @@
 			children = (
 				4BD82396734DD4176DD159EA /* CategoryList.swift */,
 				4BD82106749F5064FE4AB4B6 /* EditCategory.swift */,
+				4BD8286525C460863DC78CB9 /* CategoryListModel.swift */,
+				4BD826826649FC2B0330FDDB /* EditCategoryModel.swift */,
 			);
 			path = Category;
 			sourceTree = "<group>";
@@ -468,10 +464,10 @@
 			);
 			name = DuManga;
 			packageProductDependencies = (
-				7D354CD024F1390400617F4A /* Alamofire */,
-				7D354CD324F1393100617F4A /* AlamofireImage */,
-				7D354CE124F15F1800617F4A /* Logging */,
-				7D7A6842250239750051F232 /* NotificationBannerSwift */,
+				7D354CD024F1390400617F4A,
+				7D354CD324F1393100617F4A,
+				7D354CE124F15F1800617F4A,
+				7D7A6842250239750051F232,
 			);
 			productName = DuManga;
 			productReference = 7D354C9C24F1316800617F4A /* DuManga.app */;
@@ -492,7 +488,7 @@
 			);
 			name = DuMangaTests;
 			packageProductDependencies = (
-				7D354CE924F1660200617F4A /* OHHTTPStubsSwift */,
+				7D354CE924F1660200617F4A,
 			);
 			productName = DuMangaTests;
 			productReference = 7D354CB224F1316E00617F4A /* DuMangaTests.xctest */;
@@ -550,11 +546,11 @@
 			);
 			mainGroup = 7D354C9324F1316800617F4A;
 			packageReferences = (
-				7D354CCF24F1390400617F4A /* XCRemoteSwiftPackageReference "Alamofire" */,
-				7D354CD224F1393100617F4A /* XCRemoteSwiftPackageReference "AlamofireImage" */,
-				7D354CE024F15F1800617F4A /* XCRemoteSwiftPackageReference "swift-log" */,
-				7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */,
-				7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */,
+				7D354CCF24F1390400617F4A,
+				7D354CD224F1393100617F4A,
+				7D354CE024F15F1800617F4A,
+				7D354CE824F1660200617F4A,
+				7D7A6841250239750051F232,
 			);
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
 			projectDirPath = "";
@@ -651,6 +647,8 @@
 				4BD825A937D326CC71BA9EAF /* ArchiveList.swift in Sources */,
 				4BD826672D530C0A98D313F7 /* ArchiveRow.swift in Sources */,
 				4BD8291EBA7A94EE9E8C2ACE /* ArchiveGrid.swift in Sources */,
+				4BD82B6AD795154C1E915912 /* CategoryListModel.swift in Sources */,
+				4BD826130BCE1AC291C7D6A1 /* EditCategoryModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -995,7 +993,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		7D354CCF24F1390400617F4A /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+		7D354CCF24F1390400617F4A = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
 			requirement = {
@@ -1003,7 +1001,7 @@
 				minimumVersion = 5.2.2;
 			};
 		};
-		7D354CD224F1393100617F4A /* XCRemoteSwiftPackageReference "AlamofireImage" */ = {
+		7D354CD224F1393100617F4A = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Alamofire/AlamofireImage.git";
 			requirement = {
@@ -1011,7 +1009,7 @@
 				minimumVersion = 4.1.0;
 			};
 		};
-		7D354CE024F15F1800617F4A /* XCRemoteSwiftPackageReference "swift-log" */ = {
+		7D354CE024F15F1800617F4A = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-log.git";
 			requirement = {
@@ -1019,7 +1017,7 @@
 				minimumVersion = 1.4.0;
 			};
 		};
-		7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */ = {
+		7D354CE824F1660200617F4A = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/AliSoftware/OHHTTPStubs";
 			requirement = {
@@ -1027,7 +1025,7 @@
 				minimumVersion = 9.0.0;
 			};
 		};
-		7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */ = {
+		7D7A6841250239750051F232 = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Daltron/NotificationBanner";
 			requirement = {
@@ -1038,29 +1036,29 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		7D354CD024F1390400617F4A /* Alamofire */ = {
+		7D354CD024F1390400617F4A = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CCF24F1390400617F4A /* XCRemoteSwiftPackageReference "Alamofire" */;
+			package = 7D354CCF24F1390400617F4A;
 			productName = Alamofire;
 		};
-		7D354CD324F1393100617F4A /* AlamofireImage */ = {
+		7D354CD324F1393100617F4A = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CD224F1393100617F4A /* XCRemoteSwiftPackageReference "AlamofireImage" */;
+			package = 7D354CD224F1393100617F4A;
 			productName = AlamofireImage;
 		};
-		7D354CE124F15F1800617F4A /* Logging */ = {
+		7D354CE124F15F1800617F4A = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CE024F15F1800617F4A /* XCRemoteSwiftPackageReference "swift-log" */;
+			package = 7D354CE024F15F1800617F4A;
 			productName = Logging;
 		};
-		7D354CE924F1660200617F4A /* OHHTTPStubsSwift */ = {
+		7D354CE924F1660200617F4A = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */;
+			package = 7D354CE824F1660200617F4A;
 			productName = OHHTTPStubsSwift;
 		};
-		7D7A6842250239750051F232 /* NotificationBannerSwift */ = {
+		7D7A6842250239750051F232 = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */;
+			package = 7D7A6841250239750051F232;
 			productName = NotificationBannerSwift;
 		};
 /* End XCSwiftPackageProductDependency section */

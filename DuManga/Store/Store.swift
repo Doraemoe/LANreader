@@ -6,7 +6,7 @@ import Foundation
 import Combine
 
 final class Store<State, Action>: ObservableObject {
-    @Published private(set) var state: State
+    private(set) var state: State
 
     private let reducer: Reducer<State, Action>
     let middlewares: [Middleware<State, Action>]

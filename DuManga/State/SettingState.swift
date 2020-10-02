@@ -5,16 +5,8 @@
 import Foundation
 
 struct SettingState {
-    var url: String
-    var apiKey: String
-    var errorCode: ErrorCode?
-    var savedSuccess: Bool
-
-    init() {
-        // server
-        self.url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
-        self.apiKey = UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey) ?? ""
-        self.errorCode = nil
-        self.savedSuccess = false
-    }
+    @PublishedState var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
+    @PublishedState var apiKey = UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey) ?? ""
+    @PublishedState var savedSuccess = false
+    @PublishedState var errorCode: ErrorCode?
 }

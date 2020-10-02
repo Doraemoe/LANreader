@@ -5,18 +5,8 @@
 import Foundation
 
 struct CategoryState {
-    var loading: Bool
-    var categoryItems: [String: CategoryItem]
-    var errorCode: ErrorCode?
-    var updateDynamicCategorySuccess: Bool
-
-    init() {
-        // list
-        self.loading = false
-        self.categoryItems = [String: CategoryItem]()
-        self.errorCode = nil
-
-        // update
-        self.updateDynamicCategorySuccess = false
-    }
+    @PublishedState var loading = false
+    @PublishedState var categoryItems = [String: CategoryItem]()
+    @PublishedState var updateDynamicCategorySuccess = false
+    @PublishedState var errorCode: ErrorCode?
 }
