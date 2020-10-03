@@ -8,7 +8,6 @@ struct ArchiveState {
     @PublishedState var loading = false
     @PublishedState var archiveItems = [String: ArchiveItem]()
     @PublishedState var dynamicCategoryKeys = [String]()
-    @PublishedState var archivePages = [String: [String]]()
     @PublishedState var updateArchiveMetadataSuccess = false
     @PublishedState var errorCode: ErrorCode?
 }

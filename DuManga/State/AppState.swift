@@ -9,11 +9,13 @@ struct AppState {
     var setting: SettingState
     var archive: ArchiveState
     var category: CategoryState
+    var page: PageState
 
     init() {
         self.setting = SettingState()
         self.archive = ArchiveState()
         self.category = CategoryState()
+        self.page = PageState()
     }
 }
 

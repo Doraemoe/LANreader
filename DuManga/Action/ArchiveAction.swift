@@ -15,9 +15,6 @@ enum ArchiveAction {
     case fetchArchiveThumbnail(id: String)
     case replaceArchiveThumbnail(id: String, image: Image)
 
-    case extractArchive(id: String)
-    case extractArchiveSuccess(id: String, pages: [String])
-
     case updateArchiveMetadata(metadata: ArchiveItem)
     case updateArchiveMetadataSuccess(metadata: ArchiveItem)
 

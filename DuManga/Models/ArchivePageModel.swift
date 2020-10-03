@@ -27,7 +27,6 @@ class ArchivePageModel: ObservableObject {
     @Published var currentImage = Image("placeholder")
 
     @Published private(set) var loading = false
-    @Published private(set) var archiveItems = [String: ArchiveItem]()
     @Published private(set) var archivePages = [String: [String]]()
     @Published private(set) var errorCode: ErrorCode?
 
@@ -36,19 +35,15 @@ class ArchivePageModel: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
 
     func load(state: AppState) {
-        state.archive.$loading.receive(on: DispatchQueue.main)
+        state.page.$loading.receive(on: DispatchQueue.main)
                 .assign(to: \.loading, on: self)
                 .store(in: &cancellables)
 
-        state.archive.$archiveItems.receive(on: DispatchQueue.main)
-                .assign(to: \.archiveItems, on: self)
-                .store(in: &cancellables)
-
-        state.archive.$archivePages.receive(on: DispatchQueue.main)
+        state.page.$archivePages.receive(on: DispatchQueue.main)
                 .assign(to: \.archivePages, on: self)
                 .store(in: &cancellables)
 
-        state.archive.$errorCode.receive(on: DispatchQueue.main)
+        state.page.$errorCode.receive(on: DispatchQueue.main)
                 .assign(to: \.errorCode, on: self)
                 .store(in: &cancellables)
     }
@@ -57,7 +52,11 @@ class ArchivePageModel: ObservableObject {
         cancellables.forEach({ $0.cancel() })
     }
 
-    func loadPage(page: String, split: Bool, priorityLeft: Bool, action: PageFlipAction) {
+    func loadPage(page: String,
+                  split: Bool,
+                  priorityLeft: Bool,
+                  action: PageFlipAction,
+                  dispatchError: @escaping (ErrorCode) -> Void) {
         service.fetchArchivePage(page: page)
                 .map {
                     if split && $0.size.width / $0.size.height > 1.2 {
@@ -72,8 +71,7 @@ class ArchivePageModel: ObservableObject {
                     }
                 }
                 .catch { _ -> Just<Image> in
-                    // TODO: Fix error dispatch
-//                    self.dispatchError(.archiveFetchPageError)
+                    dispatchError(.archiveFetchPageError)
                     return Just(Image("placeholder"))
                 }
                 .receive(on: DispatchQueue.main)
