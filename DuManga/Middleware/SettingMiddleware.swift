@@ -8,7 +8,6 @@ import Combine
 func settingMiddleware(service: SettingsService) -> Middleware<AppState, AppAction> {
     { state, action in
         switch action {
-                // server
         case let .setting(action: .saveLanraragiConfigToUserDefaults(url, apiKey)):
             return service.saveLanrargiServer(url: url, apiKey: apiKey)
                     .map { _ in

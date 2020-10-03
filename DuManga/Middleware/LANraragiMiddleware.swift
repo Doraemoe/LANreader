@@ -17,6 +17,7 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     }
                     .replaceError(with: AppAction.setting(action: .error(errorCode: .lanraragiServerError)))
                     .eraseToAnyPublisher()
+
         case .archive(action: .fetchArchive):
             return service.retrieveArchiveIndex()
                     .map { (response: [ArchiveIndexResponse]) in
@@ -47,7 +48,15 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     }
                     .replaceError(with: AppAction.archive(action: .error(error: .archiveFetchError)))
                     .eraseToAnyPublisher()
-        case let .archive(action: .extractArchive(id)):
+        case let .archive(action: .updateArchiveMetadata(metadata)):
+            return service.updateArchiveMetaData(archiveMetadata: metadata)
+                    .map { _ in
+                        AppAction.archive(action: .updateArchiveMetadataSuccess(metadata: metadata))
+                    }
+                    .replaceError(with: AppAction.archive(action: .error(error: .archiveUpdateMetadataError)))
+                    .eraseToAnyPublisher()
+
+        case let .page(action: .extractArchive(id)):
             return service.extractArchive(id: id)
                     .map { (response: ArchiveExtractResponse) in
                         var allPages = [String]()
@@ -55,10 +64,11 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                             let normalizedPage = String(page.dropFirst(2))
                             allPages.append(normalizedPage)
                         }
-                        return AppAction.archive(action: .extractArchiveSuccess(id: id, pages: allPages))
+                        return AppAction.page(action: .extractArchiveSuccess(id: id, pages: allPages))
                     }
-                    .replaceError(with: AppAction.archive(action: .error(error: .archiveExtractError)))
+                    .replaceError(with: AppAction.page(action: .error(error: .archiveExtractError)))
                     .eraseToAnyPublisher()
+
         case .category(action: .fetchCategory):
             return service.retrieveCategories()
                     .map { (response: [ArchiveCategoriesResponse]) in
@@ -77,13 +87,6 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                         AppAction.category(action: .updateDynamicCategorySuccess(category: category))
                     }
                     .replaceError(with: AppAction.category(action: .error(error: .categoryUpdateError)))
-                    .eraseToAnyPublisher()
-        case let .archive(action: .updateArchiveMetadata(metadata)):
-            return service.updateArchiveMetaData(archiveMetadata: metadata)
-                    .map { _ in
-                        AppAction.archive(action: .updateArchiveMetadataSuccess(metadata: metadata))
-                    }
-                    .replaceError(with: AppAction.archive(action: .error(error: .archiveUpdateMetadataError)))
                     .eraseToAnyPublisher()
         default:
             break

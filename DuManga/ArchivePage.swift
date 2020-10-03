@@ -16,16 +16,14 @@ struct ArchivePage: View {
 
     @StateObject private var archivePageModel = ArchivePageModel()
 
-    let itemId: String
+    let archiveItem: ArchiveItem
 
-    init(itemId: String) {
-        self.itemId = itemId
+    init(archiveItem: ArchiveItem) {
+        self.archiveItem = archiveItem
     }
 
     var body: some View {
-        let item = archivePageModel.archiveItems[itemId] ??
-                ArchiveItem(id: "id", name: "name", tags: "tags", thumbnail: Image("placeholder"))
-        let pages = archivePageModel.archivePages[itemId]
+        let pages = archivePageModel.archivePages[archiveItem.id]
         return GeometryReader { geometry in
             ZStack {
                 self.archivePageModel.currentImage
@@ -34,7 +32,7 @@ struct ArchivePage: View {
                         .aspectRatio(contentMode: .fit)
                         .navigationBarHidden(self.archivePageModel.controlUiHidden)
                         .navigationBarTitle("")
-                        .navigationBarItems(trailing: NavigationLink(destination: ArchiveDetails(item: item)) {
+                        .navigationBarItems(trailing: NavigationLink(destination: ArchiveDetails(item: archiveItem)) {
                             Text("details")
                         })
                 HStack {
@@ -94,7 +92,7 @@ struct ArchivePage: View {
                         archivePageModel.load(state: store.state)
                         self.extractArchive()
                     })
-                    .onChange(of: archivePageModel.archivePages[itemId], perform: { page in
+                    .onChange(of: archivePageModel.archivePages[archiveItem.id], perform: { page in
                         if page != nil {
                             self.jumpToPage(self.archivePageModel.currentIndex, action: .next)
                         }
@@ -107,13 +105,13 @@ struct ArchivePage: View {
                                         subtitle: NSLocalizedString("error.extract", comment: "list error"),
                                         style: .danger)
                                 banner.show()
-                                store.dispatch(.archive(action: .resetState))
+                                store.dispatch(.page(action: .resetState))
                             case .archiveFetchPageError:
                                 let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
                                         subtitle: NSLocalizedString("error.load.page", comment: "list error"),
                                         style: .danger)
                                 banner.show()
-                                store.dispatch(.archive(action: .resetState))
+                                store.dispatch(.page(action: .resetState))
                             default:
                                 break
                             }
@@ -123,8 +121,8 @@ struct ArchivePage: View {
     }
 
     private func extractArchive() {
-        if archivePageModel.archivePages[itemId]?.isEmpty ?? true {
-            self.store.dispatch(.archive(action: .extractArchive(id: itemId)))
+        if archivePageModel.archivePages[archiveItem.id]?.isEmpty ?? true {
+            self.store.dispatch(.page(action: .extractArchive(id: archiveItem.id)))
         }
     }
 
@@ -166,14 +164,16 @@ struct ArchivePage: View {
         }
         self.archivePageModel.isCurrentSplittingPage = .off
         let index = getIntPart(page)
-        if (0..<(archivePageModel.archivePages[itemId]?.count ?? 1)).contains(index) {
-            self.archivePageModel.loadPage(page: archivePageModel.archivePages[itemId]![index],
+        if (0..<(archivePageModel.archivePages[archiveItem.id]?.count ?? 1)).contains(index) {
+            self.archivePageModel.loadPage(page: archivePageModel.archivePages[archiveItem.id]![index],
                     split: self.splitPage && UIDevice.current.orientation.isPortrait,
                     priorityLeft: self.splitPagePriorityLeft,
-                    action: action)
+                    action: action, dispatchError: { errorCode in
+              store.dispatch(.page(action: .error(error: errorCode)))
+            })
             self.archivePageModel.currentIndex = page.rounded()
-            if index == (archivePageModel.archivePages[itemId]?.count ?? 0) - 1 {
-                self.archivePageModel.clearNewFlag(id: archivePageModel.archiveItems[itemId]!.id)
+            if index == (archivePageModel.archivePages[archiveItem.id]?.count ?? 0) - 1 {
+                self.archivePageModel.clearNewFlag(id: archiveItem.id)
             }
         }
     }

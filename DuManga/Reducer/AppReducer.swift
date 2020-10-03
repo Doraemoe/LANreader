@@ -15,5 +15,7 @@ func appReducer(state: inout AppState, action: AppAction) {
         archiveReducer(state: &state.archive, action: action)
     case let .category(action):
         categoryReducer(state: &state.category, action: action)
+    case let .page(action):
+        pageReducer(state: &state.page, action: action)
     }
 }
