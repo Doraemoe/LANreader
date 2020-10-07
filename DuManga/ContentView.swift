@@ -5,9 +5,7 @@ import SwiftUI
 struct ContentView: View {
     @AppStorage(SettingsKey.lanraragiUrl) var url: String = ""
 
-    @State var navBarTitle: String = ""
-    @State var editMode = EditMode.inactive
-    @State var tabName: String = ""
+    @StateObject var contentViewModel = ContentViewModel()
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -15,30 +13,30 @@ struct ContentView: View {
                 LANraragiConfigView()
             } else {
                 NavigationView {
-                    TabView(selection: $tabName) {
-                        ArchiveList(navBarTitle: $navBarTitle)
+                    TabView(selection: $contentViewModel.tabName) {
+                        LibraryList()
                             .tabItem {
                                 Text("library")
                         }.tag("library")
-                        CategoryList(navBarTitle: $navBarTitle, editMode: $editMode)
+                        CategoryList(editMode: $contentViewModel.editMode)
                             .tabItem {
                                 Text("category")
                         }.tag("category")
-                        SearchView(navBarTitle: $navBarTitle)
+                        SearchView()
                             .tabItem {
                                 Text("search")
                         }.tag("search")
-                        SettingsView(navBarTitle: $navBarTitle)
+                        SettingsView()
                             .tabItem {
                                 Text("settings")
                         }.tag("settings")
                     }
-                    .navigationBarTitle(Text(NSLocalizedString(navBarTitle,
+                    .navigationBarTitle(Text(NSLocalizedString(self.contentViewModel.tabName,
                             comment: "String will not be localized without force use NSLocalizedString")),
                             displayMode: .inline)
-                    .navigationBarItems(trailing: self.tabName == "category"
+                    .navigationBarItems(trailing: self.contentViewModel.tabName == "category"
                             ? AnyView(EditButton()) : AnyView(EmptyView()))
-                    .environment(\.editMode, self.$editMode)
+                    .environment(\.editMode, self.$contentViewModel.editMode)
                 }
                 .navigationViewStyle(StackNavigationViewStyle())
             }

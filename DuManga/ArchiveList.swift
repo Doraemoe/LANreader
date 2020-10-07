@@ -4,45 +4,26 @@ import SwiftUI
 import NotificationBannerSwift
 
 struct ArchiveList: View {
-    private static let dynamicCategorySelector = Selector(
-            initBase: [String: ArchiveItem](),
-            initFilter: [String](),
-            initResult: [ArchiveItem]())
-    private static let staticCategorySelector = Selector(
-            initBase: [String: ArchiveItem](),
-            initFilter: [String](),
-            initResult: [ArchiveItem]())
-
     @AppStorage(SettingsKey.useListView) var useListView: Bool = false
-    @AppStorage(SettingsKey.archiveListRandom) var archiveListRandom: Bool = false
 
     @EnvironmentObject var store: AppStore
 
-    @StateObject private var archiveListModel = ArchiveListModel()
+    @State private var nameFilter = ""
 
-    @Binding var navBarTitle: String
+    private let archives: [String: ArchiveItem]
+    private let randomList: Bool
 
-    private let searchKeyword: String?
-    private let categoryArchives: [String]?
-    private let navBarTitleOverride: String?
-
-    init(navBarTitle: Binding<String>,
-         searchKeyword: String? = nil,
-         categoryArchives: [String]? = nil,
-         navBarTitleOverride: String? = nil) {
-        self.searchKeyword = searchKeyword
-        self.categoryArchives = categoryArchives
-        self.navBarTitleOverride = navBarTitleOverride
-        self._navBarTitle = navBarTitle
+    init(archives: [String: ArchiveItem], randomList: Bool = false) {
+        self.archives = archives
+        self.randomList = randomList
     }
 
     var body: some View {
         let filteredItems = filterArchives()
-        return GeometryReader { geometry in
-            ZStack {
+           return ZStack {
                 if self.useListView {
                     List {
-                        TextField("filter.name", text: $archiveListModel.nameFilter)
+                        TextField("filter.name", text: $nameFilter)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .padding()
                         ForEach(filteredItems) { (item: ArchiveItem) in
@@ -60,7 +41,7 @@ struct ArchiveList: View {
                     ]
                     ScrollView {
                         Spacer(minLength: 20)
-                        TextField("filter.name", text: $archiveListModel.nameFilter)
+                        TextField("filter.name", text: $nameFilter)
                                 .disableAutocorrection(true)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .padding([.leading, .bottom, .trailing])
@@ -80,85 +61,25 @@ struct ArchiveList: View {
                                 .padding(.horizontal)
                     }
                 }
-
-                VStack {
-                    Text("loading")
-                    ProgressView()
-                }
-                        .frame(width: geometry.size.width / 3,
-                                height: geometry.size.height / 5)
-                        .background(Color.secondary)
-                        .foregroundColor(Color.primary)
-                        .cornerRadius(20)
-                        .opacity(archiveListModel.loading ? 1 : 0)
             }
-                    .onAppear(perform: {
-                        archiveListModel.load(state: store.state)
-                        self.navBarTitle = self.navBarTitleOverride ?? "library"
-                        self.loadData()
-                    })
-                    .onDisappear(perform: {
-                        archiveListModel.unload()
-                    })
-                    .onChange(of: archiveListModel.errorCode, perform: { errorCode in
-                        if errorCode != nil {
-                            let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                                    subtitle: NSLocalizedString("error.list", comment: "list error"),
-                                    style: .danger)
-                            banner.show()
-                            store.dispatch(.archive(action: .resetState))
-                        }
-                    })
-        }
-    }
-
-    private func loadData() {
-        if searchKeyword != nil && !searchKeyword!.isEmpty {
-            self.store.dispatch(.archive(action: .fetchArchiveDynamicCategory(keyword: searchKeyword!)))
-        } else {
-            if archiveListModel.archiveItems.isEmpty {
-                self.store.dispatch(.archive(action: .fetchArchive))
-            }
-        }
     }
 
     private func loadThumbnail(id: String) {
-        if archiveListModel.archiveItems[id]?.thumbnail == Image("placeholder") {
+        if archives[id]?.thumbnail == Image("placeholder") {
             self.store.dispatch(.archive(action: .fetchArchiveThumbnail(id: id)))
         }
     }
 
     func filterArchives() -> [ArchiveItem] {
         let archives: [ArchiveItem]
-        if searchKeyword != nil && !searchKeyword!.isEmpty {
-            archives = ArchiveList.dynamicCategorySelector.select(
-                    base: archiveListModel.archiveItems,
-                    filter: archiveListModel.dynamicCategoryKeys) { (base, filter) in
-                let filtered = base.filter { item in
-                    filter.contains(item.key)
-                }
-                return Array(filtered.values).sorted(by: { $0.name < $1.name })
-            }
-        } else if categoryArchives != nil && !categoryArchives!.isEmpty {
-            archives = ArchiveList.staticCategorySelector.select(
-                    base: archiveListModel.archiveItems,
-                    filter: categoryArchives!) { (base, filter) in
-                let filtered = base.filter { item in
-                    filter.contains(item.key)
-                }
-                return Array(filtered.values).sorted(by: { $0.name < $1.name })
-            }
+        if randomList {
+            archives = Array(self.archives.values)
         } else {
-            if self.archiveListRandom {
-                archives = Array(archiveListModel.archiveItems.values)
-            } else {
-                archives = Array(archiveListModel.archiveItems.values).sorted(by: { $0.name < $1.name })
-            }
+            archives = Array(self.archives.values).sorted(by: { $0.name < $1.name })
         }
-
-        if !archiveListModel.nameFilter.isEmpty {
+        if !nameFilter.isEmpty {
             return archives.filter { item in
-                item.name.localizedCaseInsensitiveContains(archiveListModel.nameFilter)
+                item.name.localizedCaseInsensitiveContains(nameFilter)
             }
         } else {
             return archives

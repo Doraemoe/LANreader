@@ -6,12 +6,6 @@ struct SearchView: View {
     @State var keyword: String = ""
     @State var showSearchResult = false
 
-    @Binding var navBarTitle: String
-
-    init(navBarTitle: Binding<String>) {
-        self._navBarTitle = navBarTitle
-    }
-
     var body: some View {
         VStack {
             VStack {
@@ -30,15 +24,12 @@ struct SearchView: View {
                         .padding([.top, .bottom, .trailing])
 
                 }
-                .onAppear(perform: { self.navBarTitle = "search" })
                 if !showSearchResult || self.keyword.isEmpty {
                     Spacer()
                 }
             }
             if showSearchResult && !self.keyword.isEmpty {
-                ArchiveList(navBarTitle: self.$navBarTitle,
-                        searchKeyword: self.keyword,
-                        navBarTitleOverride: "search")
+                SearchResult(keyword: self.keyword)
             }
         }
 
@@ -47,6 +38,6 @@ struct SearchView: View {
 
 struct SearchView_Previews: PreviewProvider {
     static var previews: some View {
-        SearchView(navBarTitle: Binding.constant("search"))
+        SearchView()
     }
 }
