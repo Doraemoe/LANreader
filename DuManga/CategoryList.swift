@@ -7,11 +7,9 @@ struct CategoryList: View {
     @EnvironmentObject var store: AppStore
     @StateObject var categoryListModel = CategoryListModel()
 
-    @Binding var navBarTitle: String
     @Binding var editMode: EditMode
 
-    init(navBarTitle: Binding<String>, editMode: Binding<EditMode>) {
-        self._navBarTitle = navBarTitle
+    init(editMode: Binding<EditMode>) {
         self._editMode = editMode
     }
 
@@ -33,10 +31,7 @@ struct CategoryList: View {
                                     })
                         }
                     } else {
-                        NavigationLink(destination: ArchiveList(navBarTitle: self.$navBarTitle,
-                                searchKeyword: item.search,
-                                categoryArchives: item.archives,
-                                navBarTitleOverride: "category")) {
+                        NavigationLink(destination: CategoryArchiveList(categoryItem: item)) {
                             Text(item.name)
                                     .font(.title)
                         }
@@ -47,8 +42,9 @@ struct CategoryList: View {
                                     showSheetView: $categoryListModel.showSheetView)
                                     .environmentObject(self.store)
                         }
-                        .onAppear(perform: { self.navBarTitle = "category" })
-                        .onAppear(perform: self.loadData)
+                        .onAppear(perform: {
+                            self.loadData()
+                        })
 
                 VStack {
                     Text("loading")
@@ -91,6 +87,6 @@ struct CategoryList_Previews: PreviewProvider {
     static var previews: some View {
         let config = ["url": "http://localhost", "apiKey": "apiKey"]
         UserDefaults.standard.set(config, forKey: "LANraragi")
-        return CategoryList(navBarTitle: Binding.constant("categories"), editMode: Binding.constant(.active))
+        return CategoryList(editMode: Binding.constant(.active))
     }
 }

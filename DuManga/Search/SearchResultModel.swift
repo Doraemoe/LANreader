@@ -1,13 +1,11 @@
 //
-// Created on 2/10/20.
+// Created on 6/10/20.
 //
 
 import Foundation
 import Combine
 
-class ArchiveListModel: ObservableObject {
-    @Published var nameFilter = ""
-
+class SearchResultModel: ObservableObject {
     @Published private(set) var loading = false
     @Published private(set) var archiveItems = [String: ArchiveItem]()
     @Published private(set) var dynamicCategoryKeys = [String]()
