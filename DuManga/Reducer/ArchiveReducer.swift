@@ -4,7 +4,6 @@
 
 import Foundation
 
-// swiftlint:disable cyclomatic_complexity
 func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
     switch action {
     case .fetchArchive:

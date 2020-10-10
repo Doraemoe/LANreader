@@ -8,7 +8,7 @@ import Alamofire
 import AlamofireImage
 
 class LANraragiService {
-    static let shared = LANraragiService()
+    private static var _shared: LANraragiService?
 
     private var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
     private let authInterceptor = AuthInterceptor()
@@ -147,6 +147,17 @@ class LANraragiService {
                 .validate(statusCode: 200...200)
                 .publishString()
                 .value()
+    }
+
+    public static var shared: LANraragiService {
+        if _shared == nil {
+            _shared = LANraragiService()
+        }
+        return _shared!
+    }
+
+    static func resetService() {
+        _shared = nil
     }
 }
 
