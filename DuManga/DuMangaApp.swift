@@ -8,7 +8,7 @@ struct DuMangaApp: App {
         settingMiddleware(service: SettingsService()),
         lanraragiMiddleware(service: LANraragiService.shared)
     ])
-    
+
     var body: some Scene {
         WindowGroup {
             ContentView()
