@@ -21,6 +21,6 @@ jobs:
         run: sudo xcode-select -switch /Applications/Xcode_12.app
       
       - name: Build and test
-        run: xcodebuild clean test -project DuReader.xcodeproj -scheme DuReader -destination "${destination}"
+        run: xcodebuild clean test -project DuManga.xcodeproj -scheme DuManga -destination "${destination}"
         env: 
          destination: ${{ matrix.destination }}
