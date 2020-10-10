@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  verify:
+    runs-on: macOS-latest
+    
+    strategy:
+        matrix:
+          destination: ['platform=iOS Simulator,OS=14.0,name=iPad Pro (9.7-inch)']
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: lint
+        run: swiftlint --strict
+
+      - name: Select Xcode version
+        run: sudo xcode-select -switch /Applications/Xcode_12.app
+      
+      - name: Build and test
+        run: xcodebuild clean test -project DuReader.xcodeproj -scheme DuReader -destination "${destination}"
+        env: 
+         destination: ${{ matrix.destination }}
