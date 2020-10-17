@@ -24,18 +24,11 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                         var archiveItems = [String: ArchiveItem]()
                         response.forEach { item in
                             archiveItems[item.arcid] = ArchiveItem(id: item.arcid, name: item.title,
-                                    tags: item.tags, thumbnail: Image("placeholder"))
+                                    tags: item.tags)
                         }
                         return AppAction.archive(action: .fetchArchiveSuccess(archive: archiveItems))
                     }
                     .replaceError(with: AppAction.archive(action: .error(error: .archiveFetchError)))
-                    .eraseToAnyPublisher()
-        case let .archive(action: .fetchArchiveThumbnail(id)):
-            return service.retrieveArchiveThumbnail(id: id)
-                    .map { (img: UIImage) in
-                        AppAction.archive(action: .replaceArchiveThumbnail(id: id, image: Image(uiImage: img)))
-                    }
-                    .replaceError(with: AppAction.archive(action: .error(error: .archiveThumbnailError)))
                     .eraseToAnyPublisher()
         case let .archive(action: .fetchArchiveDynamicCategory(keyword)):
             return service.searchArchiveIndex(filter: keyword)

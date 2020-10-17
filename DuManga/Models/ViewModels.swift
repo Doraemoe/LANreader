@@ -7,7 +7,6 @@ struct ArchiveItem: Identifiable, Equatable {
     let id: String
     let name: String
     let tags: String
-    var thumbnail: Image
 }
 
 struct CategoryItem: Identifiable, Equatable {

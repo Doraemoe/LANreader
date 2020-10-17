@@ -20,8 +20,7 @@ struct ArchiveDetails: View {
             TextField("", text: $archiveListModel.title)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
-            item.thumbnail
-                    .resizable()
+            ThumbnailImage(id: item.id)
                     .scaledToFit()
                     .padding()
                     .frame(width: 200, height: 250)
@@ -35,8 +34,7 @@ struct ArchiveDetails: View {
                 .navigationBarItems(trailing: Button(action: {
                     let updated = ArchiveItem(id: self.item.id,
                             name: archiveListModel.title,
-                            tags: archiveListModel.tags,
-                            thumbnail: self.item.thumbnail)
+                            tags: archiveListModel.tags)
                     self.store.dispatch(.archive(action: .updateArchiveMetadata(metadata: updated)))
                 }, label: {
                     Text("save")
@@ -71,6 +69,6 @@ struct ArchiveDetails: View {
 
 struct ArchiveDetails_Previews: PreviewProvider {
     static var previews: some View {
-        ArchiveDetails(item: ArchiveItem(id: "id", name: "name", tags: "tags", thumbnail: Image("placeholder")))
+        ArchiveDetails(item: ArchiveItem(id: "id", name: "name", tags: "tags"))
     }
 }

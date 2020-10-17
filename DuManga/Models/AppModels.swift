@@ -44,7 +44,6 @@ struct ErrorCode: Equatable {
     static let lanraragiServerError = ErrorCode(name: "error.host", code: 1000)
 
     static let archiveFetchError = ErrorCode(name: "error.list", code: 2000)
-    static let archiveThumbnailError = ErrorCode(name: "error.thumbnail", code: 2001)
     static let archiveExtractError = ErrorCode(name: "error.extract", code: 2002)
     static let archiveFetchPageError = ErrorCode(name: "error.load.page", code: 2003)
     static let archiveUpdateMetadataError = ErrorCode(name: "error.update.metadata", code: 2004)

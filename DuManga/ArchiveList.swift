@@ -29,9 +29,6 @@ struct ArchiveList: View {
                         ForEach(filteredItems) { (item: ArchiveItem) in
                             NavigationLink(destination: ArchivePage(archiveItem: item)) {
                                 ArchiveRow(archiveItem: item)
-                                        .onAppear(perform: {
-                                            self.loadThumbnail(id: item.id)
-                                        })
                             }
                         }
                     }
@@ -49,7 +46,6 @@ struct ArchiveList: View {
                             ForEach(filteredItems) { (item: ArchiveItem) in
                                 ZStack {
                                     ArchiveGrid(archiveItem: item)
-                                            .onAppear(perform: { self.loadThumbnail(id: item.id) })
                                     NavigationLink(destination: ArchivePage(archiveItem: item)) {
                                         Rectangle()
                                                 .opacity(0.0001)
@@ -62,12 +58,6 @@ struct ArchiveList: View {
                     }
                 }
             }
-    }
-
-    private func loadThumbnail(id: String) {
-        if archives[id]?.thumbnail == Image("placeholder") {
-            self.store.dispatch(.archive(action: .fetchArchiveThumbnail(id: id)))
-        }
     }
 
     func filterArchives() -> [ArchiveItem] {

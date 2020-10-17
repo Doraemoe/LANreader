@@ -10,8 +10,7 @@ struct ArchiveGrid: View {
             Text(archiveItem.name)
                     .frame(width: 130)
                     .lineLimit(1)
-            archiveItem.thumbnail
-                    .resizable()
+            ThumbnailImage(id: archiveItem.id)
                     .scaledToFit()
                     .frame(width: 160, height: 200)
         }
@@ -26,7 +25,7 @@ struct ArchiveGrid: View {
 
 struct ArchiveGrid_Previews: PreviewProvider {
     static var previews: some View {
-        ArchiveGrid(archiveItem: ArchiveItem(id: "id", name: "name", tags: "tags", thumbnail: Image("placeholder")))
+        ArchiveGrid(archiveItem: ArchiveItem(id: "id", name: "name", tags: "tags"))
                 .previewLayout(.fixed(width: 200, height: 280))
     }
 }

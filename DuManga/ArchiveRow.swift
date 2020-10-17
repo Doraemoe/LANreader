@@ -7,8 +7,7 @@ struct ArchiveRow: View {
 
     var body: some View {
         HStack {
-            archiveItem.thumbnail
-                .resizable()
+            ThumbnailImage(id: archiveItem.id)
                 .scaledToFit()
                 .frame(width: 100, height: 125)
             Text(archiveItem.name)
@@ -20,7 +19,7 @@ struct ArchiveRow: View {
 
 struct ArchiveRow_Previews: PreviewProvider {
     static var previews: some View {
-        ArchiveRow(archiveItem: ArchiveItem(id: "id", name: "name", tags: "tags", thumbnail: Image("placeholder")))
+        ArchiveRow(archiveItem: ArchiveItem(id: "id", name: "name", tags: "tags"))
         .previewLayout(.fixed(width: 600, height: 125))
     }
 }
