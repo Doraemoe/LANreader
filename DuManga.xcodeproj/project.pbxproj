@@ -56,6 +56,8 @@
 		4BD82F2BEC56B95FB9BC9841 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD827ECEE1938273E758358 /* SettingsView.swift */; };
 		4BD82F9971576783E22B9CCC /* LibraryListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD827FF18A6F189F4DE5B30 /* LibraryListModel.swift */; };
 		4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD824A308A90B5740411016 /* LANraragiService.swift */; };
+		7D34EAE0253B050900695AFD /* ThumbnailImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D34EADF253B050900695AFD /* ThumbnailImage.swift */; };
+		7D34EAE5253B053C00695AFD /* ThumbnailImageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D34EAE4253B053C00695AFD /* ThumbnailImageModel.swift */; };
 		7D354CA624F1316D00617F4A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CA524F1316D00617F4A /* Assets.xcassets */; };
 		7D354CA924F1316D00617F4A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CA824F1316D00617F4A /* Preview Assets.xcassets */; };
 		7D354CAC24F1316D00617F4A /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CAA24F1316D00617F4A /* LaunchScreen.storyboard */; };
@@ -154,6 +156,8 @@
 		4BD82E3AAF924901BE111A11 /* ArchiveReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchiveReducer.swift; sourceTree = "<group>"; };
 		4BD82FA7EAE6ED44136AA4E7 /* SettingsService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingsService.swift; sourceTree = "<group>"; };
 		4BD82FB85284818BED0DE580 /* AppAction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppAction.swift; sourceTree = "<group>"; };
+		7D34EADF253B050900695AFD /* ThumbnailImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailImage.swift; sourceTree = "<group>"; };
+		7D34EAE4253B053C00695AFD /* ThumbnailImageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailImageModel.swift; sourceTree = "<group>"; };
 		7D354C9C24F1316800617F4A /* DuManga.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DuManga.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7D354CA524F1316D00617F4A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7D354CA824F1316D00617F4A /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
@@ -263,6 +267,8 @@
 		4BD8240793F86C42AF3383BB /* Library */ = {
 			isa = PBXGroup;
 			children = (
+				7D34EADF253B050900695AFD /* ThumbnailImage.swift */,
+				7D34EAE4253B053C00695AFD /* ThumbnailImageModel.swift */,
 				4BD82B45987169916D0D32EF /* ArchiveRow.swift */,
 				4BD82837C2109B37482712EE /* ArchiveGrid.swift */,
 				4BD82139F51916878474B349 /* LibraryList.swift */,
@@ -489,6 +495,7 @@
 				7D354C9824F1316800617F4A /* Sources */,
 				7D354C9924F1316800617F4A /* Frameworks */,
 				7D354C9A24F1316800617F4A /* Resources */,
+				7D34EAFE253B184000695AFD /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -639,6 +646,26 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		7D34EAFE253B184000695AFD /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nif which swiftlint >/dev/null; then\n  swiftlint\nelse\n  echo \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		7D354C9824F1316800617F4A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -674,6 +701,7 @@
 				4BD82DB8FD68F4BE80E2B221 /* ArchiveAction.swift in Sources */,
 				4BD82D948032095FF807F54E /* Selector.swift in Sources */,
 				4BD82305BE716D4B998D4966 /* ArchivePage.swift in Sources */,
+				7D34EAE5253B053C00695AFD /* ThumbnailImageModel.swift in Sources */,
 				4BD82E53B1A77AFD992AAC25 /* ArchiveDetails.swift in Sources */,
 				4BD826672D530C0A98D313F7 /* ArchiveRow.swift in Sources */,
 				4BD8291EBA7A94EE9E8C2ACE /* ArchiveGrid.swift in Sources */,
@@ -681,6 +709,7 @@
 				4BD826130BCE1AC291C7D6A1 /* EditCategoryModel.swift in Sources */,
 				4BD828F432CB9B8D26EEAB92 /* LANraragiConfigViewModel.swift in Sources */,
 				4BD828FC9A6301237E2FF2AE /* ArchivePageModel.swift in Sources */,
+				7D34EAE0253B050900695AFD /* ThumbnailImage.swift in Sources */,
 				4BD82A2A4437113DBD1DE74A /* ArchiveDetailsModel.swift in Sources */,
 				4BD82EDD2C82F2F36EB547B3 /* PageAction.swift in Sources */,
 				4BD82D07506C7A9AE03DF051 /* PageState.swift in Sources */,

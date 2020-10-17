@@ -12,9 +12,6 @@ enum ArchiveAction {
     case fetchArchiveDynamicCategory(keyword: String)
     case fetchArchiveDynamicCategorySuccess(keys: [String])
 
-    case fetchArchiveThumbnail(id: String)
-    case replaceArchiveThumbnail(id: String, image: Image)
-
     case updateArchiveMetadata(metadata: ArchiveItem)
     case updateArchiveMetadataSuccess(metadata: ArchiveItem)
 
