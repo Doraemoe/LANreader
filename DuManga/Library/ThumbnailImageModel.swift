@@ -25,6 +25,7 @@ class ThumbnailImageModel: ObservableObject {
 
     func load() {
         guard !isLoading else { return }
+        guard image == Image("placeholder") else { return }
 
         service.retrieveArchiveThumbnail(id: id)
             .subscribe(on: Self.imageProcessingQueue)

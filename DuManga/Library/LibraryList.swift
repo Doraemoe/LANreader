@@ -15,7 +15,7 @@ struct LibraryList: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                ArchiveList(archives: self.libraryListModel.archiveItems, randomList: archiveListRandom)
+                ArchiveList(archives: Array(self.libraryListModel.archiveItems.values), randomList: archiveListRandom)
                         .onAppear(perform: {
                             self.libraryListModel.load(state: store.state)
                             if libraryListModel.archiveItems.isEmpty {

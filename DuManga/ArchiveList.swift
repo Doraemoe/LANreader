@@ -10,10 +10,10 @@ struct ArchiveList: View {
 
     @State private var nameFilter = ""
 
-    private let archives: [String: ArchiveItem]
+    private let archives: [ArchiveItem]
     private let randomList: Bool
 
-    init(archives: [String: ArchiveItem], randomList: Bool = false) {
+    init(archives: [ArchiveItem], randomList: Bool = false) {
         self.archives = archives
         self.randomList = randomList
     }
@@ -63,9 +63,9 @@ struct ArchiveList: View {
     func filterArchives() -> [ArchiveItem] {
         let archives: [ArchiveItem]
         if randomList {
-            archives = Array(self.archives.values)
+            archives = self.archives
         } else {
-            archives = Array(self.archives.values).sorted(by: { $0.name < $1.name })
+            archives = self.archives.sorted(by: { $0.name < $1.name })
         }
         if !nameFilter.isEmpty {
             return archives.filter { item in
