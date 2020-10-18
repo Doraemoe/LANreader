@@ -8,7 +8,7 @@ struct SearchResult: View {
     private static let searchResultSelector = Selector(
             initBase: [String: ArchiveItem](),
             initFilter: [String](),
-            initResult: [String: ArchiveItem]())
+            initResult: [ArchiveItem]())
 
     @EnvironmentObject var store: AppStore
 
@@ -49,18 +49,19 @@ struct SearchResult: View {
         }
     }
 
-    private func selectArchives() -> [String: ArchiveItem] {
+    private func selectArchives() -> [ArchiveItem] {
         if !self.keyword.isEmpty {
             return SearchResult.searchResultSelector.select(
                     base: self.searchResultModel.archiveItems,
                     filter: self.searchResultModel.dynamicCategoryKeys,
                     selector: { (base, filter) in
-                        base.filter { item in
+                        let filtered = base.filter { item in
                             filter.contains(item.key)
                         }
+                        return Array(filtered.values)
                     })
         } else {
-            return [String: ArchiveItem]()
+            return [ArchiveItem]()
         }
     }
 }

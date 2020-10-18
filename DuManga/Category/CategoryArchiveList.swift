@@ -8,11 +8,11 @@ struct CategoryArchiveList: View {
     private static let dynamicCategorySelector = Selector(
             initBase: [String: ArchiveItem](),
             initFilter: [String](),
-            initResult: [String: ArchiveItem]())
+            initResult: [ArchiveItem]())
     private static let staticCategorySelector = Selector(
             initBase: [String: ArchiveItem](),
             initFilter: [String](),
-            initResult: [String: ArchiveItem]())
+            initResult: [ArchiveItem]())
 
     @EnvironmentObject var store: AppStore
 
@@ -56,15 +56,16 @@ struct CategoryArchiveList: View {
         }
     }
 
-    private func selectArchives() -> [String: ArchiveItem] {
+    private func selectArchives() -> [ArchiveItem] {
         if !self.categoryItem.search.isEmpty {
             return CategoryArchiveList.dynamicCategorySelector.select(
                     base: self.categoryArchiveListModel.archiveItems,
                     filter: self.categoryArchiveListModel.dynamicCategoryKeys,
                     selector: { (base, filter) in
-                        base.filter { item in
+                        let filtered = base.filter { item in
                             filter.contains(item.key)
                         }
+                        return Array(filtered.values)
                     })
 
         } else {
@@ -72,9 +73,10 @@ struct CategoryArchiveList: View {
                     base: self.categoryArchiveListModel.archiveItems,
                     filter: self.categoryItem.archives,
                     selector: { (base, filter) in
-                        base.filter { item in
+                        let filtered = base.filter { item in
                             filter.contains(item.key)
                         }
+                        return Array(filtered.values)
                     })
         }
     }
