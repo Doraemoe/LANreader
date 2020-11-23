@@ -45,6 +45,14 @@ class LANraragiService {
                 .value()
     }
 
+    func retrieveArchiveThumbnailData(id: String) -> AnyPublisher<Data, AFError> {
+        let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
+        return session.download(request)
+            .validate()
+            .publishData()
+            .value()
+    }
+
     func retrieveArchiveThumbnail(id: String) -> AnyPublisher<Image, AFIError> {
         let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
         return Deferred {

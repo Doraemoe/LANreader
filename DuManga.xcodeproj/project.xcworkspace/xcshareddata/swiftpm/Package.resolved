@@ -29,6 +29,15 @@
         }
       },
       {
+        "package": "GRDB",
+        "repositoryURL": "https://github.com/groue/GRDB.swift",
+        "state": {
+          "branch": null,
+          "revision": "2c51c047081da160698e818d6844af75f321f867",
+          "version": "5.1.0"
+        }
+      },
+      {
         "package": "MarqueeLabel",
         "repositoryURL": "https://github.com/cbpowell/MarqueeLabel",
         "state": {

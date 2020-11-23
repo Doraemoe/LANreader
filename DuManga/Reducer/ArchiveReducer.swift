@@ -29,7 +29,5 @@ func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
     case .resetState:
         state.errorCode = nil
         state.updateArchiveMetadataSuccess = false
-    default:
-        break
     }
 }

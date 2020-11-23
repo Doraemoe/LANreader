@@ -87,6 +87,10 @@
 		7DF2E89D24F7D30700689A6D /* ArchiveMetadataResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7DF2E89C24F7D30700689A6D /* ArchiveMetadataResponse.json */; };
 		7DF6FFAA252DC3BB009280A5 /* FileUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF6FFA9252DC3BB009280A5 /* FileUtils.swift */; };
 		7DF6FFB2252DCE97009280A5 /* UnauthorizedResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7DF6FFB1252DCE97009280A5 /* UnauthorizedResponse.json */; };
+		7DF7EA742564E1D2003B5A5A /* AppDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA732564E1D2003B5A5A /* AppDatabase.swift */; };
+		7DF7EA7A2564E264003B5A5A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 7DF7EA792564E264003B5A5A /* GRDB */; };
+		7DF7EA7F2564E5D1003B5A5A /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA7E2564E5D1003B5A5A /* Persistence.swift */; };
+		7DF7EA852564E675003B5A5A /* Archive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA842564E675003B5A5A /* Archive.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -190,6 +194,9 @@
 		7DF2E89C24F7D30700689A6D /* ArchiveMetadataResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveMetadataResponse.json; sourceTree = "<group>"; };
 		7DF6FFA9252DC3BB009280A5 /* FileUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileUtils.swift; sourceTree = "<group>"; };
 		7DF6FFB1252DCE97009280A5 /* UnauthorizedResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = UnauthorizedResponse.json; sourceTree = "<group>"; };
+		7DF7EA732564E1D2003B5A5A /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
+		7DF7EA7E2564E5D1003B5A5A /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
+		7DF7EA842564E675003B5A5A /* Archive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Archive.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -198,6 +205,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7DEBE79D252DBEE4001199CD /* Logging in Frameworks */,
+				7DF7EA7A2564E264003B5A5A /* GRDB in Frameworks */,
 				7DEBE79E252DBEE4001199CD /* NotificationBannerSwift in Frameworks */,
 				7DEBE79B252DBEE4001199CD /* Alamofire in Frameworks */,
 				7DEBE79C252DBEE4001199CD /* AlamofireImage in Frameworks */,
@@ -389,6 +397,7 @@
 		7D354C9E24F1316800617F4A /* DuManga */ = {
 			isa = PBXGroup;
 			children = (
+				7DF7EA832564E64B003B5A5A /* Database */,
 				7D354D0324F2383A00617F4A /* Views */,
 				7D354CF424F22C8300617F4A /* Resources */,
 				7D354CA524F1316D00617F4A /* Assets.xcassets */,
@@ -485,6 +494,16 @@
 			path = Test;
 			sourceTree = "<group>";
 		};
+		7DF7EA832564E64B003B5A5A /* Database */ = {
+			isa = PBXGroup;
+			children = (
+				7DF7EA732564E1D2003B5A5A /* AppDatabase.swift */,
+				7DF7EA7E2564E5D1003B5A5A /* Persistence.swift */,
+				7DF7EA842564E675003B5A5A /* Archive.swift */,
+			);
+			path = Database;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -507,6 +526,7 @@
 				7D354CD324F1393100617F4A /* AlamofireImage */,
 				7D354CE124F15F1800617F4A /* Logging */,
 				7D7A6842250239750051F232 /* NotificationBannerSwift */,
+				7DF7EA792564E264003B5A5A /* GRDB */,
 			);
 			productName = DuManga;
 			productReference = 7D354C9C24F1316800617F4A /* DuManga.app */;
@@ -592,6 +612,7 @@
 				7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */,
 				7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */,
 				7DEBE7A3252DBF26001199CD /* XCRemoteSwiftPackageReference "CombineExpectations" */,
+				7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */,
 			);
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
 			projectDirPath = "";
@@ -671,7 +692,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7DF7EA742564E1D2003B5A5A /* AppDatabase.swift in Sources */,
 				7D3DFF16251777B200686612 /* DuMangaApp.swift in Sources */,
+				7DF7EA852564E675003B5A5A /* Archive.swift in Sources */,
 				7D354D0524F2387900617F4A /* ViewModels.swift in Sources */,
 				7D354CDA24F13C4900617F4A /* LANraragiResponse.swift in Sources */,
 				4BD8236A69BB648B5CC4EF24 /* AppState.swift in Sources */,
@@ -723,6 +746,7 @@
 				4BD82EAEF6A6470E84C3B053 /* SearchResult.swift in Sources */,
 				4BD825F1FAD9741F11C859C0 /* SearchResultModel.swift in Sources */,
 				4BD822BA58A9F4C0B7EB8F85 /* ContentViewModel.swift in Sources */,
+				7DF7EA7F2564E5D1003B5A5A /* Persistence.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1116,6 +1140,14 @@
 				minimumVersion = 0.5.0;
 			};
 		};
+		7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.1.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1148,6 +1180,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7DEBE7A3252DBF26001199CD /* XCRemoteSwiftPackageReference "CombineExpectations" */;
 			productName = CombineExpectations;
+		};
+		7DF7EA792564E264003B5A5A /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */;
+			productName = GRDB;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
