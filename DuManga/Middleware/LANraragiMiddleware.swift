@@ -8,7 +8,7 @@ import SwiftUI
 
 // swiftlint:disable function_body_length
 func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppAction> {
-    { state, action in
+    { _, action in
         switch action {
         case let .setting(action: .verifyAndSaveLanraragiConfig(url, apiKey)):
             return service.verifyClient(url: url, apiKey: apiKey)

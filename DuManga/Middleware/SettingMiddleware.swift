@@ -6,7 +6,7 @@ import Foundation
 import Combine
 
 func settingMiddleware(service: SettingsService) -> Middleware<AppState, AppAction> {
-    { state, action in
+    { _, action in
         switch action {
         case let .setting(action: .saveLanraragiConfigToUserDefaults(url, apiKey)):
             return service.saveLanrargiServer(url: url, apiKey: apiKey)
