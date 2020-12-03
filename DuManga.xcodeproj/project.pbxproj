@@ -76,6 +76,7 @@
 		7D7B26A924F52A7F00149341 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7D7B26AB24F52A7F00149341 /* Localizable.strings */; };
 		7D80326C24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D80326B24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json */; };
 		7D80326E24F68F6900AA8BD2 /* ArchiveSearchResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D80326D24F68F6900AA8BD2 /* ArchiveSearchResponse.json */; };
+		7DE399892578FB34003DC5F7 /* DatabaseSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DE399882578FB34003DC5F7 /* DatabaseSettings.swift */; };
 		7DE5777A250780C100FD1603 /* SetArchiveMetadataResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7DE57779250780C100FD1603 /* SetArchiveMetadataResponse.json */; };
 		7DE70F562503C7B3006414DE /* ClearNewFlagResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7DE70F552503C7B3006414DE /* ClearNewFlagResponse.json */; };
 		7DEBE79B252DBEE4001199CD /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CD024F1390400617F4A /* Alamofire */; };
@@ -189,6 +190,7 @@
 		7D7B26AC24F52A8200149341 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		7D80326B24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveCategoriesResponse.json; sourceTree = "<group>"; };
 		7D80326D24F68F6900AA8BD2 /* ArchiveSearchResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveSearchResponse.json; sourceTree = "<group>"; };
+		7DE399882578FB34003DC5F7 /* DatabaseSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseSettings.swift; sourceTree = "<group>"; };
 		7DE57779250780C100FD1603 /* SetArchiveMetadataResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = SetArchiveMetadataResponse.json; sourceTree = "<group>"; };
 		7DE70F552503C7B3006414DE /* ClearNewFlagResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ClearNewFlagResponse.json; sourceTree = "<group>"; };
 		7DF2E89C24F7D30700689A6D /* ArchiveMetadataResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveMetadataResponse.json; sourceTree = "<group>"; };
@@ -331,6 +333,7 @@
 				4BD827ECEE1938273E758358 /* SettingsView.swift */,
 				4BD8297D9DA6589446C724EC /* ViewSettings.swift */,
 				4BD8293BAD09DE6D90D6A30C /* LANraragiConfigViewModel.swift */,
+				7DE399882578FB34003DC5F7 /* DatabaseSettings.swift */,
 			);
 			path = Setting;
 			sourceTree = "<group>";
@@ -743,6 +746,7 @@
 				4BD826D1184D4BF2D3762DC1 /* CategoryArchiveListModel.swift in Sources */,
 				4BD822795ACE4090322B4F9F /* ArchiveList.swift in Sources */,
 				4BD821251952FE326EA8E78C /* SearchView.swift in Sources */,
+				7DE399892578FB34003DC5F7 /* DatabaseSettings.swift in Sources */,
 				4BD82EAEF6A6470E84C3B053 /* SearchResult.swift in Sources */,
 				4BD825F1FAD9741F11C859C0 /* SearchResultModel.swift in Sources */,
 				4BD822BA58A9F4C0B7EB8F85 /* ContentViewModel.swift in Sources */,

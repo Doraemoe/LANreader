@@ -37,7 +37,21 @@ extension AppDatabase {
 
     func readArchive(_ id: String) throws -> Archive? {
         try dbWriter.read { database in
-            return try Archive.fetchOne(database, key: id)
+            try Archive.fetchOne(database, key: id)
         }
+    }
+
+    func databaseSize() throws -> Int? {
+        try dbWriter.read { database in
+            try Int.fetchOne(database,
+                             sql: "SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()")
+        }
+    }
+
+    func clearDatabase() throws {
+        try dbWriter.write { database in
+            _ = try Archive.deleteAll(database)
+        }
+        try dbWriter.vacuum()
     }
 }
