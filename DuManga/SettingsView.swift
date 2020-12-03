@@ -17,6 +17,9 @@ struct SettingsView: View {
             Section(header: Text("settings.view")) {
                 ViewSettings()
             }
+            Section(header: Text("settings.database")) {
+                DatabaseSettings()
+            }
         }
     }
 }

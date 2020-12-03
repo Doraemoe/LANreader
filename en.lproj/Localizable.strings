@@ -35,6 +35,10 @@
 "settings.previousPage" = "Previous page";
 "settings.navigation" = "Toggle navigation";
 
+"settings.database" = "Database";
+"settings.database.error" = "Cannot read database";
+"settings.database.clear" = "Clear cache in database";
+
 "category.edit" = "Edit category";
 "category.name" = "Category name";
 "category.search" = "Search keyword";

@@ -35,7 +35,7 @@ class ThumbnailImageModel: ObservableObject {
                 return
             }
         } catch {
-            self.image = Image("placeholder")
+            // NOOP
         }
 
         service.retrieveArchiveThumbnailData(id: id)
