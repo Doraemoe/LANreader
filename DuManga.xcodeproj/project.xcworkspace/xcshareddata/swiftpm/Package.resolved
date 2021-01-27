@@ -6,8 +6,8 @@
         "repositoryURL": "https://github.com/Alamofire/Alamofire.git",
         "state": {
           "branch": null,
-          "revision": "becd9a729a37bdbef5bc39dc3c702b99f9e3d046",
-          "version": "5.2.2"
+          "revision": "eaf6e622dd41b07b251d8f01752eab31bc811493",
+          "version": "5.4.1"
         }
       },
       {
@@ -24,8 +24,8 @@
         "repositoryURL": "https://github.com/groue/CombineExpectations",
         "state": {
           "branch": null,
-          "revision": "96d5604151c94b21fbca6877b237e80af9e821dd",
-          "version": "0.5.0"
+          "revision": "5c36f3199960776fc055196a93ca04bfc00e1857",
+          "version": "0.7.0"
         }
       },
       {
@@ -33,8 +33,8 @@
         "repositoryURL": "https://github.com/groue/GRDB.swift",
         "state": {
           "branch": null,
-          "revision": "2c51c047081da160698e818d6844af75f321f867",
-          "version": "5.1.0"
+          "revision": "7be7e1caded0f787e513d8f4311b20bcee97f262",
+          "version": "5.3.0"
         }
       },
       {
@@ -42,8 +42,8 @@
         "repositoryURL": "https://github.com/cbpowell/MarqueeLabel",
         "state": {
           "branch": null,
-          "revision": "8cd051e549b4fcbc469cc1cb7c55ae10f49caef8",
-          "version": "4.0.2"
+          "revision": "d92fe1583dbf43fa3b70229a49fa7da6b36750d4",
+          "version": "4.0.5"
         }
       },
       {
@@ -51,8 +51,8 @@
         "repositoryURL": "https://github.com/Daltron/NotificationBanner",
         "state": {
           "branch": null,
-          "revision": "a852488c04c5bfdb32021711b3dde465ad0899ef",
-          "version": "3.0.4"
+          "revision": "2ce5c49d8ee4865f01a3ce3bbe078664c78c7a3c",
+          "version": "3.0.6"
         }
       },
       {
@@ -60,8 +60,8 @@
         "repositoryURL": "https://github.com/AliSoftware/OHHTTPStubs",
         "state": {
           "branch": null,
-          "revision": "e92b5a5746ef16add2a1424f1fc19529d9a75cde",
-          "version": "9.0.0"
+          "revision": "12f19662426d0434d6c330c6974d53e2eb10ecd9",
+          "version": "9.1.0"
         }
       },
       {

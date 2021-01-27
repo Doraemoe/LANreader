@@ -77,9 +77,9 @@ struct ArchiveList: View {
     }
 }
 
-//struct ArchiveList_Previews: PreviewProvider {
+// struct ArchiveList_Previews: PreviewProvider {
 //    static var previews: some View {
 //        ArchiveList(archiveItems: [ArchiveItem](), loading: false,
 //                errorCode: nil, loadThumbnail: { _ in }, reset: {})
 //    }
-//}
+// }

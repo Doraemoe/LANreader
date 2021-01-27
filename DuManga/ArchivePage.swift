@@ -216,10 +216,10 @@ struct ArchivePage: View {
     }
 }
 
-//struct ArchivePage_Previews: PreviewProvider {
+// struct ArchivePage_Previews: PreviewProvider {
 //    static var previews: some View {
 //        let config = ["url": "http://localhost", "apiKey": "apiKey"]
 //        UserDefaults.standard.set(config, forKey: "LANraragi")
 //        return ArchivePage(item: ArchiveItem(id: "id", name: "name", tags: "tags", thumbnail: Image("placeholder")))
 //    }
-//}
+// }
