@@ -9,37 +9,37 @@ struct ContentView: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            if self.url.isEmpty {
-                LANraragiConfigView()
-            } else {
-                NavigationView {
+            NavigationView {
+                if contentViewModel.notLoggedIn {
+                    LANraragiConfigView(notLoggedIn: $contentViewModel.notLoggedIn)
+                } else {
                     TabView(selection: $contentViewModel.tabName) {
                         LibraryList()
                             .tabItem {
                                 Text("library")
-                        }.tag("library")
+                            }.tag("library")
                         CategoryList(editMode: $contentViewModel.editMode)
                             .tabItem {
                                 Text("category")
-                        }.tag("category")
+                            }.tag("category")
                         SearchView()
                             .tabItem {
                                 Text("search")
-                        }.tag("search")
+                            }.tag("search")
                         SettingsView()
                             .tabItem {
                                 Text("settings")
-                        }.tag("settings")
+                            }.tag("settings")
                     }
                     .navigationBarTitle(Text(NSLocalizedString(self.contentViewModel.tabName,
-                            comment: "String will not be localized without force use NSLocalizedString")),
-                            displayMode: .inline)
+                                                               comment: "Force use NSLocalizedString")),
+                                        displayMode: .inline)
                     .navigationBarItems(trailing: self.contentViewModel.tabName == "category"
-                            ? AnyView(EditButton()) : AnyView(EmptyView()))
+                                            ? AnyView(EditButton()) : AnyView(EmptyView()))
                     .environment(\.editMode, self.$contentViewModel.editMode)
                 }
-                .navigationViewStyle(StackNavigationViewStyle())
             }
+            .navigationViewStyle(StackNavigationViewStyle())
         }
     }
 }

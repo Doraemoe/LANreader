@@ -6,8 +6,6 @@ import NotificationBannerSwift
 struct ArchiveList: View {
     @AppStorage(SettingsKey.useListView) var useListView: Bool = false
 
-    @EnvironmentObject var store: AppStore
-
     @State private var nameFilter = ""
 
     private let archives: [ArchiveItem]
