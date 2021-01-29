@@ -12,6 +12,12 @@ The behaviour can be set in Settings page
 
 ## Test on your device
 
+### TestFlight
+
+[Link](https://testflight.apple.com/join/4qjD65JX)
+
+### Source Code
+
 - Clone this project
 - Open it in Xcode
 - Follow [this guide](https://developer.apple.com/documentation/xcode/running_your_app_in_the_simulator_or_on_a_device)
