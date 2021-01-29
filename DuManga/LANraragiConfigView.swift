@@ -8,6 +8,7 @@ struct LANraragiConfigView: View {
     @Environment(\.presentationMode) var presentationMode
 
     @StateObject var configModel = LANraragiConfigViewModel()
+    @Binding var notLoggedIn: Bool
 
     var body: some View {
         VStack {
@@ -16,6 +17,7 @@ struct LANraragiConfigView: View {
                     .keyboardType(.URL)
                     .padding()
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .disableAutocorrection(true)
             SecureField("lanraragi.config.apiKey", text: self.$configModel.apiKey)
                     .padding()
                     .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -47,6 +49,9 @@ struct LANraragiConfigView: View {
             if success {
                 self.store.dispatch(.setting(action: .resetState))
                 self.presentationMode.wrappedValue.dismiss()
+                if self.notLoggedIn {
+                    self.notLoggedIn = false
+                }
             }
         })
     }
@@ -54,6 +59,6 @@ struct LANraragiConfigView: View {
 
 struct LANraragiConfigView_Previews: PreviewProvider {
     static var previews: some View {
-        LANraragiConfigView()
+        LANraragiConfigView(notLoggedIn: Binding.constant(true))
     }
 }

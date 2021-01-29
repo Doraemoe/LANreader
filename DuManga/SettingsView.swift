@@ -9,7 +9,7 @@ struct SettingsView: View {
                 ReadSettings()
             }
             Section(header: Text("settings.host")) {
-                NavigationLink(destination: LANraragiConfigView()) {
+                NavigationLink(destination: LANraragiConfigView(notLoggedIn: Binding.constant(false))) {
                     Text("settings.host.config")
                     .padding()
                 }
