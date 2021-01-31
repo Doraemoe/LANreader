@@ -24,6 +24,7 @@ struct SettingsKey {
     static let splitPagePriorityLeft = "settings.read.split.page.priority.left"
     static let archiveListRandom = "settings.archive.list.random"
     static let useListView = "settings.view.use.list"
+    static let blurInterfaceWhenInactive = "settings.view.blur.inactive"
 }
 
 struct ErrorCode: Equatable {
