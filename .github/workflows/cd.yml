@@ -9,6 +9,7 @@ jobs:
  deploy:
     name: Deploy beta build to TestFlight
     runs-on: macOS-latest
+    environment: CI
     steps:
       - name: Checkout code from ref
         uses: actions/checkout@v2
