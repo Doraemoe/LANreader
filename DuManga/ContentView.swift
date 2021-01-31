@@ -16,18 +16,22 @@ struct ContentView: View {
                     TabView(selection: $contentViewModel.tabName) {
                         LibraryList()
                             .tabItem {
+                                Image(systemName: "books.vertical")
                                 Text("library")
                             }.tag("library")
                         CategoryList(editMode: $contentViewModel.editMode)
                             .tabItem {
+                                Image(systemName: "folder")
                                 Text("category")
                             }.tag("category")
                         SearchView()
                             .tabItem {
+                                Image(systemName: "magnifyingglass")
                                 Text("search")
                             }.tag("search")
                         SettingsView()
                             .tabItem {
+                                Image(systemName: "gearshape")
                                 Text("settings")
                             }.tag("settings")
                     }
