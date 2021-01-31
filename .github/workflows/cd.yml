@@ -16,9 +16,7 @@ jobs:
           ref: ${{ github.ref }}
       - uses: actions/setup-ruby@v1
         with:
-          ruby-version: '>= 2.6'
-      - name: Install bundler
-        run: gem install bundler
+          ruby-version: '2.6'
       - name: Deploy iOS Beta to TestFlight via Fastlane
         uses: maierj/fastlane-action@v2.0.0
         with:
