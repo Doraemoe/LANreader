@@ -27,6 +27,7 @@
 "settings.view" = "View Settings";
 "settings.archive.list.random" = "Randomized archive list";
 "settings.archive.list.view" = "Use list view";
+"settings.view.blur.inactive" = "Blur interface when app is not active";
 
 "settings.host" = "Host settings";
 "settings.host.config" = "Host";

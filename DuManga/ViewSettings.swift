@@ -5,6 +5,7 @@ import SwiftUI
 struct ViewSettings: View {
     @AppStorage(SettingsKey.archiveListRandom) var archiveListRandom: Bool = false
     @AppStorage(SettingsKey.useListView) var useListView: Bool = false
+    @AppStorage(SettingsKey.blurInterfaceWhenInactive) var blurInterfaceWhenInactive: Bool = false
 
     var body: some View {
         List {
@@ -15,6 +16,10 @@ struct ViewSettings: View {
             Toggle(isOn: self.$useListView) {
                 Text("settings.archive.list.view")
             }
+            .padding()
+            Toggle(isOn: self.$blurInterfaceWhenInactive, label: {
+                Text("settings.view.blur.inactive")
+            })
             .padding()
         }
     }

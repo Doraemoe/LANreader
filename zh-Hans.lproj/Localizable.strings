@@ -27,6 +27,7 @@
 "settings.view" = "视图设定";
 "settings.archive.list.random" = "随机化漫画列表视图";
 "settings.archive.list.view" = "使用列表视图";
+"settings.view.blur.inactive" = "后台运行时模糊界面显示";
 
 "settings.host" = "服务器设定";
 "settings.host.config" = "服务器";
