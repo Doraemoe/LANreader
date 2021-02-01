@@ -5,6 +5,7 @@ DEVELOPER_APP_IDENTIFIER = ENV["DEVELOPER_APP_IDENTIFIER"]
 PROVISIONING_PROFILE_SPECIFIER = ENV["PROVISIONING_PROFILE_SPECIFIER"]
 TEMP_KEYCHAIN_USER = ENV["TEMP_KEYCHAIN_USER"]
 TEMP_KEYCHAIN_PASSWORD = ENV["TEMP_KEYCHAIN_PASSWORD"]
+BUILD_NUMBER = ENV["BUILD_NUMBER"]
 
 def delete_temp_keychain(name)
   delete_keychain(
@@ -27,6 +28,12 @@ def ensure_temp_keychain(name, password)
 end
 
 platform :ios do
+  lane :increase_build do
+    increment_build_number(
+      build_number: "#{BUILD_NUMBER}"
+    )
+  end
+
   lane :closed_beta do
     keychain_name = TEMP_KEYCHAIN_USER
     keychain_password = TEMP_KEYCHAIN_PASSWORD
@@ -56,6 +63,7 @@ platform :ios do
       apple_id: "#{DEVELOPER_APP_ID}",
       app_identifier: "#{DEVELOPER_APP_IDENTIFIER}",
       skip_submission: true,
+      skip_waiting_for_build_processing: true,
       distribute_external: false,
       notify_external_testers: false,
       ipa: "./DuManga.ipa"
