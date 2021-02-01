@@ -14,14 +14,38 @@ jobs:
       - name: Checkout code from ref
         uses: actions/checkout@v2
         with:
+          fetch-depth: 0
           ref: ${{ github.ref }}
       - uses: actions/setup-ruby@v1
         with:
           ruby-version: '2.6'
+      - uses: actions/cache@v2
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-
+      - name: Get latest tag
+        id: latest
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+      - name: extract version and build number
+        id: version
+        run: |
+          IFS=- read version build <<< ${{ steps.latest.outputs.tag }}
+          echo "::set-output name=version::$version"
+          echo "::set-output name=build::$build"
+      - name: bump build
+        uses: maierj/fastlane-action@v2.0.0
+        with:
+          lane: increase_build
+          bundle-install-path: 'vendor/bundle'
+        env:
+          BUILD_NUMBER: $((${{ steps.version.outputs.build }} + 1))
       - name: Deploy iOS Beta to TestFlight via Fastlane
         uses: maierj/fastlane-action@v2.0.0
         with:
           lane: closed_beta
+          bundle-install-path: 'vendor/bundle'
         env:
           APP_STORE_CONNECT_TEAM_ID: '${{ secrets.APP_STORE_CONNECT_TEAM_ID }}'
           DEVELOPER_APP_ID: '${{ secrets.DEVELOPER_APP_ID }}'
@@ -34,3 +58,7 @@ jobs:
           PROVISIONING_PROFILE_SPECIFIER: '${{ secrets.PROVISIONING_PROFILE_SPECIFIER }}'
           TEMP_KEYCHAIN_PASSWORD: '${{ secrets.TEMP_KEYCHAIN_PASSWORD }}'
           TEMP_KEYCHAIN_USER: '${{ secrets.TEMP_KEYCHAIN_USER }}'
+      - name: Push new tag
+        run: |
+         git tag ${{ steps.version.outputs.version }}-$((${{ steps.version.outputs.build }} + 1))
+         git push origin ${{ steps.version.outputs.version }}-$((${{ steps.version.outputs.build }} + 1))
