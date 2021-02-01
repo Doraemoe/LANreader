@@ -18,10 +18,33 @@ jobs:
       - uses: actions/setup-ruby@v1
         with:
           ruby-version: '2.6'
+      - uses: actions/cache@v2
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-
+      - name: Get latest tag
+        id: latest
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+      - name: extract version and build number
+        id: version
+        run: |
+          IFS=- read version build <<< ${{ steps.latest.outputs.tag }}
+          echo "::set-output name=version::$version"
+          echo "::set-output name=build::$build"
+      - name: bump build
+        uses: maierj/fastlane-action@v2.0.0
+        with:
+          lane: increase_build
+          bundle-install-path: 'vendor/bundle'
+        env:
+          BUILD_NUMBER: $((${{ steps.version.outputs.build }} + 1))
       - name: Deploy iOS Beta to TestFlight via Fastlane
         uses: maierj/fastlane-action@v2.0.0
         with:
           lane: closed_beta
+          bundle-install-path: 'vendor/bundle'
         env:
           APP_STORE_CONNECT_TEAM_ID: '${{ secrets.APP_STORE_CONNECT_TEAM_ID }}'
           DEVELOPER_APP_ID: '${{ secrets.DEVELOPER_APP_ID }}'
