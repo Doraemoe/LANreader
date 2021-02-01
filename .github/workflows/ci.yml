@@ -13,14 +13,71 @@ jobs:
           destination: ['platform=iOS Simulator,OS=14.0,name=iPad Pro (9.7-inch)']
     steps:
       - uses: actions/checkout@v2
-
-      - name: lint
-        run: swiftlint --strict
-
-      - name: Select Xcode version
-        run: sudo xcode-select -switch /Applications/Xcode_12.app
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
       
-      - name: Build and test
-        run: xcodebuild clean test -project DuManga.xcodeproj -scheme DuManga -destination "${destination}"
-        env: 
-         destination: ${{ matrix.destination }}
+      - name: 'Get Previous tag'
+        id: previoustag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+      
+      - name: 'run'
+        id: version
+        run: |
+          IFS=- read version build <<< ${{ steps.previoustag.outputs.tag }}
+          echo "::set-output name=version::$version"
+          echo "::set-output name=build::$build"
+
+      - name: 'check'
+        run: |
+          echo ${{ steps.version.outputs.version }}
+          echo $((${{ steps.version.outputs.build }} + 1))
+          echo ${{ steps.version.outputs.version }}-$((${{ steps.version.outputs.build }} + 1))
+
+
+      # - name: lint
+      #   run: swiftlint --strict
+
+      # - name: Select Xcode version
+      #   run: sudo xcode-select -switch /Applications/Xcode_12.app
+      
+      # - name: Build and test
+      #   run: xcodebuild clean test -project DuManga.xcodeproj -scheme DuManga -destination "${destination}"
+      #   env: 
+      #    destination: ${{ matrix.destination }}
+
+      - uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.6'
+
+      # - uses: actions/cache@v2
+      #   with:
+      #     path: vendor/bundle
+      #     key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-gems-
+
+      - name: Increase build number
+        uses: maierj/fastlane-action@v2.0.0
+        with:
+          lane: increase_build
+          bundle-install-path: 'vendor/bundle'
+        env:
+          BUILD_NUMBER: $((${{ steps.version.outputs.build }} + 1))
+
+      - name: test
+        run: |
+          git tag ${{ steps.version.outputs.version }}-$((${{ steps.version.outputs.build }} + 1))
+          git push origin ${{ steps.version.outputs.version }}-$((${{ steps.version.outputs.build }} + 1))
+
+      # - name: Commit
+      #   run: |
+      #     git config --global user.email "bot@noreply.com"
+      #     git config --global user.name "github-actions[bot]"
+      #     git commit -am "Bump build number"
+
+      # - name: Push
+      #   uses: ad-m/github-push-action@master
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     branch: ${{ github.HEAD_REF }}
