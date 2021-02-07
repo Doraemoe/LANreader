@@ -7,6 +7,7 @@ struct ArchiveItem: Identifiable, Equatable {
     let id: String
     let name: String
     let tags: String
+    let isNew: Bool
 }
 
 struct CategoryItem: Identifiable, Equatable {
@@ -15,4 +16,5 @@ struct CategoryItem: Identifiable, Equatable {
     let archives: [String]
     let search: String
     let pinned: String
+    let isNew: Bool
 }

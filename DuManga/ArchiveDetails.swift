@@ -34,7 +34,8 @@ struct ArchiveDetails: View {
                 .navigationBarItems(trailing: Button(action: {
                     let updated = ArchiveItem(id: self.item.id,
                             name: archiveListModel.title,
-                            tags: archiveListModel.tags)
+                            tags: archiveListModel.tags,
+                            isNew: false)
                     self.store.dispatch(.archive(action: .updateArchiveMetadata(metadata: updated)))
                 }, label: {
                     Text("save")
@@ -69,6 +70,6 @@ struct ArchiveDetails: View {
 
 struct ArchiveDetails_Previews: PreviewProvider {
     static var previews: some View {
-        ArchiveDetails(item: ArchiveItem(id: "id", name: "name", tags: "tags"))
+        ArchiveDetails(item: ArchiveItem(id: "id", name: "name", tags: "tags", isNew: true))
     }
 }
