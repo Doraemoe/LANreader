@@ -234,7 +234,7 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let item = CategoryItem(id: "SET_12345678", name: "name", archives: [], search: "search", pinned: "0")
+        let item = CategoryItem(id: "SET_12345678", name: "name", archives: [], search: "search", pinned: "0", isNew: true)
 
         let publisher = service.updateDynamicCategory(item: item)
         let recorder = publisher.record()
@@ -253,7 +253,7 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
-        let item = CategoryItem(id: "SET_12345678", name: "name", archives: [], search: "search", pinned: "0")
+        let item = CategoryItem(id: "SET_12345678", name: "name", archives: [], search: "search", pinned: "0", isNew: true)
 
         let publisher = service.updateDynamicCategory(item: item)
         let recorder = publisher.record()
@@ -379,7 +379,7 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let metadata = ArchiveItem(id: "id", name: "name", tags: "tags")
+        let metadata = ArchiveItem(id: "id", name: "name", tags: "tags", isNew: true)
         let publisher = service.updateArchiveMetaData(archiveMetadata: metadata)
         let recorder = publisher.record()
         let actual = try wait(for: recorder.single, timeout: 1.0)
@@ -398,7 +398,7 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
-        let metadata = ArchiveItem(id: "id", name: "name", tags: "tags")
+        let metadata = ArchiveItem(id: "id", name: "name", tags: "tags", isNew: true)
         let publisher = service.updateArchiveMetaData(archiveMetadata: metadata)
         let recorder = publisher.record()
         let actual = try wait(for: recorder.completion, timeout: 1.0)
