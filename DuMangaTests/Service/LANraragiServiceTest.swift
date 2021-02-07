@@ -234,7 +234,8 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let item = CategoryItem(id: "SET_12345678", name: "name", archives: [], search: "search", pinned: "0", isNew: true)
+        let item = CategoryItem(id: "SET_12345678", name: "name", archives: [],
+                                search: "search", pinned: "0", isNew: true)
 
         let publisher = service.updateDynamicCategory(item: item)
         let recorder = publisher.record()
@@ -253,7 +254,8 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
-        let item = CategoryItem(id: "SET_12345678", name: "name", archives: [], search: "search", pinned: "0", isNew: true)
+        let item = CategoryItem(id: "SET_12345678", name: "name", archives: [],
+                                search: "search", pinned: "0", isNew: true)
 
         let publisher = service.updateDynamicCategory(item: item)
         let recorder = publisher.record()
