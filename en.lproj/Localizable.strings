@@ -43,7 +43,7 @@
 "category.edit" = "Edit category";
 "category.name" = "Category name";
 "category.search" = "Search keyword";
-
+"category.new" = "New archive only";
 
 "error.host" = "Cannot connect to server, please check your settings";
 "error.list" = "Cannot load library, please try again or check your server settings";

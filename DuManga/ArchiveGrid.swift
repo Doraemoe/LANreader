@@ -25,7 +25,7 @@ struct ArchiveGrid: View {
 
 struct ArchiveGrid_Previews: PreviewProvider {
     static var previews: some View {
-        ArchiveGrid(archiveItem: ArchiveItem(id: "id", name: "name", tags: "tags"))
+        ArchiveGrid(archiveItem: ArchiveItem(id: "id", name: "name", tags: "tags", isNew: true))
                 .previewLayout(.fixed(width: 200, height: 280))
     }
 }

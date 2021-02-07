@@ -43,6 +43,7 @@
 "category.edit" = "编辑类别";
 "category.name" = "类别名";
 "category.search" = "搜索关键词";
+"category.new" = "未读";
 
 "error.host" = "无法连接服务器，请检查设置";
 "error.list" = "无法加载媒体库，请重试或检查服务器设定";

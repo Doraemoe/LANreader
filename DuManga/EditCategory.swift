@@ -45,7 +45,7 @@ struct EditCategory: View {
                     }), trailing: Button(action: {
                         let updated: CategoryItem = CategoryItem(id: self.item.id,
                                 name: editCategoryModel.categoryName, archives: [],
-                                search: editCategoryModel.searchKeyword, pinned: self.item.pinned)
+                                search: editCategoryModel.searchKeyword, pinned: self.item.pinned, isNew: false)
                         self.store.dispatch(.category(action: .updateDynamicCategory(category: updated)))
                     }, label: {
                         Text("done")
@@ -78,7 +78,9 @@ struct EditCategory: View {
 
 struct EditCategory_Previews: PreviewProvider {
     static var previews: some View {
-        EditCategory(item: CategoryItem(id: "id", name: "name", archives: [], search: "search", pinned: "0"),
+        EditCategory(item: CategoryItem(id: "id", name: "name",
+                                        archives: [], search: "search",
+                                        pinned: "0", isNew: false),
                 showSheetView: Binding.constant(true))
     }
 }

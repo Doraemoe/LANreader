@@ -5,6 +5,10 @@
 import SwiftUI
 
 struct CategoryArchiveList: View {
+    private static let newCategorySelector = Selector(
+            initBase: [String: ArchiveItem](),
+            initFilter: true,
+            initResult: [ArchiveItem]())
     private static let dynamicCategorySelector = Selector(
             initBase: [String: ArchiveItem](),
             initFilter: [String](),
@@ -57,7 +61,17 @@ struct CategoryArchiveList: View {
     }
 
     private func selectArchives() -> [ArchiveItem] {
-        if !self.categoryItem.search.isEmpty {
+        if self.categoryItem.isNew {
+            return CategoryArchiveList.newCategorySelector.select(
+                base: self.categoryArchiveListModel.archiveItems,
+                filter: true,
+                selector: { (base, _) in
+                    let filtered = base.filter { item in
+                        item.value.isNew == true
+                    }
+                    return Array(filtered.values)
+                })
+        } else if !self.categoryItem.search.isEmpty {
             return CategoryArchiveList.dynamicCategorySelector.select(
                     base: self.categoryArchiveListModel.archiveItems,
                     filter: self.categoryArchiveListModel.dynamicCategoryKeys,
