@@ -25,7 +25,11 @@ func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
         state.loading = false
     case let .updateReadProgressLocal(id, progress):
         let archive = state.archiveItems[id]!
-        state.archiveItems[id] = ArchiveItem(id: archive.id, name: archive.name, tags: archive.tags, isNew: archive.isNew, progress: progress)
+        state.archiveItems[id] = ArchiveItem(id: archive.id,
+                                             name: archive.name,
+                                             tags: archive.tags,
+                                             isNew: archive.isNew,
+                                             progress: progress)
     case let .error(error):
         state.loading = false
         state.errorCode = error
