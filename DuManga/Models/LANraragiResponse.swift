@@ -5,6 +5,8 @@ struct ArchiveIndexResponse: Decodable {
     let isnew: String
     let tags: String
     let title: String
+    let pagecount: Int
+    let progress: Int
 }
 
 struct ArchiveExtractResponse: Decodable {

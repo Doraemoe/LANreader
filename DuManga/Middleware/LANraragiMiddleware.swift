@@ -23,8 +23,11 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     .map { (response: [ArchiveIndexResponse]) in
                         var archiveItems = [String: ArchiveItem]()
                         response.forEach { item in
-                            archiveItems[item.arcid] = ArchiveItem(id: item.arcid, name: item.title,
-                                                                   tags: item.tags, isNew: item.isnew == "true")
+                            archiveItems[item.arcid] = ArchiveItem(id: item.arcid,
+                                                                   name: item.title,
+                                                                   tags: item.tags,
+                                                                   isNew: item.isnew == "true",
+                                                                   progress: item.progress)
                         }
                         return AppAction.archive(action: .fetchArchiveSuccess(archive: archiveItems))
                     }
@@ -61,7 +64,13 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     }
                     .replaceError(with: AppAction.page(action: .error(error: .archiveExtractError)))
                     .eraseToAnyPublisher()
-
+        case let .archive(action: .updateReadProgressServer(id, progress)):
+            return service.updateArchiveReadProgress(id: id, progress: progress)
+                .map { _ in
+                    return AppAction.archive(action: .updateReadProgressLocal(id: id, progress: progress))
+                }
+                .replaceError(with: AppAction.noop)
+                .eraseToAnyPublisher()
         case .category(action: .fetchCategory):
             return service.retrieveCategories()
                     .map { (response: [ArchiveCategoriesResponse]) in

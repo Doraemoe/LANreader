@@ -8,6 +8,7 @@ struct ArchiveItem: Identifiable, Equatable {
     let name: String
     let tags: String
     let isNew: Bool
+    let progress: Int
 }
 
 struct CategoryItem: Identifiable, Equatable {
