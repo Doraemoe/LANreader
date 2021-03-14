@@ -89,7 +89,8 @@ struct ArchivePage: View {
                         .opacity(archivePageModel.loading ? 1 : 0)
             }
                     .onAppear(perform: {
-                        archivePageModel.load(state: store.state, progress: archiveItem.progress)
+                        archivePageModel.load(state: store.state,
+                                              progress: archiveItem.progress > 0 ? archiveItem.progress - 1 : 0)
                         self.extractArchive()
                     })
                     .onChange(of: archivePageModel.archivePages[archiveItem.id], perform: { page in
@@ -172,6 +173,7 @@ struct ArchivePage: View {
               store.dispatch(.page(action: .error(error: errorCode)))
             })
             self.archivePageModel.currentIndex = page.rounded()
+            store.dispatch(.archive(action: .updateReadProgressServer(id: archiveItem.id, progress: index + 1)))
             if index == (archivePageModel.archivePages[archiveItem.id]?.count ?? 0) - 1 {
                 self.archivePageModel.clearNewFlag(id: archiveItem.id)
             }

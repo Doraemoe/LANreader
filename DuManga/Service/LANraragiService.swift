@@ -156,6 +156,13 @@ class LANraragiService {
                 .publishString()
                 .value()
     }
+    
+    func updateArchiveReadProgress(id: String, progress: Int) -> AnyPublisher<String, AFError> {
+        return session.request("\(url)/api/archives/\(id)/progress/\(progress)", method: .put)
+            .validate(statusCode: 200...200)
+            .publishString()
+            .value()
+    }
 
     public static var shared: LANraragiService {
         if _shared == nil {

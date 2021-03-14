@@ -9,4 +9,5 @@ enum AppAction {
     case archive(action: ArchiveAction)
     case category(action: CategoryAction)
     case page(action: PageAction)
+    case noop
 }

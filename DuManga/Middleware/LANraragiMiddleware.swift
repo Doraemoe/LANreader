@@ -61,7 +61,13 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     }
                     .replaceError(with: AppAction.page(action: .error(error: .archiveExtractError)))
                     .eraseToAnyPublisher()
-
+        case let .archive(action: .updateReadProgressServer(id, progress)):
+            return service.updateArchiveReadProgress(id: id, progress: progress)
+                .map { _ in
+                    return AppAction.archive(action: .updateReadProgressLocal(id: id, progress: progress))
+                }
+                .replaceError(with: AppAction.noop)
+                .eraseToAnyPublisher()
         case .category(action: .fetchCategory):
             return service.retrieveCategories()
                     .map { (response: [ArchiveCategoriesResponse]) in

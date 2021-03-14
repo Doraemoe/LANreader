@@ -14,6 +14,9 @@ enum ArchiveAction {
 
     case updateArchiveMetadata(metadata: ArchiveItem)
     case updateArchiveMetadataSuccess(metadata: ArchiveItem)
+    
+    case updateReadProgressServer(id: String, progress: Int)
+    case updateReadProgressLocal(id: String, progress: Int)
 
     case error(error: ErrorCode)
     case resetState
