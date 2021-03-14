@@ -89,7 +89,7 @@ struct ArchivePage: View {
                         .opacity(archivePageModel.loading ? 1 : 0)
             }
                     .onAppear(perform: {
-                        archivePageModel.load(state: store.state)
+                        archivePageModel.load(state: store.state, progress: archiveItem.progress)
                         self.extractArchive()
                     })
                     .onChange(of: archivePageModel.archivePages[archiveItem.id], perform: { page in

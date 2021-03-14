@@ -34,7 +34,7 @@ class ArchivePageModel: ObservableObject {
 
     private var cancellables: Set<AnyCancellable> = []
 
-    func load(state: AppState) {
+    func load(state: AppState, progress: Int) {
         state.page.$loading.receive(on: DispatchQueue.main)
                 .assign(to: \.loading, on: self)
                 .store(in: &cancellables)
@@ -46,6 +46,7 @@ class ArchivePageModel: ObservableObject {
         state.page.$errorCode.receive(on: DispatchQueue.main)
                 .assign(to: \.errorCode, on: self)
                 .store(in: &cancellables)
+        currentIndex = Double(progress)
     }
 
     func unload() {
