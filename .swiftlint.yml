@@ -1,6 +1,7 @@
 disabled_rules:
   - todo
   - statement_position
+  - cyclomatic_complexity
 
 identifier_name:
   excluded:

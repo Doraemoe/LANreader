@@ -6,6 +6,7 @@ import NotificationBannerSwift
 struct ArchiveDetails: View {
     @EnvironmentObject var store: AppStore
     @Environment(\.presentationMode) var presentationMode
+    @State private var showingAlert = false
 
     @StateObject var archiveListModel = ArchiveDetailsModel()
 
@@ -29,15 +30,32 @@ struct ArchiveDetails: View {
                     .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: 200, alignment: .center)
                     .disableAutocorrection(true)
                     .padding()
+            Button(action: { showingAlert = true },
+                    label: {
+                        Text("archive.delete")
+                    })
+                    .padding()
+                    .foregroundColor(.white)
+                    .background(Color.red)
+                    .cornerRadius(20)
+                    .alert(isPresented: $showingAlert) {
+                        Alert(
+                                title: Text("archive.delete.confirm"),
+                                primaryButton: .destructive(Text("delete")) {
+                                    store.dispatch(.archive(action: .deleteArchive(id: item.id)))
+                                },
+                                secondaryButton: .cancel()
+                        )
+                    }
             Spacer()
         }
                 .navigationBarItems(trailing: Button(action: {
-                    let updated = ArchiveItem(id: self.item.id,
+                    let updated = ArchiveItem(id: item.id,
                             name: archiveListModel.title,
                             tags: archiveListModel.tags,
                             isNew: false,
                             progress: 0)
-                    self.store.dispatch(.archive(action: .updateArchiveMetadata(metadata: updated)))
+                    store.dispatch(.archive(action: .updateArchiveMetadata(metadata: updated)))
                 }, label: {
                     Text("save")
                 })
@@ -45,8 +63,8 @@ struct ArchiveDetails: View {
                 )
                 .onAppear(perform: {
                     archiveListModel.load(state: store.state,
-                            title: self.item.name,
-                            tags: self.item.tags)
+                            title: item.name,
+                            tags: item.tags)
                 })
                 .onDisappear(perform: {
                     archiveListModel.unload()
@@ -57,13 +75,19 @@ struct ArchiveDetails: View {
                                 subtitle: NSLocalizedString("error.metadata.update", comment: "update metadata error"),
                                 style: .danger)
                         banner.show()
-                        self.store.dispatch(.archive(action: .resetState))
+                        store.dispatch(.archive(action: .resetState))
                     }
                 })
                 .onChange(of: archiveListModel.updateSuccess, perform: { success in
                     if success {
-                        self.store.dispatch(.archive(action: .resetState))
-                        self.presentationMode.wrappedValue.dismiss()
+                        store.dispatch(.archive(action: .resetState))
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                })
+                .onChange(of: archiveListModel.deleteSuccess, perform: { success in
+                    if success {
+                        store.dispatch(.archive(action: .resetState))
+                        presentationMode.wrappedValue.dismiss()
                     }
                 })
     }

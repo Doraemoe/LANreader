@@ -29,3 +29,7 @@ struct ArchiveSearchResponse: Decodable {
     let recordsFiltered: Int
     let recordsTotal: Int
 }
+
+struct ArchiveDeleteResponse: Decodable {
+    let success: Int
+}

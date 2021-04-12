@@ -8,6 +8,7 @@
 "save" = "Save";
 "cancel" = "Cancel";
 "error" = "Error";
+"delete" = "Delete";
 
 "filter.name" = "Filter archive by name";
 
@@ -39,6 +40,9 @@
 "settings.database" = "Database";
 "settings.database.error" = "Cannot read database";
 "settings.database.clear" = "Clear cache in database";
+
+"archive.delete" = "Delete archive";
+"archive.delete.confirm" = "Are you sure you want to delete this?";
 
 "category.edit" = "Edit category";
 "category.name" = "Category name";

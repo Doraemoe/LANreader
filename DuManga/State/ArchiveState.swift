@@ -9,5 +9,6 @@ struct ArchiveState {
     @PublishedState var archiveItems = [String: ArchiveItem]()
     @PublishedState var dynamicCategoryKeys = [String]()
     @PublishedState var updateArchiveMetadataSuccess = false
+    @PublishedState var deleteArchiveSuccess = false
     @PublishedState var errorCode: ErrorCode?
 }

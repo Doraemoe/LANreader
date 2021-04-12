@@ -13,6 +13,7 @@ struct ArchivePage: View {
     @AppStorage(SettingsKey.splitPagePriorityLeft) var splitPagePriorityLeft: Bool = false
 
     @EnvironmentObject var store: AppStore
+    @Environment(\.presentationMode) var presentationMode
 
     @StateObject private var archivePageModel = ArchivePageModel()
 
@@ -90,12 +91,17 @@ struct ArchivePage: View {
             }
                     .onAppear(perform: {
                         archivePageModel.load(state: store.state,
-                                              progress: archiveItem.progress > 0 ? archiveItem.progress - 1 : 0)
+                                progress: archiveItem.progress > 0 ? archiveItem.progress - 1 : 0)
                         self.extractArchive()
                     })
                     .onChange(of: archivePageModel.archivePages[archiveItem.id], perform: { page in
                         if page != nil {
                             self.jumpToPage(self.archivePageModel.currentIndex, action: .next)
+                        }
+                    })
+                    .onChange(of: archivePageModel.archiveItems, perform: { _ in
+                        if !archivePageModel.verifyArchiveExists(id: archiveItem.id) {
+                            presentationMode.wrappedValue.dismiss()
                         }
                     })
                     .onChange(of: archivePageModel.errorCode, perform: { errorCode in
@@ -170,7 +176,7 @@ struct ArchivePage: View {
                     split: self.splitPage && UIDevice.current.orientation.isPortrait,
                     priorityLeft: self.splitPagePriorityLeft,
                     action: action, dispatchError: { errorCode in
-              store.dispatch(.page(action: .error(error: errorCode)))
+                store.dispatch(.page(action: .error(error: errorCode)))
             })
             self.archivePageModel.currentIndex = page.rounded()
             store.dispatch(.archive(action: .updateReadProgressServer(id: archiveItem.id, progress: index + 1)))

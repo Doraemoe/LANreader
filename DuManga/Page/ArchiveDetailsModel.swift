@@ -12,6 +12,7 @@ class ArchiveDetailsModel: ObservableObject {
 
     @Published private(set) var loading = false
     @Published private(set) var updateSuccess = false
+    @Published private(set) var deleteSuccess = false
     @Published private(set) var errorCode: ErrorCode?
 
     private var cancellable: Set<AnyCancellable> = []
@@ -26,6 +27,10 @@ class ArchiveDetailsModel: ObservableObject {
 
         state.archive.$updateArchiveMetadataSuccess.receive(on: DispatchQueue.main)
                 .assign(to: \.updateSuccess, on: self)
+                .store(in: &cancellable)
+
+        state.archive.$deleteArchiveSuccess.receive(on: DispatchQueue.main)
+                .assign(to: \.deleteSuccess, on: self)
                 .store(in: &cancellable)
 
         state.archive.$errorCode.receive(on: DispatchQueue.main)
