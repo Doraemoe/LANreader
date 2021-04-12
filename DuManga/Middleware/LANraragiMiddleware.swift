@@ -24,10 +24,10 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                         var archiveItems = [String: ArchiveItem]()
                         response.forEach { item in
                             archiveItems[item.arcid] = ArchiveItem(id: item.arcid,
-                                                                   name: item.title,
-                                                                   tags: item.tags,
-                                                                   isNew: item.isnew == "true",
-                                                                   progress: item.progress)
+                                    name: item.title,
+                                    tags: item.tags,
+                                    isNew: item.isnew == "true",
+                                    progress: item.progress)
                         }
                         return AppAction.archive(action: .fetchArchiveSuccess(archive: archiveItems))
                     }
@@ -51,7 +51,18 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     }
                     .replaceError(with: AppAction.archive(action: .error(error: .archiveUpdateMetadataError)))
                     .eraseToAnyPublisher()
-
+        case let .archive(action: .deleteArchive(id)):
+            return service.deleteArchive(id: id)
+                    .map { (response: ArchiveDeleteResponse) in
+                        let success = response.success
+                        if success == 1 {
+                            return AppAction.archive(action: .deleteArchiveSuccess(id: id))
+                        } else {
+                            return AppAction.archive(action: .error(error: .archiveDeleteError))
+                        }
+                    }
+                    .replaceError(with: AppAction.archive(action: .error(error: .archiveDeleteError)))
+                    .eraseToAnyPublisher()
         case let .page(action: .extractArchive(id)):
             return service.extractArchive(id: id)
                     .map { (response: ArchiveExtractResponse) in
@@ -66,22 +77,22 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     .eraseToAnyPublisher()
         case let .archive(action: .updateReadProgressServer(id, progress)):
             return service.updateArchiveReadProgress(id: id, progress: progress)
-                .map { _ in
-                    return AppAction.archive(action: .updateReadProgressLocal(id: id, progress: progress))
-                }
-                .replaceError(with: AppAction.noop)
-                .eraseToAnyPublisher()
+                    .map { _ in
+                        AppAction.archive(action: .updateReadProgressLocal(id: id, progress: progress))
+                    }
+                    .replaceError(with: AppAction.noop)
+                    .eraseToAnyPublisher()
         case .category(action: .fetchCategory):
             return service.retrieveCategories()
                     .map { (response: [ArchiveCategoriesResponse]) in
                         var categoryItems = [String: CategoryItem]()
                         categoryItems["newOnly"] = CategoryItem(id: "newOnly",
-                                                                name: NSLocalizedString("category.new",
-                                                                                        comment: "new"),
-                                                                archives: [],
-                                                                search: "",
-                                                                pinned: "",
-                                                                isNew: true)
+                                name: NSLocalizedString("category.new",
+                                        comment: "new"),
+                                archives: [],
+                                search: "",
+                                pinned: "",
+                                isNew: true)
                         response.forEach { item in
                             categoryItems[item.id] = CategoryItem(id: item.id, name: item.name,
                                     archives: item.archives, search: item.search, pinned: item.pinned, isNew: false)

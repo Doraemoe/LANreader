@@ -27,6 +27,7 @@ class ArchivePageModel: ObservableObject {
     @Published var currentImage = Image("placeholder")
 
     @Published private(set) var loading = false
+    @Published private(set) var archiveItems = [String: ArchiveItem]()
     @Published private(set) var archivePages = [String: [String]]()
     @Published private(set) var errorCode: ErrorCode?
 
@@ -37,6 +38,10 @@ class ArchivePageModel: ObservableObject {
     func load(state: AppState, progress: Int) {
         state.page.$loading.receive(on: DispatchQueue.main)
                 .assign(to: \.loading, on: self)
+                .store(in: &cancellables)
+
+        state.archive.$archiveItems.receive(on: DispatchQueue.main)
+                .assign(to: \.archiveItems, on: self)
                 .store(in: &cancellables)
 
         state.page.$archivePages.receive(on: DispatchQueue.main)
@@ -51,6 +56,10 @@ class ArchivePageModel: ObservableObject {
 
     func unload() {
         cancellables.forEach({ $0.cancel() })
+    }
+
+    func verifyArchiveExists(id: String) -> Bool {
+        archiveItems[id] != nil
     }
 
     func loadPage(page: String,

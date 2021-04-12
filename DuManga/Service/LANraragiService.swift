@@ -164,6 +164,13 @@ class LANraragiService {
             .value()
     }
 
+    func deleteArchive(id: String) -> AnyPublisher<ArchiveDeleteResponse, AFError> {
+        session.request("\(url)/api/archives/\(id)", method: .delete)
+                .validate(statusCode: 200...200)
+                .publishDecodable(type: ArchiveDeleteResponse.self)
+                .value()
+    }
+
     public static var shared: LANraragiService {
         if _shared == nil {
             _shared = LANraragiService()

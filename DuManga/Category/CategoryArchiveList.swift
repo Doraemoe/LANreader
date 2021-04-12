@@ -29,16 +29,18 @@ struct CategoryArchiveList: View {
     }
 
     var body: some View {
-        let archives = selectArchives()
-        return GeometryReader { geometry in
+        GeometryReader { geometry in
             ZStack {
-                ArchiveList(archives: archives)
+                ArchiveList(archives: categoryArchiveListModel.filteredArchives)
                         .onAppear(perform: {
-                            self.categoryArchiveListModel.load(state: store.state)
-                            self.loadData()
+                            categoryArchiveListModel.load(state: store.state)
+                            loadData()
                         })
-                        .onDisappear(perform: {
-                            self.categoryArchiveListModel.unload()
+                        .onChange(of: categoryArchiveListModel.dynamicCategoryKeys, perform: { _ in
+                            categoryArchiveListModel.filterArchives(categoryItem: categoryItem)
+                        })
+                        .onChange(of: categoryArchiveListModel.archiveItems, perform: { _ in
+                            categoryArchiveListModel.filterArchives(categoryItem: categoryItem)
                         })
                 VStack {
                     Text("loading")
@@ -49,49 +51,14 @@ struct CategoryArchiveList: View {
                         .background(Color.secondary)
                         .foregroundColor(Color.primary)
                         .cornerRadius(20)
-                        .opacity(self.categoryArchiveListModel.loading ? 1 : 0)
+                        .opacity(categoryArchiveListModel.loading ? 1 : 0)
             }
         }
     }
 
     private func loadData() {
-        if !self.categoryItem.search.isEmpty {
-            self.store.dispatch(.archive(action: .fetchArchiveDynamicCategory(keyword: self.categoryItem.search)))
-        }
-    }
-
-    private func selectArchives() -> [ArchiveItem] {
-        if self.categoryItem.isNew {
-            return CategoryArchiveList.newCategorySelector.select(
-                base: self.categoryArchiveListModel.archiveItems,
-                filter: true,
-                selector: { (base, _) in
-                    let filtered = base.filter { item in
-                        item.value.isNew == true
-                    }
-                    return Array(filtered.values)
-                })
-        } else if !self.categoryItem.search.isEmpty {
-            return CategoryArchiveList.dynamicCategorySelector.select(
-                    base: self.categoryArchiveListModel.archiveItems,
-                    filter: self.categoryArchiveListModel.dynamicCategoryKeys,
-                    selector: { (base, filter) in
-                        let filtered = base.filter { item in
-                            filter.contains(item.key)
-                        }
-                        return Array(filtered.values)
-                    })
-
-        } else {
-            return CategoryArchiveList.staticCategorySelector.select(
-                    base: self.categoryArchiveListModel.archiveItems,
-                    filter: self.categoryItem.archives,
-                    selector: { (base, filter) in
-                        let filtered = base.filter { item in
-                            filter.contains(item.key)
-                        }
-                        return Array(filtered.values)
-                    })
+        if !categoryItem.search.isEmpty && categoryArchiveListModel.dynamicCategoryKeys.isEmpty {
+            store.dispatch(.archive(action: .fetchArchiveDynamicCategory(keyword: self.categoryItem.search)))
         }
     }
 }

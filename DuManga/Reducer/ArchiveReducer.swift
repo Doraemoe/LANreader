@@ -4,6 +4,7 @@
 
 import Foundation
 
+// swiftlint:disable
 func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
     switch action {
     case .fetchArchive:
@@ -30,12 +31,19 @@ func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
                                              tags: archive.tags,
                                              isNew: archive.isNew,
                                              progress: progress)
+    case .deleteArchive:
+        state.loading = true
+    case let .deleteArchiveSuccess(id):
+        state.archiveItems.removeValue(forKey: id)
+        state.deleteArchiveSuccess = true
+        state.loading = false
     case let .error(error):
         state.loading = false
         state.errorCode = error
     case .resetState:
         state.errorCode = nil
         state.updateArchiveMetadataSuccess = false
+        state.deleteArchiveSuccess = false
     default:
         break
     }

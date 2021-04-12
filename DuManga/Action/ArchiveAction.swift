@@ -18,6 +18,9 @@ enum ArchiveAction {
     case updateReadProgressServer(id: String, progress: Int)
     case updateReadProgressLocal(id: String, progress: Int)
 
+    case deleteArchive(id: String)
+    case deleteArchiveSuccess(id: String)
+
     case error(error: ErrorCode)
     case resetState
 }

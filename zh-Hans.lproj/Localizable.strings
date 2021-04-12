@@ -8,6 +8,7 @@
 "save" = "保存";
 "cancel" = "取消";
 "error" = "错误";
+"delete" = "删除";
 
 "filter.name" = "过滤标题";
 
@@ -39,6 +40,9 @@
 "settings.database" = "数据库";
 "settings.database.error" = "读取数据库失败";
 "settings.database.clear" = "删除数据库缓存";
+
+"archive.delete" = "删除文档";
+"archive.delete.confirm" = "确定要删除此文档吗？";
 
 "category.edit" = "编辑类别";
 "category.name" = "类别名";
