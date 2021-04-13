@@ -5,11 +5,6 @@
 import SwiftUI
 
 struct SearchResult: View {
-    private static let searchResultSelector = Selector(
-            initBase: [String: ArchiveItem](),
-            initFilter: [String](),
-            initResult: [ArchiveItem]())
-
     @EnvironmentObject var store: AppStore
 
     @StateObject private var searchResultModel = SearchResultModel()
@@ -21,13 +16,15 @@ struct SearchResult: View {
     }
 
     var body: some View {
-        let archives = selectArchives()
-        return GeometryReader { geometry in
+        GeometryReader { geometry in
             ZStack {
-                ArchiveList(archives: archives)
+                ArchiveList(archives: searchResultModel.filteredArchives)
                         .onAppear(perform: {
-                            self.searchResultModel.load(state: store.state)
-                            self.loadData()
+                            searchResultModel.load(state: store.state)
+                            loadData()
+                        })
+                        .onChange(of: searchResultModel.searchResultKeys, perform: { _ in
+                            searchResultModel.filterArchives()
                         })
                 VStack {
                     Text("loading")
@@ -38,30 +35,19 @@ struct SearchResult: View {
                         .background(Color.secondary)
                         .foregroundColor(Color.primary)
                         .cornerRadius(20)
-                        .opacity(self.searchResultModel.loading ? 1 : 0)
+                        .opacity(searchResultModel.loading ? 1 : 0)
             }
         }
     }
 
     private func loadData() {
-        if !self.keyword.isEmpty {
-            self.store.dispatch(.archive(action: .fetchArchiveDynamicCategory(keyword: self.keyword)))
+        if !keyword.isEmpty {
+            store.dispatch(.archive(action: .fetchArchiveDynamicCategory))
+            searchResultModel.loadSearchResultKeys(keyword: keyword,
+                    dispatch: { action in
+                        store.dispatch(action)
+                    })
         }
     }
 
-    private func selectArchives() -> [ArchiveItem] {
-        if !self.keyword.isEmpty {
-            return SearchResult.searchResultSelector.select(
-                    base: self.searchResultModel.archiveItems,
-                    filter: self.searchResultModel.dynamicCategoryKeys,
-                    selector: { (base, filter) in
-                        let filtered = base.filter { item in
-                            filter.contains(item.key)
-                        }
-                        return Array(filtered.values)
-                    })
-        } else {
-            return [ArchiveItem]()
-        }
-    }
 }

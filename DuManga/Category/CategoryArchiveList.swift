@@ -5,19 +5,6 @@
 import SwiftUI
 
 struct CategoryArchiveList: View {
-    private static let newCategorySelector = Selector(
-            initBase: [String: ArchiveItem](),
-            initFilter: true,
-            initResult: [ArchiveItem]())
-    private static let dynamicCategorySelector = Selector(
-            initBase: [String: ArchiveItem](),
-            initFilter: [String](),
-            initResult: [ArchiveItem]())
-    private static let staticCategorySelector = Selector(
-            initBase: [String: ArchiveItem](),
-            initFilter: [String](),
-            initResult: [ArchiveItem]())
-
     @EnvironmentObject var store: AppStore
 
     @StateObject private var categoryArchiveListModel = CategoryArchiveListModel()
@@ -39,9 +26,6 @@ struct CategoryArchiveList: View {
                         .onChange(of: categoryArchiveListModel.dynamicCategoryKeys, perform: { _ in
                             categoryArchiveListModel.filterArchives(categoryItem: categoryItem)
                         })
-                        .onChange(of: categoryArchiveListModel.archiveItems, perform: { _ in
-                            categoryArchiveListModel.filterArchives(categoryItem: categoryItem)
-                        })
                 VStack {
                     Text("loading")
                     ProgressView()
@@ -57,8 +41,14 @@ struct CategoryArchiveList: View {
     }
 
     private func loadData() {
-        if !categoryItem.search.isEmpty && categoryArchiveListModel.dynamicCategoryKeys.isEmpty {
-            store.dispatch(.archive(action: .fetchArchiveDynamicCategory(keyword: self.categoryItem.search)))
+        if categoryItem.search.isEmpty {
+            categoryArchiveListModel.filterArchives(categoryItem: categoryItem)
+        } else if categoryArchiveListModel.dynamicCategoryKeys.isEmpty {
+            store.dispatch(.archive(action: .fetchArchiveDynamicCategory))
+            categoryArchiveListModel.loadDynamicCategoryKeys(keyword: categoryItem.search,
+                    dispatch: { action in
+                        store.dispatch(action)
+                    })
         }
     }
 }

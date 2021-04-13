@@ -6,15 +6,15 @@ import Foundation
 import Combine
 
 class CategoryArchiveListModel: ObservableObject {
-    private static let newCategorySelector = Selector(
+    private let newCategorySelector = Selector(
             initBase: [String: ArchiveItem](),
             initFilter: true,
             initResult: [ArchiveItem]())
-    private static let dynamicCategorySelector = Selector(
+    private let dynamicCategorySelector = Selector(
             initBase: [String: ArchiveItem](),
             initFilter: [String](),
             initResult: [ArchiveItem]())
-    private static let staticCategorySelector = Selector(
+    private let staticCategorySelector = Selector(
             initBase: [String: ArchiveItem](),
             initFilter: [String](),
             initResult: [ArchiveItem]())
@@ -25,19 +25,21 @@ class CategoryArchiveListModel: ObservableObject {
     @Published private(set) var errorCode: ErrorCode?
     @Published private(set) var filteredArchives: [ArchiveItem] = []
 
+    private let service = LANraragiService.shared
+
     private var cancellable: Set<AnyCancellable> = []
 
     func load(state: AppState) {
+        loading = state.archive.loading
+        archiveItems = state.archive.archiveItems
+        errorCode = state.archive.errorCode
+
         state.archive.$loading.receive(on: DispatchQueue.main)
                 .assign(to: \.loading, on: self)
                 .store(in: &cancellable)
 
         state.archive.$archiveItems.receive(on: DispatchQueue.main)
                 .assign(to: \.archiveItems, on: self)
-                .store(in: &cancellable)
-
-        state.archive.$dynamicCategoryKeys.receive(on: DispatchQueue.main)
-                .assign(to: \.dynamicCategoryKeys, on: self)
                 .store(in: &cancellable)
 
         state.archive.$errorCode.receive(on: DispatchQueue.main)
@@ -49,9 +51,29 @@ class CategoryArchiveListModel: ObservableObject {
         cancellable.forEach({ $0.cancel() })
     }
 
+    func loadDynamicCategoryKeys(keyword: String,
+                                 dispatch: @escaping (AppAction) -> Void) {
+        service.searchArchiveIndex(filter: keyword)
+                .map { (response: ArchiveSearchResponse) in
+                    var keys = [String]()
+                    response.data.forEach { item in
+                        keys.append(item.arcid)
+                    }
+                    dispatch(.archive(action: .fetchArchiveDynamicCategorySuccess))
+                    return keys
+                }
+                .catch { _ -> Just<[String]> in
+                    dispatch(.archive(action: .error(error: .archiveFetchError)))
+                    return Just([])
+                }
+                .receive(on: DispatchQueue.main)
+                .assign(to: \.dynamicCategoryKeys, on: self)
+                .store(in: &cancellable)
+    }
+
     func filterArchives(categoryItem: CategoryItem) {
         if categoryItem.isNew {
-            filteredArchives = CategoryArchiveListModel.newCategorySelector.select(
+            filteredArchives = newCategorySelector.select(
                     base: archiveItems,
                     filter: true,
                     selector: { (base, _) in
@@ -60,21 +82,20 @@ class CategoryArchiveListModel: ObservableObject {
                         }
                         return Array(filtered.values)
                     })
-        } else if !categoryItem.search.isEmpty {
-            filteredArchives = CategoryArchiveListModel.dynamicCategorySelector.select(
+        } else if !categoryItem.archives.isEmpty {
+            filteredArchives = staticCategorySelector.select(
                     base: archiveItems,
-                    filter: dynamicCategoryKeys,
+                    filter: categoryItem.archives,
                     selector: { (base, filter) in
                         let filtered = base.filter { item in
                             filter.contains(item.key)
                         }
                         return Array(filtered.values)
                     })
-
-        } else {
-            filteredArchives = CategoryArchiveListModel.staticCategorySelector.select(
+        } else if !categoryItem.search.isEmpty {
+            filteredArchives = dynamicCategorySelector.select(
                     base: archiveItems,
-                    filter: categoryItem.archives,
+                    filter: dynamicCategoryKeys,
                     selector: { (base, filter) in
                         let filtered = base.filter { item in
                             filter.contains(item.key)

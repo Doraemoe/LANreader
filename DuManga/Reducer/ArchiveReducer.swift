@@ -14,10 +14,8 @@ func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
         state.archiveItems = archiveItems
     case .fetchArchiveDynamicCategory:
         state.loading = true
-        state.dynamicCategoryKeys = [String]()
-    case let .fetchArchiveDynamicCategorySuccess(keys):
+    case let .fetchArchiveDynamicCategorySuccess:
         state.loading = false
-        state.dynamicCategoryKeys = keys
     case .updateArchiveMetadata:
         state.loading = true
     case let .updateArchiveMetadataSuccess(metadata):
