@@ -33,17 +33,6 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     }
                     .replaceError(with: AppAction.archive(action: .error(error: .archiveFetchError)))
                     .eraseToAnyPublisher()
-        case let .archive(action: .fetchArchiveDynamicCategory(keyword)):
-            return service.searchArchiveIndex(filter: keyword)
-                    .map { (response: ArchiveSearchResponse) in
-                        var keys = [String]()
-                        response.data.forEach { item in
-                            keys.append(item.arcid)
-                        }
-                        return AppAction.archive(action: .fetchArchiveDynamicCategorySuccess(keys: keys))
-                    }
-                    .replaceError(with: AppAction.archive(action: .error(error: .archiveFetchError)))
-                    .eraseToAnyPublisher()
         case let .archive(action: .updateArchiveMetadata(metadata)):
             return service.updateArchiveMetaData(archiveMetadata: metadata)
                     .map { _ in

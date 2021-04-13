@@ -9,8 +9,8 @@ enum ArchiveAction {
     case fetchArchive
     case fetchArchiveSuccess(archive: [String: ArchiveItem])
 
-    case fetchArchiveDynamicCategory(keyword: String)
-    case fetchArchiveDynamicCategorySuccess(keys: [String])
+    case fetchArchiveDynamicCategory
+    case fetchArchiveDynamicCategorySuccess
 
     case updateArchiveMetadata(metadata: ArchiveItem)
     case updateArchiveMetadataSuccess(metadata: ArchiveItem)
