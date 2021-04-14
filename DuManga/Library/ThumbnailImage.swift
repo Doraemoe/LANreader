@@ -3,17 +3,19 @@
 import SwiftUI
 
 struct ThumbnailImage: View {
-    @StateObject private var imageModel: ThumbnailImageModel
+    @StateObject private var imageModel = ThumbnailImageModel()
+
+    private let id: String
 
     init(id: String) {
-        _imageModel = StateObject(wrappedValue: ThumbnailImageModel(id: id))
+        self.id = id
     }
 
     var body: some View {
         imageModel.image
             .resizable()
             .onAppear(perform: {
-                imageModel.load()
+                imageModel.load(id: id)
             })
             .onDisappear(perform: {
                 imageModel.unload()
