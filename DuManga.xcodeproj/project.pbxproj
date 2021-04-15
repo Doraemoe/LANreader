@@ -56,6 +56,10 @@
 		4BD82F2BEC56B95FB9BC9841 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD827ECEE1938273E758358 /* SettingsView.swift */; };
 		4BD82F9971576783E22B9CCC /* LibraryListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD827FF18A6F189F4DE5B30 /* LibraryListModel.swift */; };
 		4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD824A308A90B5740411016 /* LANraragiService.swift */; };
+		6DA7132C750DC84C5D4618F3 /* PageImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA71C5217BC4916AB9D5C36 /* PageImage.swift */; };
+		6DA7192FFCF3A25A1FD788DA /* ArchivePageV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA71E19C1691936CF5C7B7B /* ArchivePageV2.swift */; };
+		6DA71B2D585BA490A9265AA7 /* PageImageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA7142EA580864782E99661 /* PageImageModel.swift */; };
+		6DA71D6888233DB756F6F50D /* ArchivePageModelV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA71AA80493DE3160A68590 /* ArchivePageModelV2.swift */; };
 		7D34EAE0253B050900695AFD /* ThumbnailImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D34EADF253B050900695AFD /* ThumbnailImage.swift */; };
 		7D34EAE5253B053C00695AFD /* ThumbnailImageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D34EAE4253B053C00695AFD /* ThumbnailImageModel.swift */; };
 		7D354CA624F1316D00617F4A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CA524F1316D00617F4A /* Assets.xcassets */; };
@@ -79,17 +83,10 @@
 		7DE399892578FB34003DC5F7 /* DatabaseSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DE399882578FB34003DC5F7 /* DatabaseSettings.swift */; };
 		7DE5777A250780C100FD1603 /* SetArchiveMetadataResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7DE57779250780C100FD1603 /* SetArchiveMetadataResponse.json */; };
 		7DE70F562503C7B3006414DE /* ClearNewFlagResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7DE70F552503C7B3006414DE /* ClearNewFlagResponse.json */; };
-		7DEBE79B252DBEE4001199CD /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CD024F1390400617F4A /* Alamofire */; };
-		7DEBE79C252DBEE4001199CD /* AlamofireImage in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CD324F1393100617F4A /* AlamofireImage */; };
-		7DEBE79D252DBEE4001199CD /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE124F15F1800617F4A /* Logging */; };
-		7DEBE79E252DBEE4001199CD /* NotificationBannerSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D7A6842250239750051F232 /* NotificationBannerSwift */; };
-		7DEBE79F252DBEE4001199CD /* OHHTTPStubsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE924F1660200617F4A /* OHHTTPStubsSwift */; };
-		7DEBE7A5252DBF26001199CD /* CombineExpectations in Frameworks */ = {isa = PBXBuildFile; productRef = 7DEBE7A4252DBF26001199CD /* CombineExpectations */; };
 		7DF2E89D24F7D30700689A6D /* ArchiveMetadataResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7DF2E89C24F7D30700689A6D /* ArchiveMetadataResponse.json */; };
 		7DF6FFAA252DC3BB009280A5 /* FileUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF6FFA9252DC3BB009280A5 /* FileUtils.swift */; };
 		7DF6FFB2252DCE97009280A5 /* UnauthorizedResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7DF6FFB1252DCE97009280A5 /* UnauthorizedResponse.json */; };
 		7DF7EA742564E1D2003B5A5A /* AppDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA732564E1D2003B5A5A /* AppDatabase.swift */; };
-		7DF7EA7A2564E264003B5A5A /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 7DF7EA792564E264003B5A5A /* GRDB */; };
 		7DF7EA7F2564E5D1003B5A5A /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA7E2564E5D1003B5A5A /* Persistence.swift */; };
 		7DF7EA852564E675003B5A5A /* Archive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA842564E675003B5A5A /* Archive.swift */; };
 /* End PBXBuildFile section */
@@ -161,6 +158,10 @@
 		4BD82E3AAF924901BE111A11 /* ArchiveReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchiveReducer.swift; sourceTree = "<group>"; };
 		4BD82FA7EAE6ED44136AA4E7 /* SettingsService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingsService.swift; sourceTree = "<group>"; };
 		4BD82FB85284818BED0DE580 /* AppAction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppAction.swift; sourceTree = "<group>"; };
+		6DA7142EA580864782E99661 /* PageImageModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PageImageModel.swift; sourceTree = "<group>"; };
+		6DA71AA80493DE3160A68590 /* ArchivePageModelV2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchivePageModelV2.swift; sourceTree = "<group>"; };
+		6DA71C5217BC4916AB9D5C36 /* PageImage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PageImage.swift; sourceTree = "<group>"; };
+		6DA71E19C1691936CF5C7B7B /* ArchivePageV2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchivePageV2.swift; sourceTree = "<group>"; };
 		7D34EADF253B050900695AFD /* ThumbnailImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailImage.swift; sourceTree = "<group>"; };
 		7D34EAE4253B053C00695AFD /* ThumbnailImageModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailImageModel.swift; sourceTree = "<group>"; };
 		7D354C9C24F1316800617F4A /* DuManga.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DuManga.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -206,11 +207,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7DEBE79D252DBEE4001199CD /* Logging in Frameworks */,
-				7DF7EA7A2564E264003B5A5A /* GRDB in Frameworks */,
-				7DEBE79E252DBEE4001199CD /* NotificationBannerSwift in Frameworks */,
-				7DEBE79B252DBEE4001199CD /* Alamofire in Frameworks */,
-				7DEBE79C252DBEE4001199CD /* AlamofireImage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -218,8 +214,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7DEBE79F252DBEE4001199CD /* OHHTTPStubsSwift in Frameworks */,
-				7DEBE7A5252DBF26001199CD /* CombineExpectations in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -303,6 +297,10 @@
 				4BD825AB0EEF9DE292B50E98 /* ArchiveDetails.swift */,
 				4BD822D1F54ACC90A6131FB8 /* ArchivePageModel.swift */,
 				4BD8253353671DDCADE174C9 /* ArchiveDetailsModel.swift */,
+				6DA71C5217BC4916AB9D5C36 /* PageImage.swift */,
+				6DA7142EA580864782E99661 /* PageImageModel.swift */,
+				6DA71E19C1691936CF5C7B7B /* ArchivePageV2.swift */,
+				6DA71AA80493DE3160A68590 /* ArchivePageModelV2.swift */,
 			);
 			path = Page;
 			sourceTree = "<group>";
@@ -524,11 +522,11 @@
 			);
 			name = DuManga;
 			packageProductDependencies = (
-				7D354CD024F1390400617F4A /* Alamofire */,
-				7D354CD324F1393100617F4A /* AlamofireImage */,
-				7D354CE124F15F1800617F4A /* Logging */,
-				7D7A6842250239750051F232 /* NotificationBannerSwift */,
-				7DF7EA792564E264003B5A5A /* GRDB */,
+				7D354CD024F1390400617F4A,
+				7D354CD324F1393100617F4A,
+				7D354CE124F15F1800617F4A,
+				7D7A6842250239750051F232,
+				7DF7EA792564E264003B5A5A,
 			);
 			productName = DuManga;
 			productReference = 7D354C9C24F1316800617F4A /* DuManga.app */;
@@ -549,8 +547,8 @@
 			);
 			name = DuMangaTests;
 			packageProductDependencies = (
-				7D354CE924F1660200617F4A /* OHHTTPStubsSwift */,
-				7DEBE7A4252DBF26001199CD /* CombineExpectations */,
+				7D354CE924F1660200617F4A,
+				7DEBE7A4252DBF26001199CD,
 			);
 			productName = DuMangaTests;
 			productReference = 7D354CB224F1316E00617F4A /* DuMangaTests.xctest */;
@@ -608,13 +606,13 @@
 			);
 			mainGroup = 7D354C9324F1316800617F4A;
 			packageReferences = (
-				7D354CCF24F1390400617F4A /* XCRemoteSwiftPackageReference "Alamofire" */,
-				7D354CD224F1393100617F4A /* XCRemoteSwiftPackageReference "AlamofireImage" */,
-				7D354CE024F15F1800617F4A /* XCRemoteSwiftPackageReference "swift-log" */,
-				7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */,
-				7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */,
-				7DEBE7A3252DBF26001199CD /* XCRemoteSwiftPackageReference "CombineExpectations" */,
-				7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */,
+				7D354CCF24F1390400617F4A,
+				7D354CD224F1393100617F4A,
+				7D354CE024F15F1800617F4A,
+				7D354CE824F1660200617F4A,
+				7D7A6841250239750051F232,
+				7DEBE7A3252DBF26001199CD,
+				7DF7EA782564E264003B5A5A,
 			);
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
 			projectDirPath = "";
@@ -730,6 +728,10 @@
 				4BD825F1FAD9741F11C859C0 /* SearchResultModel.swift in Sources */,
 				4BD822BA58A9F4C0B7EB8F85 /* ContentViewModel.swift in Sources */,
 				7DF7EA7F2564E5D1003B5A5A /* Persistence.swift in Sources */,
+				6DA7132C750DC84C5D4618F3 /* PageImage.swift in Sources */,
+				6DA71B2D585BA490A9265AA7 /* PageImageModel.swift in Sources */,
+				6DA7192FFCF3A25A1FD788DA /* ArchivePageV2.swift in Sources */,
+				6DA71D6888233DB756F6F50D /* ArchivePageModelV2.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1081,7 +1083,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		7D354CCF24F1390400617F4A /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+		7D354CCF24F1390400617F4A = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
 			requirement = {
@@ -1089,7 +1091,7 @@
 				minimumVersion = 5.2.2;
 			};
 		};
-		7D354CD224F1393100617F4A /* XCRemoteSwiftPackageReference "AlamofireImage" */ = {
+		7D354CD224F1393100617F4A = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Alamofire/AlamofireImage.git";
 			requirement = {
@@ -1097,7 +1099,7 @@
 				minimumVersion = 4.1.0;
 			};
 		};
-		7D354CE024F15F1800617F4A /* XCRemoteSwiftPackageReference "swift-log" */ = {
+		7D354CE024F15F1800617F4A = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-log.git";
 			requirement = {
@@ -1105,7 +1107,7 @@
 				minimumVersion = 1.4.0;
 			};
 		};
-		7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */ = {
+		7D354CE824F1660200617F4A = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/AliSoftware/OHHTTPStubs";
 			requirement = {
@@ -1113,7 +1115,7 @@
 				minimumVersion = 9.0.0;
 			};
 		};
-		7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */ = {
+		7D7A6841250239750051F232 = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Daltron/NotificationBanner";
 			requirement = {
@@ -1121,7 +1123,7 @@
 				minimumVersion = 3.0.4;
 			};
 		};
-		7DEBE7A3252DBF26001199CD /* XCRemoteSwiftPackageReference "CombineExpectations" */ = {
+		7DEBE7A3252DBF26001199CD = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/CombineExpectations";
 			requirement = {
@@ -1129,7 +1131,7 @@
 				minimumVersion = 0.5.0;
 			};
 		};
-		7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */ = {
+		7DF7EA782564E264003B5A5A = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift";
 			requirement = {
@@ -1140,39 +1142,39 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		7D354CD024F1390400617F4A /* Alamofire */ = {
+		7D354CD024F1390400617F4A = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CCF24F1390400617F4A /* XCRemoteSwiftPackageReference "Alamofire" */;
+			package = 7D354CCF24F1390400617F4A;
 			productName = Alamofire;
 		};
-		7D354CD324F1393100617F4A /* AlamofireImage */ = {
+		7D354CD324F1393100617F4A = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CD224F1393100617F4A /* XCRemoteSwiftPackageReference "AlamofireImage" */;
+			package = 7D354CD224F1393100617F4A;
 			productName = AlamofireImage;
 		};
-		7D354CE124F15F1800617F4A /* Logging */ = {
+		7D354CE124F15F1800617F4A = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CE024F15F1800617F4A /* XCRemoteSwiftPackageReference "swift-log" */;
+			package = 7D354CE024F15F1800617F4A;
 			productName = Logging;
 		};
-		7D354CE924F1660200617F4A /* OHHTTPStubsSwift */ = {
+		7D354CE924F1660200617F4A = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */;
+			package = 7D354CE824F1660200617F4A;
 			productName = OHHTTPStubsSwift;
 		};
-		7D7A6842250239750051F232 /* NotificationBannerSwift */ = {
+		7D7A6842250239750051F232 = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */;
+			package = 7D7A6841250239750051F232;
 			productName = NotificationBannerSwift;
 		};
-		7DEBE7A4252DBF26001199CD /* CombineExpectations */ = {
+		7DEBE7A4252DBF26001199CD = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7DEBE7A3252DBF26001199CD /* XCRemoteSwiftPackageReference "CombineExpectations" */;
+			package = 7DEBE7A3252DBF26001199CD;
 			productName = CombineExpectations;
 		};
-		7DF7EA792564E264003B5A5A /* GRDB */ = {
+		7DF7EA792564E264003B5A5A = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */;
+			package = 7DF7EA782564E264003B5A5A;
 			productName = GRDB;
 		};
 /* End XCSwiftPackageProductDependency section */

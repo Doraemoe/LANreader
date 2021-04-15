@@ -24,6 +24,15 @@ struct AppDatabase {
                 table.column("lastUpdate", .datetime)
             }
         }
+
+        migrator.registerMigration("archiveImage") { database in
+            try database.create(table: "archiveImage") { table in
+                table.column("id", .text).primaryKey()
+                table.column("image", .blob)
+                table.column("lastUpdate", .datetime)
+            }
+        }
+
         return migrator
     }
 }
@@ -41,10 +50,22 @@ extension AppDatabase {
         }
     }
 
+    func saveArchiveImage(_ image: inout ArchiveImage) throws {
+        try dbWriter.write { database in
+            try image.save(database)
+        }
+    }
+
+    func readArchiveImage(_ id: String) throws -> ArchiveImage? {
+        try dbWriter.read { database in
+            try ArchiveImage.fetchOne(database, key: id)
+        }
+    }
+
     func databaseSize() throws -> Int? {
         try dbWriter.read { database in
             try Int.fetchOne(database,
-                             sql: "SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()")
+                    sql: "SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()")
         }
     }
 
