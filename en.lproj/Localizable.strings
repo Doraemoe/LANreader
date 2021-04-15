@@ -24,6 +24,8 @@
 "settings.read.swipe.right" = "Swipe right";
 "settings.read.split.page" = "Split page in portrait mode";
 "settings.read.split.page.priority.left" = "Show left side of split page first";
+"settings.read.experimental.reader" = "User experimental reader (some above settings maybe unavailable)";
+"settings.read.vertical" = "Reader scroll vertically (only available for experimental reader)";
 
 "settings.view" = "View Settings";
 "settings.archive.list.random" = "Randomized archive list";

@@ -5,6 +5,7 @@ import NotificationBannerSwift
 
 struct ArchiveList: View {
     @AppStorage(SettingsKey.useListView) var useListView: Bool = false
+    @AppStorage(SettingsKey.experimentalReader) var experimentalReader: Bool = false
 
     @State private var nameFilter = ""
 
@@ -18,32 +19,45 @@ struct ArchiveList: View {
 
     var body: some View {
         let filteredItems = filterArchives()
-           return ZStack {
-                if self.useListView {
-                    List {
-                        TextField("filter.name", text: $nameFilter)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .padding()
-                        ForEach(filteredItems) { (item: ArchiveItem) in
+        return ZStack {
+            if useListView {
+                List {
+                    TextField("filter.name", text: $nameFilter)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .padding()
+                    ForEach(filteredItems) { (item: ArchiveItem) in
+                        if experimentalReader {
+                            NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
+                                ArchiveRow(archiveItem: item)
+                            }
+                        } else {
                             NavigationLink(destination: ArchivePage(archiveItem: item)) {
                                 ArchiveRow(archiveItem: item)
                             }
                         }
                     }
-                } else {
-                    let columns = [
-                        GridItem(.adaptive(minimum: 160))
-                    ]
-                    ScrollView {
-                        Spacer(minLength: 20)
-                        TextField("filter.name", text: $nameFilter)
-                                .disableAutocorrection(true)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .padding([.leading, .bottom, .trailing])
-                        LazyVGrid(columns: columns, spacing: 20) {
-                            ForEach(filteredItems) { (item: ArchiveItem) in
-                                ZStack {
-                                    ArchiveGrid(archiveItem: item)
+                }
+            } else {
+                let columns = [
+                    GridItem(.adaptive(minimum: 160))
+                ]
+                ScrollView {
+                    Spacer(minLength: 20)
+                    TextField("filter.name", text: $nameFilter)
+                            .disableAutocorrection(true)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .padding([.leading, .bottom, .trailing])
+                    LazyVGrid(columns: columns, spacing: 20) {
+                        ForEach(filteredItems) { (item: ArchiveItem) in
+                            ZStack {
+                                ArchiveGrid(archiveItem: item)
+                                if experimentalReader {
+                                    NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
+                                        Rectangle()
+                                                .opacity(0.0001)
+                                                .contentShape(Rectangle())
+                                    }
+                                } else {
                                     NavigationLink(destination: ArchivePage(archiveItem: item)) {
                                         Rectangle()
                                                 .opacity(0.0001)
@@ -52,10 +66,11 @@ struct ArchiveList: View {
                                 }
                             }
                         }
-                                .padding(.horizontal)
                     }
+                            .padding(.horizontal)
                 }
             }
+        }
     }
 
     func filterArchives() -> [ArchiveItem] {

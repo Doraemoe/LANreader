@@ -22,6 +22,8 @@ struct SettingsKey {
     static let swipeRightKey = "settings.read.swipe.right"
     static let splitPage = "settings.read.split.page"
     static let splitPagePriorityLeft = "settings.read.split.page.priority.left"
+    static let experimentalReader = "settings.read.experimental.reader"
+    static let verticalReader = "settings.read.vertical"
     static let archiveListRandom = "settings.archive.list.random"
     static let useListView = "settings.view.use.list"
     static let blurInterfaceWhenInactive = "settings.view.blur.inactive"

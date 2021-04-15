@@ -10,6 +10,8 @@ struct ReadSettings: View {
     @AppStorage(SettingsKey.swipeRightKey) var swipeRight: String = PageControl.previous.rawValue
     @AppStorage(SettingsKey.splitPage) var splitPage: Bool = false
     @AppStorage(SettingsKey.splitPagePriorityLeft) var splitPagePriorityLeft: Bool = false
+    @AppStorage(SettingsKey.experimentalReader) var experimentalReader: Bool = false
+    @AppStorage(SettingsKey.verticalReader) var verticalReader: Bool = false
 
     var body: some View {
         let pageControlSelectionView = Group {
@@ -44,6 +46,14 @@ struct ReadSettings: View {
                     .padding()
             Toggle(isOn: self.$splitPagePriorityLeft) {
                 Text("settings.read.split.page.priority.left")
+            }
+                    .padding()
+            Toggle(isOn: self.$experimentalReader) {
+                Text("settings.read.experimental.reader")
+            }
+                    .padding()
+            Toggle(isOn: self.$verticalReader) {
+                Text("settings.read.vertical")
             }
                     .padding()
         }

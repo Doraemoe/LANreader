@@ -48,9 +48,9 @@ class LANraragiService {
     func retrieveArchiveThumbnailData(id: String) -> AnyPublisher<Data, AFError> {
         let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
         return session.download(request)
-            .validate()
-            .publishData()
-            .value()
+                .validate()
+                .publishData()
+                .value()
     }
 
     func retrieveArchiveThumbnail(id: String) -> AnyPublisher<Image, AFIError> {
@@ -122,6 +122,14 @@ class LANraragiService {
                 .value()
     }
 
+    func fetchArchivePageData(page: String) -> AnyPublisher<Data, AFError> {
+        let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
+        return session.download(request)
+                .validate()
+                .publishData()
+                .value()
+    }
+
     func fetchArchivePage(page: String) -> AnyPublisher<Image, AFIError> {
         let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
         return Deferred {
@@ -158,10 +166,10 @@ class LANraragiService {
     }
 
     func updateArchiveReadProgress(id: String, progress: Int) -> AnyPublisher<String, AFError> {
-        return session.request("\(url)/api/archives/\(id)/progress/\(progress)", method: .put)
-            .validate(statusCode: 200...200)
-            .publishString()
-            .value()
+        session.request("\(url)/api/archives/\(id)/progress/\(progress)", method: .put)
+                .validate(statusCode: 200...200)
+                .publishString()
+                .value()
     }
 
     func deleteArchive(id: String) -> AnyPublisher<ArchiveDeleteResponse, AFError> {
