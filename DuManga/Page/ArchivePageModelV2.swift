@@ -16,6 +16,7 @@ class ArchivePageModelV2: ObservableObject {
     @Published private(set) var errorCode: ErrorCode?
 
     private let service = LANraragiService.shared
+    private let prefetch = PrefetchService.shared
 
     private var cancellables: Set<AnyCancellable> = []
 
@@ -24,6 +25,7 @@ class ArchivePageModelV2: ObservableObject {
         archiveItems = state.archive.archiveItems
         archivePages = state.page.archivePages
         errorCode = state.page.errorCode
+        currentIndex = Double(progress)
 
         state.page.$loading.receive(on: DispatchQueue.main)
                 .assign(to: \.loading, on: self)
@@ -40,15 +42,19 @@ class ArchivePageModelV2: ObservableObject {
         state.page.$errorCode.receive(on: DispatchQueue.main)
                 .assign(to: \.errorCode, on: self)
                 .store(in: &cancellables)
-        currentIndex = Double(progress)
     }
 
     func unload() {
         cancellables.forEach({ $0.cancel() })
+        prefetch.unload()
     }
 
     func verifyArchiveExists(id: String) -> Bool {
         archiveItems[id] != nil
+    }
+
+    func prefetchImages(ids: [String]) {
+        prefetch.preloadImages(ids: ids)
     }
 
     func clearNewFlag(id: String) {

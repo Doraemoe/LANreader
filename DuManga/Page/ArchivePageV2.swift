@@ -18,6 +18,7 @@ struct ArchivePageV2: View {
     @StateObject private var archivePageModel = ArchivePageModelV2()
 
     @State private var verticalScrollTarget: Double?
+    @State private var prefetchRequested = false
 
     let archiveItem: ArchiveItem
 
@@ -165,6 +166,18 @@ struct ArchivePageV2: View {
                         if getIntPart(index) == (archivePageModel.archivePages[archiveItem.id]?.count ?? 0) - 1 {
                             archivePageModel.clearNewFlag(id: archiveItem.id)
                         }
+                    }
+                    .onChange(of: archivePageModel.archivePages) { pages in
+                        if let ids = pages[archiveItem.id] {
+                            if !prefetchRequested && !ids.isEmpty {
+                                prefetchRequested = true
+                                archivePageModel.prefetchImages(ids: ids)
+                            }
+                        }
+                    }
+                    .onDisappear {
+                        prefetchRequested = false
+                        archivePageModel.unload()
                     }
         }
     }
