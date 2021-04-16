@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import NotificationBannerSwift
 
 struct ArchivePageV2: View {
     @AppStorage(SettingsKey.tapLeftKey) var tapLeft: String = PageControl.next.rawValue
@@ -34,7 +35,7 @@ struct ArchivePageV2: View {
                             ScrollViewReader { reader in
                                 LazyVStack {
                                     ForEach(0..<pages!.count) { index in
-                                        PageImage(pageId: pages![index]).id(Double(index))
+                                        PageImage(id: pages![index]).id(Double(index))
                                                 .aspectRatio(contentMode: .fit)
                                                 .frame(width: geometry.size.width)
                                     }
@@ -66,13 +67,12 @@ struct ArchivePageV2: View {
                     if pages?.isEmpty == false {
                         TabView(selection: self.$archivePageModel.currentIndex) {
                             ForEach(0..<pages!.count) { index in
-                                PageImage(pageId: pages![index]).tag(Double(index))
+                                PageImage(id: pages![index]).tag(Double(index))
                                         .scaledToFit()
                                         .aspectRatio(contentMode: .fit)
                             }
                         }
-                                .tabViewStyle(PageTabViewStyle())
-                                .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .never))
+                                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                                 .navigationBarHidden(archivePageModel.controlUiHidden)
                                 .navigationBarTitle("")
                                 .navigationBarItems(trailing: NavigationLink(
@@ -130,9 +130,42 @@ struct ArchivePageV2: View {
                         .opacity(archivePageModel.loading ? 1 : 0)
             }
                     .onAppear(perform: {
-                        archivePageModel.load(state: store.state)
+                        archivePageModel.load(state: store.state,
+                                progress: archiveItem.progress > 0 ? archiveItem.progress - 1 : 0)
                         extractArchive()
                     })
+                    .onChange(of: archivePageModel.archiveItems) { _ in
+                        if !archivePageModel.verifyArchiveExists(id: archiveItem.id) {
+                            presentationMode.wrappedValue.dismiss()
+                        }
+                    }
+                    .onChange(of: archivePageModel.errorCode) { errorCode in
+                        if errorCode != nil {
+                            switch errorCode! {
+                            case .archiveExtractError:
+                                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                                        subtitle: NSLocalizedString("error.extract", comment: "list error"),
+                                        style: .danger)
+                                banner.show()
+                                store.dispatch(.page(action: .resetState))
+                            case .archiveFetchPageError:
+                                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                                        subtitle: NSLocalizedString("error.load.page", comment: "list error"),
+                                        style: .danger)
+                                banner.show()
+                                store.dispatch(.page(action: .resetState))
+                            default:
+                                break
+                            }
+                        }
+                    }
+                    .onChange(of: archivePageModel.currentIndex) { index in
+                        store.dispatch(.archive(action: .updateReadProgressServer(
+                                id: archiveItem.id, progress: getIntPart(index) + 1)))
+                        if getIntPart(index) == (archivePageModel.archivePages[archiveItem.id]?.count ?? 0) - 1 {
+                            archivePageModel.clearNewFlag(id: archiveItem.id)
+                        }
+                    }
         }
     }
 
@@ -149,9 +182,9 @@ struct ArchivePageV2: View {
     func performAction(_ action: String) {
         switch action {
         case PageControl.next.rawValue:
-            archivePageModel.currentIndex += archivePageModel.currentIndex
+            archivePageModel.currentIndex += 1
         case PageControl.previous.rawValue:
-            archivePageModel.currentIndex -= archivePageModel.currentIndex
+            archivePageModel.currentIndex -= 1
         case PageControl.navigation.rawValue:
             archivePageModel.controlUiHidden.toggle()
         default:

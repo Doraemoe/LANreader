@@ -15,9 +15,11 @@ class ArchivePageModelV2: ObservableObject {
     @Published private(set) var archivePages = [String: [String]]()
     @Published private(set) var errorCode: ErrorCode?
 
+    private let service = LANraragiService.shared
+
     private var cancellables: Set<AnyCancellable> = []
 
-    func load(state: AppState) {
+    func load(state: AppState, progress: Int) {
         loading = state.page.loading
         archiveItems = state.archive.archiveItems
         archivePages = state.page.archivePages
@@ -38,6 +40,7 @@ class ArchivePageModelV2: ObservableObject {
         state.page.$errorCode.receive(on: DispatchQueue.main)
                 .assign(to: \.errorCode, on: self)
                 .store(in: &cancellables)
+        currentIndex = Double(progress)
     }
 
     func unload() {
@@ -46,5 +49,14 @@ class ArchivePageModelV2: ObservableObject {
 
     func verifyArchiveExists(id: String) -> Bool {
         archiveItems[id] != nil
+    }
+
+    func clearNewFlag(id: String) {
+        service.clearNewFlag(id: id)
+                .replaceError(with: "NOOP")
+                .sink(receiveValue: { _ in
+                    // NOOP
+                })
+                .store(in: &cancellables)
     }
 }
