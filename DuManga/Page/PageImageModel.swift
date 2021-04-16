@@ -12,21 +12,15 @@ class PageImageModel: ObservableObject {
 
     private(set) var isLoading = false
 
-    private let pageId: String
     private let service = LANraragiService.shared
     private let database = AppDatabase.shared
     private var cancellable: Set<AnyCancellable> = []
-
-    init(pageId: String) {
-        self.pageId = pageId
-        load()
-    }
 
     deinit {
         unload()
     }
 
-    func load() {
+    func load(id: String) {
         guard !isLoading else {
             return
         }
@@ -34,7 +28,7 @@ class PageImageModel: ObservableObject {
             return
         }
         do {
-            if let archiveImage = try database.readArchiveImage(pageId) {
+            if let archiveImage = try database.readArchiveImage(id) {
                 image = Image(uiImage: UIImage(data: archiveImage.image)!)
                 return
             }
@@ -42,7 +36,7 @@ class PageImageModel: ObservableObject {
             // NOOP
         }
 
-        service.fetchArchivePageData(page: pageId)
+        service.fetchArchivePageData(page: id)
                 .subscribe(on: Self.imageProcessingQueue)
                 .handleEvents(receiveSubscription: { [weak self] _ in self?.onStart() },
                         receiveCompletion: { [weak self] _ in self?.onFinish() },
@@ -57,11 +51,11 @@ class PageImageModel: ObservableObject {
                     }
                 }, receiveValue: {
                     self.image = Image(uiImage: UIImage(data: $0)!)
-                    var archiveImage = ArchiveImage(id: self.pageId, image: $0, lastUpdate: Date())
+                    var archiveImage = ArchiveImage(id: id, image: $0, lastUpdate: Date())
                     do {
                         try self.database.saveArchiveImage(&archiveImage)
                     } catch {
-                        PageImageModel.logger.error("db error. pageId=\(self.pageId) \(error)")
+                        PageImageModel.logger.error("db error. pageId=\(id) \(error)")
                     }
                 })
                 .store(in: &cancellable)

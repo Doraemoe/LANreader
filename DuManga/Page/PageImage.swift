@@ -3,14 +3,22 @@
 import SwiftUI
 
 struct PageImage: View {
-    @StateObject private var imageModel: PageImageModel
+    @StateObject private var imageModel = PageImageModel()
 
-    init(pageId: String) {
-        _imageModel = StateObject(wrappedValue: PageImageModel(pageId: pageId))
+    private let id: String
+
+    init(id: String) {
+        self.id = id
     }
 
     var body: some View {
         imageModel.image
                 .resizable()
+                .onAppear {
+                    imageModel.load(id: id)
+                }
+                .onDisappear {
+                    imageModel.unload()
+                }
     }
 }
