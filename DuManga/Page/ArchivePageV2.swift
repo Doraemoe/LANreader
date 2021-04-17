@@ -195,9 +195,15 @@ struct ArchivePageV2: View {
     func performAction(_ action: String) {
         switch action {
         case PageControl.next.rawValue:
-            archivePageModel.currentIndex += 1
+            let currentIndexInt = getIntPart(archivePageModel.currentIndex)
+            let pageNumbers = archivePageModel.archivePages[archiveItem.id]?.count ?? 1
+            if currentIndexInt < pageNumbers - 1 {
+                archivePageModel.currentIndex += 1
+            }
         case PageControl.previous.rawValue:
-            archivePageModel.currentIndex -= 1
+            if archivePageModel.currentIndex > 0 {
+                archivePageModel.currentIndex -= 1
+            }
         case PageControl.navigation.rawValue:
             archivePageModel.controlUiHidden.toggle()
         default:
