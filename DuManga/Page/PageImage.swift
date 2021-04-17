@@ -17,8 +17,5 @@ struct PageImage: View {
                 .onAppear {
                     imageModel.load(id: id)
                 }
-                .onDisappear {
-                    imageModel.unload()
-                }
     }
 }

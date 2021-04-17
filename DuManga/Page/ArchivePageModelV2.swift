@@ -54,7 +54,10 @@ class ArchivePageModelV2: ObservableObject {
     }
 
     func prefetchImages(ids: [String]) {
-        prefetch.preloadImages(ids: ids)
+        let firstHalf = ids[..<getIntPart(currentIndex)]
+        let secondHalf = ids[getIntPart(currentIndex)...]
+        let array = Array(secondHalf + firstHalf)
+        prefetch.preloadImages(ids: array)
     }
 
     func clearNewFlag(id: String) {
@@ -64,5 +67,9 @@ class ArchivePageModelV2: ObservableObject {
                     // NOOP
                 })
                 .store(in: &cancellables)
+    }
+
+    private func getIntPart(_ number: Double) -> Int {
+        Int(exactly: number.rounded()) ?? 0
     }
 }
