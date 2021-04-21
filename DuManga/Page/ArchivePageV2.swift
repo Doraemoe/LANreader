@@ -1,6 +1,5 @@
 //
-// Created by Yifan Jin on 14/4/21.
-// Copyright (c) 2021 Jin Yifan. All rights reserved.
+// Created on 14/4/21.
 //
 
 import SwiftUI
@@ -162,8 +161,8 @@ struct ArchivePageV2: View {
                     }
                     .onChange(of: archivePageModel.currentIndex) { index in
                         store.dispatch(.archive(action: .updateReadProgressServer(
-                                id: archiveItem.id, progress: getIntPart(index) + 1)))
-                        if getIntPart(index) == (archivePageModel.archivePages[archiveItem.id]?.count ?? 0) - 1 {
+                                id: archiveItem.id, progress: index.int + 1)))
+                        if index.int == (archivePageModel.archivePages[archiveItem.id]?.count ?? 0) - 1 {
                             archivePageModel.clearNewFlag(id: archiveItem.id)
                         }
                     }
@@ -188,14 +187,10 @@ struct ArchivePageV2: View {
         }
     }
 
-    private func getIntPart(_ number: Double) -> Int {
-        Int(exactly: number.rounded()) ?? 0
-    }
-
     func performAction(_ action: String) {
         switch action {
         case PageControl.next.rawValue:
-            let currentIndexInt = getIntPart(archivePageModel.currentIndex)
+            let currentIndexInt = archivePageModel.currentIndex.int
             let pageNumbers = archivePageModel.archivePages[archiveItem.id]?.count ?? 1
             if currentIndexInt < pageNumbers - 1 {
                 archivePageModel.currentIndex += 1
