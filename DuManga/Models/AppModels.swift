@@ -55,3 +55,10 @@ struct ErrorCode: Equatable {
     static let categoryFetchError = ErrorCode(name: "error.category", code: 3000)
     static let categoryUpdateError = ErrorCode(name: "error.category.update", code: 3001)
 }
+
+extension Double {
+    var int: Int {
+        get { Int(self) }
+        set { self = Double(newValue) }
+    }
+}

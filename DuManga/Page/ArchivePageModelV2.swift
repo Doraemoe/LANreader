@@ -1,6 +1,5 @@
 //
-// Created by Yifan Jin on 14/4/21.
-// Copyright (c) 2021 Jin Yifan. All rights reserved.
+// Created on 14/4/21.
 //
 
 import Foundation
@@ -25,7 +24,9 @@ class ArchivePageModelV2: ObservableObject {
         archiveItems = state.archive.archiveItems
         archivePages = state.page.archivePages
         errorCode = state.page.errorCode
-        currentIndex = Double(progress)
+        if currentIndex == 0 {
+            currentIndex = Double(progress)
+        }
 
         state.page.$loading.receive(on: DispatchQueue.main)
                 .assign(to: \.loading, on: self)
@@ -54,8 +55,9 @@ class ArchivePageModelV2: ObservableObject {
     }
 
     func prefetchImages(ids: [String]) {
-        let firstHalf = ids[..<getIntPart(currentIndex)]
-        let secondHalf = ids[getIntPart(currentIndex)...]
+        var firstHalf = ids[..<currentIndex.int]
+        let secondHalf = ids[currentIndex.int...]
+        firstHalf.reverse()
         let array = Array(secondHalf + firstHalf)
         prefetch.preloadImages(ids: array)
     }
@@ -67,9 +69,5 @@ class ArchivePageModelV2: ObservableObject {
                     // NOOP
                 })
                 .store(in: &cancellables)
-    }
-
-    private func getIntPart(_ number: Double) -> Int {
-        Int(exactly: number.rounded()) ?? 0
     }
 }
