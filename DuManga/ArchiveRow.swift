@@ -19,7 +19,8 @@ struct ArchiveRow: View {
 
 struct ArchiveRow_Previews: PreviewProvider {
     static var previews: some View {
-        ArchiveRow(archiveItem: ArchiveItem(id: "id", name: "name", tags: "tags", isNew: true, progress: 0))
+        ArchiveRow(archiveItem: ArchiveItem(id: "id", name: "name", tags: "tags",
+                isNew: true, progress: 0, dateAdded: 1234))
         .previewLayout(.fixed(width: 600, height: 125))
     }
 }

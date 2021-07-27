@@ -28,7 +28,10 @@
 "settings.read.vertical" = "Reader scroll vertically (only available for experimental reader)";
 
 "settings.view" = "View Settings";
-"settings.archive.list.random" = "Randomized archive list";
+"settings.archive.list.order" = "Archive list sort order";
+"settings.archive.list.order.name" = "Order by name";
+"settings.archive.list.order.dateAdded" = "Order by date added, require Date Added plugin";
+"settings.archive.list.order.random" = "Random order";
 "settings.archive.list.view" = "Use list view";
 "settings.view.blur.inactive" = "Blur interface when app is not active";
 

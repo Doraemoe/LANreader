@@ -54,7 +54,8 @@ struct ArchiveDetails: View {
                             name: archiveListModel.title,
                             tags: archiveListModel.tags,
                             isNew: false,
-                            progress: 0)
+                            progress: 0,
+                            dateAdded: item.dateAdded)
                     store.dispatch(.archive(action: .updateArchiveMetadata(metadata: updated)))
                 }, label: {
                     Text("save")
@@ -95,6 +96,7 @@ struct ArchiveDetails: View {
 
 struct ArchiveDetails_Previews: PreviewProvider {
     static var previews: some View {
-        ArchiveDetails(item: ArchiveItem(id: "id", name: "name", tags: "tags", isNew: true, progress: 0))
+        ArchiveDetails(item: ArchiveItem(id: "id", name: "name", tags: "tags",
+                isNew: true, progress: 0, dateAdded: 12345))
     }
 }
