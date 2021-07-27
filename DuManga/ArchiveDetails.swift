@@ -96,6 +96,7 @@ struct ArchiveDetails: View {
 
 struct ArchiveDetails_Previews: PreviewProvider {
     static var previews: some View {
-        ArchiveDetails(item: ArchiveItem(id: "id", name: "name", tags: "tags", isNew: true, progress: 0, dateAdded: 12345))
+        ArchiveDetails(item: ArchiveItem(id: "id", name: "name", tags: "tags",
+                isNew: true, progress: 0, dateAdded: 12345))
     }
 }
