@@ -14,7 +14,7 @@ func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
         state.archiveItems = archiveItems
     case .fetchArchiveDynamicCategory:
         state.loading = true
-    case let .fetchArchiveDynamicCategorySuccess:
+    case .fetchArchiveDynamicCategorySuccess:
         state.loading = false
     case .updateArchiveMetadata:
         state.loading = true
@@ -25,10 +25,11 @@ func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
     case let .updateReadProgressLocal(id, progress):
         let archive = state.archiveItems[id]!
         state.archiveItems[id] = ArchiveItem(id: archive.id,
-                                             name: archive.name,
-                                             tags: archive.tags,
-                                             isNew: archive.isNew,
-                                             progress: progress)
+                name: archive.name,
+                tags: archive.tags,
+                isNew: archive.isNew,
+                progress: progress,
+                dateAdded: archive.dateAdded)
     case .deleteArchive:
         state.loading = true
     case let .deleteArchiveSuccess(id):

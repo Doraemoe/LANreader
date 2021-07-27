@@ -12,6 +12,14 @@ enum PageControl: String, CaseIterable, Identifiable {
     var id: String { self.rawValue }
 }
 
+enum ArchiveListOrder: String, CaseIterable, Identifiable {
+    case name
+    case dateAdded
+    case random
+
+    var id: String { self.rawValue }
+}
+
 struct SettingsKey {
     static let lanraragiUrl = "settings.lanraragi.url"
     static let lanraragiApiKey = "settings.lanraragi.apiKey"
@@ -24,7 +32,7 @@ struct SettingsKey {
     static let splitPagePriorityLeft = "settings.read.split.page.priority.left"
     static let experimentalReader = "settings.read.experimental.reader"
     static let verticalReader = "settings.read.vertical"
-    static let archiveListRandom = "settings.archive.list.random"
+    static let archiveListOrder = "settings.archive.list.order"
     static let useListView = "settings.view.use.list"
     static let blurInterfaceWhenInactive = "settings.view.blur.inactive"
 }

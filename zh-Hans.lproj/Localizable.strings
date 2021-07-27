@@ -28,7 +28,10 @@
 "settings.read.vertical" = "纵向阅读 (仅在实验性阅读器下可用)";
 
 "settings.view" = "视图设定";
-"settings.archive.list.random" = "随机化漫画列表视图";
+"settings.archive.list.order" = "漫画列表视图排序";
+"settings.archive.list.order.name" = "名字";
+"settings.archive.list.order.dateAdded" = "添加日期, 需要启用 Date Added 插件";
+"settings.archive.list.order.random" = "随机";
 "settings.archive.list.view" = "使用列表视图";
 "settings.view.blur.inactive" = "后台运行时模糊界面显示";
 

@@ -27,7 +27,8 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                                     name: item.title,
                                     tags: item.tags,
                                     isNew: item.isnew == "true",
-                                    progress: item.progress)
+                                    progress: item.progress,
+                                    dateAdded: extractDateAdded(tags: item.tags))
                         }
                         return AppAction.archive(action: .fetchArchiveSuccess(archive: archiveItems))
                     }
@@ -101,5 +102,18 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
             break
         }
         return Empty().eraseToAnyPublisher()
+    }
+}
+
+func extractDateAdded(tags: String) -> Int? {
+    let dateString = tags.split(separator: ",")
+            .map({ $0.trimmingCharacters(in: .whitespaces) })
+            .first(where: { $0.starts(with: "date_added") })?
+            .split(separator: ":")
+            .last
+    if let date = dateString {
+        return Int(date)
+    } else {
+        return nil
     }
 }

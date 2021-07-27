@@ -6,7 +6,7 @@ import SwiftUI
 import NotificationBannerSwift
 
 struct LibraryList: View {
-    @AppStorage(SettingsKey.archiveListRandom) var archiveListRandom: Bool = false
+    @AppStorage(SettingsKey.archiveListOrder) var archiveListOrder: String = ArchiveListOrder.name.rawValue
 
     @EnvironmentObject var store: AppStore
 
@@ -15,7 +15,7 @@ struct LibraryList: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                ArchiveList(archives: Array(self.libraryListModel.archiveItems.values), randomList: archiveListRandom)
+                ArchiveList(archives: Array(self.libraryListModel.archiveItems.values), listOrder: archiveListOrder)
                         .onAppear(perform: {
                             self.libraryListModel.load(state: store.state)
                             if libraryListModel.archiveItems.isEmpty {
