@@ -1,6 +1,6 @@
 {
     "arcid": "abcd1234",
     "isnew": "false",
-    "tags": "artist:abc, language:def, parody:ghi, category:jkl",
+    "tags": "artist:abc, language:def, parody:ghi, category:jkl, date_added: 1234",
     "title": "title"
 }

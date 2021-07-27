@@ -381,7 +381,7 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let metadata = ArchiveItem(id: "id", name: "name", tags: "tags", isNew: true, progress: 0)
+        let metadata = ArchiveItem(id: "id", name: "name", tags: "tags", isNew: true, progress: 0, dateAdded: 1234)
         let publisher = service.updateArchiveMetaData(archiveMetadata: metadata)
         let recorder = publisher.record()
         let actual = try wait(for: recorder.single, timeout: 1.0)
@@ -400,7 +400,7 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
-        let metadata = ArchiveItem(id: "id", name: "name", tags: "tags", isNew: true, progress: 0)
+        let metadata = ArchiveItem(id: "id", name: "name", tags: "tags", isNew: true, progress: 0, dateAdded: 1234)
         let publisher = service.updateArchiveMetaData(archiveMetadata: metadata)
         let recorder = publisher.record()
         let actual = try wait(for: recorder.completion, timeout: 1.0)
