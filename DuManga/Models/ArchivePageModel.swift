@@ -5,6 +5,7 @@
 import Foundation
 import Combine
 import SwiftUI
+import Logging
 
 enum InternalPageSplitState: String, CaseIterable {
     case off
@@ -19,6 +20,8 @@ enum PageFlipAction: String, CaseIterable {
 }
 
 class ArchivePageModel: ObservableObject {
+    private static let logger = Logger(label: "ArchivePageModel")
+
     @Published var currentIndex: Double = 0.0
     @Published var controlUiHidden = true
     @Published var isCurrentSplittingPage = InternalPageSplitState.off
@@ -80,7 +83,8 @@ class ArchivePageModel: ObservableObject {
                         return Image(uiImage: $0)
                     }
                 }
-                .catch { _ -> Just<Image> in
+                .catch { error -> Just<Image> in
+                    ArchivePageModel.logger.error("error load image: \(error)")
                     dispatchError(.archiveFetchPageError)
                     return Just(Image("placeholder"))
                 }
