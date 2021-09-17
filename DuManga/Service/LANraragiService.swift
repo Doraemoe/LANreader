@@ -10,7 +10,7 @@ import Logging
 
 class LANraragiService {
     private static let logger = Logger(label: "LANraragiService")
-    
+
     private static var _shared: LANraragiService?
 
     private var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""

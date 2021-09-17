@@ -5,18 +5,18 @@
 import SwiftUI
 
 struct LogView: View {
-    
+
     @State var log = ""
-    
+
     var body: some View {
         Text(log)
             .contextMenu {
                     Button(action: {
                         UIPasteboard.general.string = log
-                    }) {
+                    }, label: {
                         Text("copy")
                         }
-                    }
+                    )}
             .onAppear(perform: {
                 do {
                     let logFileURL = try FileManager.default

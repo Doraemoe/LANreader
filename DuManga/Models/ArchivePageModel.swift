@@ -21,7 +21,7 @@ enum PageFlipAction: String, CaseIterable {
 
 class ArchivePageModel: ObservableObject {
     private static let logger = Logger(label: "ArchivePageModel")
-    
+
     @Published var currentIndex: Double = 0.0
     @Published var controlUiHidden = true
     @Published var isCurrentSplittingPage = InternalPageSplitState.off
