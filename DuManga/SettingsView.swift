@@ -20,6 +20,13 @@ struct SettingsView: View {
             Section(header: Text("settings.database")) {
                 DatabaseSettings()
             }
+            Section(header: Text("settings.debug")) {
+                NavigationLink(
+                    destination: LogView(),
+                    label: {
+                        Text("settings.debug.log")
+                    }).padding()
+            }
         }
     }
 }

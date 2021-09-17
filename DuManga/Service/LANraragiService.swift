@@ -6,8 +6,11 @@ import Foundation
 import Combine
 import Alamofire
 import AlamofireImage
+import Logging
 
 class LANraragiService {
+    private static let logger = Logger(label: "LANraragiService")
+    
     private static var _shared: LANraragiService?
 
     private var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
@@ -139,6 +142,7 @@ class LANraragiService {
                     case let .success(page):
                         promise(.success(page))
                     case let .failure(error):
+                        LANraragiService.logger.error("failed to fetch archive page: \(error)")
                         promise(.failure(error))
                     }
                 })

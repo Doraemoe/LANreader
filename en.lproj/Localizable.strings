@@ -9,6 +9,7 @@
 "cancel" = "Cancel";
 "error" = "Error";
 "delete" = "Delete";
+"copy" = "Copy";
 
 "filter.name" = "Filter archive by name";
 
@@ -48,6 +49,9 @@
 
 "archive.delete" = "Delete archive";
 "archive.delete.confirm" = "Are you sure you want to delete this?";
+
+"settings.debug" = "Debug";
+"settings.debug.log" = "Application log";
 
 "category.edit" = "Edit category";
 "category.name" = "Category name";

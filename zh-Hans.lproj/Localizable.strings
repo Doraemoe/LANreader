@@ -9,6 +9,7 @@
 "cancel" = "取消";
 "error" = "错误";
 "delete" = "删除";
+"copy" = "复制";
 
 "filter.name" = "过滤标题";
 
@@ -45,6 +46,9 @@
 "settings.database" = "数据库";
 "settings.database.error" = "读取数据库失败";
 "settings.database.clear" = "删除数据库缓存";
+
+"settings.debug" = "调试";
+"settings.debug.log" = "App日志";
 
 "archive.delete" = "删除文档";
 "archive.delete.confirm" = "确定要删除此文档吗？";
