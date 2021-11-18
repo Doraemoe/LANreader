@@ -4,8 +4,11 @@
 
 import Foundation
 import Combine
+import Logging
 
 class CategoryArchiveListModel: ObservableObject {
+    private static let logger = Logger(label: "CategoryArchiveListModel")
+
     private let newCategorySelector = Selector(
             initBase: [String: ArchiveItem](),
             initFilter: true,
@@ -62,7 +65,8 @@ class CategoryArchiveListModel: ObservableObject {
                     dispatch(.archive(action: .fetchArchiveDynamicCategorySuccess))
                     return keys
                 }
-                .catch { _ -> Just<[String]> in
+                .catch { error -> Just<[String]> in
+                    CategoryArchiveListModel.logger.error("Failed to fetch category: \(error)")
                     dispatch(.archive(action: .error(error: .archiveFetchError)))
                     return Just([])
                 }
