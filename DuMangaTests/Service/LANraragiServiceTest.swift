@@ -153,7 +153,7 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(actual.data.count, 1)
         XCTAssertEqual(actual.draw, 0)
         XCTAssertEqual(actual.recordsFiltered, 1)
-        XCTAssertEqual(actual.recordsTotal, "1234")
+        XCTAssertEqual(actual.recordsTotal, 1234)
     }
 
     func testSearchArchiveIndexUnauthorized() throws {
