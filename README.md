@@ -12,9 +12,11 @@ The behaviour can be set in Settings page
 
 ## Test on your device
 
-### TestFlight
+### AltStore
 
-[Link](https://testflight.apple.com/join/4qjD65JX)
+- Downlaod .ipa file from [releases](https://github.com/Doraemoe/DuReader/releases)
+
+- Use [AltStore](https://altstore.io/) to install on your device
 
 ### Source Code
 
