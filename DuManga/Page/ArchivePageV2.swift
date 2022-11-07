@@ -34,7 +34,7 @@ struct ArchivePageV2: View {
                         ScrollView {
                             ScrollViewReader { reader in
                                 LazyVStack {
-                                    ForEach(0..<pages!.count) { index in
+                                    ForEach(0..<pages!.count, id: \.self) { index in
                                         PageImage(id: pages![index]).id(Double(index))
                                                 .aspectRatio(contentMode: .fit)
                                                 .frame(width: geometry.size.width)
@@ -66,7 +66,7 @@ struct ArchivePageV2: View {
                 } else {
                     if pages?.isEmpty == false {
                         TabView(selection: self.$archivePageModel.currentIndex) {
-                            ForEach(0..<pages!.count) { index in
+                            ForEach(0..<pages!.count, id: \.self) { index in
                                 PageImage(id: pages![index]).tag(Double(index))
                                         .scaledToFit()
                                         .aspectRatio(contentMode: .fit)

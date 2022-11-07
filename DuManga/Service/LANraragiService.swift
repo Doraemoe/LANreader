@@ -46,6 +46,11 @@ class LANraragiService {
                 .validate()
                 .publishDecodable(type: [ArchiveIndexResponse].self)
                 .value()
+                .mapError { error in
+                    LANraragiService.logger.error("failed to fetch archive index: \(error)")
+                    return error
+                }
+                .eraseToAnyPublisher()
     }
 
     func retrieveArchiveThumbnailData(id: String) -> AnyPublisher<Data, AFError> {
@@ -54,6 +59,11 @@ class LANraragiService {
                 .validate()
                 .publishData()
                 .value()
+                .mapError { error in
+                    LANraragiService.logger.error("failed to fetch archive thumbnail data: \(error)")
+                    return error
+                }
+                .eraseToAnyPublisher()
     }
 
     func retrieveArchiveThumbnail(id: String) -> AnyPublisher<Image, AFIError> {
@@ -65,6 +75,7 @@ class LANraragiService {
                     case let .success(thumbnail):
                         promise(.success(thumbnail))
                     case let .failure(error):
+                        LANraragiService.logger.error("failed to fetch archive thumbnail image: \(error)")
                         promise(.failure(error))
                     }
                 })
@@ -98,6 +109,11 @@ class LANraragiService {
                 .validate()
                 .publishDecodable(type: ArchiveSearchResponse.self)
                 .value()
+                .mapError { error in
+                    LANraragiService.logger.error("failed to search archive: \(error)")
+                    return error
+                }
+                .eraseToAnyPublisher()
     }
 
     func retrieveCategories() -> AnyPublisher<[ArchiveCategoriesResponse], AFError> {
@@ -105,6 +121,11 @@ class LANraragiService {
                 .validate()
                 .publishDecodable(type: [ArchiveCategoriesResponse].self)
                 .value()
+                .mapError { error in
+                    LANraragiService.logger.error("failed to retrieve categories: \(error)")
+                    return error
+                }
+                .eraseToAnyPublisher()
     }
 
     func updateDynamicCategory(item: CategoryItem) -> AnyPublisher<String, AFError> {
@@ -116,6 +137,11 @@ class LANraragiService {
                 .validate(statusCode: 200...200)
                 .publishString()
                 .value()
+                .mapError { error in
+                    LANraragiService.logger.error("failed to update dynamic category: \(error)")
+                    return error
+                }
+                .eraseToAnyPublisher()
     }
 
     func extractArchive(id: String) -> AnyPublisher<ArchiveExtractResponse, AFError> {
@@ -123,6 +149,11 @@ class LANraragiService {
                 .validate()
                 .publishDecodable(type: ArchiveExtractResponse.self)
                 .value()
+                .mapError { error in
+                    LANraragiService.logger.error("failed to extract archive: \(error)")
+                    return error
+                }
+                .eraseToAnyPublisher()
     }
 
     func fetchArchivePageData(page: String) -> AnyPublisher<Data, AFError> {
@@ -131,6 +162,11 @@ class LANraragiService {
                 .validate()
                 .publishData()
                 .value()
+                .mapError { error in
+                    LANraragiService.logger.error("failed to fetch archive page data: \(error)")
+                    return error
+                }
+                .eraseToAnyPublisher()
     }
 
     func fetchArchivePage(page: String) -> AnyPublisher<Image, AFIError> {
@@ -167,6 +203,11 @@ class LANraragiService {
                 .validate(statusCode: 200...200)
                 .publishString()
                 .value()
+                .mapError { error in
+                    LANraragiService.logger.error("failed to update archive metadata: \(error)")
+                    return error
+                }
+                .eraseToAnyPublisher()
     }
 
     func updateArchiveReadProgress(id: String, progress: Int) -> AnyPublisher<String, AFError> {
@@ -181,6 +222,11 @@ class LANraragiService {
                 .validate(statusCode: 200...200)
                 .publishDecodable(type: ArchiveDeleteResponse.self)
                 .value()
+                .mapError { error in
+                    LANraragiService.logger.error("failed to delete archive: \(error)")
+                    return error
+                }
+                .eraseToAnyPublisher()
     }
 
     public static var shared: LANraragiService {
