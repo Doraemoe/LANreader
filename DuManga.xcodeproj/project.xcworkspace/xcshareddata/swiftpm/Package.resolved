@@ -1,106 +1,104 @@
 {
-  "object": {
-    "pins": [
-      {
-        "package": "Alamofire",
-        "repositoryURL": "https://github.com/Alamofire/Alamofire.git",
-        "state": {
-          "branch": null,
-          "revision": "f82c23a8a7ef8dc1a49a8bfc6a96883e79121864",
-          "version": "5.5.0"
-        }
-      },
-      {
-        "package": "AlamofireImage",
-        "repositoryURL": "https://github.com/Alamofire/AlamofireImage.git",
-        "state": {
-          "branch": null,
-          "revision": "98cbb00ce0ec5fc8e52a5b50a6bfc08d3e5aee10",
-          "version": "4.2.0"
-        }
-      },
-      {
-        "package": "CombineExpectations",
-        "repositoryURL": "https://github.com/groue/CombineExpectations",
-        "state": {
-          "branch": null,
-          "revision": "04d4e4b21c9e8361925f03f64a7ecda89ef9974f",
-          "version": "0.10.0"
-        }
-      },
-      {
-        "package": "GRDB",
-        "repositoryURL": "https://github.com/groue/GRDB.swift",
-        "state": {
-          "branch": null,
-          "revision": "14d8763a841965b99f48b77a25dab8e6290aff83",
-          "version": "5.19.0"
-        }
-      },
-      {
-        "package": "MarqueeLabel",
-        "repositoryURL": "https://github.com/cbpowell/MarqueeLabel",
-        "state": {
-          "branch": null,
-          "revision": "f2c72a5f8568579dade6350dc26a482076d3d346",
-          "version": "4.3.0"
-        }
-      },
-      {
-        "package": "NotificationBannerSwift",
-        "repositoryURL": "https://github.com/Daltron/NotificationBanner",
-        "state": {
-          "branch": null,
-          "revision": "2ce5c49d8ee4865f01a3ce3bbe078664c78c7a3c",
-          "version": "3.0.6"
-        }
-      },
-      {
-        "package": "OHHTTPStubs",
-        "repositoryURL": "https://github.com/AliSoftware/OHHTTPStubs",
-        "state": {
-          "branch": null,
-          "revision": "12f19662426d0434d6c330c6974d53e2eb10ecd9",
-          "version": "9.1.0"
-        }
-      },
-      {
-        "package": "SnapKit",
-        "repositoryURL": "https://github.com/SnapKit/SnapKit",
-        "state": {
-          "branch": null,
-          "revision": "d458564516e5676af9c70b4f4b2a9178294f1bc6",
-          "version": "5.0.1"
-        }
-      },
-      {
-        "package": "swift-log",
-        "repositoryURL": "https://github.com/apple/swift-log.git",
-        "state": {
-          "branch": null,
-          "revision": "5d66f7ba25daf4f94100e7022febf3c75e37a6c7",
-          "version": "1.4.2"
-        }
-      },
-      {
-        "package": "swift-log-file",
-        "repositoryURL": "https://github.com/crspybits/swift-log-file",
-        "state": {
-          "branch": null,
-          "revision": "aa94b38bf88c7d9cbc87ceafcdffadaffbc2bffa",
-          "version": "0.1.0"
-        }
-      },
-      {
-        "package": "XCGLogger",
-        "repositoryURL": "https://github.com/DaveWoodCom/XCGLogger.git",
-        "state": {
-          "branch": null,
-          "revision": "a9c4667b247928a29bdd41be2ec2c8d304215a54",
-          "version": "7.0.1"
-        }
+  "pins" : [
+    {
+      "identity" : "alamofire",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Alamofire/Alamofire.git",
+      "state" : {
+        "revision" : "8dd85aee02e39dd280c75eef88ffdb86eed4b07b",
+        "version" : "5.6.2"
       }
-    ]
-  },
-  "version": 1
+    },
+    {
+      "identity" : "alamofireimage",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Alamofire/AlamofireImage.git",
+      "state" : {
+        "revision" : "98cbb00ce0ec5fc8e52a5b50a6bfc08d3e5aee10",
+        "version" : "4.2.0"
+      }
+    },
+    {
+      "identity" : "combineexpectations",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/groue/CombineExpectations",
+      "state" : {
+        "revision" : "04d4e4b21c9e8361925f03f64a7ecda89ef9974f",
+        "version" : "0.10.0"
+      }
+    },
+    {
+      "identity" : "grdb.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/groue/GRDB.swift",
+      "state" : {
+        "revision" : "dd7e7f39e8e4d7a22d258d9809a882f914690b01",
+        "version" : "5.26.1"
+      }
+    },
+    {
+      "identity" : "marqueelabel",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/cbpowell/MarqueeLabel",
+      "state" : {
+        "revision" : "f2c72a5f8568579dade6350dc26a482076d3d346",
+        "version" : "4.3.0"
+      }
+    },
+    {
+      "identity" : "notificationbanner",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Daltron/NotificationBanner",
+      "state" : {
+        "revision" : "e856a462053daf80c7936056d64246983f3f4d14",
+        "version" : "3.1.0"
+      }
+    },
+    {
+      "identity" : "ohhttpstubs",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/AliSoftware/OHHTTPStubs",
+      "state" : {
+        "revision" : "12f19662426d0434d6c330c6974d53e2eb10ecd9",
+        "version" : "9.1.0"
+      }
+    },
+    {
+      "identity" : "snapkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SnapKit/SnapKit",
+      "state" : {
+        "revision" : "f222cbdf325885926566172f6f5f06af95473158",
+        "version" : "5.6.0"
+      }
+    },
+    {
+      "identity" : "swift-log",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-log.git",
+      "state" : {
+        "revision" : "6fe203dc33195667ce1759bf0182975e4653ba1c",
+        "version" : "1.4.4"
+      }
+    },
+    {
+      "identity" : "swift-log-file",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/crspybits/swift-log-file",
+      "state" : {
+        "revision" : "aa94b38bf88c7d9cbc87ceafcdffadaffbc2bffa",
+        "version" : "0.1.0"
+      }
+    },
+    {
+      "identity" : "xcglogger",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/DaveWoodCom/XCGLogger.git",
+      "state" : {
+        "revision" : "a9c4667b247928a29bdd41be2ec2c8d304215a54",
+        "version" : "7.0.1"
+      }
+    }
+  ],
+  "version" : 2
 }
