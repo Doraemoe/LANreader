@@ -3,7 +3,7 @@
 struct ArchiveIndexResponse: Decodable {
     let arcid: String
     let isnew: String
-    let tags: String
+    let tags: String?
     let title: String
     let pagecount: Int
     let progress: Int
