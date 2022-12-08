@@ -101,6 +101,27 @@ class LANraragiServiceTest: XCTestCase {
         }
     }
 
+    func testRetrieveArchiveIndexNullTags() throws {
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives")
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    fileAtPath: OHPathForFile("ArchiveIndexResponseNullTags.json", type(of: self))!,
+                    statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+
+        let publisher = service.retrieveArchiveIndex()
+        let recorder = publisher.record()
+        let actual = try wait(for: recorder.single, timeout: 1.0)
+        XCTAssertNotNil(actual)
+        XCTAssertEqual(actual.count, 1)
+        XCTAssertEqual(actual[0].arcid, "abcd1234")
+        XCTAssertEqual(actual[0].isnew, "false")
+        XCTAssertEqual(actual[0].tags, nil)
+        XCTAssertEqual(actual[0].title, "title")
+    }
+
     func testRetrieveArchiveThumbnail() throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/1/thumbnail")

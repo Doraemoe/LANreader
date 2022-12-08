@@ -25,10 +25,10 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                         response.forEach { item in
                             archiveItems[item.arcid] = ArchiveItem(id: item.arcid,
                                     name: item.title,
-                                    tags: item.tags,
+                                    tags: item.tags ?? "",
                                     isNew: item.isnew == "true",
                                     progress: item.progress,
-                                    dateAdded: extractDateAdded(tags: item.tags))
+                                    dateAdded: extractDateAdded(tags: item.tags ?? ""))
                         }
                         return AppAction.archive(action: .fetchArchiveSuccess(archive: archiveItems))
                     }
