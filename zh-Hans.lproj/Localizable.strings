@@ -35,6 +35,7 @@
 "settings.archive.list.order.random" = "随机";
 "settings.archive.list.view" = "使用列表视图";
 "settings.view.blur.inactive" = "后台运行时模糊界面显示";
+"settings.view.passcode" = "使用密码锁定此App";
 
 "settings.host" = "服务器设定";
 "settings.host.config" = "服务器";
@@ -65,3 +66,10 @@
 "error.category" = "无法加载类别，请重试";
 "error.category.update" = "无法更新类别，请重试";
 "error.metadata.update" = "无法更新压缩包信息，请重试";
+"error.passcode.verify" = "密码不匹配，请重试";
+"error.passcode.mismatch" = "密码不正确，请重试";
+
+"lock.label.new" = "输入新密码";
+"lock.label.verify" = "确认新密码";
+"lock.label.normal" = "输入密码";
+"lock.label.remove" = "输入当前密码";

@@ -35,6 +35,8 @@ struct SettingsKey {
     static let archiveListOrder = "settings.archive.list.order"
     static let useListView = "settings.view.use.list"
     static let blurInterfaceWhenInactive = "settings.view.blur.inactive"
+    static let enablePasscode = "settings.view.passcode.enable"
+    static let passcode = "settings.view.passcode"
 }
 
 struct ErrorCode: Equatable {
