@@ -8,6 +8,9 @@ import FileLogging
 struct DuMangaApp: App {
     @Environment(\.scenePhase) var scenePhase
     @AppStorage(SettingsKey.blurInterfaceWhenInactive) var blurInterfaceWhenInactive: Bool = false
+    @AppStorage(SettingsKey.passcode) var storedPasscode: String = ""
+
+    @State var lock = false
 
     init() {
         do {
@@ -46,6 +49,26 @@ struct DuMangaApp: App {
             ContentView()
                 .blur(radius: blurInterfaceWhenInactive && scenePhase != .active ? 200 : 0)
                 .environmentObject(store)
+                .fullScreenCover(isPresented: $lock) {
+                    LockScreen(initialState: LockScreenState.normal) { passcode, _, act in
+                        if passcode == storedPasscode {
+                            lock = false
+                            act(true)
+                        } else {
+                            act(false)
+                        }
+                    }
+                }
+                .onAppear {
+                    if !storedPasscode.isEmpty {
+                        lock = true
+                    }
+                }
+                .onChange(of: scenePhase) { newPhase in
+                    if !storedPasscode.isEmpty && newPhase != .active {
+                        lock = true
+                    }
+                }
         }
     }
 }

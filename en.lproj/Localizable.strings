@@ -35,6 +35,7 @@
 "settings.archive.list.order.random" = "Random order";
 "settings.archive.list.view" = "Use list view";
 "settings.view.blur.inactive" = "Blur interface when app is not active";
+"settings.view.passcode" = "Require passcode to unlock app";
 
 "settings.host" = "Host settings";
 "settings.host.config" = "Host";
@@ -65,3 +66,10 @@
 "error.category" = "Cannot load category, please try again";
 "error.category.update" = "Cannot update category, please try again";
 "error.metadata.update" = "Cannot update archive metadata, please try again";
+"error.passcode.verify" = "Passcode not match, please try again";
+"error.passcode.mismatch" = "Passcode incorrect, please try again";
+
+"lock.label.new" = "Enter New Passcode";
+"lock.label.verify" = "Confirm Passcode";
+"lock.label.normal" = "Enter Passcode";
+"lock.label.remove" = "Enter Current Passcode";

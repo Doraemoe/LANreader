@@ -91,6 +91,8 @@
 		7DF7EA7F2564E5D1003B5A5A /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA7E2564E5D1003B5A5A /* Persistence.swift */; };
 		7DF7EA852564E675003B5A5A /* Archive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA842564E675003B5A5A /* Archive.swift */; };
 		E98B23022942110100AE30C6 /* ArchiveIndexResponseNullTags.json in Resources */ = {isa = PBXBuildFile; fileRef = E98B23012942110100AE30C6 /* ArchiveIndexResponseNullTags.json */; };
+		E9BE57B22942CFEC00A3AEA0 /* LockScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */; };
+		E9BE57B42942F1AB00A3AEA0 /* LockScreenModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BE57B32942F1AB00A3AEA0 /* LockScreenModel.swift */; };
 		E9E3631426F463F800C58D01 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CD024F1390400617F4A /* Alamofire */; };
 		E9E3631526F463F800C58D01 /* AlamofireImage in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CD324F1393100617F4A /* AlamofireImage */; };
 		E9E3631626F463F800C58D01 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE124F15F1800617F4A /* Logging */; };
@@ -213,6 +215,8 @@
 		7DF7EA7E2564E5D1003B5A5A /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
 		7DF7EA842564E675003B5A5A /* Archive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Archive.swift; sourceTree = "<group>"; };
 		E98B23012942110100AE30C6 /* ArchiveIndexResponseNullTags.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveIndexResponseNullTags.json; sourceTree = "<group>"; };
+		E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreen.swift; path = DuMangaTests/Resources/LockScreen.swift; sourceTree = SOURCE_ROOT; };
+		E9BE57B32942F1AB00A3AEA0 /* LockScreenModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreenModel.swift; path = DuMangaTests/Resources/LockScreenModel.swift; sourceTree = SOURCE_ROOT; };
 		E9E3631E26F471E400C58D01 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -342,6 +346,8 @@
 			isa = PBXGroup;
 			children = (
 				4BD82D448F06457925BDCDEA /* ArchiveList.swift */,
+				E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */,
+				E9BE57B32942F1AB00A3AEA0 /* LockScreenModel.swift */,
 			);
 			path = Common;
 			sourceTree = "<group>";
@@ -710,6 +716,7 @@
 				4BD8252315A4CBC01ED5E1A3 /* AppAction.swift in Sources */,
 				4BD823F7B477CFE0048BB307 /* AppReducer.swift in Sources */,
 				4BD82DEEF7DD674ECA330193 /* SettingReducer.swift in Sources */,
+				E9BE57B42942F1AB00A3AEA0 /* LockScreenModel.swift in Sources */,
 				4BD82EA26FFA071989D51CF1 /* SettingState.swift in Sources */,
 				4BD82CDA1A27B1462DCCF3F4 /* SettingAction.swift in Sources */,
 				4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */,
@@ -728,6 +735,7 @@
 				4BD827862D48A4D0B32CCC08 /* CategoryAction.swift in Sources */,
 				4BD826B795F6A120E216A272 /* CategoryReducer.swift in Sources */,
 				4BD823A4FE3B643E84113C5D /* ArchiveState.swift in Sources */,
+				E9BE57B22942CFEC00A3AEA0 /* LockScreen.swift in Sources */,
 				4BD8202CBB691F358BDDA9FE /* ArchiveReducer.swift in Sources */,
 				4BD82DB8FD68F4BE80E2B221 /* ArchiveAction.swift in Sources */,
 				4BD82D948032095FF807F54E /* Selector.swift in Sources */,
@@ -947,7 +955,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -970,7 +978,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
