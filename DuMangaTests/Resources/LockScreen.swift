@@ -176,8 +176,7 @@ extension Int {
 
 struct LockScreen_Previews: PreviewProvider {
     static var previews: some View {
-        LockScreen(initialState: LockScreenState.new, storedPasscode: "") { passcode, _, funct in
-            print(passcode)
+        LockScreen(initialState: LockScreenState.new, storedPasscode: "") { _, _, funct in
             funct(false)
         }
     }
