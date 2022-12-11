@@ -5,12 +5,14 @@
 
 import SwiftUI
 import NotificationBannerSwift
+import LocalAuthentication
 
 struct LockScreen: View {
 
     @StateObject var lockScreenModel = LockScreenModel()
 
     let initialState: LockScreenState
+    let storedPasscode: String
     var handler: (String, LockScreenState, (Bool) -> Void) -> Void
 
     var body: some View {
@@ -23,7 +25,12 @@ struct LockScreen: View {
             }
             showPinStack
         }
-        .onAppear(perform: {lockScreenModel.state = initialState})
+        .onAppear(perform: {
+            lockScreenModel.state = initialState
+            if initialState == .normal || initialState == .remove {
+                authenticate()
+            }
+        })
         .onDisappear(perform: {
             lockScreenModel.unload()
         })
@@ -126,6 +133,26 @@ struct LockScreen: View {
 
         return "circle.fill"
     }
+
+    func authenticate() {
+        let context = LAContext()
+        var error: NSError?
+
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+            let reason = NSLocalizedString("lock.biometric.message", comment: "unlock")
+
+            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, _ in
+                if success {
+                    handler(storedPasscode, lockScreenModel.state) { _ in
+                    }
+                } else {
+                    // there was a problem
+                }
+            }
+        } else {
+            // no biometrics
+        }
+    }
 }
 
 extension String {
@@ -149,7 +176,7 @@ extension Int {
 
 struct LockScreen_Previews: PreviewProvider {
     static var previews: some View {
-        LockScreen(initialState: LockScreenState.new) { passcode, _, funct in
+        LockScreen(initialState: LockScreenState.new, storedPasscode: "") { passcode, _, funct in
             print(passcode)
             funct(false)
         }
