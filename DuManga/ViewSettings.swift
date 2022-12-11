@@ -53,7 +53,8 @@ struct ViewSettings: View {
         }
         .fullScreenCover(isPresented: $showPasscodeView) {
             LockScreen(
-                initialState: storedPasscode.isEmpty ? LockScreenState.new : LockScreenState.remove
+                initialState: storedPasscode.isEmpty ? LockScreenState.new : LockScreenState.remove,
+                storedPasscode: storedPasscode
             ) { passcode, state, act in
                 if state == .new {
                     passcodeToVerify = passcode

@@ -47,10 +47,13 @@ struct DuMangaApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .blur(radius: blurInterfaceWhenInactive && scenePhase != .active ? 200 : 0)
+                .blur(radius: lock ||
+                      (blurInterfaceWhenInactive || !storedPasscode.isEmpty) &&
+                      scenePhase != .active ? 200 : 0)
                 .environmentObject(store)
                 .fullScreenCover(isPresented: $lock) {
-                    LockScreen(initialState: LockScreenState.normal) { passcode, _, act in
+                    LockScreen(initialState: LockScreenState.normal,
+                               storedPasscode: storedPasscode) { passcode, _, act in
                         if passcode == storedPasscode {
                             lock = false
                             act(true)
@@ -64,8 +67,8 @@ struct DuMangaApp: App {
                         lock = true
                     }
                 }
-                .onChange(of: scenePhase) { newPhase in
-                    if !storedPasscode.isEmpty && newPhase != .active {
+                .onChange(of: scenePhase) { [scenePhase] newPhase in
+                    if !storedPasscode.isEmpty && newPhase == .inactive && scenePhase == .background {
                         lock = true
                     }
                 }

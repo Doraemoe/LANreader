@@ -73,3 +73,4 @@
 "lock.label.verify" = "确认新密码";
 "lock.label.normal" = "输入密码";
 "lock.label.remove" = "输入当前密码";
+"lock.biometric.message" = "我们需要解锁您的App";
