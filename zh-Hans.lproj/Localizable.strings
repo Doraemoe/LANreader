@@ -36,6 +36,7 @@
 "settings.archive.list.view" = "使用列表视图";
 "settings.view.blur.inactive" = "后台运行时模糊界面显示";
 "settings.view.passcode" = "使用密码锁定此App";
+"settings.view.hideRead" = "隐藏已阅读完毕的漫画";
 
 "settings.host" = "服务器设定";
 "settings.host.config" = "服务器";

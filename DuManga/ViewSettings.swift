@@ -8,6 +8,7 @@ struct ViewSettings: View {
     @AppStorage(SettingsKey.blurInterfaceWhenInactive) var blurInterfaceWhenInactive: Bool = false
     @AppStorage(SettingsKey.enablePasscode) var enablePasscode: Bool = false
     @AppStorage(SettingsKey.passcode) var storedPasscode: String = ""
+    @AppStorage(SettingsKey.hideRead) var hideRead: Bool = false
 
     @State var showPasscodeView: Bool = false
     @State var passcodeToVerify = ""
@@ -32,6 +33,10 @@ struct ViewSettings: View {
             .padding()
             Toggle(isOn: self.$enablePasscode, label: {
                 Text("settings.view.passcode")
+            })
+            .padding()
+            Toggle(isOn: self.$hideRead, label: {
+                Text("settings.view.hideRead")
             })
             .padding()
         }

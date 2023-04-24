@@ -28,6 +28,7 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                                     tags: item.tags ?? "",
                                     isNew: item.isnew == "true",
                                     progress: item.progress,
+                                    pagecount: item.pagecount,
                                     dateAdded: extractDateAdded(tags: item.tags ?? ""))
                         }
                         return AppAction.archive(action: .fetchArchiveSuccess(archive: archiveItems))
@@ -117,3 +118,4 @@ func extractDateAdded(tags: String) -> Int? {
         return nil
     }
 }
+// swiftlint:enable function_body_length
