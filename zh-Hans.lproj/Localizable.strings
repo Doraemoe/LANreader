@@ -10,6 +10,7 @@
 "error" = "错误";
 "delete" = "删除";
 "copy" = "复制";
+"edit" = "编辑";
 
 "filter.name" = "过滤标题";
 
