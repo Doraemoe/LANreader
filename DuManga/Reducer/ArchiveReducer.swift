@@ -4,7 +4,7 @@
 
 import Foundation
 
-// swiftlint:disable
+// swiftlint:disable all
 func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
     switch action {
     case .fetchArchive:
@@ -29,6 +29,7 @@ func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
                 tags: archive.tags,
                 isNew: archive.isNew,
                 progress: progress,
+                pagecount: archive.pagecount,
                 dateAdded: archive.dateAdded)
     case .deleteArchive:
         state.loading = true
@@ -47,3 +48,4 @@ func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
         break
     }
 }
+// swiftlint:enable all

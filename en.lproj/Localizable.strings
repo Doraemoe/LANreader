@@ -36,6 +36,7 @@
 "settings.archive.list.view" = "Use list view";
 "settings.view.blur.inactive" = "Blur interface when app is not active";
 "settings.view.passcode" = "Require passcode to unlock app";
+"settings.view.hideRead" = "Hide finished archives";
 
 "settings.host" = "Host settings";
 "settings.host.config" = "Host";

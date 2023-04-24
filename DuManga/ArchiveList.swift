@@ -6,6 +6,7 @@ import NotificationBannerSwift
 struct ArchiveList: View {
     @AppStorage(SettingsKey.useListView) var useListView: Bool = false
     @AppStorage(SettingsKey.experimentalReader) var experimentalReader: Bool = false
+    @AppStorage(SettingsKey.hideRead) var hideRead: Bool = false
 
     @State private var nameFilter = ""
 
@@ -74,7 +75,7 @@ struct ArchiveList: View {
     }
 
     func filterArchives() -> [ArchiveItem] {
-        let archives: [ArchiveItem]
+        var archives: [ArchiveItem]
         if listOrder == ArchiveListOrder.random.rawValue {
             archives = self.archives
         } else if listOrder == ArchiveListOrder.name.rawValue {
@@ -92,6 +93,11 @@ struct ArchiveList: View {
                 } else {
                     return item.name < item2.name
                 }
+            }
+        }
+        if hideRead {
+            archives = archives.filter { item in
+                item.pagecount != item.progress
             }
         }
         if !nameFilter.isEmpty {
