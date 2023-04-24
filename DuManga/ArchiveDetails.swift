@@ -7,8 +7,9 @@ struct ArchiveDetails: View {
     @EnvironmentObject var store: AppStore
     @Environment(\.presentationMode) var presentationMode
     @State private var showingAlert = false
+    @State private var isEditing = false
 
-    @StateObject var archiveListModel = ArchiveDetailsModel()
+    @StateObject var archiveDetailsModel = ArchiveDetailsModel()
 
     let item: ArchiveItem
 
@@ -18,18 +19,38 @@ struct ArchiveDetails: View {
 
     var body: some View {
         VStack {
-            TextField("", text: $archiveListModel.title)
+            if isEditing {
+                TextField("", text: $archiveDetailsModel.title)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
+            } else {
+                Text(archiveDetailsModel.title)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+            }
             ThumbnailImage(id: item.id)
                     .scaledToFit()
                     .padding()
                     .frame(width: 200, height: 250)
-            TextEditor(text: $archiveListModel.tags)
-                    .border(Color.secondary, width: 2)
-                    .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: 200, alignment: .center)
-                    .disableAutocorrection(true)
-                    .padding()
+            if isEditing {
+                TextEditor(text: $archiveDetailsModel.tags)
+                        .border(Color.secondary, width: 2)
+                        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: 200, alignment: .center)
+                        .disableAutocorrection(true)
+                        .padding()
+            } else {
+                WrappingHStack(models: archiveDetailsModel.tags.split(separator: ","), viewGenerator: { tag in
+                    NavigationLink(destination: SearchView(keyword: String(tag), showSearchResult: true)) {
+                        Text(tag)
+                    }
+                        .padding()
+                        .controlSize(.mini)
+                        .foregroundColor(.white)
+                        .background(.blue)
+                        .clipShape(Capsule())
+                })
+                .padding()
+            }
             Button(action: { showingAlert = true },
                     label: {
                         Text("archive.delete")
@@ -50,28 +71,39 @@ struct ArchiveDetails: View {
             Spacer()
         }
                 .navigationBarItems(trailing: Button(action: {
-                    let updated = ArchiveItem(id: item.id,
-                            name: archiveListModel.title,
-                            tags: archiveListModel.tags,
-                            isNew: false,
-                            progress: item.progress,
-                            pagecount: item.pagecount,
-                            dateAdded: item.dateAdded)
-                    store.dispatch(.archive(action: .updateArchiveMetadata(metadata: updated)))
+                    if isEditing {
+                        let updated = ArchiveItem(id: item.id,
+                                name: archiveDetailsModel.title,
+                                tags: archiveDetailsModel.tags,
+                                isNew: false,
+                                progress: item.progress,
+                                pagecount: item.pagecount,
+                                dateAdded: item.dateAdded)
+                        store.dispatch(.archive(action: .updateArchiveMetadata(metadata: updated)))
+                        isEditing = false
+                    } else {
+                        isEditing = true
+                    }
+
                 }, label: {
-                    Text("save")
+                    if isEditing {
+                        Text("save")
+                    } else {
+                        Text("edit")
+                    }
+
                 })
-                        .disabled(archiveListModel.loading)
+                        .disabled(archiveDetailsModel.loading)
                 )
                 .onAppear(perform: {
-                    archiveListModel.load(state: store.state,
+                    archiveDetailsModel.load(state: store.state,
                             title: item.name,
                             tags: item.tags)
                 })
                 .onDisappear(perform: {
-                    archiveListModel.unload()
+                    archiveDetailsModel.unload()
                 })
-                .onChange(of: archiveListModel.errorCode, perform: { errorCode in
+                .onChange(of: archiveDetailsModel.errorCode, perform: { errorCode in
                     if errorCode != nil {
                         let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
                                 subtitle: NSLocalizedString("error.metadata.update", comment: "update metadata error"),
@@ -80,13 +112,13 @@ struct ArchiveDetails: View {
                         store.dispatch(.archive(action: .resetState))
                     }
                 })
-                .onChange(of: archiveListModel.updateSuccess, perform: { success in
+                .onChange(of: archiveDetailsModel.updateSuccess, perform: { success in
                     if success {
                         store.dispatch(.archive(action: .resetState))
                         presentationMode.wrappedValue.dismiss()
                     }
                 })
-                .onChange(of: archiveListModel.deleteSuccess, perform: { success in
+                .onChange(of: archiveDetailsModel.deleteSuccess, perform: { success in
                     if success {
                         store.dispatch(.archive(action: .resetState))
                         presentationMode.wrappedValue.dismiss()
