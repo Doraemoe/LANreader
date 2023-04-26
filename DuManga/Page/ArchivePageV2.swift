@@ -97,7 +97,9 @@ struct ArchivePageV2: View {
                                 PageImage(id: pages![index]).tag(Double(index))
                                         .scaledToFit()
                                         .aspectRatio(contentMode: .fit)
-                                        .draggableAndZoomable(contentSize: CGSize(width: geometry.size.width, height: geometry.size.height))
+                                        .draggableAndZoomable(
+                                            contentSize: CGSize(width: geometry.size.width,
+                                                                height: geometry.size.height))
                             }
                         }
                                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
@@ -213,10 +215,10 @@ struct ArchivePageV2: View {
         var yBest = CGFloat.infinity
         var answer: Int?
         for (row, anchor) in anchors {
-            let y = proxy[anchor].y
-            guard y >= 0, y < yBest else { continue }
+            let yAxis = proxy[anchor].y
+            guard yAxis >= 0, yAxis < yBest else { continue }
             answer = row
-            yBest = y
+            yBest = yAxis
         }
         return answer
     }

@@ -60,7 +60,8 @@ struct DraggableAndZoomableView: ViewModifier {
     func body(content: Content) -> some View {
             content
                 .scaleEffect(self.scale * scaleState)
-                .offset(x: calEdge(offset: offset.width + offsetState.width, isWidth: true), y: calEdge(offset: offset.height + offsetState.height, isWidth: false) )
+                .offset(x: calEdge(offset: offset.width + offsetState.width, isWidth: true),
+                        y: calEdge(offset: offset.height + offsetState.height, isWidth: false))
                 .gesture(SimultaneousGesture(zoomGesture, dragGesture))
                 .gesture(doubleTapGesture)
     }
