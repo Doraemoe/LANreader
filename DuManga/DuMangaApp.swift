@@ -2,7 +2,7 @@
 
 import SwiftUI
 import Logging
-import FileLogging
+import Puppy
 
 @main
 struct DuMangaApp: App {
@@ -24,15 +24,17 @@ struct DuMangaApp: App {
                 // NOOP
             }
 
-            let fileLogger = try FileLogging(to: logFileURL)
+            let console = ConsoleLogger("com.jif.DuManga.console")
+            let fileLogger = try FileLogger("com.jif.DuManga.file", logLevel: .info, fileURL: logFileURL)
 
-            LoggingSystem.bootstrap { label in
-                let handlers: [LogHandler] = [
-                    FileLogHandler(label: label, fileLogger: fileLogger),
-                    StreamLogHandler.standardOutput(label: label)
-                ]
+            var puppy = Puppy()
+            puppy.add(console)
+            puppy.add(fileLogger)
 
-                return MultiplexLogHandler(handlers)
+            LoggingSystem.bootstrap {
+                var handler = PuppyLogHandler(label: $0, puppy: puppy)
+                    handler.logLevel = .info
+                    return handler
             }
         } catch {
             fatalError("Unresolved error \(error)")

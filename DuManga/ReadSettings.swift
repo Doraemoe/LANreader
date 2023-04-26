@@ -8,9 +8,6 @@ struct ReadSettings: View {
     @AppStorage(SettingsKey.tapRightKey) var tapRight: String = PageControl.previous.rawValue
     @AppStorage(SettingsKey.swipeLeftKey) var swipeLeft: String = PageControl.next.rawValue
     @AppStorage(SettingsKey.swipeRightKey) var swipeRight: String = PageControl.previous.rawValue
-    @AppStorage(SettingsKey.splitPage) var splitPage: Bool = false
-    @AppStorage(SettingsKey.splitPagePriorityLeft) var splitPagePriorityLeft: Bool = false
-    @AppStorage(SettingsKey.experimentalReader) var experimentalReader: Bool = false
     @AppStorage(SettingsKey.verticalReader) var verticalReader: Bool = false
 
     var body: some View {
@@ -38,18 +35,6 @@ struct ReadSettings: View {
                     .padding()
             Picker("settings.read.swipe.right", selection: self.$swipeRight) {
                 pageControlSelectionView
-            }
-                    .padding()
-            Toggle(isOn: self.$splitPage) {
-                Text("settings.read.split.page")
-            }
-                    .padding()
-            Toggle(isOn: self.$splitPagePriorityLeft) {
-                Text("settings.read.split.page.priority.left")
-            }
-                    .padding()
-            Toggle(isOn: self.$experimentalReader) {
-                Text("settings.read.experimental.reader")
             }
                     .padding()
             Toggle(isOn: self.$verticalReader) {

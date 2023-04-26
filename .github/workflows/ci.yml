@@ -6,7 +6,7 @@ on:
 
 jobs:
   verify:
-    runs-on: macOS-12
+    runs-on: macOS-13
     
     strategy:
         matrix:
@@ -18,7 +18,7 @@ jobs:
         run: swiftlint --strict
 
       - name: Select Xcode version
-        run: sudo xcode-select -switch /Applications/Xcode_14.1.app
+        run: sudo xcode-select -switch /Applications/Xcode_14.3.app
       
       - name: Build and test
         run: xcodebuild clean test -project DuManga.xcodeproj -scheme DuManga -destination "${destination}"

@@ -5,7 +5,6 @@ import NotificationBannerSwift
 
 struct ArchiveList: View {
     @AppStorage(SettingsKey.useListView) var useListView: Bool = false
-    @AppStorage(SettingsKey.experimentalReader) var experimentalReader: Bool = false
     @AppStorage(SettingsKey.hideRead) var hideRead: Bool = false
 
     @State private var nameFilter = ""
@@ -27,15 +26,10 @@ struct ArchiveList: View {
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .padding()
                     ForEach(filteredItems) { (item: ArchiveItem) in
-                        if experimentalReader {
                             NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
                                 ArchiveRow(archiveItem: item)
                             }
-                        } else {
-                            NavigationLink(destination: ArchivePage(archiveItem: item)) {
-                                ArchiveRow(archiveItem: item)
-                            }
-                        }
+
                     }
                 }
             } else {
@@ -52,19 +46,11 @@ struct ArchiveList: View {
                         ForEach(filteredItems) { (item: ArchiveItem) in
                             ZStack {
                                 ArchiveGrid(archiveItem: item)
-                                if experimentalReader {
                                     NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
                                         Rectangle()
                                                 .opacity(0.0001)
                                                 .contentShape(Rectangle())
                                     }
-                                } else {
-                                    NavigationLink(destination: ArchivePage(archiveItem: item)) {
-                                        Rectangle()
-                                                .opacity(0.0001)
-                                                .contentShape(Rectangle())
-                                    }
-                                }
                             }
                         }
                     }

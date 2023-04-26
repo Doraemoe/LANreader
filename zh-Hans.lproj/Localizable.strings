@@ -24,10 +24,7 @@
 "settings.read.tap.right" = "点击片屏幕右侧";
 "settings.read.swipe.left" = "向左滑动";
 "settings.read.swipe.right" = "向右滑动";
-"settings.read.split.page" = "竖屏自动分页";
-"settings.read.split.page.priority.left" = "优先显示左侧的分割后页面";
-"settings.read.experimental.reader" = "使用新的实验性阅读器（部分以上设定在此不可用）";
-"settings.read.vertical" = "纵向阅读 (仅在实验性阅读器下可用)";
+"settings.read.vertical" = "纵向阅读";
 
 "settings.view" = "视图设定";
 "settings.archive.list.order" = "漫画列表视图排序";
