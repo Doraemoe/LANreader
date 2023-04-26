@@ -5,6 +5,18 @@
 import SwiftUI
 import NotificationBannerSwift
 
+struct AnchorsKey: PreferenceKey {
+    // Each key is a row index. The corresponding value is the
+    // .center anchor of that row.
+    typealias Value = [Int: Anchor<CGPoint>]
+
+    static var defaultValue: Value { [:] }
+
+    static func reduce(value: inout Value, nextValue: () -> Value) {
+        value.merge(nextValue()) { $1 }
+    }
+}
+
 struct ArchivePageV2: View {
     @AppStorage(SettingsKey.tapLeftKey) var tapLeft: String = PageControl.next.rawValue
     @AppStorage(SettingsKey.tapMiddleKey) var tapMiddle: String = PageControl.navigation.rawValue
@@ -31,29 +43,44 @@ struct ArchivePageV2: View {
             ZStack {
                 if verticalReader {
                     if pages?.isEmpty == false {
-                        ScrollView {
-                            ScrollViewReader { reader in
-                                LazyVStack {
-                                    ForEach(0..<pages!.count, id: \.self) { index in
-                                        PageImage(id: pages![index]).id(Double(index))
+                        GeometryReader { scrollGeo in
+                            ScrollView {
+                                ScrollViewReader { reader in
+                                    LazyVStack {
+                                        ForEach(0..<pages!.count, id: \.self) { index in
+                                            PageImage(id: pages![index]).id(Double(index))
                                                 .aspectRatio(contentMode: .fit)
                                                 .frame(width: geometry.size.width)
+                                                .anchorPreference(key: AnchorsKey.self, value: .center) {
+                                                    [index: $0]
+                                                }
+                                        }
+                                    }
+                                    .onAppear(perform: {
+                                        reader.scrollTo(archivePageModel.currentIndex, anchor: .top)
+                                    })
+                                    .onChange(of: verticalScrollTarget) { target in
+                                        if let target = target {
+                                            verticalScrollTarget = nil
+                                            reader.scrollTo(target, anchor: .top)
+                                        }
                                     }
                                 }
-                                        .onChange(of: verticalScrollTarget) { target in
-                                            if let target = target {
-                                                verticalScrollTarget = nil
-                                                reader.scrollTo(target, anchor: .top)
-                                            }
-                                        }
+
                             }
-                        }
-                                .navigationBarHidden(archivePageModel.controlUiHidden)
-                                .navigationBarTitle("")
-                                .navigationBarItems(trailing: NavigationLink(
-                                        destination: ArchiveDetails(item: archiveItem)) {
+                            .onPreferenceChange(AnchorsKey.self) { anchors in
+                                let topIndex = topRow(of: anchors, in: scrollGeo) ?? 0
+                                if topIndex != 0 && topIndex != archivePageModel.currentIndex.int {
+                                    archivePageModel.currentIndex = Double(topIndex)
+                                }
+                            }
+                            .navigationBarHidden(archivePageModel.controlUiHidden)
+                            .navigationBarTitle("")
+                            .navigationBarItems(trailing: NavigationLink(
+                                destination: ArchiveDetails(item: archiveItem)) {
                                     Text("details")
                                 })
+                        }
                     } else {
                         Image("placeholder")
                     }
@@ -70,6 +97,9 @@ struct ArchivePageV2: View {
                                 PageImage(id: pages![index]).tag(Double(index))
                                         .scaledToFit()
                                         .aspectRatio(contentMode: .fit)
+                                        .draggableAndZoomable(
+                                            contentSize: CGSize(width: geometry.size.width,
+                                                                height: geometry.size.height))
                             }
                         }
                                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
@@ -179,6 +209,18 @@ struct ArchivePageV2: View {
                         archivePageModel.unload()
                     }
         }
+    }
+
+    private func topRow(of anchors: AnchorsKey.Value, in proxy: GeometryProxy) -> Int? {
+        var yBest = CGFloat.infinity
+        var answer: Int?
+        for (row, anchor) in anchors {
+            let yAxis = proxy[anchor].y
+            guard yAxis >= 0, yAxis < yBest else { continue }
+            answer = row
+            yBest = yAxis
+        }
+        return answer
     }
 
     private func extractArchive() {

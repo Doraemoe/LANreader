@@ -14,7 +14,6 @@
 		4BD821C3FDF1FC3B60AB4823 /* AppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD822BB67087E0A18F517BF /* AppModels.swift */; };
 		4BD822795ACE4090322B4F9F /* ArchiveList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82D448F06457925BDCDEA /* ArchiveList.swift */; };
 		4BD822BA58A9F4C0B7EB8F85 /* ContentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8258293EA80CD9CC32653 /* ContentViewModel.swift */; };
-		4BD82305BE716D4B998D4966 /* ArchivePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82B08491E8D89511F44A5 /* ArchivePage.swift */; };
 		4BD8236A69BB648B5CC4EF24 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82A14F4C3D7950CCCC8C1 /* AppState.swift */; };
 		4BD823A4FE3B643E84113C5D /* ArchiveState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD829DF3149761EE3A81A1A /* ArchiveState.swift */; };
 		4BD823AC73ED9E45F8B7E436 /* ReadSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD825A4E56818113C2F7801 /* ReadSettings.swift */; };
@@ -33,7 +32,6 @@
 		4BD82760E9B084402AFE07F2 /* SettingsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82FA7EAE6ED44136AA4E7 /* SettingsService.swift */; };
 		4BD827862D48A4D0B32CCC08 /* CategoryAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82127C1FF73E283825D59 /* CategoryAction.swift */; };
 		4BD828F432CB9B8D26EEAB92 /* LANraragiConfigViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8293BAD09DE6D90D6A30C /* LANraragiConfigViewModel.swift */; };
-		4BD828FC9A6301237E2FF2AE /* ArchivePageModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD822D1F54ACC90A6131FB8 /* ArchivePageModel.swift */; };
 		4BD8291B040E65AF0E4A9F15 /* LibraryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82139F51916878474B349 /* LibraryList.swift */; };
 		4BD8291EBA7A94EE9E8C2ACE /* ArchiveGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82837C2109B37482712EE /* ArchiveGrid.swift */; };
 		4BD829CEC647540D32DA68C5 /* SettingMiddleware.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82D9D382800F9E46EF2FE /* SettingMiddleware.swift */; };
@@ -91,6 +89,8 @@
 		7DF7EA7F2564E5D1003B5A5A /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA7E2564E5D1003B5A5A /* Persistence.swift */; };
 		7DF7EA852564E675003B5A5A /* Archive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA842564E675003B5A5A /* Archive.swift */; };
 		E90576B629F6BF8700C3CE3F /* WrappingHStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90576B529F6BF8700C3CE3F /* WrappingHStack.swift */; };
+		E90576BC29F7FB2900C3CE3F /* DraggableAndZoomableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90576BB29F7FB2900C3CE3F /* DraggableAndZoomableView.swift */; };
+		E90576BF29F8C10700C3CE3F /* Puppy in Frameworks */ = {isa = PBXBuildFile; productRef = E90576BE29F8C10700C3CE3F /* Puppy */; };
 		E98B23022942110100AE30C6 /* ArchiveIndexResponseNullTags.json in Resources */ = {isa = PBXBuildFile; fileRef = E98B23012942110100AE30C6 /* ArchiveIndexResponseNullTags.json */; };
 		E9BE57B22942CFEC00A3AEA0 /* LockScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */; };
 		E9BE57B42942F1AB00A3AEA0 /* LockScreenModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BE57B32942F1AB00A3AEA0 /* LockScreenModel.swift */; };
@@ -101,7 +101,6 @@
 		E9E3631826F463F800C58D01 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 7DF7EA792564E264003B5A5A /* GRDB */; };
 		E9E3631926F463F800C58D01 /* OHHTTPStubsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE924F1660200617F4A /* OHHTTPStubsSwift */; };
 		E9E3631A26F463F800C58D01 /* CombineExpectations in Frameworks */ = {isa = PBXBuildFile; productRef = 7DEBE7A4252DBF26001199CD /* CombineExpectations */; };
-		E9E3631D26F465A200C58D01 /* FileLogging in Frameworks */ = {isa = PBXBuildFile; productRef = E9E3631C26F465A200C58D01 /* FileLogging */; };
 		E9E3631F26F471E400C58D01 /* LogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9E3631E26F471E400C58D01 /* LogView.swift */; };
 /* End PBXBuildFile section */
 
@@ -133,7 +132,6 @@
 		4BD822A6C9B5C44B6110ADC3 /* ArchiveAction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchiveAction.swift; sourceTree = "<group>"; };
 		4BD822BB67087E0A18F517BF /* AppModels.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppModels.swift; sourceTree = "<group>"; };
 		4BD822C951070AD5E4B9E3AF /* CategoryArchiveListModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryArchiveListModel.swift; sourceTree = "<group>"; };
-		4BD822D1F54ACC90A6131FB8 /* ArchivePageModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ArchivePageModel.swift; path = DuManga/Models/ArchivePageModel.swift; sourceTree = SOURCE_ROOT; };
 		4BD82396734DD4176DD159EA /* CategoryList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = CategoryList.swift; path = DuManga/CategoryList.swift; sourceTree = SOURCE_ROOT; };
 		4BD823EC00313FB6857A6036 /* AppReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppReducer.swift; sourceTree = "<group>"; };
 		4BD824A308A90B5740411016 /* LANraragiService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LANraragiService.swift; sourceTree = "<group>"; };
@@ -160,7 +158,6 @@
 		4BD829DF3149761EE3A81A1A /* ArchiveState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchiveState.swift; sourceTree = "<group>"; };
 		4BD82A14F4C3D7950CCCC8C1 /* AppState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		4BD82A7A1E34456CEE443689 /* Selector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Selector.swift; sourceTree = "<group>"; };
-		4BD82B08491E8D89511F44A5 /* ArchivePage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ArchivePage.swift; path = DuManga/ArchivePage.swift; sourceTree = SOURCE_ROOT; };
 		4BD82B3FE2BE59AACD7ABA3A /* CategoryArchiveList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryArchiveList.swift; sourceTree = "<group>"; };
 		4BD82B45987169916D0D32EF /* ArchiveRow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ArchiveRow.swift; path = DuManga/ArchiveRow.swift; sourceTree = SOURCE_ROOT; };
 		4BD82C50F0B889D20B260924 /* SettingState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingState.swift; sourceTree = "<group>"; };
@@ -216,6 +213,7 @@
 		7DF7EA7E2564E5D1003B5A5A /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
 		7DF7EA842564E675003B5A5A /* Archive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Archive.swift; sourceTree = "<group>"; };
 		E90576B529F6BF8700C3CE3F /* WrappingHStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WrappingHStack.swift; sourceTree = "<group>"; };
+		E90576BB29F7FB2900C3CE3F /* DraggableAndZoomableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraggableAndZoomableView.swift; sourceTree = "<group>"; };
 		E98B23012942110100AE30C6 /* ArchiveIndexResponseNullTags.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveIndexResponseNullTags.json; sourceTree = "<group>"; };
 		E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreen.swift; path = DuMangaTests/Resources/LockScreen.swift; sourceTree = SOURCE_ROOT; };
 		E9BE57B32942F1AB00A3AEA0 /* LockScreenModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreenModel.swift; path = DuMangaTests/Resources/LockScreenModel.swift; sourceTree = SOURCE_ROOT; };
@@ -227,10 +225,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E9E3631D26F465A200C58D01 /* FileLogging in Frameworks */,
 				E9E3631626F463F800C58D01 /* Logging in Frameworks */,
 				E9E3631826F463F800C58D01 /* GRDB in Frameworks */,
 				E9E3631726F463F800C58D01 /* NotificationBannerSwift in Frameworks */,
+				E90576BF29F8C10700C3CE3F /* Puppy in Frameworks */,
 				E9E3631426F463F800C58D01 /* Alamofire in Frameworks */,
 				E9E3631526F463F800C58D01 /* AlamofireImage in Frameworks */,
 			);
@@ -322,15 +320,14 @@
 		4BD824C107853A5BC514F2AD /* Page */ = {
 			isa = PBXGroup;
 			children = (
-				4BD82B08491E8D89511F44A5 /* ArchivePage.swift */,
 				4BD825AB0EEF9DE292B50E98 /* ArchiveDetails.swift */,
-				4BD822D1F54ACC90A6131FB8 /* ArchivePageModel.swift */,
 				4BD8253353671DDCADE174C9 /* ArchiveDetailsModel.swift */,
 				6DA71C5217BC4916AB9D5C36 /* PageImage.swift */,
 				6DA7142EA580864782E99661 /* PageImageModel.swift */,
 				6DA71E19C1691936CF5C7B7B /* ArchivePageV2.swift */,
 				6DA71AA80493DE3160A68590 /* ArchivePageModelV2.swift */,
 				E90576B529F6BF8700C3CE3F /* WrappingHStack.swift */,
+				E90576BB29F7FB2900C3CE3F /* DraggableAndZoomableView.swift */,
 			);
 			path = Page;
 			sourceTree = "<group>";
@@ -561,7 +558,7 @@
 				7D354CE124F15F1800617F4A /* Logging */,
 				7D7A6842250239750051F232 /* NotificationBannerSwift */,
 				7DF7EA792564E264003B5A5A /* GRDB */,
-				E9E3631C26F465A200C58D01 /* FileLogging */,
+				E90576BE29F8C10700C3CE3F /* Puppy */,
 			);
 			productName = DuManga;
 			productReference = 7D354C9C24F1316800617F4A /* DuManga.app */;
@@ -649,7 +646,7 @@
 				7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */,
 				7DEBE7A3252DBF26001199CD /* XCRemoteSwiftPackageReference "CombineExpectations" */,
 				7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */,
-				E9E3631B26F465A200C58D01 /* XCRemoteSwiftPackageReference "swift-log-file" */,
+				E90576BD29F8C10700C3CE3F /* XCRemoteSwiftPackageReference "Puppy" */,
 			);
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
 			projectDirPath = "";
@@ -717,6 +714,7 @@
 				7D354CDA24F13C4900617F4A /* LANraragiResponse.swift in Sources */,
 				4BD8236A69BB648B5CC4EF24 /* AppState.swift in Sources */,
 				4BD821631AB6950B54BEA209 /* Store.swift in Sources */,
+				E90576BC29F7FB2900C3CE3F /* DraggableAndZoomableView.swift in Sources */,
 				4BD8252315A4CBC01ED5E1A3 /* AppAction.swift in Sources */,
 				4BD823F7B477CFE0048BB307 /* AppReducer.swift in Sources */,
 				4BD82DEEF7DD674ECA330193 /* SettingReducer.swift in Sources */,
@@ -744,7 +742,6 @@
 				4BD8202CBB691F358BDDA9FE /* ArchiveReducer.swift in Sources */,
 				4BD82DB8FD68F4BE80E2B221 /* ArchiveAction.swift in Sources */,
 				4BD82D948032095FF807F54E /* Selector.swift in Sources */,
-				4BD82305BE716D4B998D4966 /* ArchivePage.swift in Sources */,
 				7D34EAE5253B053C00695AFD /* ThumbnailImageModel.swift in Sources */,
 				4BD82E53B1A77AFD992AAC25 /* ArchiveDetails.swift in Sources */,
 				4BD826672D530C0A98D313F7 /* ArchiveRow.swift in Sources */,
@@ -752,7 +749,6 @@
 				4BD82B6AD795154C1E915912 /* CategoryListModel.swift in Sources */,
 				4BD826130BCE1AC291C7D6A1 /* EditCategoryModel.swift in Sources */,
 				4BD828F432CB9B8D26EEAB92 /* LANraragiConfigViewModel.swift in Sources */,
-				4BD828FC9A6301237E2FF2AE /* ArchivePageModel.swift in Sources */,
 				7D34EAE0253B050900695AFD /* ThumbnailImage.swift in Sources */,
 				4BD82A2A4437113DBD1DE74A /* ArchiveDetailsModel.swift in Sources */,
 				4BD82EDD2C82F2F36EB547B3 /* PageAction.swift in Sources */,
@@ -960,7 +956,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 29;
+				CURRENT_PROJECT_VERSION = 30;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -984,7 +980,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 29;
+				CURRENT_PROJECT_VERSION = 30;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -1053,6 +1049,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				INFOPLIST_FILE = DuMangaUITests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1073,6 +1070,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				INFOPLIST_FILE = DuMangaUITests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1184,12 +1182,12 @@
 				minimumVersion = 5.1.0;
 			};
 		};
-		E9E3631B26F465A200C58D01 /* XCRemoteSwiftPackageReference "swift-log-file" */ = {
+		E90576BD29F8C10700C3CE3F /* XCRemoteSwiftPackageReference "Puppy" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/crspybits/swift-log-file";
+			repositoryURL = "https://github.com/sushichop/Puppy";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.0;
+				minimumVersion = 0.7.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -1230,10 +1228,10 @@
 			package = 7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */;
 			productName = GRDB;
 		};
-		E9E3631C26F465A200C58D01 /* FileLogging */ = {
+		E90576BE29F8C10700C3CE3F /* Puppy */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E9E3631B26F465A200C58D01 /* XCRemoteSwiftPackageReference "swift-log-file" */;
-			productName = FileLogging;
+			package = E90576BD29F8C10700C3CE3F /* XCRemoteSwiftPackageReference "Puppy" */;
+			productName = Puppy;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
