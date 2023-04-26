@@ -4,6 +4,8 @@ import SwiftUI
 import NotificationBannerSwift
 
 struct ArchiveDetails: View {
+    private static let dateTag = "date_added"
+
     @EnvironmentObject var store: AppStore
     @Environment(\.presentationMode) var presentationMode
     @State private var showingAlert = false
@@ -21,12 +23,12 @@ struct ArchiveDetails: View {
         VStack {
             if isEditing {
                 TextField("", text: $archiveDetailsModel.title)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding()
             } else {
                 Text(archiveDetailsModel.title)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding()
             }
             ThumbnailImage(id: item.id)
                     .scaledToFit()
@@ -40,16 +42,20 @@ struct ArchiveDetails: View {
                         .padding()
             } else {
                 WrappingHStack(models: archiveDetailsModel.tags.split(separator: ","), viewGenerator: { tag in
-                    NavigationLink(destination: SearchView(keyword: String(tag), showSearchResult: true)) {
-                        Text(tag)
+                    NavigationLink(
+                            destination: SearchView(
+                                    keyword: String(tag.trimmingCharacters(in: .whitespacesAndNewlines)),
+                                    showSearchResult: true)
+                    ) {
+                        Text(parseTag(tag: String(tag)))
                     }
-                        .padding()
-                        .controlSize(.mini)
-                        .foregroundColor(.white)
-                        .background(.blue)
-                        .clipShape(Capsule())
+                            .padding()
+                            .controlSize(.mini)
+                            .foregroundColor(.white)
+                            .background(.blue)
+                            .clipShape(Capsule())
                 })
-                .padding()
+                        .padding()
             }
             Button(action: { showingAlert = true },
                     label: {
@@ -124,6 +130,18 @@ struct ArchiveDetails: View {
                         presentationMode.wrappedValue.dismiss()
                     }
                 })
+    }
+
+    private func parseTag(tag: String) -> String {
+        let tagPair = tag.split(separator: ":")
+        if tagPair[0].trimmingCharacters(in: .whitespacesAndNewlines) == ArchiveDetails.dateTag {
+            let date = Date(
+                    timeIntervalSince1970: TimeInterval(
+                            tagPair[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                    ) ?? 0)
+            return "\(ArchiveDetails.dateTag):\(date.formatted(date: .abbreviated, time: .omitted))"
+        }
+        return tag
     }
 }
 
