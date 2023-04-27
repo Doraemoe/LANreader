@@ -5,7 +5,10 @@
 import Foundation
 import Combine
 import SwiftUI
+import Logging
 
+private let logger = Logger(label: "LANraragiMiddleware")
+private let database = AppDatabase.shared
 // swiftlint:disable function_body_length
 func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppAction> {
     { _, action in
@@ -18,7 +21,28 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     .replaceError(with: AppAction.setting(action: .error(errorCode: .lanraragiServerError)))
                     .eraseToAnyPublisher()
 
-        case .archive(action: .fetchArchive):
+        case let .archive(action: .fetchArchive(fromServer)):
+            if !fromServer {
+                do {
+                    let archives = try database.readAllArchive()
+                    if archives.count > 0 {
+                        var archiveItems = [String: ArchiveItem]()
+                        archives.forEach { item in
+                            archiveItems[item.id] = ArchiveItem(id: item.id,
+                                    name: item.title,
+                                    tags: item.tags,
+                                    isNew: item.isNew,
+                                    progress: item.progress,
+                                    pagecount: item.pageCount,
+                                    dateAdded: extractDateAdded(tags: item.tags))
+                        }
+                        return Just(AppAction.archive(action: .fetchArchiveSuccess(archive: archiveItems)))
+                                .eraseToAnyPublisher()
+                    }
+                } catch {
+                    logger.warning("failed to read archive from db. \(error)")
+                }
+            }
             return service.retrieveArchiveIndex()
                     .map { (response: [ArchiveIndexResponse]) in
                         var archiveItems = [String: ArchiveItem]()
@@ -30,6 +54,18 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                                     progress: item.progress,
                                     pagecount: item.pagecount,
                                     dateAdded: extractDateAdded(tags: item.tags ?? ""))
+                            var archive = Archive(id: item.arcid,
+                                    isNew: Bool(item.isnew) ?? false,
+                                    pageCount: item.pagecount,
+                                    progress: item.progress,
+                                    tags: item.tags ?? "",
+                                    title: item.title,
+                                    lastUpdate: Date())
+                            do {
+                                try database.saveArchive(&archive)
+                            } catch {
+                                logger.error("failed to save archive. id=\(item.arcid) \(error)")
+                            }
                         }
                         return AppAction.archive(action: .fetchArchiveSuccess(archive: archiveItems))
                     }
@@ -118,4 +154,5 @@ func extractDateAdded(tags: String) -> Int? {
         return nil
     }
 }
+
 // swiftlint:enable function_body_length

@@ -15,11 +15,22 @@ struct AppDatabase {
     private var migrator: DatabaseMigrator {
         var migrator = DatabaseMigrator()
 
-        // TODO: Remove this after db schema is stable
         migrator.eraseDatabaseOnSchemaChange = true
 
         migrator.registerMigration("archiveList") { database in
             try database.create(table: "archive") { table in
+                table.column("id", .text).primaryKey()
+                table.column("isNew", .boolean)
+                table.column("pageCount", .integer)
+                table.column("progress", .integer)
+                table.column("tags", .text)
+                table.column("title", .text)
+                table.column("lastUpdate", .datetime)
+            }
+        }
+
+        migrator.registerMigration("archiveThumbnail") { database in
+            try database.create(table: "archiveThumbnail") { table in
                 table.column("id", .text).primaryKey()
                 table.column("thumbnail", .blob)
                 table.column("lastUpdate", .datetime)
@@ -55,6 +66,24 @@ extension AppDatabase {
     func readArchive(_ id: String) throws -> Archive? {
         try dbWriter.read { database in
             try Archive.fetchOne(database, key: id)
+        }
+    }
+
+    func readAllArchive() throws -> [Archive] {
+        try dbWriter.read { database in
+            try Archive.fetchAll(database)
+        }
+    }
+
+    func saveArchiveThumbnail(_ archiveThumbnail: inout ArchiveThumbnail) throws {
+        try dbWriter.write { database in
+            try archiveThumbnail.save(database)
+        }
+    }
+
+    func readArchiveThumbnail(_ id: String) throws -> ArchiveThumbnail? {
+        try dbWriter.read { database in
+            try ArchiveThumbnail.fetchOne(database, key: id)
         }
     }
 

@@ -38,6 +38,7 @@
 
 "settings.host" = "服务器设定";
 "settings.host.config" = "服务器";
+"settings.host.alwaysLoad" = "启动后总是从服务器自动拉取数据";
 
 "settings.nextPage" = "下一页";
 "settings.previousPage" = "上一页";

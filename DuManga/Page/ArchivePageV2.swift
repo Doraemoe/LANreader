@@ -49,46 +49,41 @@ struct ArchivePageV2: View {
                                     LazyVStack {
                                         ForEach(0..<pages!.count, id: \.self) { index in
                                             PageImage(id: pages![index]).id(Double(index))
-                                                .aspectRatio(contentMode: .fit)
-                                                .frame(width: geometry.size.width)
-                                                .anchorPreference(key: AnchorsKey.self, value: .center) {
-                                                    [index: $0]
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .frame(width: geometry.size.width)
+                                                    .anchorPreference(key: AnchorsKey.self, value: .center) {
+                                                        [index: $0]
+                                                    }
+                                        }
+                                    }
+                                            .onTapGesture(perform: { performAction(tapMiddle) })
+                                            .onAppear(perform: {
+                                                reader.scrollTo(archivePageModel.currentIndex, anchor: .top)
+                                            })
+                                            .onChange(of: verticalScrollTarget) { target in
+                                                if let target = target {
+                                                    verticalScrollTarget = nil
+                                                    reader.scrollTo(target, anchor: .top)
                                                 }
-                                        }
-                                    }
-                                    .onAppear(perform: {
-                                        reader.scrollTo(archivePageModel.currentIndex, anchor: .top)
-                                    })
-                                    .onChange(of: verticalScrollTarget) { target in
-                                        if let target = target {
-                                            verticalScrollTarget = nil
-                                            reader.scrollTo(target, anchor: .top)
-                                        }
-                                    }
+                                            }
                                 }
 
                             }
-                            .onPreferenceChange(AnchorsKey.self) { anchors in
-                                let topIndex = topRow(of: anchors, in: scrollGeo) ?? 0
-                                if topIndex != 0 && topIndex != archivePageModel.currentIndex.int {
-                                    archivePageModel.currentIndex = Double(topIndex)
-                                }
-                            }
-                            .navigationBarHidden(archivePageModel.controlUiHidden)
-                            .navigationBarTitle("")
-                            .navigationBarItems(trailing: NavigationLink(
-                                destination: ArchiveDetails(item: archiveItem)) {
-                                    Text("details")
-                                })
+                                    .onPreferenceChange(AnchorsKey.self) { anchors in
+                                        let topIndex = topRow(of: anchors, in: scrollGeo) ?? 0
+                                        if topIndex != 0 && topIndex != archivePageModel.currentIndex.int {
+                                            archivePageModel.currentIndex = Double(topIndex)
+                                        }
+                                    }
+                                    .navigationBarHidden(archivePageModel.controlUiHidden)
+                                    .navigationBarTitle("")
+                                    .navigationBarItems(trailing: NavigationLink(
+                                            destination: ArchiveDetails(item: archiveItem)) {
+                                        Text("details")
+                                    })
                         }
                     } else {
                         Image("placeholder")
-                    }
-                    HStack {
-                        Rectangle()
-                                .opacity(0.0001)
-                                .contentShape(Rectangle())
-                                .onTapGesture(perform: { performAction(tapMiddle) })
                     }
                 } else {
                     if pages?.isEmpty == false {
@@ -98,8 +93,8 @@ struct ArchivePageV2: View {
                                         .scaledToFit()
                                         .aspectRatio(contentMode: .fit)
                                         .draggableAndZoomable(
-                                            contentSize: CGSize(width: geometry.size.width,
-                                                                height: geometry.size.height))
+                                                contentSize: CGSize(width: geometry.size.width,
+                                                        height: geometry.size.height))
                             }
                         }
                                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
@@ -192,7 +187,7 @@ struct ArchivePageV2: View {
                     .onChange(of: archivePageModel.currentIndex) { index in
                         store.dispatch(.archive(action: .updateReadProgressServer(
                                 id: archiveItem.id, progress: index.int + 1)))
-                        if index.int == (archivePageModel.archivePages[archiveItem.id]?.count ?? 0) - 1 {
+                        if index.int == (archivePageModel.archiveItems[archiveItem.id]?.pagecount ?? 0) - 1 {
                             archivePageModel.clearNewFlag(id: archiveItem.id)
                         }
                     }

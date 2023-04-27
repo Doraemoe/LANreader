@@ -38,6 +38,7 @@
 
 "settings.host" = "Host settings";
 "settings.host.config" = "Host";
+"settings.host.alwaysLoad" = "Always load data from server when App start";
 
 "settings.nextPage" = "Next page";
 "settings.previousPage" = "Previous page";

@@ -29,7 +29,7 @@ class ThumbnailImageModel: ObservableObject {
             return
         }
         do {
-            if let archive = try database.readArchive(id) {
+            if let archive = try database.readArchiveThumbnail(id) {
                 image = Image(uiImage: UIImage(data: archive.thumbnail)!)
                 return
             }
@@ -52,9 +52,9 @@ class ThumbnailImageModel: ObservableObject {
                     }
                 }, receiveValue: {
                     self.image = Image(uiImage: UIImage(data: $0)!)
-                    var archive = Archive(id: id, thumbnail: $0, lastUpdate: Date())
+                    var archive = ArchiveThumbnail(id: id, thumbnail: $0, lastUpdate: Date())
                     do {
-                        try self.database.saveArchive(&archive)
+                        try self.database.saveArchiveThumbnail(&archive)
                     } catch {
                         ThumbnailImageModel.logger.error("db error. id=\(id) \(error)")
                     }
