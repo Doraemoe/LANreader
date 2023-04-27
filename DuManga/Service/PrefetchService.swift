@@ -27,7 +27,9 @@ class PrefetchService {
 
         ids.publisher
                 .subscribe(on: Self.imageProcessingQueue)
-                .filter { output in !self.fetchedIds.contains(output) }
+                .filter { output in
+                    !self.fetchedIds.contains(output)
+                }
                 .flatMap(maxPublishers: .max(1)) {
                     Just($0).delay(for: .seconds(0.3), scheduler: RunLoop.main)
                 }
@@ -65,10 +67,10 @@ class PrefetchService {
                     var archiveImage = ArchiveImage(id: id, image: $0, lastUpdate: Date())
                     do {
                         try self.database.saveArchiveImage(&archiveImage)
+                        self.fetchedIds.append(id)
                     } catch {
                         PrefetchService.logger.error("db error. pageId=\(id) \(error)")
                     }
-                    self.fetchedIds.append(id)
                 })
                 .store(in: &cancellables)
     }

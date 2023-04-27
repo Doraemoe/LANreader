@@ -23,21 +23,22 @@ enum ArchiveListOrder: String, CaseIterable, Identifiable {
 struct SettingsKey {
     static let lanraragiUrl = "settings.lanraragi.url"
     static let lanraragiApiKey = "settings.lanraragi.apiKey"
+
     static let tapLeftKey = "settings.read.tap.left"
     static let tapMiddleKey = "settings.read.tap.middle"
     static let tapRightKey = "settings.read.tap.right"
     static let swipeLeftKey = "settings.read.swipe.left"
     static let swipeRightKey = "settings.read.swipe.right"
-    static let splitPage = "settings.read.split.page"
-    static let splitPagePriorityLeft = "settings.read.split.page.priority.left"
-    static let experimentalReader = "settings.read.experimental.reader"
     static let verticalReader = "settings.read.vertical"
+
     static let archiveListOrder = "settings.archive.list.order"
     static let useListView = "settings.view.use.list"
     static let blurInterfaceWhenInactive = "settings.view.blur.inactive"
     static let enablePasscode = "settings.view.passcode.enable"
     static let passcode = "settings.view.passcode"
     static let hideRead = "settings.view.hideRead"
+
+    static let alwaysLoadFromServer = "settings.host.alwaysLoad"
 }
 
 struct ErrorCode: Equatable {

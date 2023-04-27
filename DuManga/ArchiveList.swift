@@ -19,9 +19,8 @@ struct ArchiveList: View {
 
     var body: some View {
         let filteredItems = filterArchives()
-        return ZStack {
             if useListView {
-                List {
+                return AnyView(List {
                     TextField("filter.name", text: $nameFilter)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .padding()
@@ -31,12 +30,12 @@ struct ArchiveList: View {
                             }
 
                     }
-                }
+                })
             } else {
                 let columns = [
                     GridItem(.adaptive(minimum: 160))
                 ]
-                ScrollView {
+                return AnyView(ScrollView {
                     Spacer(minLength: 20)
                     TextField("filter.name", text: $nameFilter)
                             .disableAutocorrection(true)
@@ -55,9 +54,9 @@ struct ArchiveList: View {
                         }
                     }
                             .padding(.horizontal)
-                }
+                })
             }
-        }
+
     }
 
     func filterArchives() -> [ArchiveItem] {

@@ -6,7 +6,7 @@ import Foundation
 import SwiftUI
 
 enum ArchiveAction {
-    case fetchArchive
+    case fetchArchive(fromServer: Bool)
     case fetchArchiveSuccess(archive: [String: ArchiveItem])
 
     case fetchArchiveDynamicCategory

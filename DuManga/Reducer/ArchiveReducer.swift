@@ -7,7 +7,7 @@ import Foundation
 // swiftlint:disable all
 func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
     switch action {
-    case .fetchArchive:
+    case .fetchArchive(_):
         state.loading = true
     case let .fetchArchiveSuccess(archiveItems):
         state.loading = false
