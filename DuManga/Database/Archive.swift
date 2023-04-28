@@ -37,6 +37,18 @@ extension Archive: Codable, FetchableRecord, MutablePersistableRecord {
     }
 }
 
+extension Archive {
+    func toArchiveItem() -> ArchiveItem {
+        ArchiveItem(id: id,
+                name: title,
+                tags: tags,
+                isNew: isNew,
+                progress: progress,
+                pagecount: pageCount,
+                dateAdded: extractDateAdded(tags: tags))
+    }
+}
+
 extension ArchiveThumbnail: Codable, FetchableRecord, MutablePersistableRecord {
     fileprivate enum Columns {
         static let id = Column(CodingKeys.id)

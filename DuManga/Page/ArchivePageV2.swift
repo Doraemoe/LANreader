@@ -143,16 +143,17 @@ struct ArchivePageV2: View {
                                     .opacity(archivePageModel.controlUiHidden ? 0 : 0.9))
                             .opacity(archivePageModel.controlUiHidden ? 0 : 1)
                 }
-                VStack {
-                    Text("loading")
-                    ProgressView()
+                if archivePageModel.loading {
+                    VStack {
+                        Text("loading")
+                        ProgressView()
+                    }
+                            .frame(width: geometry.size.width / 3,
+                                    height: geometry.size.height / 5)
+                            .background(Color.secondary)
+                            .foregroundColor(Color.primary)
+                            .cornerRadius(20)
                 }
-                        .frame(width: geometry.size.width / 3,
-                                height: geometry.size.height / 5)
-                        .background(Color.secondary)
-                        .foregroundColor(Color.primary)
-                        .cornerRadius(20)
-                        .opacity(archivePageModel.loading ? 1 : 0)
             }
                     .onAppear(perform: {
                         archivePageModel.load(state: store.state,

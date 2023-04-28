@@ -20,7 +20,7 @@ struct DatabaseSettings: View {
 
     var body: some View {
         return List {
-            Button(action: {
+            Button(role: .destructive, action: {
                 do {
                     try database.clearDatabase()
                     self.setDatabaseSize()
@@ -30,12 +30,13 @@ struct DatabaseSettings: View {
             }, label: {
                 HStack {
                     Text("settings.database.clear")
-                            .foregroundColor(.red)
                     Spacer()
                     Text(size)
                             .foregroundColor(.secondary)
-                }.padding()
+                }
+                        .padding()
             })
-        }.onAppear(perform: self.setDatabaseSize)
+        }
+                .onAppear(perform: self.setDatabaseSize)
     }
 }

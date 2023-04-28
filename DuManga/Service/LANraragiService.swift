@@ -36,9 +36,14 @@ class LANraragiService {
         let cacher = ResponseCacher(behavior: .doNotCache)
         return session.request("\(self.url)/api/info")
                 .cacheResponse(using: cacher)
-                .validate(statusCode: 200...500)
+                .validate(statusCode: 200...200)
                 .publishString()
                 .value()
+                .mapError { error in
+                    LANraragiService.logger.error("failed to verify host: \(error)")
+                    return error
+                }
+                .eraseToAnyPublisher()
     }
 
     func retrieveArchiveIndex() -> AnyPublisher<[ArchiveIndexResponse], AFError> {

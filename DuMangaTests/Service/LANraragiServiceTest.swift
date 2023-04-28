@@ -57,9 +57,10 @@ class LANraragiServiceTest: XCTestCase {
 
         let publisher = service.verifyClient(url: url, apiKey: apiKey)
         let recorder = publisher.record()
-        let actual = try wait(for: recorder.single, timeout: 1.0)
-        let expected = try FileUtils.readJsonFile(filename: "UnauthorizedResponse")
-        XCTAssertEqual(actual, expected)
+        let actual = try wait(for: recorder.completion, timeout: 1.0)
+        if case .finished = actual {
+            XCTFail("Should not success")
+        }
     }
 
     func testRetrieveArchiveIndex() throws {

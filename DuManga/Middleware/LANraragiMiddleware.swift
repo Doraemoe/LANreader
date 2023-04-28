@@ -28,13 +28,7 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     if archives.count > 0 {
                         var archiveItems = [String: ArchiveItem]()
                         archives.forEach { item in
-                            archiveItems[item.id] = ArchiveItem(id: item.id,
-                                    name: item.title,
-                                    tags: item.tags,
-                                    isNew: item.isNew,
-                                    progress: item.progress,
-                                    pagecount: item.pageCount,
-                                    dateAdded: extractDateAdded(tags: item.tags))
+                            archiveItems[item.id] = item.toArchiveItem()
                         }
                         return Just(AppAction.archive(action: .fetchArchiveSuccess(archive: archiveItems)))
                                 .eraseToAnyPublisher()
@@ -47,21 +41,9 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     .map { (response: [ArchiveIndexResponse]) in
                         var archiveItems = [String: ArchiveItem]()
                         response.forEach { item in
-                            archiveItems[item.arcid] = ArchiveItem(id: item.arcid,
-                                    name: item.title,
-                                    tags: item.tags ?? "",
-                                    isNew: item.isnew == "true",
-                                    progress: item.progress,
-                                    pagecount: item.pagecount,
-                                    dateAdded: extractDateAdded(tags: item.tags ?? ""))
-                            var archive = Archive(id: item.arcid,
-                                    isNew: Bool(item.isnew) ?? false,
-                                    pageCount: item.pagecount,
-                                    progress: item.progress,
-                                    tags: item.tags ?? "",
-                                    title: item.title,
-                                    lastUpdate: Date())
+                            archiveItems[item.arcid] = item.toArchiveItem()
                             do {
+                                var archive = item.toArchive()
                                 try database.saveArchive(&archive)
                             } catch {
                                 logger.error("failed to save archive. id=\(item.arcid) \(error)")
@@ -74,7 +56,13 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
         case let .archive(action: .updateArchiveMetadata(metadata)):
             return service.updateArchiveMetaData(archiveMetadata: metadata)
                     .map { _ in
-                        AppAction.archive(action: .updateArchiveMetadataSuccess(metadata: metadata))
+                        do {
+                            var archive = metadata.toArchive()
+                            try database.saveArchive(&archive)
+                        } catch {
+                            logger.error("failed to save archive. id=\(metadata.id) \(error)")
+                        }
+                        return AppAction.archive(action: .updateArchiveMetadataSuccess(metadata: metadata))
                     }
                     .replaceError(with: AppAction.archive(action: .error(error: .archiveUpdateMetadataError)))
                     .eraseToAnyPublisher()
@@ -83,6 +71,14 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     .map { (response: ArchiveDeleteResponse) in
                         let success = response.success
                         if success == 1 {
+                            do {
+                                let success = try database.deleteArchive(id)
+                                if !success {
+                                    logger.error("failed to delete archive. id=\(id)")
+                                }
+                            } catch {
+                                logger.error("failed to delete archive. id=\(id) \(error)")
+                            }
                             return AppAction.archive(action: .deleteArchiveSuccess(id: id))
                         } else {
                             return AppAction.archive(action: .error(error: .archiveDeleteError))
@@ -105,7 +101,15 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
         case let .archive(action: .updateReadProgressServer(id, progress)):
             return service.updateArchiveReadProgress(id: id, progress: progress)
                     .map { _ in
-                        AppAction.archive(action: .updateReadProgressLocal(id: id, progress: progress))
+                        do {
+                            let updated = try database.updateArchiveProgress(id, progress: progress)
+                            if updated == 0 {
+                                logger.warning("No archive progress updated. id=\(id)")
+                            }
+                        } catch {
+                            logger.error("failed to update archive progress. id=\(id) \(error)")
+                        }
+                        return AppAction.archive(action: .updateReadProgressLocal(id: id, progress: progress))
                     }
                     .replaceError(with: AppAction.noop)
                     .eraseToAnyPublisher()

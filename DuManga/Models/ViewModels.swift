@@ -21,3 +21,15 @@ struct CategoryItem: Identifiable, Equatable {
     let pinned: String
     let isNew: Bool
 }
+
+extension ArchiveItem {
+    func toArchive() -> Archive {
+        Archive(id: id,
+                isNew: isNew,
+                pageCount: pagecount,
+                progress: progress,
+                tags: tags,
+                title: name,
+                lastUpdate: Date())
+    }
+}

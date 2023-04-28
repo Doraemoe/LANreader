@@ -75,6 +75,20 @@ extension AppDatabase {
         }
     }
 
+    func updateArchiveProgress(_ archiveId: String, progress: Int) throws -> Int {
+        try dbWriter.write { database in
+            try Archive
+                    .filter(id: archiveId)
+                    .updateAll(database, Column("progress").set(to: progress))
+        }
+    }
+
+    func deleteArchive(_ archiveId: String) throws -> Bool {
+        try dbWriter.write { database in
+            try Archive.deleteOne(database, id: archiveId)
+        }
+    }
+
     func saveArchiveThumbnail(_ archiveThumbnail: inout ArchiveThumbnail) throws {
         try dbWriter.write { database in
             try archiveThumbnail.save(database)
@@ -109,6 +123,7 @@ extension AppDatabase {
     func clearDatabase() throws {
         try dbWriter.write { database in
             _ = try Archive.deleteAll(database)
+            _ = try ArchiveThumbnail.deleteAll(database)
             _ = try ArchiveImage.deleteAll(database)
         }
         try dbWriter.vacuum()

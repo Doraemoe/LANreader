@@ -648,7 +648,7 @@
 				7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */,
 				7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */,
 				7DEBE7A3252DBF26001199CD /* XCRemoteSwiftPackageReference "CombineExpectations" */,
-				7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+				7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */,
 				E90576BD29F8C10700C3CE3F /* XCRemoteSwiftPackageReference "Puppy" */,
 			);
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
@@ -960,7 +960,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 32;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -984,7 +984,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 32;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -1178,7 +1178,7 @@
 				minimumVersion = 0.5.0;
 			};
 		};
-		7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+		7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift";
 			requirement = {
@@ -1229,7 +1229,7 @@
 		};
 		7DF7EA792564E264003B5A5A /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			package = 7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */;
 			productName = GRDB;
 		};
 		E90576BE29F8C10700C3CE3F /* Puppy */ = {
