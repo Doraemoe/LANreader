@@ -4,6 +4,7 @@ import SwiftUI
 import NotificationBannerSwift
 
 struct ArchiveDetails: View {
+    private static let sourceTag = "source"
     private static let dateTag = "date_added"
 
     @EnvironmentObject var store: AppStore
@@ -42,20 +43,13 @@ struct ArchiveDetails: View {
                         .padding()
             } else {
                 WrappingHStack(models: archiveDetailsModel.tags.split(separator: ","), viewGenerator: { tag in
-                    NavigationLink(
-                            destination: SearchView(
-                                    keyword: String(tag.trimmingCharacters(in: .whitespacesAndNewlines)),
-                                    showSearchResult: true)
-                    ) {
-                        Text(parseTag(tag: String(tag)))
-                    }
+                    parseTag(tag: String(tag))
                             .padding()
                             .controlSize(.mini)
                             .foregroundColor(.white)
                             .background(.blue)
                             .clipShape(Capsule())
                 })
-                        .padding()
             }
             Button(action: { showingAlert = true },
                     label: {
@@ -132,16 +126,31 @@ struct ArchiveDetails: View {
                 })
     }
 
-    private func parseTag(tag: String) -> String {
+    private func parseTag(tag: String) -> some View {
         let tagPair = tag.split(separator: ":")
-        if tagPair[0].trimmingCharacters(in: .whitespacesAndNewlines) == ArchiveDetails.dateTag {
-            let date = Date(
-                    timeIntervalSince1970: TimeInterval(
-                            tagPair[1].trimmingCharacters(in: .whitespacesAndNewlines)
-                    ) ?? 0)
-            return "\(ArchiveDetails.dateTag):\(date.formatted(date: .abbreviated, time: .omitted))"
+
+        let tagName = tagPair[0].trimmingCharacters(in: .whitespacesAndNewlines)
+        let tagValue = tagPair.count == 2 ? tagPair[1].trimmingCharacters(in: .whitespacesAndNewlines) : ""
+        if tagName == ArchiveDetails.sourceTag {
+            let urlString = tagValue.hasPrefix("http") ? tagValue : "https://\(tagValue)"
+            return AnyView(Link(destination: URL(string: urlString)!) {
+                Text(tag)
+            })
         }
-        return tag
+        let processedTag: String
+        if tagName == ArchiveDetails.dateTag {
+            let date = Date(timeIntervalSince1970: TimeInterval(tagValue) ?? 0)
+            processedTag = "\(ArchiveDetails.dateTag): \(date.formatted(date: .abbreviated, time: .omitted))"
+        } else {
+            processedTag = tag
+        }
+        return AnyView(NavigationLink(
+                destination: SearchView(
+                        keyword: String(tag.trimmingCharacters(in: .whitespacesAndNewlines)),
+                        showSearchResult: true)
+        ) {
+            Text(processedTag)
+        })
     }
 }
 
