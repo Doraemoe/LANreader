@@ -1,5 +1,7 @@
 //  Created 22/8/20.
 
+import Foundation
+
 struct ArchiveIndexResponse: Decodable {
     let arcid: String
     let isnew: String
@@ -33,4 +35,26 @@ struct ArchiveSearchResponse: Decodable {
 
 struct ArchiveDeleteResponse: Decodable {
     let success: Int
+}
+
+extension ArchiveIndexResponse {
+    func toArchiveItem() -> ArchiveItem {
+        ArchiveItem(id: arcid,
+                name: title,
+                tags: tags ?? "",
+                isNew: isnew == "true",
+                progress: progress,
+                pagecount: pagecount,
+                dateAdded: extractDateAdded(tags: tags ?? ""))
+    }
+
+    func toArchive() -> Archive {
+        Archive(id: arcid,
+                isNew: Bool(isnew) ?? false,
+                pageCount: pagecount,
+                progress: progress,
+                tags: tags ?? "",
+                title: title,
+                lastUpdate: Date())
+    }
 }
