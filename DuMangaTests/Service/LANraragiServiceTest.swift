@@ -257,7 +257,7 @@ class LANraragiServiceTest: XCTestCase {
         }
 
         let item = CategoryItem(id: "SET_12345678", name: "name", archives: [],
-                                search: "search", pinned: "0", isNew: true)
+                                search: "search", pinned: "0")
 
         let publisher = service.updateDynamicCategory(item: item)
         let recorder = publisher.record()
@@ -277,7 +277,7 @@ class LANraragiServiceTest: XCTestCase {
         }
 
         let item = CategoryItem(id: "SET_12345678", name: "name", archives: [],
-                                search: "search", pinned: "0", isNew: true)
+                                search: "search", pinned: "0")
 
         let publisher = service.updateDynamicCategory(item: item)
         let recorder = publisher.record()

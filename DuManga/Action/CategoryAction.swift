@@ -5,7 +5,7 @@
 import Foundation
 
 enum CategoryAction {
-    case fetchCategory
+    case fetchCategory(fromServer: Bool)
     case fetchCategorySuccess(category: [String: CategoryItem])
     case error(error: ErrorCode)
     case updateDynamicCategory(category: CategoryItem)

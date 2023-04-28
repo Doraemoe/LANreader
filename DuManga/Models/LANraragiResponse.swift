@@ -58,3 +58,18 @@ extension ArchiveIndexResponse {
                 lastUpdate: Date())
     }
 }
+
+extension ArchiveCategoriesResponse {
+    func toCategoryItem() -> CategoryItem {
+        CategoryItem(id: id, name: name, archives: archives, search: search, pinned: pinned)
+    }
+
+    func toCategory() -> Category {
+        Category(id: id,
+                 name: name,
+                 archives: archives,
+                 search: search,
+                 pinned: pinned == "1" ? true : false,
+                 lastUpdate: Date())
+    }
+}

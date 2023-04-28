@@ -113,20 +113,33 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     }
                     .replaceError(with: AppAction.noop)
                     .eraseToAnyPublisher()
-        case .category(action: .fetchCategory):
+        case let .category(action: .fetchCategory(fromServer)):
+            if !fromServer {
+                do {
+                    let categories = try database.readAllCategories()
+                    if categories.count > 0 {
+                        var categoryItems = [String: CategoryItem]()
+                        categories.forEach { item in
+                            categoryItems[item.id] = item.toCategoryItem()
+                        }
+                        return Just(AppAction.category(action: .fetchCategorySuccess(category: categoryItems)))
+                                .eraseToAnyPublisher()
+                    }
+                } catch {
+                    logger.warning("failed to read catagory from db. \(error)")
+                }
+            }
             return service.retrieveCategories()
                     .map { (response: [ArchiveCategoriesResponse]) in
                         var categoryItems = [String: CategoryItem]()
-                        categoryItems["newOnly"] = CategoryItem(id: "newOnly",
-                                name: NSLocalizedString("category.new",
-                                        comment: "new"),
-                                archives: [],
-                                search: "",
-                                pinned: "",
-                                isNew: true)
                         response.forEach { item in
-                            categoryItems[item.id] = CategoryItem(id: item.id, name: item.name,
-                                    archives: item.archives, search: item.search, pinned: item.pinned, isNew: false)
+                            categoryItems[item.id] = item.toCategoryItem()
+                            do {
+                                var category = item.toCategory()
+                                try database.saveCategory(&category)
+                            } catch {
+                                logger.error("failed to save category. id=\(item.id) \(error)")
+                            }
                         }
                         return AppAction.category(action: .fetchCategorySuccess(category: categoryItems))
                     }
@@ -135,7 +148,13 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
         case let .category(action: .updateDynamicCategory(category)):
             return service.updateDynamicCategory(item: category)
                     .map { _ in
-                        AppAction.category(action: .updateDynamicCategorySuccess(category: category))
+                        do {
+                            var category = category.toCategory()
+                            try database.saveCategory(&category)
+                        } catch {
+                            logger.error("failed to save category. id=\(category.id) \(error)")
+                        }
+                        return AppAction.category(action: .updateDynamicCategorySuccess(category: category))
                     }
                     .replaceError(with: AppAction.category(action: .error(error: .categoryUpdateError)))
                     .eraseToAnyPublisher()

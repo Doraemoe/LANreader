@@ -19,7 +19,6 @@ struct CategoryItem: Identifiable, Equatable {
     let archives: [String]
     let search: String
     let pinned: String
-    let isNew: Bool
 }
 
 extension ArchiveItem {
@@ -31,5 +30,16 @@ extension ArchiveItem {
                 tags: tags,
                 title: name,
                 lastUpdate: Date())
+    }
+}
+
+extension CategoryItem {
+    func toCategory() -> Category {
+        Category(id: id,
+                 name: name,
+                 archives: archives,
+                 search: search,
+                 pinned: pinned == "1" ? true : false,
+                 lastUpdate: Date())
     }
 }

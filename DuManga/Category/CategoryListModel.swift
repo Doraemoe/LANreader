@@ -7,6 +7,7 @@ import Combine
 
 class CategoryListModel: ObservableObject {
     @Published var showSheetView = false
+    @Published var isPullToRefresh = false
     @Published var selectedCategoryItem: CategoryItem?
 
     @Published private(set) var loading = false

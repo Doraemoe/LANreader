@@ -76,17 +76,7 @@ class CategoryArchiveListModel: ObservableObject {
     }
 
     func filterArchives(categoryItem: CategoryItem) {
-        if categoryItem.isNew {
-            filteredArchives = newCategorySelector.select(
-                    base: archiveItems,
-                    filter: true,
-                    selector: { (base, _) in
-                        let filtered = base.filter { item in
-                            item.value.isNew == true
-                        }
-                        return Array(filtered.values)
-                    })
-        } else if !categoryItem.archives.isEmpty {
+        if !categoryItem.archives.isEmpty {
             filteredArchives = staticCategorySelector.select(
                     base: archiveItems,
                     filter: categoryItem.archives,
