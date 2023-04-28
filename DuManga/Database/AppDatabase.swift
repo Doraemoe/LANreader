@@ -45,6 +45,17 @@ struct AppDatabase {
             }
         }
 
+        migrator.registerMigration("category") { database in
+            try database.create(table: "category") { table in
+                table.column("id", .text).primaryKey()
+                table.column("name", .text)
+                table.column("archives", .text)
+                table.column("search", .text)
+                table.column("pinned", .boolean)
+                table.column("lastUpdate", .datetime)
+            }
+        }
+
         return migrator
     }
 
@@ -113,6 +124,18 @@ extension AppDatabase {
         }
     }
 
+    func readAllCategories() throws -> [Category] {
+        try dbWriter.read { database in
+            try Category.fetchAll(database)
+        }
+    }
+
+    func saveCategory(_ category: inout Category) throws {
+        try dbWriter.write { database in
+            try category.save(database)
+        }
+    }
+
     func databaseSize() throws -> Int? {
         try dbWriter.read { database in
             try Int.fetchOne(database,
@@ -125,6 +148,7 @@ extension AppDatabase {
             _ = try Archive.deleteAll(database)
             _ = try ArchiveThumbnail.deleteAll(database)
             _ = try ArchiveImage.deleteAll(database)
+            _ = try Category.deleteAll(database)
         }
         try dbWriter.vacuum()
     }

@@ -9,14 +9,4 @@ struct CategoryState {
     @PublishedState var categoryItems = [String: CategoryItem]()
     @PublishedState var updateDynamicCategorySuccess = false
     @PublishedState var errorCode: ErrorCode?
-
-    init() {
-        categoryItems["newOnly"] = CategoryItem(id: "newOnly",
-                                                name: NSLocalizedString("category.new",
-                                                                        comment: "Force use NSLocalizedString"),
-                                                archives: [],
-                                                search: "",
-                                                pinned: "",
-                                                isNew: true)
-    }
 }

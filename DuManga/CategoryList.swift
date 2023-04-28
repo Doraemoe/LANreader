@@ -4,6 +4,8 @@ import SwiftUI
 import NotificationBannerSwift
 
 struct CategoryList: View {
+    @AppStorage(SettingsKey.alwaysLoadFromServer) var alwaysLoadFromServer: Bool = false
+
     @EnvironmentObject var store: AppStore
     @StateObject var categoryListModel = CategoryListModel()
 
@@ -45,17 +47,25 @@ struct CategoryList: View {
                         .onAppear(perform: {
                             self.loadData()
                         })
-
-                VStack {
-                    Text("loading")
-                    ProgressView()
+                        .refreshable {
+                            if categoryListModel.loading != true {
+                                self.categoryListModel.isPullToRefresh = true
+                                self.store.dispatch(.category(action: .fetchCategory(fromServer: true)))
+                                await checkLoadingFinished()
+                                self.categoryListModel.isPullToRefresh = false
+                            }
+                        }
+                if !self.categoryListModel.isPullToRefresh && self.categoryListModel.loading {
+                    VStack {
+                        Text("loading")
+                        ProgressView()
+                    }
+                            .frame(width: geometry.size.width / 3,
+                                    height: geometry.size.height / 5)
+                            .background(Color.secondary)
+                            .foregroundColor(Color.primary)
+                            .cornerRadius(20)
                 }
-                        .frame(width: geometry.size.width / 3,
-                                height: geometry.size.height / 5)
-                        .background(Color.secondary)
-                        .foregroundColor(Color.primary)
-                        .cornerRadius(20)
-                        .opacity(self.categoryListModel.loading ? 1 : 0)
             }
                     .onAppear(perform: {
                         categoryListModel.load(state: self.store.state)
@@ -79,7 +89,14 @@ struct CategoryList: View {
         if self.categoryListModel.categoryItems.count > 0 {
             return
         }
-        self.store.dispatch(.category(action: .fetchCategory))
+        self.store.dispatch(.category(action: .fetchCategory(fromServer: alwaysLoadFromServer)))
+    }
+
+    private func checkLoadingFinished() async {
+        repeat {
+            try? await Task.sleep(for: Duration.seconds(1))
+        }
+        while categoryListModel.loading == true
     }
 }
 
