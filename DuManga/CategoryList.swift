@@ -21,17 +21,16 @@ struct CategoryList: View {
             ZStack {
                 List(categories) { (item: CategoryItem) in
                     if self.editMode == .active {
-                        ZStack(alignment: .leading) {
+                        HStack {
                             Text(item.name)
                                     .font(.title)
-                            Rectangle()
-                                    .opacity(0.0001)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture(perform: {
-                                        categoryListModel.selectedCategoryItem = item
-                                        categoryListModel.showSheetView = true
-                                    })
+                            Spacer()
                         }
+                                .contentShape(Rectangle())
+                                .onTapGesture(perform: {
+                                    categoryListModel.selectedCategoryItem = item
+                                    categoryListModel.showSheetView = true
+                                })
                     } else {
                         NavigationLink(destination: CategoryArchiveList(categoryItem: item)) {
                             Text(item.name)

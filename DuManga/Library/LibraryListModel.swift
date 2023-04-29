@@ -7,6 +7,7 @@ import Combine
 
 class LibraryListModel: ObservableObject {
     @Published var isPullToRefresh = false
+    @Published var searchText = ""
 
     @Published private(set) var loading = false
     @Published private(set) var archiveItems = [String: ArchiveItem]()
