@@ -9,41 +9,46 @@ struct ContentView: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            NavigationView {
                 if contentViewModel.notLoggedIn {
-                    LANraragiConfigView(notLoggedIn: $contentViewModel.notLoggedIn)
+                        LANraragiConfigView(notLoggedIn: $contentViewModel.notLoggedIn)
                 } else {
                     TabView(selection: $contentViewModel.tabName) {
-                        LibraryList()
+                        NavigationStack {
+                            LibraryList()
+                                    .navigationBarTitle("library", displayMode: .inline)
+                        }
                             .tabItem {
                                 Image(systemName: "books.vertical")
                                 Text("library")
                             }.tag("library")
-                        CategoryList(editMode: $contentViewModel.editMode)
+                        NavigationStack {
+                            CategoryList(editMode: $contentViewModel.editMode)
+                                    .navigationBarTitle("category", displayMode: .inline)
+                                    .navigationBarItems(trailing: EditButton())
+                                    .environment(\.editMode, self.$contentViewModel.editMode)
+                        }
                             .tabItem {
                                 Image(systemName: "folder")
                                 Text("category")
                             }.tag("category")
-                        SearchView()
+                        NavigationStack {
+                            SearchView()
+                                    .navigationBarTitle("search", displayMode: .inline)
+                        }
                             .tabItem {
                                 Image(systemName: "magnifyingglass")
                                 Text("search")
                             }.tag("search")
-                        SettingsView()
+                        NavigationStack {
+                            SettingsView()
+                                    .navigationBarTitle("settings", displayMode: .inline)
+                        }
                             .tabItem {
                                 Image(systemName: "gearshape")
                                 Text("settings")
                             }.tag("settings")
                     }
-                    .navigationBarTitle(Text(NSLocalizedString(self.contentViewModel.tabName,
-                                                               comment: "Force use NSLocalizedString")),
-                                        displayMode: .inline)
-                    .navigationBarItems(trailing: self.contentViewModel.tabName == "category"
-                                            ? AnyView(EditButton()) : AnyView(EmptyView()))
-                    .environment(\.editMode, self.$contentViewModel.editMode)
                 }
-            }
-            .navigationViewStyle(StackNavigationViewStyle())
         }
     }
 }
