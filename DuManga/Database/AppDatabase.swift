@@ -86,6 +86,12 @@ extension AppDatabase {
         }
     }
 
+    func deleteAllArchive() throws -> Int {
+        try dbWriter.write { database in
+            try Archive.deleteAll(database)
+        }
+    }
+
     func updateArchiveProgress(_ archiveId: String, progress: Int) throws -> Int {
         try dbWriter.write { database in
             try Archive

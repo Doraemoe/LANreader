@@ -15,23 +15,22 @@ struct LibraryList: View {
 
     @StateObject private var libraryListModel = LibraryListModel()
 
-    private let database = AppDatabase.shared
-    private let logger = Logger(label: "LibraryList")
-
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 ArchiveList(archives: processArchives())
                         .onAppear(perform: {
-                            self.libraryListModel.load(state: store.state)
+                            libraryListModel.load(state: store.state)
                             if libraryListModel.archiveItems.isEmpty {
-                                loadArchives()
+                                Task {
+                                    await store.dispatch(fetchArchives(alwaysLoadFromServer))
+                                }
                             }
                         })
                         .onDisappear(perform: {
-                            self.libraryListModel.unload()
+                            libraryListModel.unload()
                         })
-                        .onChange(of: self.libraryListModel.errorCode, perform: { errorCode in
+                        .onChange(of: libraryListModel.errorCode, perform: { errorCode in
                             if errorCode != nil {
                                 let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
                                         subtitle: NSLocalizedString("error.list", comment: "list error"),
@@ -42,13 +41,13 @@ struct LibraryList: View {
                         })
                         .refreshable {
                             if libraryListModel.loading != true {
-                                self.libraryListModel.isPullToRefresh = true
-                                await store.dispatch(fetchArchiveAsync)
-                                self.libraryListModel.isPullToRefresh = false
+                                libraryListModel.isPullToRefresh = true
+                                await store.dispatch(fetchArchives(true))
+                                libraryListModel.isPullToRefresh = false
                             }
                         }
                         .searchable(text: $libraryListModel.searchText, prompt: "filter.name")
-                if self.libraryListModel.loading && !self.libraryListModel.isPullToRefresh {
+                if libraryListModel.loading && !libraryListModel.isPullToRefresh {
                     VStack {
                         Text("loading")
                         ProgressView()
@@ -64,7 +63,7 @@ struct LibraryList: View {
     }
 
     private func processArchives() -> [ArchiveItem] {
-        var archives: [ArchiveItem] = Array(self.libraryListModel.archiveItems.values)
+        var archives: [ArchiveItem] = Array(libraryListModel.archiveItems.values)
         if archiveListOrder == ArchiveListOrder.name.rawValue {
             archives = archives.sorted(by: { $0.name < $1.name })
         } else {
@@ -93,26 +92,5 @@ struct LibraryList: View {
             }
         }
         return archives
-    }
-
-    private func loadArchives() {
-        if !alwaysLoadFromServer {
-            do {
-                let archives = try database.readAllArchive()
-                if archives.count > 0 {
-                    var archiveItems = [String: ArchiveItem]()
-                    archives.forEach { item in
-                        archiveItems[item.id] = item.toArchiveItem()
-                    }
-                    store.dispatch(.archive(action: .storeArchive(archive: archiveItems)))
-                    return
-                }
-            } catch {
-                logger.warning("failed to read archive from db. \(error)")
-            }
-        }
-        Task {
-            await store.dispatch(fetchArchiveAsync)
-        }
     }
 }

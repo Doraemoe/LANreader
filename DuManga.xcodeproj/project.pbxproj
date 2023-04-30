@@ -34,7 +34,6 @@
 		4BD828F432CB9B8D26EEAB92 /* LANraragiConfigViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8293BAD09DE6D90D6A30C /* LANraragiConfigViewModel.swift */; };
 		4BD8291B040E65AF0E4A9F15 /* LibraryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82139F51916878474B349 /* LibraryList.swift */; };
 		4BD8291EBA7A94EE9E8C2ACE /* ArchiveGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82837C2109B37482712EE /* ArchiveGrid.swift */; };
-		4BD829CEC647540D32DA68C5 /* SettingMiddleware.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82D9D382800F9E46EF2FE /* SettingMiddleware.swift */; };
 		4BD82A2A4437113DBD1DE74A /* ArchiveDetailsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8253353671DDCADE174C9 /* ArchiveDetailsModel.swift */; };
 		4BD82B6AD795154C1E915912 /* CategoryListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8286525C460863DC78CB9 /* CategoryListModel.swift */; };
 		4BD82C152E77BFD137EC03DD /* LANraragiConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82CD5954DDD63ABB7DD22 /* LANraragiConfigView.swift */; };
@@ -166,7 +165,6 @@
 		4BD82CCF0CDAB88F4FC224D1 /* CategoryReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryReducer.swift; sourceTree = "<group>"; };
 		4BD82CD5954DDD63ABB7DD22 /* LANraragiConfigView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LANraragiConfigView.swift; path = DuManga/LANraragiConfigView.swift; sourceTree = SOURCE_ROOT; };
 		4BD82D448F06457925BDCDEA /* ArchiveList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ArchiveList.swift; path = DuManga/ArchiveList.swift; sourceTree = SOURCE_ROOT; };
-		4BD82D9D382800F9E46EF2FE /* SettingMiddleware.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingMiddleware.swift; sourceTree = "<group>"; };
 		4BD82E3AAF924901BE111A11 /* ArchiveReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchiveReducer.swift; sourceTree = "<group>"; };
 		4BD82FA7EAE6ED44136AA4E7 /* SettingsService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingsService.swift; sourceTree = "<group>"; };
 		4BD82FB85284818BED0DE580 /* AppAction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppAction.swift; sourceTree = "<group>"; };
@@ -313,7 +311,6 @@
 		4BD824562009503E813A0D93 /* Middleware */ = {
 			isa = PBXGroup;
 			children = (
-				4BD82D9D382800F9E46EF2FE /* SettingMiddleware.swift */,
 				4BD82CBC1A68BB70CB0CC2D0 /* LANraragiMiddleware.swift */,
 			);
 			path = Middleware;
@@ -648,7 +645,7 @@
 				7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */,
 				7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */,
 				7DEBE7A3252DBF26001199CD /* XCRemoteSwiftPackageReference "CombineExpectations" */,
-				7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */,
+				7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB.swift" */,
 				E90576BD29F8C10700C3CE3F /* XCRemoteSwiftPackageReference "Puppy" */,
 			);
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
@@ -725,7 +722,6 @@
 				4BD82EA26FFA071989D51CF1 /* SettingState.swift in Sources */,
 				4BD82CDA1A27B1462DCCF3F4 /* SettingAction.swift in Sources */,
 				4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */,
-				4BD829CEC647540D32DA68C5 /* SettingMiddleware.swift in Sources */,
 				4BD82760E9B084402AFE07F2 /* SettingsService.swift in Sources */,
 				4BD82050C1FF8B40496FA855 /* LANraragiMiddleware.swift in Sources */,
 				4BD821C3FDF1FC3B60AB4823 /* AppModels.swift in Sources */,
@@ -1178,7 +1174,7 @@
 				minimumVersion = 0.5.0;
 			};
 		};
-		7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */ = {
+		7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift";
 			requirement = {
@@ -1229,7 +1225,7 @@
 		};
 		7DF7EA792564E264003B5A5A /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */;
+			package = 7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
 		};
 		E90576BE29F8C10700C3CE3F /* Puppy */ = {

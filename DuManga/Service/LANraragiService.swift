@@ -30,20 +30,14 @@ class LANraragiService {
         ImageResponseSerializer.addAcceptableImageContentTypes(["application/x-download"])
     }
 
-    func verifyClient(url: String, apiKey: String) -> AnyPublisher<String, AFError> {
+    func verifyClient(url: String, apiKey: String) async -> DataTask<String> {
         self.url = url
         self.authInterceptor.updateApiKey(apiKey)
         let cacher = ResponseCacher(behavior: .doNotCache)
         return session.request("\(self.url)/api/info")
                 .cacheResponse(using: cacher)
                 .validate(statusCode: 200...200)
-                .publishString()
-                .value()
-                .mapError { error in
-                    LANraragiService.logger.error("failed to verify host: \(error)")
-                    return error
-                }
-                .eraseToAnyPublisher()
+                .serializingString()
     }
 
     func retrieveArchiveIndex() async -> DataTask<[ArchiveIndexResponse]> {
@@ -209,6 +203,17 @@ class LANraragiService {
                 .eraseToAnyPublisher()
     }
 
+    func updateArchive(archive: ArchiveItem) async -> DataTask<String> {
+        var query = [String: String]()
+        query["title"] = archive.name
+        query["tags"] = archive.tags
+
+        return session.request("\(url)/api/archives/\(archive.id)/metadata",
+                        method: .put, parameters: query)
+                .validate(statusCode: 200...200)
+                .serializingString()
+    }
+
     func updateArchiveReadProgress(id: String, progress: Int) -> AnyPublisher<String, AFError> {
         session.request("\(url)/api/archives/\(id)/progress/\(progress)", method: .put)
                 .validate(statusCode: 200...200)
@@ -216,16 +221,17 @@ class LANraragiService {
                 .value()
     }
 
-    func deleteArchive(id: String) -> AnyPublisher<ArchiveDeleteResponse, AFError> {
+    func updateArchiveReadProgressAsync(id: String, progress: Int) async -> DataTask<String> {
+        session.request("\(url)/api/archives/\(id)/progress/\(progress)", method: .put)
+                .validate(statusCode: 200...200)
+                .serializingString()
+    }
+
+    func deleteArchive(id: String) async -> DataTask<ArchiveDeleteResponse> {
         session.request("\(url)/api/archives/\(id)", method: .delete)
                 .validate(statusCode: 200...200)
-                .publishDecodable(type: ArchiveDeleteResponse.self)
-                .value()
-                .mapError { error in
-                    LANraragiService.logger.error("failed to delete archive: \(error)")
-                    return error
-                }
-                .eraseToAnyPublisher()
+                .serializingDecodable(ArchiveDeleteResponse.self)
+
     }
 
     public static var shared: LANraragiService {

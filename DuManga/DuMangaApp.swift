@@ -42,7 +42,6 @@ struct DuMangaApp: App {
     }
 
     let store = AppStore(initialState: .init(), reducer: appReducer, middlewares: [
-        settingMiddleware(service: SettingsService()),
         lanraragiMiddleware(service: LANraragiService.shared)
     ])
 

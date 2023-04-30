@@ -14,43 +14,126 @@ enum ArchiveAction {
     case fetchArchiveDynamicCategory
     case fetchArchiveDynamicCategorySuccess
 
-    case updateArchiveMetadata(metadata: ArchiveItem)
-    case updateArchiveMetadataSuccess(metadata: ArchiveItem)
+    case startUpdateArchive
+    case finishUpdateArchive
+    case updateArchive(archive: ArchiveItem)
 
-    case updateReadProgressServer(id: String, progress: Int)
-    case updateReadProgressLocal(id: String, progress: Int)
+    case updateReadProgress(id: String, progress: Int)
 
-    case deleteArchive(id: String)
-    case deleteArchiveSuccess(id: String)
+    case startDeleteArchive
+    case finishDeleteArchive
+    case removeDeletedArchive(id: String)
 
     case error(error: ErrorCode)
     case resetState
 }
 
-// thunk actions
+// MARK: thunk actions
 
 private let logger = Logger(label: "ArchiveAction")
 private let database = AppDatabase.shared
 private let lanraragiService = LANraragiService.shared
 
-let fetchArchiveAsync: ThunkAction<AppAction, AppState> = {dispatch, _ in
-    dispatch(.archive(action: .startFetchArchive))
-    do {
-        let archives = try await lanraragiService.retrieveArchiveIndex().value
-        var archiveItems = [String: ArchiveItem]()
-        archives.forEach { item in
-            archiveItems[item.arcid] = item.toArchiveItem()
+func fetchArchives(_ fromServer: Bool) -> ThunkAction<AppAction, AppState> {
+    { dispatch, _ in
+        if !fromServer {
             do {
-                var archive = item.toArchive()
-                try database.saveArchive(&archive)
+                let archives = try database.readAllArchive()
+                if archives.count > 0 {
+                    var archiveItems = [String: ArchiveItem]()
+                    archives.forEach { item in
+                        archiveItems[item.id] = item.toArchiveItem()
+                    }
+                    dispatch(.archive(action: .storeArchive(archive: archiveItems)))
+                    return
+                }
             } catch {
-                logger.error("failed to save archive. id=\(item.arcid) \(error)")
+                logger.warning("failed to read archive from db. \(error)")
             }
         }
-        dispatch(.archive(action: .storeArchive(archive: archiveItems)))
-    } catch {
-        logger.error("failed to fetch archive. \(error)")
-        dispatch(.archive(action: .error(error: .archiveFetchError)))
+        dispatch(.archive(action: .startFetchArchive))
+        do {
+            let archives = try await lanraragiService.retrieveArchiveIndex().value
+            _ = try? database.deleteAllArchive()
+            var archiveItems = [String: ArchiveItem]()
+            archives.forEach { item in
+                archiveItems[item.arcid] = item.toArchiveItem()
+                do {
+                    var archive = item.toArchive()
+                    try database.saveArchive(&archive)
+                } catch {
+                    logger.error("failed to save archive. id=\(item.arcid) \(error)")
+                }
+            }
+            dispatch(.archive(action: .storeArchive(archive: archiveItems)))
+        } catch {
+            logger.error("failed to fetch archive. \(error)")
+            dispatch(.archive(action: .error(error: .archiveFetchError)))
+        }
+        dispatch(.archive(action: .finishFetchArchive))
     }
-    dispatch(.archive(action: .finishFetchArchive))
+}
+
+func updateArchive(archive: ArchiveItem) -> ThunkAction<AppAction, AppState> {
+    { dispatch, _ in
+        dispatch(.archive(action: .startUpdateArchive))
+        do {
+            _ = try await lanraragiService.updateArchive(archive: archive).value
+            do {
+                var archiveDto = archive.toArchive()
+                try database.saveArchive(&archiveDto)
+            } catch {
+                logger.error("failed to save archive. id=\(archive.id) \(error)")
+            }
+            dispatch(.archive(action: .updateArchive(archive: archive)))
+        } catch {
+            logger.error("failed to save archive. id=\(archive.id) \(error)")
+        }
+        dispatch(.archive(action: .finishUpdateArchive))
+    }
+}
+
+func deleteArchive(id: String) -> ThunkAction<AppAction, AppState> {
+    { dispatch, _ in
+        dispatch(.archive(action: .startDeleteArchive))
+        do {
+            let response = try await lanraragiService.deleteArchive(id: id).value
+            if response.success == 1 {
+                do {
+                    let success = try database.deleteArchive(id)
+                    if !success {
+                        logger.error("failed to delete archive from db. id=\(id)")
+                    }
+                } catch {
+                    logger.error("failed to delete archive from db. id=\(id) \(error)")
+                }
+                dispatch(.archive(action: .removeDeletedArchive(id: id)))
+            } else {
+                dispatch(.archive(action: .error(error: .archiveDeleteError)))
+            }
+        } catch {
+            logger.error("failed to delete archive. id=\(id) \(error)")
+            dispatch(.archive(action: .error(error: .archiveDeleteError)))
+        }
+        dispatch(.archive(action: .finishDeleteArchive))
+    }
+}
+
+func updateReadProgress(id: String, progress: Int) -> ThunkAction<AppAction, AppState> {
+    { dispatch, _ in
+        do {
+            _ = try await lanraragiService.updateArchiveReadProgressAsync(id: id, progress: progress).value
+            do {
+                let updated = try database.updateArchiveProgress(id, progress: progress)
+                if updated == 0 {
+                    logger.warning("No archive progress updated. id=\(id)")
+                }
+            } catch {
+                logger.error("failed to update archive progress. id=\(id) \(error)")
+            }
+            dispatch(.archive(action: .updateReadProgress(id: id, progress: progress)))
+        } catch {
+            logger.error("failed to update archive progress. id=\(id) \(error)")
+        }
+    }
 }
