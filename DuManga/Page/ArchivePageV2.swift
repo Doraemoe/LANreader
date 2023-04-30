@@ -155,6 +155,7 @@ struct ArchivePageV2: View {
                             .cornerRadius(20)
                 }
             }
+                    .toolbar(.hidden, for: .tabBar)
                     .onAppear(perform: {
                         archivePageModel.load(state: store.state,
                                 progress: archiveItem.progress > 0 ? archiveItem.progress - 1 : 0)
