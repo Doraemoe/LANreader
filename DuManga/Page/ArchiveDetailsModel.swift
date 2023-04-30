@@ -25,7 +25,7 @@ class ArchiveDetailsModel: ObservableObject {
                 .assign(to: \.loading, on: self)
                 .store(in: &cancellable)
 
-        state.archive.$updateArchiveMetadataSuccess.receive(on: DispatchQueue.main)
+        state.archive.$updateArchiveSuccess.receive(on: DispatchQueue.main)
                 .assign(to: \.updateSuccess, on: self)
                 .store(in: &cancellable)
 

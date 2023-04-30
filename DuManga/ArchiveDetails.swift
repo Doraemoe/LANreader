@@ -63,7 +63,9 @@ struct ArchiveDetails: View {
                         Alert(
                                 title: Text("archive.delete.confirm"),
                                 primaryButton: .destructive(Text("delete")) {
-                                    store.dispatch(.archive(action: .deleteArchive(id: item.id)))
+                                    Task {
+                                        await store.dispatch(deleteArchive(id: item.id))
+                                    }
                                 },
                                 secondaryButton: .cancel()
                         )
@@ -79,7 +81,9 @@ struct ArchiveDetails: View {
                                 progress: item.progress,
                                 pagecount: item.pagecount,
                                 dateAdded: item.dateAdded)
-                        store.dispatch(.archive(action: .updateArchiveMetadata(metadata: updated)))
+                        Task {
+                            await store.dispatch(updateArchive(archive: updated))
+                        }
                         isEditing = false
                     } else {
                         isEditing = true

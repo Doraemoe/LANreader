@@ -22,8 +22,10 @@ struct LANraragiConfigView: View {
                     .padding()
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             Button(action: {
-                self.store.dispatch(.setting(action: .verifyAndSaveLanraragiConfig(
-                        url: self.configModel.url, apiKey: self.configModel.apiKey)))
+                Task {
+                    await store.dispatch(verifyAndSaveLanraragiConfig(
+                            url: configModel.url, apiKey: configModel.apiKey))
+                }
             }, label: {
                 Text("lanraragi.config.submit")
                         .font(.headline)
@@ -31,25 +33,25 @@ struct LANraragiConfigView: View {
                     .padding()
         }
         .onAppear(perform: {
-            self.configModel.load(state: store.state)
+            configModel.load(state: store.state)
         })
         .onDisappear(perform: {
-            self.configModel.unload()
+            configModel.unload()
         })
-        .onChange(of: self.configModel.errorCode, perform: { errorCode in
+        .onChange(of: configModel.errorCode, perform: { errorCode in
             if errorCode != nil {
                 let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
                         subtitle: NSLocalizedString("error.host", comment: "host error"),
                         style: .danger)
                 banner.show()
-                self.store.dispatch(.setting(action: .resetState))
+                store.dispatch(.setting(action: .resetState))
             }
         })
-        .onChange(of: self.configModel.savedSuccess, perform: { success in
+        .onChange(of: configModel.savedSuccess, perform: { success in
             if success {
-                self.store.dispatch(.setting(action: .resetState))
-                self.presentationMode.wrappedValue.dismiss()
-                if self.notLoggedIn {
+                store.dispatch(.setting(action: .resetState))
+                presentationMode.wrappedValue.dismiss()
+                if notLoggedIn {
                     self.notLoggedIn = false
                 }
             }

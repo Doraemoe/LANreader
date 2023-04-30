@@ -187,8 +187,10 @@ struct ArchivePageV2: View {
                         }
                     }
                     .onChange(of: archivePageModel.currentIndex) { index in
-                        store.dispatch(.archive(action: .updateReadProgressServer(
-                                id: archiveItem.id, progress: index.int + 1)))
+                        Task {
+                            await store.dispatch(updateReadProgress(
+                                    id: archiveItem.id, progress: index.int + 1))
+                        }
                         if index.int == (archivePageModel.archiveItems[archiveItem.id]?.pagecount ?? 0) - 1 {
                             archivePageModel.clearNewFlag(id: archiveItem.id)
                         }

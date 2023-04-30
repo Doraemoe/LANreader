@@ -6,10 +6,18 @@ import Foundation
 import Combine
 
 class SettingsService {
+    private static var _shared: SettingsService?
+
     // server
-    func saveLanrargiServer(url: String, apiKey: String) -> AnyPublisher<Bool, Never> {
+    func saveLanrargiServer(url: String, apiKey: String) {
         UserDefaults.standard.set(url, forKey: SettingsKey.lanraragiUrl)
         UserDefaults.standard.set(apiKey, forKey: SettingsKey.lanraragiApiKey)
-        return Just(true).eraseToAnyPublisher()
+    }
+
+    public static var shared: SettingsService {
+        if _shared == nil {
+            _shared = SettingsService()
+        }
+        return _shared!
     }
 }

@@ -7,7 +7,6 @@ import Combine
 
 func settingReducer(state: inout SettingState, action: SettingAction) {
     switch action {
-            // server
     case let .saveLanraragiConfigToStore(url, apiKey):
         state.url = url
         state.apiKey = apiKey
@@ -17,7 +16,5 @@ func settingReducer(state: inout SettingState, action: SettingAction) {
     case .resetState:
         state.savedSuccess = false
         state.errorCode = nil
-    default:
-        break
     }
 }

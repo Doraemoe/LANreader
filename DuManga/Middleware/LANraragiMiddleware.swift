@@ -13,46 +13,6 @@ private let database = AppDatabase.shared
 func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppAction> {
     { _, action in
         switch action {
-        case let .setting(action: .verifyAndSaveLanraragiConfig(url, apiKey)):
-            return service.verifyClient(url: url, apiKey: apiKey)
-                    .map { _ in
-                        AppAction.setting(action: .saveLanraragiConfigToUserDefaults(url: url, apiKey: apiKey))
-                    }
-                    .replaceError(with: AppAction.setting(action: .error(errorCode: .lanraragiServerError)))
-                    .eraseToAnyPublisher()
-        case let .archive(action: .updateArchiveMetadata(metadata)):
-            return service.updateArchiveMetaData(archiveMetadata: metadata)
-                    .map { _ in
-                        do {
-                            var archive = metadata.toArchive()
-                            try database.saveArchive(&archive)
-                        } catch {
-                            logger.error("failed to save archive. id=\(metadata.id) \(error)")
-                        }
-                        return AppAction.archive(action: .updateArchiveMetadataSuccess(metadata: metadata))
-                    }
-                    .replaceError(with: AppAction.archive(action: .error(error: .archiveUpdateMetadataError)))
-                    .eraseToAnyPublisher()
-        case let .archive(action: .deleteArchive(id)):
-            return service.deleteArchive(id: id)
-                    .map { (response: ArchiveDeleteResponse) in
-                        let success = response.success
-                        if success == 1 {
-                            do {
-                                let success = try database.deleteArchive(id)
-                                if !success {
-                                    logger.error("failed to delete archive. id=\(id)")
-                                }
-                            } catch {
-                                logger.error("failed to delete archive. id=\(id) \(error)")
-                            }
-                            return AppAction.archive(action: .deleteArchiveSuccess(id: id))
-                        } else {
-                            return AppAction.archive(action: .error(error: .archiveDeleteError))
-                        }
-                    }
-                    .replaceError(with: AppAction.archive(action: .error(error: .archiveDeleteError)))
-                    .eraseToAnyPublisher()
         case let .page(action: .extractArchive(id)):
             return service.extractArchive(id: id)
                     .map { (response: ArchiveExtractResponse) in
@@ -64,21 +24,6 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                         return AppAction.page(action: .extractArchiveSuccess(id: id, pages: allPages))
                     }
                     .replaceError(with: AppAction.page(action: .error(error: .archiveExtractError)))
-                    .eraseToAnyPublisher()
-        case let .archive(action: .updateReadProgressServer(id, progress)):
-            return service.updateArchiveReadProgress(id: id, progress: progress)
-                    .map { _ in
-                        do {
-                            let updated = try database.updateArchiveProgress(id, progress: progress)
-                            if updated == 0 {
-                                logger.warning("No archive progress updated. id=\(id)")
-                            }
-                        } catch {
-                            logger.error("failed to update archive progress. id=\(id) \(error)")
-                        }
-                        return AppAction.archive(action: .updateReadProgressLocal(id: id, progress: progress))
-                    }
-                    .replaceError(with: AppAction.noop)
                     .eraseToAnyPublisher()
         case let .category(action: .fetchCategory(fromServer)):
             if !fromServer {

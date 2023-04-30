@@ -28,7 +28,7 @@ class LANraragiServiceTest: XCTestCase {
         HTTPStubs.removeAllStubs()
     }
 
-    func testGetServerInfo() throws {
+    func testGetServerInfo() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/info")
                 && isMethodGET()
@@ -38,14 +38,12 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let publisher = service.verifyClient(url: url, apiKey: apiKey)
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.single, timeout: 1.0)
+        let actual = try await service.verifyClient(url: url, apiKey: apiKey).value
         let expected = try FileUtils.readJsonFile(filename: "ServerInfoResponse")
         XCTAssertEqual(actual, expected)
     }
 
-    func testGetServerInfoUnauthorized() throws {
+    func testGetServerInfoUnauthorized() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/info")
                 && isMethodGET()
@@ -55,12 +53,8 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
-        let publisher = service.verifyClient(url: url, apiKey: apiKey)
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.completion, timeout: 1.0)
-        if case .finished = actual {
-            XCTFail("Should not success")
-        }
+        let actual = try? await service.verifyClient(url: url, apiKey: apiKey).value
+        XCTAssertNil(actual)
     }
 
     func testRetrieveArchiveIndex() async throws {
@@ -385,7 +379,7 @@ class LANraragiServiceTest: XCTestCase {
         }
     }
 
-    func testUpdateArchiveMetadata() throws {
+    func testUpdateArchiveMetadata() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/metadata")
                 && isMethodPUT()
@@ -399,14 +393,12 @@ class LANraragiServiceTest: XCTestCase {
         let metadata = ArchiveItem(id: "id", name: "name",
                                    tags: "tags", isNew: true,
                                    progress: 0, pagecount: 10, dateAdded: 1234)
-        let publisher = service.updateArchiveMetaData(archiveMetadata: metadata)
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.single, timeout: 1.0)
+        let actual = try await service.updateArchive(archive: metadata).value
         let expected = try FileUtils.readJsonFile(filename: "SetArchiveMetadataResponse")
         XCTAssertEqual(actual, expected)
     }
 
-    func testUpdateArchiveMetadataUnauthorized() throws {
+    func testUpdateArchiveMetadataUnauthorized() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/metadata")
                 && isMethodPUT()
@@ -420,12 +412,8 @@ class LANraragiServiceTest: XCTestCase {
         let metadata = ArchiveItem(id: "id", name: "name",
                                    tags: "tags", isNew: true,
                                    progress: 0, pagecount: 10, dateAdded: 1234)
-        let publisher = service.updateArchiveMetaData(archiveMetadata: metadata)
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.completion, timeout: 1.0)
-        if case .finished = actual {
-            XCTFail("Should not success")
-        }
+        let actual = try? await service.updateArchive(archive: metadata).value
+        XCTAssertNil(actual)
     }
 
 }
