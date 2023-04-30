@@ -20,39 +20,6 @@ func lanraragiMiddleware(service: LANraragiService) -> Middleware<AppState, AppA
                     }
                     .replaceError(with: AppAction.setting(action: .error(errorCode: .lanraragiServerError)))
                     .eraseToAnyPublisher()
-
-        case let .archive(action: .fetchArchive(fromServer)):
-            if !fromServer {
-                do {
-                    let archives = try database.readAllArchive()
-                    if archives.count > 0 {
-                        var archiveItems = [String: ArchiveItem]()
-                        archives.forEach { item in
-                            archiveItems[item.id] = item.toArchiveItem()
-                        }
-                        return Just(AppAction.archive(action: .fetchArchiveSuccess(archive: archiveItems)))
-                                .eraseToAnyPublisher()
-                    }
-                } catch {
-                    logger.warning("failed to read archive from db. \(error)")
-                }
-            }
-            return service.retrieveArchiveIndex()
-                    .map { (response: [ArchiveIndexResponse]) in
-                        var archiveItems = [String: ArchiveItem]()
-                        response.forEach { item in
-                            archiveItems[item.arcid] = item.toArchiveItem()
-                            do {
-                                var archive = item.toArchive()
-                                try database.saveArchive(&archive)
-                            } catch {
-                                logger.error("failed to save archive. id=\(item.arcid) \(error)")
-                            }
-                        }
-                        return AppAction.archive(action: .fetchArchiveSuccess(archive: archiveItems))
-                    }
-                    .replaceError(with: AppAction.archive(action: .error(error: .archiveFetchError)))
-                    .eraseToAnyPublisher()
         case let .archive(action: .updateArchiveMetadata(metadata)):
             return service.updateArchiveMetaData(archiveMetadata: metadata)
                     .map { _ in

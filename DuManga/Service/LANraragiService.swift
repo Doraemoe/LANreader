@@ -46,16 +46,10 @@ class LANraragiService {
                 .eraseToAnyPublisher()
     }
 
-    func retrieveArchiveIndex() -> AnyPublisher<[ArchiveIndexResponse], AFError> {
+    func retrieveArchiveIndex() async -> DataTask<[ArchiveIndexResponse]> {
         session.request("\(url)/api/archives")
                 .validate()
-                .publishDecodable(type: [ArchiveIndexResponse].self)
-                .value()
-                .mapError { error in
-                    LANraragiService.logger.error("failed to fetch archive index: \(error)")
-                    return error
-                }
-                .eraseToAnyPublisher()
+                .serializingDecodable([ArchiveIndexResponse].self)
     }
 
     func retrieveArchiveThumbnailData(id: String) -> AnyPublisher<Data, AFError> {

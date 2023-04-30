@@ -63,7 +63,7 @@ class LANraragiServiceTest: XCTestCase {
         }
     }
 
-    func testRetrieveArchiveIndex() throws {
+    func testRetrieveArchiveIndex() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives")
                 && isMethodGET()
@@ -73,9 +73,8 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let publisher = service.retrieveArchiveIndex()
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.single, timeout: 1.0)
+        let actual = try await service.retrieveArchiveIndex().value
+
         XCTAssertNotNil(actual)
         XCTAssertEqual(actual.count, 1)
         XCTAssertEqual(actual[0].arcid, "abcd1234")
@@ -84,7 +83,7 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(actual[0].title, "title")
     }
 
-    func testRetrieveArchiveIndexUnauthorized() throws {
+    func testRetrieveArchiveIndexUnauthorized() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives")
                 && isMethodGET()
@@ -94,15 +93,11 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
-        let publisher = service.retrieveArchiveIndex()
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.completion, timeout: 1.0)
-        if case .finished = actual {
-            XCTFail("Should not success")
-        }
+        let actual = try? await service.retrieveArchiveIndex().value
+        XCTAssertNil(actual)
     }
 
-    func testRetrieveArchiveIndexNullTags() throws {
+    func testRetrieveArchiveIndexNullTags() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives")
                 && isMethodGET()
@@ -112,9 +107,7 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let publisher = service.retrieveArchiveIndex()
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.single, timeout: 1.0)
+        let actual = try await service.retrieveArchiveIndex().value
         XCTAssertNotNil(actual)
         XCTAssertEqual(actual.count, 1)
         XCTAssertEqual(actual[0].arcid, "abcd1234")

@@ -4,6 +4,7 @@
 
 import SwiftUI
 import NotificationBannerSwift
+import Logging
 
 struct LibraryList: View {
     @AppStorage(SettingsKey.archiveListOrder) var archiveListOrder: String = ArchiveListOrder.name.rawValue
@@ -14,6 +15,9 @@ struct LibraryList: View {
 
     @StateObject private var libraryListModel = LibraryListModel()
 
+    private let database = AppDatabase.shared
+    private let logger = Logger(label: "LibraryList")
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -21,7 +25,7 @@ struct LibraryList: View {
                         .onAppear(perform: {
                             self.libraryListModel.load(state: store.state)
                             if libraryListModel.archiveItems.isEmpty {
-                                self.store.dispatch(.archive(action: .fetchArchive(fromServer: alwaysLoadFromServer)))
+                                loadArchives()
                             }
                         })
                         .onDisappear(perform: {
@@ -39,8 +43,7 @@ struct LibraryList: View {
                         .refreshable {
                             if libraryListModel.loading != true {
                                 self.libraryListModel.isPullToRefresh = true
-                                self.store.dispatch(.archive(action: .fetchArchive(fromServer: true)))
-                                await checkLoadingFinished()
+                                await store.dispatch(fetchArchiveAsync)
                                 self.libraryListModel.isPullToRefresh = false
                             }
                         }
@@ -92,9 +95,24 @@ struct LibraryList: View {
         return archives
     }
 
-    private func checkLoadingFinished() async {
-        repeat {
-            try? await Task.sleep(for: Duration.seconds(1))
-        } while libraryListModel.loading == true
+    private func loadArchives() {
+        if !alwaysLoadFromServer {
+            do {
+                let archives = try database.readAllArchive()
+                if archives.count > 0 {
+                    var archiveItems = [String: ArchiveItem]()
+                    archives.forEach { item in
+                        archiveItems[item.id] = item.toArchiveItem()
+                    }
+                    store.dispatch(.archive(action: .storeArchive(archive: archiveItems)))
+                    return
+                }
+            } catch {
+                logger.warning("failed to read archive from db. \(error)")
+            }
+        }
+        Task {
+            await store.dispatch(fetchArchiveAsync)
+        }
     }
 }

@@ -20,6 +20,10 @@ final class Store<State, Action>: ObservableObject {
         self.middlewares = middlewares
     }
 
+    func dispatch(_ action: ThunkAction<Action, State>) async {
+        await action(dispatch, { state })
+    }
+
     func dispatch(_ action: Action) {
         reducer(&state, action)
         // Dispatch all middleware functions
@@ -37,3 +41,5 @@ final class Store<State, Action>: ObservableObject {
 
 typealias Middleware<State, Action> = (State, Action) -> AnyPublisher<Action, Never>?
 typealias AppStore = Store<AppState, AppAction>
+typealias Dispatch<Action> = (Action) -> Void
+typealias ThunkAction<Action, State> = (Dispatch<Action>, () -> State) async -> Void
