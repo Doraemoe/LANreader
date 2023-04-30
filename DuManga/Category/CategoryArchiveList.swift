@@ -37,6 +37,7 @@ struct CategoryArchiveList: View {
                         .cornerRadius(20)
                         .opacity(categoryArchiveListModel.loading ? 1 : 0)
             }
+                    .toolbar(.hidden, for: .tabBar)
         }
     }
 
