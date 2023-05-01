@@ -184,7 +184,7 @@ class LANraragiServiceTest: XCTestCase {
         }
     }
 
-    func testRetrieveCategories() throws {
+    func testRetrieveCategories() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/categories")
                 && isMethodGET()
@@ -194,9 +194,7 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let publisher = service.retrieveCategories()
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.single, timeout: 1.0)
+        let actual = try await service.retrieveCategories().value
         XCTAssertNotNil(actual)
         XCTAssertEqual(actual.count, 2)
         XCTAssertEqual(actual[0].archives.count, 5)
@@ -214,7 +212,7 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(actual[1].search, "keyword")
     }
 
-    func testRetrieveCategoriesUnauthorized() throws {
+    func testRetrieveCategoriesUnauthorized() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/categories")
                 && isMethodGET()
@@ -224,15 +222,11 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
-        let publisher = service.retrieveCategories()
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.completion, timeout: 1.0)
-        if case .finished = actual {
-            XCTFail("Should not success")
-        }
+        let actual = try? await service.retrieveCategories().value
+        XCTAssertNil(actual)
     }
 
-    func testUpdateDynamicCategory() throws {
+    func testUpdateDynamicCategory() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/categories/SET_12345678")
                 && isMethodPUT()
@@ -246,14 +240,12 @@ class LANraragiServiceTest: XCTestCase {
         let item = CategoryItem(id: "SET_12345678", name: "name", archives: [],
                                 search: "search", pinned: "0")
 
-        let publisher = service.updateDynamicCategory(item: item)
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.single, timeout: 1.0)
+        let actual = try await service.updateDynamicCategory(item: item).value
         let expected = try FileUtils.readJsonFile(filename: "UpdateSearchCategoryResponse")
         XCTAssertEqual(actual, expected)
     }
 
-    func testUpdateDynamicCategoryUnauthorized() throws {
+    func testUpdateDynamicCategoryUnauthorized() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/categories/SET_12345678")
                 && isMethodPUT()
@@ -266,15 +258,11 @@ class LANraragiServiceTest: XCTestCase {
         let item = CategoryItem(id: "SET_12345678", name: "name", archives: [],
                                 search: "search", pinned: "0")
 
-        let publisher = service.updateDynamicCategory(item: item)
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.completion, timeout: 1.0)
-        if case .finished = actual {
-            XCTFail("Should not success")
-        }
+        let actual = try? await service.updateDynamicCategory(item: item).value
+        XCTAssertNil(actual)
     }
 
-    func testExtractArchive() throws {
+    func testExtractArchive() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/1/extract")
                 && isMethodPOST()
@@ -284,15 +272,13 @@ class LANraragiServiceTest: XCTestCase {
                     headers: ["Content-Type": "application/json"])
         }
 
-        let publisher = service.extractArchive(id: "1")
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.single, timeout: 1.0)
+        let actual = try await service.extractArchive(id: "1").value
         XCTAssertNotNil(actual)
         XCTAssertEqual(actual.pages.count, 1)
         XCTAssertEqual(actual.pages[0], "./api/archives/abc123/page?path=def456/001.jpg")
     }
 
-    func testExtractArchiveUnauthorized() throws {
+    func testExtractArchiveUnauthorized() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/1/extract")
                 && isMethodPOST()
@@ -302,12 +288,8 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
-        let publisher = service.extractArchive(id: "1")
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.completion, timeout: 1.0)
-        if case .finished = actual {
-            XCTFail("Should not success")
-        }
+        let actual = try? await service.extractArchive(id: "1").value
+        XCTAssertNil(actual)
     }
 
     func testFetchArchivePage() throws {

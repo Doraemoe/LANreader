@@ -46,7 +46,9 @@ struct EditCategory: View {
                         let updated: CategoryItem = CategoryItem(id: self.item.id,
                                 name: editCategoryModel.categoryName, archives: [],
                                 search: editCategoryModel.searchKeyword, pinned: self.item.pinned)
-                        self.store.dispatch(.category(action: .updateDynamicCategory(category: updated)))
+                        Task {
+                            await self.store.dispatch(updateDynamicCategory(category: updated))
+                        }
                     }, label: {
                         Text("done")
                     }))

@@ -224,7 +224,9 @@ struct ArchivePageV2: View {
 
     private func extractArchive() {
         if archivePageModel.archivePages[archiveItem.id]?.isEmpty ?? true {
-            store.dispatch(.page(action: .extractArchive(id: archiveItem.id)))
+            Task {
+                await store.dispatch(DuManga.extractArchive(id: archiveItem.id))
+            }
         }
     }
 
