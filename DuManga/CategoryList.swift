@@ -20,7 +20,7 @@ struct CategoryList: View {
         return GeometryReader { geometry in
             ZStack {
                 List(categories) { (item: CategoryItem) in
-                    if self.editMode == .active {
+                    if editMode == .active {
                         HStack {
                             Text(item.name)
                                     .font(.title)
@@ -32,12 +32,15 @@ struct CategoryList: View {
                                     categoryListModel.showSheetView = true
                                 })
                     } else {
-                        NavigationLink(destination: CategoryArchiveList(categoryItem: item)) {
+                        NavigationLink(value: item) {
                             Text(item.name)
                                     .font(.title)
                         }
                     }
                 }
+                        .navigationDestination(for: CategoryItem.self) { item in
+                            CategoryArchiveList(categoryItem: item)
+                        }
                         .sheet(isPresented: $categoryListModel.showSheetView) {
                             EditCategory(item: categoryListModel.selectedCategoryItem!,
                                     showSheetView: $categoryListModel.showSheetView)
@@ -53,7 +56,7 @@ struct CategoryList: View {
                                 categoryListModel.isPullToRefresh = false
                             }
                         }
-                if !self.categoryListModel.isPullToRefresh && self.categoryListModel.loading {
+                if !categoryListModel.isPullToRefresh && categoryListModel.loading {
                     VStack {
                         Text("loading")
                         ProgressView()
@@ -66,7 +69,7 @@ struct CategoryList: View {
                 }
             }
                     .onAppear(perform: {
-                        categoryListModel.load(state: self.store.state)
+                        categoryListModel.load(state: store.state)
                     })
                     .onDisappear(perform: {
                         categoryListModel.unload()

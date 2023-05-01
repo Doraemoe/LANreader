@@ -9,36 +9,34 @@ struct ArchiveList: View {
     let archives: [ArchiveItem]
 
     var body: some View {
-            if useListView {
-                return AnyView(List {
+        if useListView {
+            return AnyView(List(archives) { (item: ArchiveItem) in
+                NavigationLink(value: item) {
+                    ArchiveRow(archiveItem: item)
+                }
+            }
+                    .navigationDestination(for: ArchiveItem.self) { item in
+                        ArchivePageV2(archiveItem: item)
+                    })
+        } else {
+            let columns = [
+                GridItem(.adaptive(minimum: 160))
+            ]
+            return AnyView(ScrollView {
+                Spacer(minLength: 20)
+                LazyVGrid(columns: columns, spacing: 20) {
                     ForEach(archives) { (item: ArchiveItem) in
-                            NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
-                                ArchiveRow(archiveItem: item)
-                            }
-
-                    }
-                })
-            } else {
-                let columns = [
-                    GridItem(.adaptive(minimum: 160))
-                ]
-                return AnyView(ScrollView {
-                    Spacer(minLength: 20)
-                    LazyVGrid(columns: columns, spacing: 20) {
-                        ForEach(archives) { (item: ArchiveItem) in
-                            ZStack {
-                                ArchiveGrid(archiveItem: item)
-                                    NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
-                                        Rectangle()
-                                                .opacity(0.0001)
-                                                .contentShape(Rectangle())
-                                    }
-                            }
+                        NavigationLink(value: item) {
+                            ArchiveGrid(archiveItem: item)
                         }
                     }
-                            .padding(.horizontal)
-                })
-            }
+                }
+                        .navigationDestination(for: ArchiveItem.self) { item in
+                            ArchivePageV2(archiveItem: item)
+                        }
+                        .padding(.horizontal)
+            })
+        }
 
     }
 }

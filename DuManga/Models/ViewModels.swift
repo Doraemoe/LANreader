@@ -3,7 +3,7 @@
 import Foundation
 import SwiftUI
 
-struct ArchiveItem: Identifiable, Equatable {
+struct ArchiveItem: Identifiable, Equatable, Hashable {
     let id: String
     let name: String
     let tags: String
@@ -13,7 +13,7 @@ struct ArchiveItem: Identifiable, Equatable {
     let dateAdded: Int?
 }
 
-struct CategoryItem: Identifiable, Equatable {
+struct CategoryItem: Identifiable, Equatable, Hashable {
     let id: String
     let name: String
     let archives: [String]
