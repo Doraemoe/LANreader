@@ -10,6 +10,7 @@ struct ArchiveGrid: View {
             Text(archiveItem.name)
                     .frame(width: 130)
                     .lineLimit(1)
+                    .foregroundColor(.primary)
             ThumbnailImage(id: archiveItem.id)
                     .scaledToFit()
                     .frame(width: 160, height: 200)
