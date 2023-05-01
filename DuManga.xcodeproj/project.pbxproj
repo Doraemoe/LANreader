@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		4BD8202CBB691F358BDDA9FE /* ArchiveReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82E3AAF924901BE111A11 /* ArchiveReducer.swift */; };
-		4BD82050C1FF8B40496FA855 /* LANraragiMiddleware.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82CBC1A68BB70CB0CC2D0 /* LANraragiMiddleware.swift */; };
 		4BD821251952FE326EA8E78C /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8287D815A66EEECF792FF /* SearchView.swift */; };
 		4BD821631AB6950B54BEA209 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD828AA12AB6AEB96EB44BB /* Store.swift */; };
 		4BD821C3FDF1FC3B60AB4823 /* AppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD822BB67087E0A18F517BF /* AppModels.swift */; };
@@ -161,7 +160,6 @@
 		4BD82B3FE2BE59AACD7ABA3A /* CategoryArchiveList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryArchiveList.swift; sourceTree = "<group>"; };
 		4BD82B45987169916D0D32EF /* ArchiveRow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ArchiveRow.swift; path = DuManga/ArchiveRow.swift; sourceTree = SOURCE_ROOT; };
 		4BD82C50F0B889D20B260924 /* SettingState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingState.swift; sourceTree = "<group>"; };
-		4BD82CBC1A68BB70CB0CC2D0 /* LANraragiMiddleware.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LANraragiMiddleware.swift; sourceTree = "<group>"; };
 		4BD82CCF0CDAB88F4FC224D1 /* CategoryReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryReducer.swift; sourceTree = "<group>"; };
 		4BD82CD5954DDD63ABB7DD22 /* LANraragiConfigView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LANraragiConfigView.swift; path = DuManga/LANraragiConfigView.swift; sourceTree = SOURCE_ROOT; };
 		4BD82D448F06457925BDCDEA /* ArchiveList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ArchiveList.swift; path = DuManga/ArchiveList.swift; sourceTree = SOURCE_ROOT; };
@@ -311,7 +309,6 @@
 		4BD824562009503E813A0D93 /* Middleware */ = {
 			isa = PBXGroup;
 			children = (
-				4BD82CBC1A68BB70CB0CC2D0 /* LANraragiMiddleware.swift */,
 			);
 			path = Middleware;
 			sourceTree = "<group>";
@@ -723,7 +720,6 @@
 				4BD82CDA1A27B1462DCCF3F4 /* SettingAction.swift in Sources */,
 				4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */,
 				4BD82760E9B084402AFE07F2 /* SettingsService.swift in Sources */,
-				4BD82050C1FF8B40496FA855 /* LANraragiMiddleware.swift in Sources */,
 				4BD821C3FDF1FC3B60AB4823 /* AppModels.swift in Sources */,
 				4BD82C152E77BFD137EC03DD /* LANraragiConfigView.swift in Sources */,
 				4BD823AC73ED9E45F8B7E436 /* ReadSettings.swift in Sources */,

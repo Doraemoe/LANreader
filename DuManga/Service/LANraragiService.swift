@@ -109,44 +109,26 @@ class LANraragiService {
                 .eraseToAnyPublisher()
     }
 
-    func retrieveCategories() -> AnyPublisher<[ArchiveCategoriesResponse], AFError> {
-        session.request("\(self.url)/api/categories")
+    func retrieveCategories() async -> DataTask<[ArchiveCategoriesResponse]> {
+        session.request("\(url)/api/categories")
                 .validate()
-                .publishDecodable(type: [ArchiveCategoriesResponse].self)
-                .value()
-                .mapError { error in
-                    LANraragiService.logger.error("failed to retrieve categories: \(error)")
-                    return error
-                }
-                .eraseToAnyPublisher()
+                .serializingDecodable([ArchiveCategoriesResponse].self)
     }
 
-    func updateDynamicCategory(item: CategoryItem) -> AnyPublisher<String, AFError> {
+    func updateDynamicCategory(item: CategoryItem) async -> DataTask<String> {
         var query = [String: String]()
         query["name"] = item.name
         query["search"] = item.search
         query["pinned"] = item.pinned
         return session.request("\(url)/api/categories/\(item.id)", method: .put, parameters: query)
                 .validate(statusCode: 200...200)
-                .publishString()
-                .value()
-                .mapError { error in
-                    LANraragiService.logger.error("failed to update dynamic category: \(error)")
-                    return error
-                }
-                .eraseToAnyPublisher()
+                .serializingString()
     }
 
-    func extractArchive(id: String) -> AnyPublisher<ArchiveExtractResponse, AFError> {
+    func extractArchive(id: String) async -> DataTask<ArchiveExtractResponse> {
         session.request("\(url)/api/archives/\(id)/extract", method: .post)
                 .validate()
-                .publishDecodable(type: ArchiveExtractResponse.self)
-                .value()
-                .mapError { error in
-                    LANraragiService.logger.error("failed to extract archive: \(error)")
-                    return error
-                }
-                .eraseToAnyPublisher()
+                .serializingDecodable(ArchiveExtractResponse.self)
     }
 
     func fetchArchivePageData(page: String) -> AnyPublisher<Data, AFError> {

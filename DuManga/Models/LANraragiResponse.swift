@@ -73,3 +73,16 @@ extension ArchiveCategoriesResponse {
                  lastUpdate: Date())
     }
 }
+
+func extractDateAdded(tags: String) -> Int? {
+    let dateString = tags.split(separator: ",")
+            .map({ $0.trimmingCharacters(in: .whitespaces) })
+            .first(where: { $0.starts(with: "date_added") })?
+            .split(separator: ":")
+            .last
+    if let date = dateString {
+        return Int(date)
+    } else {
+        return nil
+    }
+}

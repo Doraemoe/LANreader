@@ -41,9 +41,7 @@ struct DuMangaApp: App {
         }
     }
 
-    let store = AppStore(initialState: .init(), reducer: appReducer, middlewares: [
-        lanraragiMiddleware(service: LANraragiService.shared)
-    ])
+    let store = AppStore(initialState: .init(), reducer: appReducer, middlewares: [])
 
     var body: some Scene {
         WindowGroup {

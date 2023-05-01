@@ -41,17 +41,16 @@ struct CategoryList: View {
                         .sheet(isPresented: $categoryListModel.showSheetView) {
                             EditCategory(item: categoryListModel.selectedCategoryItem!,
                                     showSheetView: $categoryListModel.showSheetView)
-                                    .environmentObject(self.store)
+                                    .environmentObject(store)
                         }
                         .onAppear(perform: {
-                            self.loadData()
+                            loadData()
                         })
                         .refreshable {
                             if categoryListModel.loading != true {
-                                self.categoryListModel.isPullToRefresh = true
-                                self.store.dispatch(.category(action: .fetchCategory(fromServer: true)))
-                                await checkLoadingFinished()
-                                self.categoryListModel.isPullToRefresh = false
+                                categoryListModel.isPullToRefresh = true
+                                await store.dispatch(fetchCategory(fromServer: true))
+                                categoryListModel.isPullToRefresh = false
                             }
                         }
                 if !self.categoryListModel.isPullToRefresh && self.categoryListModel.loading {
@@ -72,7 +71,7 @@ struct CategoryList: View {
                     .onDisappear(perform: {
                         categoryListModel.unload()
                     })
-                    .onChange(of: self.categoryListModel.errorCode, perform: { code in
+                    .onChange(of: categoryListModel.errorCode, perform: { code in
                         if code != nil {
                             let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
                                     subtitle: NSLocalizedString("error.category", comment: "category error"),
@@ -85,17 +84,12 @@ struct CategoryList: View {
     }
 
     func loadData() {
-        if self.categoryListModel.categoryItems.count > 0 {
+        if categoryListModel.categoryItems.count > 0 {
             return
         }
-        self.store.dispatch(.category(action: .fetchCategory(fromServer: alwaysLoadFromServer)))
-    }
-
-    private func checkLoadingFinished() async {
-        repeat {
-            try? await Task.sleep(for: Duration.seconds(1))
+        Task {
+            await store.dispatch(fetchCategory(fromServer: alwaysLoadFromServer))
         }
-        while categoryListModel.loading == true
     }
 }
 
