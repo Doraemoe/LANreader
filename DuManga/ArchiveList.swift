@@ -8,13 +8,23 @@ struct ArchiveList: View {
 
     let archives: [ArchiveItem]
 
+    let archiveTrigger = ArchiveTrigger()
+
     var body: some View {
         if useListView {
             return AnyView(List(archives) { (item: ArchiveItem) in
                 NavigationLink(value: item) {
                     ArchiveRow(archiveItem: item)
                 }
+                        .contextMenu {
+                            Button(action: {
+                                archiveTrigger.triggerThumbnailReload = item.id
+                            }, label: {
+                                Text("archive.reload.thumbnail")
+                            })
+                        }
             }
+                    .environmentObject(archiveTrigger)
                     .navigationDestination(for: ArchiveItem.self) { item in
                         ArchivePageV2(archiveItem: item)
                     })
@@ -29,14 +39,21 @@ struct ArchiveList: View {
                         NavigationLink(value: item) {
                             ArchiveGrid(archiveItem: item)
                         }
+                                .contextMenu {
+                                    Button(action: {
+                                        archiveTrigger.triggerThumbnailReload = item.id
+                                    }, label: {
+                                        Text("archive.reload.thumbnail")
+                                    })
+                                }
                     }
                 }
+                        .environmentObject(archiveTrigger)
                         .navigationDestination(for: ArchiveItem.self) { item in
                             ArchivePageV2(archiveItem: item)
                         }
                         .padding(.horizontal)
             })
         }
-
     }
 }

@@ -10,15 +10,6 @@
       }
     },
     {
-      "identity" : "alamofireimage",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Alamofire/AlamofireImage.git",
-      "state" : {
-        "revision" : "98cbb00ce0ec5fc8e52a5b50a6bfc08d3e5aee10",
-        "version" : "4.2.0"
-      }
-    },
-    {
       "identity" : "combineexpectations",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/groue/CombineExpectations",
@@ -50,8 +41,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Daltron/NotificationBanner",
       "state" : {
-        "revision" : "a9ec5cd29b4669f5fdf3dcd494a08cea4776913c",
-        "version" : "3.2.0"
+        "revision" : "1406ac60bcab58074fc969e9b4cb804679832c8e",
+        "version" : "3.2.1"
       }
     },
     {
