@@ -9,7 +9,6 @@ class ThumbnailImageModel: ObservableObject {
     private static let logger = Logger(label: "ThumbnailImageModel")
 
     @Published var imageData: Data?
-    @Published var progress: Double = 0
 
     private let service = LANraragiService.shared
     private let database = AppDatabase.shared
@@ -30,6 +29,12 @@ class ThumbnailImageModel: ObservableObject {
         isLoading = true
         do {
             imageData = try await service.retrieveArchiveThumbnail(id: id).serializingData().value
+            var thumbnail = ArchiveThumbnail(id: id, thumbnail: imageData!, lastUpdate: Date())
+            do {
+                try self.database.saveArchiveThumbnail(&thumbnail)
+            } catch {
+                ThumbnailImageModel.logger.warning("failed to save thumbnail to db. id=\(id) \(error)")
+            }
         } catch {
             ThumbnailImageModel.logger.error("failed to fetch thumbnail. \(error)")
         }
