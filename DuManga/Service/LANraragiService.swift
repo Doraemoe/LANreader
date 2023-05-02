@@ -5,7 +5,6 @@
 import Foundation
 import Combine
 import Alamofire
-import AlamofireImage
 import Logging
 
 class LANraragiService {
@@ -16,18 +15,9 @@ class LANraragiService {
     private var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
     private let authInterceptor = AuthInterceptor()
     private var session: Session
-    private let imageDownloader: ImageDownloader
 
     private init() {
         self.session = Session(interceptor: authInterceptor)
-        let downloaderSession = Session(configuration: ImageDownloader.defaultURLSessionConfiguration(),
-                startRequestsImmediately: false,
-                interceptor: authInterceptor)
-        self.imageDownloader = ImageDownloader(session: downloaderSession,
-                downloadPrioritization: .fifo,
-                maximumActiveDownloads: 4,
-                imageCache: AutoPurgingImageCache())
-        ImageResponseSerializer.addAcceptableImageContentTypes(["application/x-download"])
     }
 
     func verifyClient(url: String, apiKey: String) async -> DataTask<String> {
@@ -59,21 +49,9 @@ class LANraragiService {
                 .eraseToAnyPublisher()
     }
 
-    func retrieveArchiveThumbnail(id: String) -> AnyPublisher<Image, AFIError> {
+    func retrieveArchiveThumbnail(id: String) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
-        return Deferred {
-            Future<Image, AFIError> { promise in
-                self.imageDownloader.download(request, completion: { response in
-                    switch response.result {
-                    case let .success(thumbnail):
-                        promise(.success(thumbnail))
-                    case let .failure(error):
-                        LANraragiService.logger.error("failed to fetch archive thumbnail image: \(error)")
-                        promise(.failure(error))
-                    }
-                })
-            }
-        }.eraseToAnyPublisher()
+        return session.download(request)
     }
 
     func searchArchiveIndex(category: String? = nil,
@@ -144,21 +122,9 @@ class LANraragiService {
                 .eraseToAnyPublisher()
     }
 
-    func fetchArchivePage(page: String) -> AnyPublisher<Image, AFIError> {
+    func fetchArchivePage(page: String) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
-        return Deferred {
-            Future<Image, AFIError> { promise in
-                self.imageDownloader.download(request, completion: { response in
-                    switch response.result {
-                    case let .success(page):
-                        promise(.success(page))
-                    case let .failure(error):
-                        LANraragiService.logger.error("failed to fetch archive page: \(error)")
-                        promise(.failure(error))
-                    }
-                })
-            }
-        }.eraseToAnyPublisher()
+        return session.download(request)
     }
 
     func clearNewFlag(id: String) -> AnyPublisher<String, AFError> {

@@ -50,6 +50,7 @@
 
 "archive.delete" = "Delete archive";
 "archive.delete.confirm" = "Are you sure you want to delete this?";
+"archive.reload.thumbnail" = "Reload thumbnail";
 
 "settings.debug" = "Debug";
 "settings.debug.log" = "Application log";
@@ -57,7 +58,6 @@
 "category.edit" = "Edit category";
 "category.name" = "Category name";
 "category.search" = "Search keyword";
-"category.new" = "New archive only";
 
 "error.host" = "Cannot connect to server, please check your settings";
 "error.list" = "Cannot load library, please try again or check your server settings";

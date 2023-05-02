@@ -5,6 +5,8 @@ import SwiftUI
 struct ThumbnailImage: View {
     @StateObject private var imageModel = ThumbnailImageModel()
 
+    @EnvironmentObject var trigger: ArchiveTrigger
+
     private let id: String
 
     init(id: String) {
@@ -12,14 +14,32 @@ struct ThumbnailImage: View {
     }
 
     var body: some View {
-        imageModel.image
-            .resizable()
-            .onAppear(perform: {
-                imageModel.load(id: id)
-            })
-            .onDisappear(perform: {
-                imageModel.unload()
-            })
+        if imageModel.imageData != nil {
+            Image(uiImage: UIImage(data: imageModel.imageData!)!)
+                    .resizable()
+                    .onChange(of: trigger.triggerThumbnailReload, perform: { reload in
+                        if reload == id {
+                            Task {
+                                await imageModel.load(id: id, fromServer: true)
+                                trigger.triggerThumbnailReload = ""
+                            }
+                        }
+                    })
+        } else {
+            Image(systemName: "photo")
+                    .foregroundColor(.primary)
+                    .task {
+                        await imageModel.load(id: id, fromServer: false)
+                    }
+                    .onChange(of: trigger.triggerThumbnailReload, perform: { reload in
+                        if reload == id {
+                            Task {
+                                await imageModel.load(id: id, fromServer: true)
+                                trigger.triggerThumbnailReload = ""
+                            }
+                        }
+                    })
+        }
     }
 }
 

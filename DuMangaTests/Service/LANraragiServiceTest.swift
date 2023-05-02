@@ -110,40 +110,6 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(actual[0].title, "title")
     }
 
-    func testRetrieveArchiveThumbnail() throws {
-        stub(condition: isHost("localhost")
-                && isPath("/api/archives/1/thumbnail")
-                && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-            HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("placeholder.jpg", type(of: self))!, statusCode: 200,
-                    headers: ["Content-Type": "application/x-download;name=\"placeholder.jpg\""])
-        }
-
-        let publisher = service.retrieveArchiveThumbnail(id: "1")
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.single, timeout: 1.0)
-        XCTAssertNotNil(actual)
-    }
-
-    func testRetrieveArchiveThumbnailUnauthorized() throws {
-        stub(condition: isHost("localhost")
-                && isPath("/api/archives/1/thumbnail")
-                && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-            HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("UnauthorizedResponse.json", type(of: self))!,
-                    statusCode: 401, headers: ["Content-Type": "application/json"])
-        }
-
-        let publisher = service.retrieveArchiveThumbnail(id: "1")
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.completion, timeout: 1.0)
-        if case .finished = actual {
-            XCTFail("Should not success")
-        }
-    }
-
     func testSearchArchiveIndex() throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/search")
@@ -290,40 +256,6 @@ class LANraragiServiceTest: XCTestCase {
 
         let actual = try? await service.extractArchive(id: "1").value
         XCTAssertNil(actual)
-    }
-
-    func testFetchArchivePage() throws {
-        stub(condition: isHost("localhost")
-                && isPath("/api/archives/abc123/page")
-                && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-            HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("placeholder.jpg", type(of: self))!, statusCode: 200,
-                    headers: ["Content-Type": "application/x-download;name=\"placeholder.jpg\""])
-        }
-
-        let publisher = service.fetchArchivePage(page: "api/archives/abc123/page")
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.single, timeout: 1.0)
-        XCTAssertNotNil(actual)
-    }
-
-    func testFetchArchivePageUnauthorized() throws {
-        stub(condition: isHost("localhost")
-                && isPath("/api/archives/abc123/page")
-                && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-            HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("UnauthorizedResponse.json", type(of: self))!,
-                    statusCode: 401, headers: ["Content-Type": "application/json"])
-        }
-
-        let publisher = service.fetchArchivePage(page: "api/archives/abc123/page")
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.completion, timeout: 1.0)
-        if case .finished = actual {
-            XCTFail("Should not success")
-        }
     }
 
     func testClearNewFlag() throws {
