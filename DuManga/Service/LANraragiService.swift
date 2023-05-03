@@ -25,28 +25,28 @@ class LANraragiService {
         self.authInterceptor.updateApiKey(apiKey)
         let cacher = ResponseCacher(behavior: .doNotCache)
         return session.request("\(self.url)/api/info")
-                .cacheResponse(using: cacher)
-                .validate(statusCode: 200...200)
-                .serializingString()
+            .cacheResponse(using: cacher)
+            .validate(statusCode: 200...200)
+            .serializingString()
     }
 
     func retrieveArchiveIndex() async -> DataTask<[ArchiveIndexResponse]> {
         session.request("\(url)/api/archives")
-                .validate()
-                .serializingDecodable([ArchiveIndexResponse].self)
+            .validate()
+            .serializingDecodable([ArchiveIndexResponse].self)
     }
 
     func retrieveArchiveThumbnailData(id: String) -> AnyPublisher<Data, AFError> {
         let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
         return session.download(request)
-                .validate()
-                .publishData()
-                .value()
-                .mapError { error in
-                    LANraragiService.logger.error("failed to fetch archive thumbnail data: \(error)")
-                    return error
-                }
-                .eraseToAnyPublisher()
+            .validate()
+            .publishData()
+            .value()
+            .mapError { error in
+                LANraragiService.logger.error("failed to fetch archive thumbnail data: \(error)")
+                return error
+            }
+            .eraseToAnyPublisher()
     }
 
     func retrieveArchiveThumbnail(id: String) -> DownloadRequest {
@@ -77,20 +77,41 @@ class LANraragiService {
         }
 
         return session.request("\(url)/api/search", parameters: query)
-                .validate()
-                .publishDecodable(type: ArchiveSearchResponse.self)
-                .value()
-                .mapError { error in
-                    LANraragiService.logger.error("failed to search archive: \(error)")
-                    return error
-                }
-                .eraseToAnyPublisher()
+            .validate()
+            .publishDecodable(type: ArchiveSearchResponse.self)
+            .value()
+            .mapError { error in
+                LANraragiService.logger.error("failed to search archive: \(error)")
+                return error
+            }
+            .eraseToAnyPublisher()
+    }
+
+    func searchArchive(category: String? = nil,
+                       filter: String? = nil,
+                       start: String = "-1",
+                       sortby: String = "title",
+                       order: String = "asc") async -> DataTask<ArchiveSearchResponse> {
+        var query = [String: String]()
+        if category != nil {
+            query["category"] = category
+        }
+        if filter != nil {
+            query["filter"] = filter
+        }
+        query["start"] = start
+        query["sortby"] = sortby
+        query["order"] = order
+
+        return session.request("\(url)/api/search", parameters: query)
+            .validate()
+            .serializingDecodable(ArchiveSearchResponse.self)
     }
 
     func retrieveCategories() async -> DataTask<[ArchiveCategoriesResponse]> {
         session.request("\(url)/api/categories")
-                .validate()
-                .serializingDecodable([ArchiveCategoriesResponse].self)
+            .validate()
+            .serializingDecodable([ArchiveCategoriesResponse].self)
     }
 
     func updateDynamicCategory(item: CategoryItem) async -> DataTask<String> {
@@ -99,27 +120,27 @@ class LANraragiService {
         query["search"] = item.search
         query["pinned"] = item.pinned
         return session.request("\(url)/api/categories/\(item.id)", method: .put, parameters: query)
-                .validate(statusCode: 200...200)
-                .serializingString()
+            .validate(statusCode: 200...200)
+            .serializingString()
     }
 
     func extractArchive(id: String) async -> DataTask<ArchiveExtractResponse> {
         session.request("\(url)/api/archives/\(id)/extract", method: .post)
-                .validate()
-                .serializingDecodable(ArchiveExtractResponse.self)
+            .validate()
+            .serializingDecodable(ArchiveExtractResponse.self)
     }
 
     func fetchArchivePageData(page: String) -> AnyPublisher<Data, AFError> {
         let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
         return session.download(request)
-                .validate()
-                .publishData()
-                .value()
-                .mapError { error in
-                    LANraragiService.logger.error("failed to fetch archive page data: \(error)")
-                    return error
-                }
-                .eraseToAnyPublisher()
+            .validate()
+            .publishData()
+            .value()
+            .mapError { error in
+                LANraragiService.logger.error("failed to fetch archive page data: \(error)")
+                return error
+            }
+            .eraseToAnyPublisher()
     }
 
     func fetchArchivePage(page: String) -> DownloadRequest {
@@ -129,9 +150,9 @@ class LANraragiService {
 
     func clearNewFlag(id: String) -> AnyPublisher<String, AFError> {
         session.request("\(url)/api/archives/\(id)/isnew", method: .delete)
-                .validate(statusCode: 200...200)
-                .publishString()
-                .value()
+            .validate(statusCode: 200...200)
+            .publishString()
+            .value()
     }
 
     func updateArchiveMetaData(archiveMetadata: ArchiveItem) -> AnyPublisher<String, AFError> {
@@ -140,15 +161,15 @@ class LANraragiService {
         query["tags"] = archiveMetadata.tags
 
         return session.request("\(url)/api/archives/\(archiveMetadata.id)/metadata",
-                        method: .put, parameters: query)
-                .validate(statusCode: 200...200)
-                .publishString()
-                .value()
-                .mapError { error in
-                    LANraragiService.logger.error("failed to update archive metadata: \(error)")
-                    return error
-                }
-                .eraseToAnyPublisher()
+                               method: .put, parameters: query)
+        .validate(statusCode: 200...200)
+        .publishString()
+        .value()
+        .mapError { error in
+            LANraragiService.logger.error("failed to update archive metadata: \(error)")
+            return error
+        }
+        .eraseToAnyPublisher()
     }
 
     func updateArchive(archive: ArchiveItem) async -> DataTask<String> {
@@ -157,28 +178,28 @@ class LANraragiService {
         query["tags"] = archive.tags
 
         return session.request("\(url)/api/archives/\(archive.id)/metadata",
-                        method: .put, parameters: query)
-                .validate(statusCode: 200...200)
-                .serializingString()
+                               method: .put, parameters: query)
+        .validate(statusCode: 200...200)
+        .serializingString()
     }
 
     func updateArchiveReadProgress(id: String, progress: Int) -> AnyPublisher<String, AFError> {
         session.request("\(url)/api/archives/\(id)/progress/\(progress)", method: .put)
-                .validate(statusCode: 200...200)
-                .publishString()
-                .value()
+            .validate(statusCode: 200...200)
+            .publishString()
+            .value()
     }
 
     func updateArchiveReadProgressAsync(id: String, progress: Int) async -> DataTask<String> {
         session.request("\(url)/api/archives/\(id)/progress/\(progress)", method: .put)
-                .validate(statusCode: 200...200)
-                .serializingString()
+            .validate(statusCode: 200...200)
+            .serializingString()
     }
 
     func deleteArchive(id: String) async -> DataTask<ArchiveDeleteResponse> {
         session.request("\(url)/api/archives/\(id)", method: .delete)
-                .validate(statusCode: 200...200)
-                .serializingDecodable(ArchiveDeleteResponse.self)
+            .validate(statusCode: 200...200)
+            .serializingDecodable(ArchiveDeleteResponse.self)
 
     }
 

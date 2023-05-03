@@ -21,7 +21,7 @@ struct ArchiveList: View {
             List {
                 sortPicker()
                 ForEach(processArchives()) { (item: ArchiveItem) in
-                    NavigationLink(value: item) {
+                    NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
                         ArchiveRow(archiveItem: item)
                     }
                             .contextMenu {
@@ -33,9 +33,6 @@ struct ArchiveList: View {
                             }
                 }
             }
-                    .navigationDestination(for: ArchiveItem.self) { item in
-                        ArchivePageV2(archiveItem: item)
-                    }
         } else {
             let columns = [
                 GridItem(.adaptive(minimum: 160))
@@ -46,7 +43,7 @@ struct ArchiveList: View {
                 Spacer(minLength: 30)
                 LazyVGrid(columns: columns, spacing: 20) {
                     ForEach(processArchives()) { (item: ArchiveItem) in
-                        NavigationLink(value: item) {
+                        NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
                             ArchiveGrid(archiveItem: item)
                         }
                                 .contextMenu {
@@ -58,24 +55,27 @@ struct ArchiveList: View {
                                 }
                     }
                 }
-                        .navigationDestination(for: ArchiveItem.self) { item in
-                            ArchivePageV2(archiveItem: item)
-                        }
                         .padding(.horizontal)
             }
         }
     }
 
     private func sortPicker() -> some View {
-        Picker("settings.archive.list.order", selection: self.$archiveListOrder) {
-            Group {
-                Text("settings.archive.list.order.name").tag(ArchiveListOrder.name.rawValue)
-                Text("settings.archive.list.order.dateAdded").tag(ArchiveListOrder.dateAdded.rawValue)
-                Text("settings.archive.list.order.random").tag(ArchiveListOrder.random.rawValue)
+        Group {
+            if archives.isEmpty {
+                EmptyView()
+            } else {
+                Picker("settings.archive.list.order", selection: self.$archiveListOrder) {
+                    Group {
+                        Text("settings.archive.list.order.name").tag(ArchiveListOrder.name.rawValue)
+                        Text("settings.archive.list.order.dateAdded").tag(ArchiveListOrder.dateAdded.rawValue)
+                        Text("settings.archive.list.order.random").tag(ArchiveListOrder.random.rawValue)
+                    }
+                }
+                        .pickerStyle(.segmented)
+                        .padding()
             }
         }
-                .pickerStyle(.segmented)
-                .padding()
     }
 
     private func processArchives() -> [ArchiveItem] {

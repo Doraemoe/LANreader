@@ -110,7 +110,7 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(actual[0].title, "title")
     }
 
-    func testSearchArchiveIndex() throws {
+    func testSearchArchive() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/search")
                 && containsQueryParams(["category": "SET_12345678"])
@@ -121,9 +121,7 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let publisher = service.searchArchiveIndex(category: "SET_12345678")
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.single, timeout: 1.0)
+        let actual = try await service.searchArchive(category: "SET_12345678").value
         XCTAssertNotNil(actual)
         XCTAssertEqual(actual.data.count, 1)
         XCTAssertEqual(actual.draw, 0)
@@ -131,7 +129,7 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(actual.recordsTotal, 1234)
     }
 
-    func testSearchArchiveIndexUnauthorized() throws {
+    func testSearchArchiveIndexUnauthorized() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/search")
                 && containsQueryParams(["category": "SET_12345678"])
@@ -142,12 +140,8 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
-        let publisher = service.searchArchiveIndex(category: "SET_12345678")
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.completion, timeout: 1.0)
-        if case .finished = actual {
-            XCTFail("Should not success")
-        }
+        let actual = try? await service.searchArchive(category: "SET_12345678").value
+        XCTAssertNil(actual)
     }
 
     func testRetrieveCategories() async throws {

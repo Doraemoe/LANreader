@@ -33,7 +33,6 @@ struct ContentView: View {
                             }.tag("category")
                         NavigationStack {
                             SearchView()
-                                    .navigationBarTitle("search", displayMode: .inline)
                         }
                             .tabItem {
                                 Image(systemName: "magnifyingglass")
