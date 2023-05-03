@@ -24,6 +24,8 @@ enum ArchiveAction {
     case finishDeleteArchive
     case removeDeletedArchive(id: String)
 
+    case setRandomOrderSeed(seed: UInt64)
+
     case error(error: ErrorCode)
     case resetState
 }
@@ -36,6 +38,7 @@ private let lanraragiService = LANraragiService.shared
 
 func fetchArchives(_ fromServer: Bool) -> ThunkAction<AppAction, AppState> {
     { dispatch, _ in
+        dispatch(.archive(action: .startFetchArchive))
         if !fromServer {
             do {
                 let archives = try database.readAllArchive()
@@ -45,13 +48,14 @@ func fetchArchives(_ fromServer: Bool) -> ThunkAction<AppAction, AppState> {
                         archiveItems[item.id] = item.toArchiveItem()
                     }
                     dispatch(.archive(action: .storeArchive(archive: archiveItems)))
+                    dispatch(.archive(action: .finishFetchArchive))
                     return
                 }
             } catch {
                 logger.warning("failed to read archive from db. \(error)")
             }
         }
-        dispatch(.archive(action: .startFetchArchive))
+
         do {
             let archives = try await lanraragiService.retrieveArchiveIndex().value
             _ = try? database.deleteAllArchive()

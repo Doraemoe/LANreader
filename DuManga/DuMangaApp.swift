@@ -14,6 +14,14 @@ struct DuMangaApp: App {
 
     init() {
         do {
+            if let tmp = try? FileManager.default.contentsOfDirectory(
+                    at: FileManager.default.temporaryDirectory, includingPropertiesForKeys: []
+            ) {
+                tmp.forEach { url in
+                    try? FileManager.default.removeItem(at: url)
+                }
+            }
+
             let logFileURL = try FileManager.default
                 .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
                 .appendingPathComponent("app.log")

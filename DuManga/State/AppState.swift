@@ -10,12 +10,14 @@ struct AppState {
     var archive: ArchiveState
     var category: CategoryState
     var page: PageState
+    var trigger: TriggerState
 
     init() {
-        self.setting = SettingState()
-        self.archive = ArchiveState()
-        self.category = CategoryState()
-        self.page = PageState()
+        setting = SettingState()
+        archive = ArchiveState()
+        category = CategoryState()
+        page = PageState()
+        trigger = TriggerState()
     }
 }
 

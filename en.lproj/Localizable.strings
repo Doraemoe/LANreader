@@ -27,14 +27,14 @@
 "settings.read.vertical" = "Reader scroll vertically";
 
 "settings.view" = "View Settings";
-"settings.archive.list.order" = "Archive list sort order";
-"settings.archive.list.order.name" = "Order by name";
-"settings.archive.list.order.dateAdded" = "Order by date";
-"settings.archive.list.order.random" = "Random order";
+"settings.archive.list.order" = "Sort by";
+"settings.archive.list.order.name" = "Name";
+"settings.archive.list.order.dateAdded" = "Date";
+"settings.archive.list.order.random" = "Random";
 "settings.archive.list.view" = "Use list view";
 "settings.view.blur.inactive" = "Blur interface when app is not active";
 "settings.view.passcode" = "Require passcode to unlock app";
-"settings.view.hideRead" = "Hide finished archives";
+"settings.view.hideRead" = "Hide read";
 
 "settings.host" = "Host settings";
 "settings.host.config" = "Host";

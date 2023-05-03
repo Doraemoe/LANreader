@@ -5,7 +5,7 @@ import SwiftUI
 struct ThumbnailImage: View {
     @StateObject private var imageModel = ThumbnailImageModel()
 
-    @EnvironmentObject var trigger: ArchiveTrigger
+    @EnvironmentObject var store: AppStore
 
     private let id: String
 
@@ -14,32 +14,29 @@ struct ThumbnailImage: View {
     }
 
     var body: some View {
-        if imageModel.imageData != nil {
-            Image(uiImage: UIImage(data: imageModel.imageData!)!)
-                    .resizable()
-                    .onChange(of: trigger.triggerThumbnailReload, perform: { reload in
-                        if reload == id {
-                            Task {
-                                await imageModel.load(id: id, fromServer: true)
-                                trigger.triggerThumbnailReload = ""
-                            }
+        Group {
+            if let imageData = imageModel.imageData {
+                Image(uiImage: UIImage(data: imageData)!)
+                        .resizable()
+            } else {
+                Image(systemName: "photo")
+                        .foregroundColor(.primary)
+                        .task {
+                            await imageModel.load(id: id, fromServer: false)
                         }
-                    })
-        } else {
-            Image(systemName: "photo")
-                    .foregroundColor(.primary)
-                    .task {
-                        await imageModel.load(id: id, fromServer: false)
-                    }
-                    .onChange(of: trigger.triggerThumbnailReload, perform: { reload in
-                        if reload == id {
-                            Task {
-                                await imageModel.load(id: id, fromServer: true)
-                                trigger.triggerThumbnailReload = ""
-                            }
-                        }
-                    })
+            }
         }
+                .onAppear(perform: {
+                    imageModel.load(state: store.state)
+                })
+                .onChange(of: imageModel.reloadThumbnailId, perform: { reload in
+                    if reload == id {
+                        Task {
+                            await imageModel.load(id: id, fromServer: true)
+                            store.dispatch(.trigger(action: .thumbnailRefreshAction(id: "")))
+                        }
+                    }
+                })
     }
 }
 
