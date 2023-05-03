@@ -41,6 +41,8 @@ func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
     case let .removeDeletedArchive(id):
         state.archiveItems.removeValue(forKey: id)
         state.deleteArchiveSuccess = true
+    case let .setRandomOrderSeed(seed):
+        state.randomOrderSeed = seed
     case let .error(error):
         state.loading = false
         state.errorCode = error

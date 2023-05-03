@@ -17,6 +17,8 @@ func appReducer(state: inout AppState, action: AppAction) {
         categoryReducer(state: &state.category, action: action)
     case let .page(action):
         pageReducer(state: &state.page, action: action)
+    case let .trigger(action):
+        triggerReducer(state: &state.trigger, action: action)
     default:
         break
     }

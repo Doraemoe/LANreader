@@ -44,7 +44,6 @@ struct CategoryList: View {
                         .sheet(isPresented: $categoryListModel.showSheetView) {
                             EditCategory(item: categoryListModel.selectedCategoryItem!,
                                     showSheetView: $categoryListModel.showSheetView)
-                                    .environmentObject(store)
                         }
                         .onAppear(perform: {
                             loadData()

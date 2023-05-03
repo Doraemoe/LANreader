@@ -75,12 +75,6 @@ struct ArchivePageV2: View {
                                             archivePageModel.currentIndex = Double(topIndex)
                                         }
                                     }
-                                    .navigationBarHidden(archivePageModel.controlUiHidden)
-                                    .navigationBarTitle("")
-                                    .navigationBarItems(trailing: NavigationLink(
-                                            destination: ArchiveDetails(item: archiveItem)) {
-                                        Text("details")
-                                    })
                         }
                     } else {
                         Image("placeholder")
@@ -98,12 +92,6 @@ struct ArchivePageV2: View {
                             }
                         }
                                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                                .navigationBarHidden(archivePageModel.controlUiHidden)
-                                .navigationBarTitle("")
-                                .navigationBarItems(trailing: NavigationLink(
-                                        destination: ArchiveDetails(item: archiveItem)) {
-                                    Text("details")
-                                })
                     } else {
                         Image("placeholder")
                     }
@@ -155,6 +143,11 @@ struct ArchivePageV2: View {
                             .cornerRadius(20)
                 }
             }
+                    .navigationBarItems(trailing: NavigationLink(
+                            destination: ArchiveDetails(item: archiveItem)) {
+                        Text("details")
+                    })
+                    .navigationBarHidden(archivePageModel.controlUiHidden)
                     .toolbar(.hidden, for: .tabBar)
                     .onAppear(perform: {
                         archivePageModel.load(state: store.state,
@@ -215,7 +208,9 @@ struct ArchivePageV2: View {
         var answer: Int?
         for (row, anchor) in anchors {
             let yAxis = proxy[anchor].y
-            guard yAxis >= 0, yAxis < yBest else { continue }
+            guard yAxis >= 0, yAxis < yBest else {
+                continue
+            }
             answer = row
             yBest = yAxis
         }

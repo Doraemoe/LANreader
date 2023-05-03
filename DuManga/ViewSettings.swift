@@ -3,7 +3,6 @@
 import SwiftUI
 
 struct ViewSettings: View {
-    @AppStorage(SettingsKey.archiveListOrder) var archiveListOrder: String = ArchiveListOrder.name.rawValue
     @AppStorage(SettingsKey.useListView) var useListView: Bool = false
     @AppStorage(SettingsKey.blurInterfaceWhenInactive) var blurInterfaceWhenInactive: Bool = false
     @AppStorage(SettingsKey.enablePasscode) var enablePasscode: Bool = false
@@ -15,14 +14,6 @@ struct ViewSettings: View {
 
     var body: some View {
         List {
-            Picker("settings.archive.list.order", selection: self.$archiveListOrder) {
-                Group {
-                    Text("settings.archive.list.order.name").tag(ArchiveListOrder.name.rawValue)
-                    Text("settings.archive.list.order.dateAdded").tag(ArchiveListOrder.dateAdded.rawValue)
-                    Text("settings.archive.list.order.random").tag(ArchiveListOrder.random.rawValue)
-                }
-            }
-            .padding()
             Toggle(isOn: self.$useListView) {
                 Text("settings.archive.list.view")
             }
