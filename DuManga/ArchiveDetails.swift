@@ -150,8 +150,7 @@ struct ArchiveDetails: View {
         }
         return AnyView(NavigationLink(
                 destination: SearchView(
-                        keyword: String(tag.trimmingCharacters(in: .whitespacesAndNewlines)),
-                        showSearchResult: true)
+                        keyword: String(tag.trimmingCharacters(in: .whitespacesAndNewlines)))
         ) {
             Text(processedTag)
         })
