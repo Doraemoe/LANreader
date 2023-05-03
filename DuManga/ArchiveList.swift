@@ -105,7 +105,15 @@ struct ArchiveList: View {
                 item.pagecount != item.progress
             }
         }
-        return archivesToProcess
+        var seenId = Set<String>()
+        var distictArchives = [ArchiveItem]()
+        archivesToProcess.forEach { item in
+            if !seenId.contains(item.id) {
+                seenId.insert(item.id)
+                distictArchives.append(item)
+            }
+        }
+        return distictArchives
     }
 }
 
