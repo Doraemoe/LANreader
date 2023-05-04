@@ -18,7 +18,6 @@
 		4BD823E4CA464BE4C1480034 /* PageReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8210BD5B0ADFE4CC63BC2 /* PageReducer.swift */; };
 		4BD823F7B477CFE0048BB307 /* AppReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD823EC00313FB6857A6036 /* AppReducer.swift */; };
 		4BD824056C5E892F44BE2D24 /* .swiftlint.yml in Resources */ = {isa = PBXBuildFile; fileRef = 4BD8260539525571C37E4F39 /* .swiftlint.yml */; };
-		4BD825080375402B32F7762D /* CategoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82396734DD4176DD159EA /* CategoryList.swift */; };
 		4BD8252315A4CBC01ED5E1A3 /* AppAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82FB85284818BED0DE580 /* AppAction.swift */; };
 		4BD82555CE41A0467CCC6411 /* LANraragiServiceTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8208DA74EE65392275A41 /* LANraragiServiceTest.swift */; };
 		4BD8257136E0195E141BB03F /* CategoryArchiveList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82B3FE2BE59AACD7ABA3A /* CategoryArchiveList.swift */; };
@@ -32,7 +31,6 @@
 		4BD8291B040E65AF0E4A9F15 /* LibraryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82139F51916878474B349 /* LibraryList.swift */; };
 		4BD8291EBA7A94EE9E8C2ACE /* ArchiveGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82837C2109B37482712EE /* ArchiveGrid.swift */; };
 		4BD82A2A4437113DBD1DE74A /* ArchiveDetailsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8253353671DDCADE174C9 /* ArchiveDetailsModel.swift */; };
-		4BD82B6AD795154C1E915912 /* CategoryListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8286525C460863DC78CB9 /* CategoryListModel.swift */; };
 		4BD82C152E77BFD137EC03DD /* LANraragiConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82CD5954DDD63ABB7DD22 /* LANraragiConfigView.swift */; };
 		4BD82C7F9CB71CAF8F33C171 /* ViewSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8297D9DA6589446C724EC /* ViewSettings.swift */; };
 		4BD82CDA1A27B1462DCCF3F4 /* SettingAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8297C7ACE73E81F4F374F /* SettingAction.swift */; };
@@ -49,9 +47,11 @@
 		4BD82F2BEC56B95FB9BC9841 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD827ECEE1938273E758358 /* SettingsView.swift */; };
 		4BD82F9971576783E22B9CCC /* LibraryListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD827FF18A6F189F4DE5B30 /* LibraryListModel.swift */; };
 		4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD824A308A90B5740411016 /* LANraragiService.swift */; };
+		6DA71086EFF70FA7C3D810C0 /* CategoryListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA71B945FC83267690BF8A5 /* CategoryListModel.swift */; };
 		6DA7108CCE09C8030534B3E8 /* PrefetchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA71658B144080DABED8966 /* PrefetchService.swift */; };
 		6DA7132C750DC84C5D4618F3 /* PageImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA71C5217BC4916AB9D5C36 /* PageImage.swift */; };
 		6DA713301F56AA72BA0B4BE3 /* ServerSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA719F864E9AE9543831EFD /* ServerSettings.swift */; };
+		6DA714872ECD217D156570DD /* CategoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA71AD672FF59A31FF1E4D3 /* CategoryList.swift */; };
 		6DA714FD91E5AB45B581FD22 /* SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA715FE4A96C5928663012F /* SearchViewModel.swift */; };
 		6DA715FCE0A2E6FE1DD32898 /* TriggerAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA710669B2A9CC696A13181 /* TriggerAction.swift */; };
 		6DA7183CA22A9CEB4A4AA4EE /* TriggerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA7141EB9B209FCA0A81D54 /* TriggerState.swift */; };
@@ -133,7 +133,6 @@
 		4BD822A6C9B5C44B6110ADC3 /* ArchiveAction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchiveAction.swift; sourceTree = "<group>"; };
 		4BD822BB67087E0A18F517BF /* AppModels.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppModels.swift; sourceTree = "<group>"; };
 		4BD822C951070AD5E4B9E3AF /* CategoryArchiveListModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryArchiveListModel.swift; sourceTree = "<group>"; };
-		4BD82396734DD4176DD159EA /* CategoryList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = CategoryList.swift; path = DuManga/CategoryList.swift; sourceTree = SOURCE_ROOT; };
 		4BD823EC00313FB6857A6036 /* AppReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppReducer.swift; sourceTree = "<group>"; };
 		4BD824A308A90B5740411016 /* LANraragiService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LANraragiService.swift; sourceTree = "<group>"; };
 		4BD8253353671DDCADE174C9 /* ArchiveDetailsModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchiveDetailsModel.swift; sourceTree = "<group>"; };
@@ -146,7 +145,6 @@
 		4BD827ECEE1938273E758358 /* SettingsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = DuManga/SettingsView.swift; sourceTree = SOURCE_ROOT; };
 		4BD827FF18A6F189F4DE5B30 /* LibraryListModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LibraryListModel.swift; sourceTree = "<group>"; };
 		4BD82837C2109B37482712EE /* ArchiveGrid.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ArchiveGrid.swift; path = DuManga/ArchiveGrid.swift; sourceTree = SOURCE_ROOT; };
-		4BD8286525C460863DC78CB9 /* CategoryListModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryListModel.swift; sourceTree = "<group>"; };
 		4BD82868F18238BE763DACAF /* SettingReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingReducer.swift; sourceTree = "<group>"; };
 		4BD828AA12AB6AEB96EB44BB /* Store.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
 		4BD8293BAD09DE6D90D6A30C /* LANraragiConfigViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LANraragiConfigViewModel.swift; path = DuManga/LANraragiConfigViewModel.swift; sourceTree = SOURCE_ROOT; };
@@ -174,6 +172,8 @@
 		6DA71735AB962F282C638D4B /* ArchiveTrigger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchiveTrigger.swift; sourceTree = "<group>"; };
 		6DA719F864E9AE9543831EFD /* ServerSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ServerSettings.swift; sourceTree = "<group>"; };
 		6DA71AA80493DE3160A68590 /* ArchivePageModelV2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchivePageModelV2.swift; sourceTree = "<group>"; };
+		6DA71AD672FF59A31FF1E4D3 /* CategoryList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryList.swift; sourceTree = "<group>"; };
+		6DA71B945FC83267690BF8A5 /* CategoryListModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryListModel.swift; sourceTree = "<group>"; };
 		6DA71C5217BC4916AB9D5C36 /* PageImage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PageImage.swift; sourceTree = "<group>"; };
 		6DA71E19C1691936CF5C7B7B /* ArchivePageV2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchivePageV2.swift; sourceTree = "<group>"; };
 		6DA71E94B1A28FCA2DBE2409 /* TriggerReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TriggerReducer.swift; sourceTree = "<group>"; };
@@ -386,12 +386,12 @@
 		4BD82C9AD1A1D57332A10917 /* Category */ = {
 			isa = PBXGroup;
 			children = (
-				4BD82396734DD4176DD159EA /* CategoryList.swift */,
 				4BD82106749F5064FE4AB4B6 /* EditCategory.swift */,
-				4BD8286525C460863DC78CB9 /* CategoryListModel.swift */,
 				4BD826826649FC2B0330FDDB /* EditCategoryModel.swift */,
 				4BD82B3FE2BE59AACD7ABA3A /* CategoryArchiveList.swift */,
 				4BD822C951070AD5E4B9E3AF /* CategoryArchiveListModel.swift */,
+				6DA71AD672FF59A31FF1E4D3 /* CategoryList.swift */,
+				6DA71B945FC83267690BF8A5 /* CategoryListModel.swift */,
 			);
 			path = Category;
 			sourceTree = "<group>";
@@ -647,7 +647,7 @@
 				7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */,
 				7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */,
 				7DEBE7A3252DBF26001199CD /* XCRemoteSwiftPackageReference "CombineExpectations" */,
-				7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */,
+				7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB.swift" */,
 				E90576BD29F8C10700C3CE3F /* XCRemoteSwiftPackageReference "Puppy" */,
 			);
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
@@ -730,7 +730,6 @@
 				4BD823AC73ED9E45F8B7E436 /* ReadSettings.swift in Sources */,
 				4BD82F2BEC56B95FB9BC9841 /* SettingsView.swift in Sources */,
 				4BD82C7F9CB71CAF8F33C171 /* ViewSettings.swift in Sources */,
-				4BD825080375402B32F7762D /* CategoryList.swift in Sources */,
 				4BD82E213F290392837D5019 /* EditCategory.swift in Sources */,
 				4BD82CED54A4C9689B0E9E55 /* ContentView.swift in Sources */,
 				E90576B629F6BF8700C3CE3F /* WrappingHStack.swift in Sources */,
@@ -746,7 +745,6 @@
 				4BD82E53B1A77AFD992AAC25 /* ArchiveDetails.swift in Sources */,
 				4BD826672D530C0A98D313F7 /* ArchiveRow.swift in Sources */,
 				4BD8291EBA7A94EE9E8C2ACE /* ArchiveGrid.swift in Sources */,
-				4BD82B6AD795154C1E915912 /* CategoryListModel.swift in Sources */,
 				4BD826130BCE1AC291C7D6A1 /* EditCategoryModel.swift in Sources */,
 				4BD828F432CB9B8D26EEAB92 /* LANraragiConfigViewModel.swift in Sources */,
 				7D34EAE0253B050900695AFD /* ThumbnailImage.swift in Sources */,
@@ -775,6 +773,8 @@
 				6DA718A54D3707C480069081 /* TriggerReducer.swift in Sources */,
 				6DA7195A585452A8E276A24A /* SearchView.swift in Sources */,
 				6DA714FD91E5AB45B581FD22 /* SearchViewModel.swift in Sources */,
+				6DA714872ECD217D156570DD /* CategoryList.swift in Sources */,
+				6DA71086EFF70FA7C3D810C0 /* CategoryListModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -960,7 +960,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 37;
+				CURRENT_PROJECT_VERSION = 38;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -984,7 +984,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 37;
+				CURRENT_PROJECT_VERSION = 38;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -1170,7 +1170,7 @@
 				minimumVersion = 0.5.0;
 			};
 		};
-		7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */ = {
+		7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift";
 			requirement = {
@@ -1216,7 +1216,7 @@
 		};
 		7DF7EA792564E264003B5A5A /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */;
+			package = 7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
 		};
 		E90576BE29F8C10700C3CE3F /* Puppy */ = {

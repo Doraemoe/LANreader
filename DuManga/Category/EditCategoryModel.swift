@@ -3,30 +3,39 @@
 //
 
 import Foundation
-import Combine
+import Logging
 
 class EditCategoryModel: ObservableObject {
     @Published var categoryName = ""
     @Published var searchKeyword = ""
+    @Published var saving = false
 
-    @Published private(set) var updateDynamicCategorySuccess: Bool = false
-    @Published private(set) var errorCode: ErrorCode?
+    private let logger = Logger(label: "CategoryAction")
+    private let database = AppDatabase.shared
+    private let lanraragiService = LANraragiService.shared
 
-    private var cancellable: Set<AnyCancellable> = []
-
-    func load(state: AppState, name: String, keyword: String) {
+    func load(name: String, keyword: String) {
         categoryName = name
         searchKeyword = keyword
-        state.category.$updateDynamicCategorySuccess.receive(on: DispatchQueue.main)
-                .assign(to: \.updateDynamicCategorySuccess, on: self)
-                .store(in: &cancellable)
-
-        state.category.$errorCode.receive(on: DispatchQueue.main)
-                .assign(to: \.errorCode, on: self)
-                .store(in: &cancellable)
     }
 
-    func unload() {
-        cancellable.forEach({ $0.cancel() })
+    @MainActor
+    func updateCategory(category: CategoryItem) async -> String? {
+        saving = true
+        do {
+            _ = try await lanraragiService.updateDynamicCategory(item: category).value
+            do {
+                var categoryDto = category.toCategory()
+                try database.saveCategory(&categoryDto)
+            } catch {
+                logger.warning("failed to save category. id=\(category.id) \(error)")
+            }
+            saving = false
+            return nil
+        } catch {
+            logger.error("failed to update category. id=\(category.id) \(error)")
+            saving = false
+            return error.localizedDescription
+        }
     }
 }

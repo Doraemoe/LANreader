@@ -142,6 +142,12 @@ extension AppDatabase {
         }
     }
 
+    func deleteAllCategory() throws -> Int {
+        try dbWriter.write { database in
+            try Category.deleteAll(database)
+        }
+    }
+
     func databaseSize() throws -> Int? {
         try dbWriter.read { database in
             try Int.fetchOne(database,

@@ -4,21 +4,19 @@ import SwiftUI
 import NotificationBannerSwift
 
 struct EditCategory: View {
+    @Environment (\.presentationMode) var presentationMode
 
     @EnvironmentObject var store: AppStore
     @StateObject var editCategoryModel = EditCategoryModel()
 
-    @Binding var showSheetView: Bool
-
     let item: CategoryItem
 
-    init(item: CategoryItem, showSheetView: Binding<Bool>) {
+    init(item: CategoryItem) {
         self.item = item
-        self._showSheetView = showSheetView
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack {
                 if item.archives.isEmpty {
                     VStack(alignment: .leading) {
@@ -38,51 +36,39 @@ struct EditCategory: View {
                 }
             }
                     .navigationBarTitle("category.edit", displayMode: .inline)
-                    .navigationBarItems(leading: Button(action: {
-                        self.showSheetView = false
-                    }, label: {
-                        Text("cancel")
-                    }), trailing: Button(action: {
-                        let updated: CategoryItem = CategoryItem(id: self.item.id,
-                                name: editCategoryModel.categoryName, archives: [],
-                                search: editCategoryModel.searchKeyword, pinned: self.item.pinned)
-                        Task {
-                            await self.store.dispatch(updateDynamicCategory(category: updated))
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(action: {
+                                presentationMode.wrappedValue.dismiss()
+                            }, label: {
+                                Text("cancel")
+                            })
                         }
-                    }, label: {
-                        Text("done")
-                    }))
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button(action: {
+                                let updated: CategoryItem = CategoryItem(id: item.id,
+                                        name: editCategoryModel.categoryName, archives: [],
+                                        search: editCategoryModel.searchKeyword, pinned: item.pinned)
+                                Task {
+                                    if let error = await editCategoryModel.updateCategory(category: updated) {
+                                        let banner = NotificationBanner(
+                                                title: NSLocalizedString("error", comment: "error"),
+                                                subtitle: error,
+                                                style: .danger)
+                                        banner.show()
+                                    } else {
+                                        store.dispatch(.category(action: .updateCategory(category: updated)))
+                                        presentationMode.wrappedValue.dismiss()
+                                    }
+                                }
+                            }, label: {
+                                Text("done")
+                            }).disabled(editCategoryModel.saving)
+                        }
+                    }
         }
                 .onAppear(perform: {
-                    editCategoryModel.load(state: store.state, name: self.item.name, keyword: self.item.search)
+                    editCategoryModel.load(name: item.name, keyword: item.search)
                 })
-                .onDisappear(perform: {
-                    editCategoryModel.unload()
-                })
-                .onChange(of: editCategoryModel.errorCode, perform: { errorCode in
-                    if errorCode != nil {
-                        let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                                subtitle: NSLocalizedString("error.category.update", comment: "update category error"),
-                                style: .danger)
-                        banner.show()
-                        self.store.dispatch(.category(action: .resetState))
-                    }
-                })
-                .onChange(of: editCategoryModel.updateDynamicCategorySuccess, perform: { success in
-                    if success {
-                        self.store.dispatch(.category(action: .resetState))
-                        self.showSheetView = false
-                    }
-                })
-                .navigationViewStyle(StackNavigationViewStyle())
-    }
-}
-
-struct EditCategory_Previews: PreviewProvider {
-    static var previews: some View {
-        EditCategory(item: CategoryItem(id: "id", name: "name",
-                                        archives: [], search: "search",
-                                        pinned: "0"),
-                showSheetView: Binding.constant(true))
     }
 }

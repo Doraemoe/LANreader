@@ -1,36 +1,32 @@
-// Created 27/8/20
-
 import SwiftUI
 import NotificationBannerSwift
 
 struct CategoryList: View {
     @AppStorage(SettingsKey.alwaysLoadFromServer) var alwaysLoadFromServer: Bool = false
 
+    @State private var editMode: EditMode = .inactive
+
     @EnvironmentObject var store: AppStore
+
     @StateObject var categoryListModel = CategoryListModel()
 
-    @Binding var editMode: EditMode
-
-    init(editMode: Binding<EditMode>) {
-        self._editMode = editMode
-    }
-
     var body: some View {
-        let categories = Array(categoryListModel.categoryItems.values).sorted(by: { $0.name < $1.name })
-        return GeometryReader { geometry in
+        GeometryReader { geometry in
             ZStack {
-                List(categories) { (item: CategoryItem) in
+                List(Array(categoryListModel.categoryItems.values
+                    .sorted(by: { $0.name < $1.name }))) { item in
                     if editMode == .active {
                         HStack {
                             Text(item.name)
                                     .font(.title)
                             Spacer()
+                            Image(systemName: "square.and.pencil")
                         }
                                 .contentShape(Rectangle())
-                                .onTapGesture(perform: {
+                                .onTapGesture {
                                     categoryListModel.selectedCategoryItem = item
                                     categoryListModel.showSheetView = true
-                                })
+                                }
                     } else {
                         NavigationLink(value: item) {
                             Text(item.name)
@@ -40,20 +36,6 @@ struct CategoryList: View {
                 }
                         .navigationDestination(for: CategoryItem.self) { item in
                             CategoryArchiveList(categoryItem: item)
-                        }
-                        .sheet(isPresented: $categoryListModel.showSheetView) {
-                            EditCategory(item: categoryListModel.selectedCategoryItem!,
-                                    showSheetView: $categoryListModel.showSheetView)
-                        }
-                        .onAppear(perform: {
-                            loadData()
-                        })
-                        .refreshable {
-                            if categoryListModel.loading != true {
-                                categoryListModel.isPullToRefresh = true
-                                await store.dispatch(fetchCategory(fromServer: true))
-                                categoryListModel.isPullToRefresh = false
-                            }
                         }
                 if !categoryListModel.isPullToRefresh && categoryListModel.loading {
                     VStack {
@@ -67,12 +49,32 @@ struct CategoryList: View {
                             .cornerRadius(20)
                 }
             }
-                    .onAppear(perform: {
+                    .toolbar {
+                        EditButton()
+                    }
+                    .onAppear {
                         categoryListModel.load(state: store.state)
-                    })
-                    .onDisappear(perform: {
+                    }
+                    .onDisappear {
                         categoryListModel.unload()
-                    })
+                    }
+                    .task {
+                        if categoryListModel.categoryItems.count > 0 {
+                            return
+                        }
+                        await store.dispatch(fetchCategory(fromServer: alwaysLoadFromServer))
+                    }
+                    .environment(\.editMode, $editMode)
+                    .refreshable {
+                        if categoryListModel.loading != true {
+                            categoryListModel.isPullToRefresh = true
+                            await store.dispatch(fetchCategory(fromServer: true))
+                            categoryListModel.isPullToRefresh = false
+                        }
+                    }
+                    .sheet(isPresented: $categoryListModel.showSheetView) {
+                        EditCategory(item: categoryListModel.selectedCategoryItem!)
+                    }
                     .onChange(of: categoryListModel.errorCode, perform: { code in
                         if code != nil {
                             let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
@@ -83,22 +85,5 @@ struct CategoryList: View {
                         }
                     })
         }
-    }
-
-    func loadData() {
-        if categoryListModel.categoryItems.count > 0 {
-            return
-        }
-        Task {
-            await store.dispatch(fetchCategory(fromServer: alwaysLoadFromServer))
-        }
-    }
-}
-
-struct CategoryList_Previews: PreviewProvider {
-    static var previews: some View {
-        let config = ["url": "http://localhost", "apiKey": "apiKey"]
-        UserDefaults.standard.set(config, forKey: "LANraragi")
-        return CategoryList(editMode: Binding.constant(.active))
     }
 }
