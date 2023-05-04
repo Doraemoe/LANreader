@@ -49,8 +49,7 @@ struct CategoryArchiveList: View {
                         }
                 if categoryArchiveListModel.isLoading {
                     VStack {
-                        Text("loading")
-                        ProgressView()
+                        ProgressView("loading")
                     }
                             .frame(width: geometry.size.width / 3,
                                     height: geometry.size.height / 5)

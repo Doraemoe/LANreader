@@ -47,8 +47,7 @@ struct SearchView: View {
                         }
                 if searchViewModel.isLoading {
                     VStack {
-                        Text("loading")
-                        ProgressView()
+                        ProgressView("loading")
                     }
                             .frame(width: geometry.size.width / 3,
                                     height: geometry.size.height / 5)

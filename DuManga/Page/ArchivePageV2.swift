@@ -10,10 +10,14 @@ struct AnchorsKey: PreferenceKey {
     // .center anchor of that row.
     typealias Value = [Int: Anchor<CGPoint>]
 
-    static var defaultValue: Value { [:] }
+    static var defaultValue: Value {
+        [:]
+    }
 
     static func reduce(value: inout Value, nextValue: () -> Value) {
-        value.merge(nextValue()) { $1 }
+        value.merge(nextValue()) {
+            $1
+        }
     }
 }
 
@@ -48,9 +52,8 @@ struct ArchivePageV2: View {
                                 ScrollViewReader { reader in
                                     LazyVStack {
                                         ForEach(0..<pages!.count, id: \.self) { index in
-                                            PageImage(id: pages![index]).id(Double(index))
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .frame(width: geometry.size.width)
+                                            PageImage(id: pages![index], geometrySize: geometry.size)
+                                                    .id(Double(index))
                                                     .anchorPreference(key: AnchorsKey.self, value: .center) {
                                                         [index: $0]
                                                     }
@@ -77,23 +80,20 @@ struct ArchivePageV2: View {
                                     }
                         }
                     } else {
-                        Image("placeholder")
+                        Image(systemName: "photo")
+                                .foregroundColor(.primary)
                     }
                 } else {
                     if pages?.isEmpty == false {
                         TabView(selection: self.$archivePageModel.currentIndex) {
                             ForEach(0..<pages!.count, id: \.self) { index in
-                                PageImage(id: pages![index]).tag(Double(index))
-                                        .scaledToFit()
-                                        .aspectRatio(contentMode: .fit)
-                                        .draggableAndZoomable(
-                                                contentSize: CGSize(width: geometry.size.width,
-                                                        height: geometry.size.height))
+                                PageImage(id: pages![index], geometrySize: geometry.size).tag(Double(index))
                             }
                         }
-                                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                                .tabViewStyle(.page(indexDisplayMode: .never))
                     } else {
-                        Image("placeholder")
+                        Image(systemName: "photo")
+                                .foregroundColor(.primary)
                     }
                     HStack {
                         Rectangle()
@@ -133,8 +133,7 @@ struct ArchivePageV2: View {
                 }
                 if archivePageModel.loading {
                     VStack {
-                        Text("loading")
-                        ProgressView()
+                        ProgressView("loading")
                     }
                             .frame(width: geometry.size.width / 3,
                                     height: geometry.size.height / 5)

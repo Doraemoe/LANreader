@@ -50,8 +50,7 @@ struct LibraryList: View {
                         .searchable(text: $libraryListModel.searchText, prompt: "filter.name")
                 if libraryListModel.loading && !libraryListModel.isPullToRefresh {
                     VStack {
-                        Text("loading")
-                        ProgressView()
+                        ProgressView("loading")
                     }
                             .frame(width: geometry.size.width / 3,
                                     height: geometry.size.height / 5)
