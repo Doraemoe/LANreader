@@ -18,9 +18,7 @@ func categoryReducer(state: inout CategoryState, action: CategoryAction) {
         state.errorCode = error
     case let .updateCategory(category):
         state.categoryItems[category.id] = category
-        state.updateDynamicCategorySuccess = true
     case .resetState:
         state.errorCode = nil
-        state.updateDynamicCategorySuccess = false
     }
 }

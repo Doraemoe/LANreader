@@ -22,10 +22,7 @@ struct ContentView: View {
                                 Text("library")
                             }.tag("library")
                         NavigationStack {
-                            CategoryList(editMode: $contentViewModel.editMode)
-                                    .navigationBarTitle("category", displayMode: .inline)
-                                    .navigationBarItems(trailing: EditButton())
-                                    .environment(\.editMode, self.$contentViewModel.editMode)
+                            CategoryList()
                         }
                             .tabItem {
                                 Image(systemName: "folder")
@@ -49,11 +46,5 @@ struct ContentView: View {
                     }
                 }
         }
-    }
-}
-
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
     }
 }

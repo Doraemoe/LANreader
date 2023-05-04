@@ -44,16 +44,3 @@ struct ReadSettings: View {
         }
     }
 }
-
-struct ReadSettings_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationView {
-            Form {
-                Section {
-                    ReadSettings()
-                }
-            }
-        }
-                .navigationViewStyle(StackNavigationViewStyle())
-    }
-}

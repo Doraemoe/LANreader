@@ -25,7 +25,7 @@ class SearchViewModel: ObservableObject {
             return
         }
         isLoading = true
-
+        result = .init()
         do {
             let response = try await service.searchArchive(filter: keyword).value
 

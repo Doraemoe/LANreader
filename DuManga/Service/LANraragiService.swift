@@ -36,55 +36,9 @@ class LANraragiService {
             .serializingDecodable([ArchiveIndexResponse].self)
     }
 
-    func retrieveArchiveThumbnailData(id: String) -> AnyPublisher<Data, AFError> {
-        let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
-        return session.download(request)
-            .validate()
-            .publishData()
-            .value()
-            .mapError { error in
-                LANraragiService.logger.error("failed to fetch archive thumbnail data: \(error)")
-                return error
-            }
-            .eraseToAnyPublisher()
-    }
-
     func retrieveArchiveThumbnail(id: String) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
         return session.download(request)
-    }
-
-    func searchArchiveIndex(category: String? = nil,
-                            filter: String? = nil,
-                            start: String? = nil,
-                            sortby: String? = nil,
-                            order: String? = nil) -> AnyPublisher<ArchiveSearchResponse, AFError> {
-        var query = [String: String]()
-        if category != nil {
-            query["category"] = category
-        }
-        if filter != nil {
-            query["filter"] = filter
-        }
-        if start != nil {
-            query["start"] = start
-        }
-        if sortby != nil {
-            query["sortby"] = sortby
-        }
-        if order != nil {
-            query["order"] = order
-        }
-
-        return session.request("\(url)/api/search", parameters: query)
-            .validate()
-            .publishDecodable(type: ArchiveSearchResponse.self)
-            .value()
-            .mapError { error in
-                LANraragiService.logger.error("failed to search archive: \(error)")
-                return error
-            }
-            .eraseToAnyPublisher()
     }
 
     func searchArchive(category: String? = nil,
@@ -155,23 +109,6 @@ class LANraragiService {
             .value()
     }
 
-    func updateArchiveMetaData(archiveMetadata: ArchiveItem) -> AnyPublisher<String, AFError> {
-        var query = [String: String]()
-        query["title"] = archiveMetadata.name
-        query["tags"] = archiveMetadata.tags
-
-        return session.request("\(url)/api/archives/\(archiveMetadata.id)/metadata",
-                               method: .put, parameters: query)
-        .validate(statusCode: 200...200)
-        .publishString()
-        .value()
-        .mapError { error in
-            LANraragiService.logger.error("failed to update archive metadata: \(error)")
-            return error
-        }
-        .eraseToAnyPublisher()
-    }
-
     func updateArchive(archive: ArchiveItem) async -> DataTask<String> {
         var query = [String: String]()
         query["title"] = archive.name
@@ -183,14 +120,7 @@ class LANraragiService {
         .serializingString()
     }
 
-    func updateArchiveReadProgress(id: String, progress: Int) -> AnyPublisher<String, AFError> {
-        session.request("\(url)/api/archives/\(id)/progress/\(progress)", method: .put)
-            .validate(statusCode: 200...200)
-            .publishString()
-            .value()
-    }
-
-    func updateArchiveReadProgressAsync(id: String, progress: Int) async -> DataTask<String> {
+    func updateArchiveReadProgress(id: String, progress: Int) async -> DataTask<String> {
         session.request("\(url)/api/archives/\(id)/progress/\(progress)", method: .put)
             .validate(statusCode: 200...200)
             .serializingString()

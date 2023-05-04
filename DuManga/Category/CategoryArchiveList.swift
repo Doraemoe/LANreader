@@ -3,6 +3,7 @@
 //
 
 import SwiftUI
+import NotificationBannerSwift
 
 struct CategoryArchiveList: View {
     @EnvironmentObject var store: AppStore
@@ -18,38 +19,47 @@ struct CategoryArchiveList: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                ArchiveList(archives: categoryArchiveListModel.filteredArchives)
-                        .onAppear(perform: {
+                ArchiveList(archives: categoryArchiveListModel.result)
+                        .onAppear {
                             categoryArchiveListModel.load(state: store.state)
-                            loadData()
-                        })
-                        .onChange(of: categoryArchiveListModel.dynamicCategoryKeys, perform: { _ in
-                            categoryArchiveListModel.filterArchives(categoryItem: categoryItem)
-                        })
-                VStack {
-                    Text("loading")
-                    ProgressView()
+                            if !categoryItem.archives.isEmpty {
+                                categoryArchiveListModel.loadStaticCategory(ids: categoryItem.archives)
+                            }
+                        }
+                        .task {
+                            if !categoryItem.search.isEmpty
+                                && (categoryItem.search != categoryArchiveListModel.keyword
+                                    || categoryArchiveListModel.result.isEmpty) {
+                                categoryArchiveListModel.keyword = categoryItem.search
+                                await categoryArchiveListModel.loadDynamicCategory()
+                            }
+                        }
+                        .onDisappear {
+                            categoryArchiveListModel.reset()
+                            categoryArchiveListModel.unload()
+                        }
+                        .onChange(of: categoryArchiveListModel.isError) { isError in
+                            if isError {
+                                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                                        subtitle: categoryArchiveListModel.errorMessage,
+                                        style: .danger)
+                                banner.show()
+                                categoryArchiveListModel.reset()
+                            }
+                        }
+                if categoryArchiveListModel.isLoading {
+                    VStack {
+                        Text("loading")
+                        ProgressView()
+                    }
+                            .frame(width: geometry.size.width / 3,
+                                    height: geometry.size.height / 5)
+                            .background(Color.secondary)
+                            .foregroundColor(Color.primary)
+                            .cornerRadius(20)
                 }
-                        .frame(width: geometry.size.width / 3,
-                                height: geometry.size.height / 5)
-                        .background(Color.secondary)
-                        .foregroundColor(Color.primary)
-                        .cornerRadius(20)
-                        .opacity(categoryArchiveListModel.loading ? 1 : 0)
             }
                     .toolbar(.hidden, for: .tabBar)
-        }
-    }
-
-    private func loadData() {
-        if categoryItem.search.isEmpty {
-            categoryArchiveListModel.filterArchives(categoryItem: categoryItem)
-        } else if categoryArchiveListModel.dynamicCategoryKeys.isEmpty {
-            store.dispatch(.archive(action: .fetchArchiveDynamicCategory))
-            categoryArchiveListModel.loadDynamicCategoryKeys(keyword: categoryItem.search,
-                    dispatch: { action in
-                        store.dispatch(action)
-                    })
         }
     }
 }

@@ -126,7 +126,7 @@ func deleteArchive(id: String) -> ThunkAction<AppAction, AppState> {
 func updateReadProgress(id: String, progress: Int) -> ThunkAction<AppAction, AppState> {
     { dispatch, _ in
         do {
-            _ = try await lanraragiService.updateArchiveReadProgressAsync(id: id, progress: progress).value
+            _ = try await lanraragiService.updateArchiveReadProgress(id: id, progress: progress).value
             do {
                 let updated = try database.updateArchiveProgress(id, progress: progress)
                 if updated == 0 {
