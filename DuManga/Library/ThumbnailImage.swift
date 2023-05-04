@@ -39,9 +39,3 @@ struct ThumbnailImage: View {
                 })
     }
 }
-
-struct AsyncImage_Previews: PreviewProvider {
-    static var previews: some View {
-        ThumbnailImage(id: "id")
-    }
-}
