@@ -130,6 +130,12 @@ extension AppDatabase {
         }
     }
 
+    func existsArchiveImage(_ id: String) throws -> Bool? {
+        try dbWriter.read { database in
+            try ArchiveImage.exists(database, key: id)
+        }
+    }
+
     func readAllCategories() throws -> [Category] {
         try dbWriter.read { database in
             try Category.fetchAll(database)

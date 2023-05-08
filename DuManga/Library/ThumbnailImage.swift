@@ -15,14 +15,14 @@ struct ThumbnailImage: View {
 
     var body: some View {
         Group {
-            if let imageData = imageModel.imageData {
+            if let imageData = imageModel.checkImageData(id: id) {
                 Image(uiImage: UIImage(data: imageData)!)
                         .resizable()
             } else {
                 Image(systemName: "photo")
                         .foregroundColor(.primary)
                         .task {
-                            await imageModel.load(id: id, fromServer: false)
+                            await imageModel.load(id: id)
                         }
             }
         }
@@ -32,7 +32,7 @@ struct ThumbnailImage: View {
                 .onChange(of: imageModel.reloadThumbnailId, perform: { reload in
                     if reload == id {
                         Task {
-                            await imageModel.load(id: id, fromServer: true)
+                            await imageModel.load(id: id)
                             store.dispatch(.trigger(action: .thumbnailRefreshAction(id: "")))
                         }
                     }

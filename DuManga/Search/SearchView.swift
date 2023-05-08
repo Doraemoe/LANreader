@@ -17,8 +17,8 @@ struct SearchView: View {
             ZStack {
                 ArchiveList(archives: searchViewModel.result)
                         .searchable(
-                            text: $searchViewModel.keyword,
-                            placement: .navigationBarDrawer(displayMode: .always)
+                                text: $searchViewModel.keyword,
+                                placement: .navigationBarDrawer(displayMode: .always)
                         )
                         .onSubmit(of: .search) {
                             Task {
@@ -56,7 +56,8 @@ struct SearchView: View {
                             .cornerRadius(20)
                 }
             }
-                    .navigationBarTitle("search", displayMode: .inline)
+                    .navigationTitle("search")
+                    .navigationBarTitleDisplayMode(.inline)
         }
     }
 }

@@ -23,13 +23,16 @@ struct LANraragiConfigView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             Button(action: {
                 Task {
+                    configModel.isVerifying = true
                     await store.dispatch(verifyAndSaveLanraragiConfig(
                             url: configModel.url, apiKey: configModel.apiKey))
+                    configModel.isVerifying = false
                 }
             }, label: {
                 Text("lanraragi.config.submit")
                         .font(.headline)
             })
+                    .disabled(configModel.isVerifying)
                     .padding()
         }
         .onAppear(perform: {

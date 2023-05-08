@@ -38,10 +38,13 @@ class CategoryArchiveListModel: ObservableObject {
     }
 
     func loadStaticCategory(ids: [String]) {
-        result = Array(archiveItems.filter { key, _ in
-                    ids.contains(key)
-                }
-                .values)
+        result = Array(
+                archiveItems
+                        .filter { key, _ in
+                            ids.contains(key)
+                        }
+                        .values
+        )
     }
 
     @MainActor

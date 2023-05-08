@@ -10,7 +10,7 @@ struct ArchiveDetails: View {
     @EnvironmentObject var store: AppStore
     @Environment(\.presentationMode) var presentationMode
     @State private var showingAlert = false
-    @State private var isEditing = false
+    @State private var editMode: EditMode = .inactive
 
     @StateObject var archiveDetailsModel = ArchiveDetailsModel()
 
@@ -22,7 +22,7 @@ struct ArchiveDetails: View {
 
     var body: some View {
         VStack {
-            if isEditing {
+            if editMode == .active {
                 TextField("", text: $archiveDetailsModel.title)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .padding()
@@ -35,7 +35,7 @@ struct ArchiveDetails: View {
                     .scaledToFit()
                     .padding()
                     .frame(width: 200, height: 250)
-            if isEditing {
+            if editMode == .active {
                 TextEditor(text: $archiveDetailsModel.tags)
                         .border(Color.secondary, width: 2)
                         .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: 200, alignment: .center)
@@ -55,6 +55,7 @@ struct ArchiveDetails: View {
                     label: {
                         Text("archive.delete")
                     })
+                    .disabled(archiveDetailsModel.loading)
                     .padding()
                     .foregroundColor(.white)
                     .background(Color.red)
@@ -64,7 +65,10 @@ struct ArchiveDetails: View {
                                 title: Text("archive.delete.confirm"),
                                 primaryButton: .destructive(Text("delete")) {
                                     Task {
-                                        await store.dispatch(deleteArchive(id: item.id))
+                                        if await archiveDetailsModel.deleteArchive(id: item.id) {
+                                            store.dispatch(.archive(action: .removeDeletedArchive(id: item.id)))
+                                            presentationMode.wrappedValue.dismiss()
+                                        }
                                     }
                                 },
                                 secondaryButton: .cancel()
@@ -72,60 +76,46 @@ struct ArchiveDetails: View {
                     }
             Spacer()
         }
-                .navigationBarItems(trailing: Button(action: {
-                    if isEditing {
-                        let updated = ArchiveItem(id: item.id,
-                                name: archiveDetailsModel.title,
-                                tags: archiveDetailsModel.tags,
-                                isNew: false,
-                                progress: item.progress,
-                                pagecount: item.pagecount,
-                                dateAdded: item.dateAdded)
-                        Task {
-                            await store.dispatch(updateArchive(archive: updated))
-                        }
-                        isEditing = false
-                    } else {
-                        isEditing = true
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        EditButton()
+                                .disabled(archiveDetailsModel.loading)
                     }
-
-                }, label: {
-                    if isEditing {
-                        Text("save")
-                    } else {
-                        Text("edit")
-                    }
-
-                })
-                        .disabled(archiveDetailsModel.loading)
-                )
+                }
+                .environment(\.editMode, $editMode)
                 .onAppear(perform: {
-                    archiveDetailsModel.load(state: store.state,
-                            title: item.name,
-                            tags: item.tags)
+                    archiveDetailsModel.load(title: item.name, tags: item.tags)
                 })
                 .onDisappear(perform: {
-                    archiveDetailsModel.unload()
+                    archiveDetailsModel.reset()
                 })
-                .onChange(of: archiveDetailsModel.errorCode, perform: { errorCode in
-                    if errorCode != nil {
+                .onChange(of: editMode) { [editMode] newMode in
+                    if editMode == .active && newMode == .inactive {
+                        let updated = ArchiveItem(
+                                id: item.id,
+                                name: archiveDetailsModel.title,
+                                tags: archiveDetailsModel.tags,
+                                isNew: item.isNew,
+                                progress: item.progress,
+                                pagecount: item.pagecount,
+                                dateAdded: item.dateAdded
+                        )
+                        Task {
+                            if await archiveDetailsModel.updateArchive(archive: updated) {
+                                store.dispatch(.archive(action: .updateArchive(archive: updated)))
+                                archiveDetailsModel.title = updated.name
+                                archiveDetailsModel.tags = updated.tags
+                            }
+                        }
+                    }
+                }
+                .onChange(of: archiveDetailsModel.isError, perform: { isError in
+                    if isError {
                         let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                                subtitle: NSLocalizedString("error.metadata.update", comment: "update metadata error"),
+                                subtitle: archiveDetailsModel.errorMessage,
                                 style: .danger)
                         banner.show()
-                        store.dispatch(.archive(action: .resetState))
-                    }
-                })
-                .onChange(of: archiveDetailsModel.updateSuccess, perform: { success in
-                    if success {
-                        store.dispatch(.archive(action: .resetState))
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                })
-                .onChange(of: archiveDetailsModel.deleteSuccess, perform: { success in
-                    if success {
-                        store.dispatch(.archive(action: .resetState))
-                        presentationMode.wrappedValue.dismiss()
+                        archiveDetailsModel.reset()
                     }
                 })
     }
@@ -148,18 +138,8 @@ struct ArchiveDetails: View {
         } else {
             processedTag = tag
         }
-        return AnyView(NavigationLink(
-                destination: SearchView(
-                        keyword: String(tag.trimmingCharacters(in: .whitespacesAndNewlines)))
-        ) {
-            Text(processedTag)
+        return AnyView(NavigationLink(processedTag) {
+            SearchView(keyword: String(tag.trimmingCharacters(in: .whitespacesAndNewlines)))
         })
-    }
-}
-
-struct ArchiveDetails_Previews: PreviewProvider {
-    static var previews: some View {
-        ArchiveDetails(item: ArchiveItem(id: "id", name: "name", tags: "tags",
-                isNew: true, progress: 0, pagecount: 10, dateAdded: 12345))
     }
 }

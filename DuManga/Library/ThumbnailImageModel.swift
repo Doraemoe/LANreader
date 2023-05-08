@@ -27,14 +27,18 @@ class ThumbnailImageModel: ObservableObject {
                 .store(in: &cancellables)
     }
 
-    @MainActor
-    func load(id: String, fromServer: Bool) async {
-        guard !isLoading else {
-            return
+    func checkImageData(id: String) -> Data? {
+        if let data = imageData {
+            return data
+        } else if let data = try? database.readArchiveThumbnail(id) {
+            return data.thumbnail
         }
+        return nil
+    }
 
-        if !fromServer, let archive = try? database.readArchiveThumbnail(id) {
-            imageData = archive.thumbnail
+    @MainActor
+    func load(id: String) async {
+        guard !isLoading else {
             return
         }
 
@@ -43,7 +47,7 @@ class ThumbnailImageModel: ObservableObject {
             imageData = try await service.retrieveArchiveThumbnail(id: id).serializingData().value
             var thumbnail = ArchiveThumbnail(id: id, thumbnail: imageData!, lastUpdate: Date())
             do {
-                try self.database.saveArchiveThumbnail(&thumbnail)
+                try database.saveArchiveThumbnail(&thumbnail)
             } catch {
                 ThumbnailImageModel.logger.warning("failed to save thumbnail to db. id=\(id) \(error)")
             }

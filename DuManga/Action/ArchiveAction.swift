@@ -10,22 +10,10 @@ enum ArchiveAction {
     case startFetchArchive
     case finishFetchArchive
     case storeArchive(archive: [String: ArchiveItem])
-
-    case fetchArchiveDynamicCategory
-    case fetchArchiveDynamicCategorySuccess
-
-    case startUpdateArchive
-    case finishUpdateArchive
     case updateArchive(archive: ArchiveItem)
-
     case updateReadProgress(id: String, progress: Int)
-
-    case startDeleteArchive
-    case finishDeleteArchive
     case removeDeletedArchive(id: String)
-
     case setRandomOrderSeed(seed: UInt64)
-
     case error(error: ErrorCode)
     case resetState
 }
@@ -75,51 +63,6 @@ func fetchArchives(_ fromServer: Bool) -> ThunkAction<AppAction, AppState> {
             dispatch(.archive(action: .error(error: .archiveFetchError)))
         }
         dispatch(.archive(action: .finishFetchArchive))
-    }
-}
-
-func updateArchive(archive: ArchiveItem) -> ThunkAction<AppAction, AppState> {
-    { dispatch, _ in
-        dispatch(.archive(action: .startUpdateArchive))
-        do {
-            _ = try await lanraragiService.updateArchive(archive: archive).value
-            do {
-                var archiveDto = archive.toArchive()
-                try database.saveArchive(&archiveDto)
-            } catch {
-                logger.error("failed to save archive. id=\(archive.id) \(error)")
-            }
-            dispatch(.archive(action: .updateArchive(archive: archive)))
-        } catch {
-            logger.error("failed to save archive. id=\(archive.id) \(error)")
-        }
-        dispatch(.archive(action: .finishUpdateArchive))
-    }
-}
-
-func deleteArchive(id: String) -> ThunkAction<AppAction, AppState> {
-    { dispatch, _ in
-        dispatch(.archive(action: .startDeleteArchive))
-        do {
-            let response = try await lanraragiService.deleteArchive(id: id).value
-            if response.success == 1 {
-                do {
-                    let success = try database.deleteArchive(id)
-                    if !success {
-                        logger.error("failed to delete archive from db. id=\(id)")
-                    }
-                } catch {
-                    logger.error("failed to delete archive from db. id=\(id) \(error)")
-                }
-                dispatch(.archive(action: .removeDeletedArchive(id: id)))
-            } else {
-                dispatch(.archive(action: .error(error: .archiveDeleteError)))
-            }
-        } catch {
-            logger.error("failed to delete archive. id=\(id) \(error)")
-            dispatch(.archive(action: .error(error: .archiveDeleteError)))
-        }
-        dispatch(.archive(action: .finishDeleteArchive))
     }
 }
 

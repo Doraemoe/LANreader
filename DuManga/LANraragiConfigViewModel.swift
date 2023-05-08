@@ -8,6 +8,7 @@ import Combine
 class LANraragiConfigViewModel: ObservableObject {
     @Published var url = ""
     @Published var apiKey = ""
+    @Published var isVerifying = false
 
     @Published private(set) var savedSuccess = false
     @Published private(set) var errorCode: ErrorCode?

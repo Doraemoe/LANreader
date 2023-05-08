@@ -35,7 +35,8 @@ struct EditCategory: View {
                     Text("Only support dynamic category edit for now.")
                 }
             }
-                    .navigationBarTitle("category.edit", displayMode: .inline)
+                    .navigationBarTitle("category.edit")
+                    .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button(action: {

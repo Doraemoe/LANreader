@@ -6,7 +6,6 @@ import XCTest
 import OHHTTPStubs
 import OHHTTPStubsSwift
 import SwiftUI
-import CombineExpectations
 @testable import DuManga
 
 class LANraragiServiceTest: XCTestCase {
@@ -252,7 +251,7 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertNil(actual)
     }
 
-    func testClearNewFlag() throws {
+    func testClearNewFlag() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/isnew")
                 && isMethodDELETE()
@@ -262,14 +261,12 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let publisher = service.clearNewFlag(id: "id")
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.single, timeout: 1.0)
+        let actual = try await service.clearNewFlag(id: "id").value
         let expected = try FileUtils.readJsonFile(filename: "ClearNewFlagResponse")
         XCTAssertEqual(actual, expected)
     }
 
-    func testClearNewFlagUnauthorized() throws {
+    func testClearNewFlagUnauthorized() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/isnew")
                 && isMethodDELETE()
@@ -279,12 +276,8 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
-        let publisher = service.clearNewFlag(id: "id")
-        let recorder = publisher.record()
-        let actual = try wait(for: recorder.completion, timeout: 1.0)
-        if case .finished = actual {
-            XCTFail("Should not success")
-        }
+        let actual = try? await service.clearNewFlag(id: "id").value
+        XCTAssertNil(actual)
     }
 
     func testUpdateArchiveMetadata() async throws {

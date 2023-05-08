@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import Combine
 import Alamofire
 import Logging
 
@@ -84,29 +83,15 @@ class LANraragiService {
             .serializingDecodable(ArchiveExtractResponse.self)
     }
 
-    func fetchArchivePageData(page: String) -> AnyPublisher<Data, AFError> {
-        let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
-        return session.download(request)
-            .validate()
-            .publishData()
-            .value()
-            .mapError { error in
-                LANraragiService.logger.error("failed to fetch archive page data: \(error)")
-                return error
-            }
-            .eraseToAnyPublisher()
-    }
-
     func fetchArchivePage(page: String) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
         return session.download(request)
     }
 
-    func clearNewFlag(id: String) -> AnyPublisher<String, AFError> {
+    func clearNewFlag(id: String) -> DataTask<String> {
         session.request("\(url)/api/archives/\(id)/isnew", method: .delete)
             .validate(statusCode: 200...200)
-            .publishString()
-            .value()
+            .serializingString()
     }
 
     func updateArchive(archive: ArchiveItem) async -> DataTask<String> {

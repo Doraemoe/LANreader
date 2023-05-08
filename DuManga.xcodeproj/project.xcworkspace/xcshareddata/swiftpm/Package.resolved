@@ -10,15 +10,6 @@
       }
     },
     {
-      "identity" : "combineexpectations",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/groue/CombineExpectations",
-      "state" : {
-        "revision" : "04d4e4b21c9e8361925f03f64a7ecda89ef9974f",
-        "version" : "0.10.0"
-      }
-    },
-    {
       "identity" : "grdb.swift",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/groue/GRDB.swift",

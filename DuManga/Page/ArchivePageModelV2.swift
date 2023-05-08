@@ -47,7 +47,6 @@ class ArchivePageModelV2: ObservableObject {
 
     func unload() {
         cancellables.forEach({ $0.cancel() })
-        prefetch.unload()
     }
 
     func verifyArchiveExists(id: String) -> Bool {
@@ -55,19 +54,26 @@ class ArchivePageModelV2: ObservableObject {
     }
 
     func prefetchImages(ids: [String]) {
-        var firstHalf = ids[..<currentIndex.int]
-        let secondHalf = ids[currentIndex.int...]
-        firstHalf.reverse()
-        let array = Array(secondHalf + firstHalf)
-        prefetch.preloadImages(ids: array)
+        var firstHalf = ids[..<currentIndex.int].reversed().makeIterator()
+        var secondHalf = ids[currentIndex.int...].dropFirst().makeIterator()
+        var nextPage = secondHalf.next()
+        var previousPage = firstHalf.next()
+        var fetchArray = [String]()
+
+        while  nextPage != nil || previousPage != nil {
+            if nextPage != nil {
+                fetchArray.append(nextPage!)
+                nextPage = secondHalf.next()
+            }
+            if previousPage != nil {
+                fetchArray.append(previousPage!)
+                previousPage = firstHalf.next()
+            }
+        }
+        prefetch.preloadImages(ids: fetchArray)
     }
 
-    func clearNewFlag(id: String) {
-        service.clearNewFlag(id: id)
-                .replaceError(with: "NOOP")
-                .sink(receiveValue: { _ in
-                    // NOOP
-                })
-                .store(in: &cancellables)
+    func clearNewFlag(id: String) async {
+        _ = try? await service.clearNewFlag(id: id).value
     }
 }
