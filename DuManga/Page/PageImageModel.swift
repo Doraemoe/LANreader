@@ -16,13 +16,17 @@ class PageImageModel: ObservableObject {
     private let database = AppDatabase.shared
     private var cancellable: Set<AnyCancellable> = []
 
-    func load(id: String, fromServer: Bool = false) {
-        guard !isLoading else {
-            return
+    func checkImageData(id: String) -> Data? {
+        if let data = imageData {
+            return data
+        } else if let data = try? database.readArchiveImage(id) {
+            return data.image
         }
+        return nil
+    }
 
-        if !fromServer, let archiveImage = try? database.readArchiveImage(id) {
-            imageData = archiveImage.image
+    func load(id: String) {
+        guard !isLoading else {
             return
         }
 

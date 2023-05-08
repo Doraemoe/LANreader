@@ -15,7 +15,8 @@ struct ContentView: View {
                     TabView(selection: $contentViewModel.tabName) {
                         NavigationStack {
                             LibraryList()
-                                    .navigationBarTitle("library", displayMode: .inline)
+                                    .navigationTitle("library")
+                                    .navigationBarTitleDisplayMode(.inline)
                         }
                             .tabItem {
                                 Image(systemName: "books.vertical")
@@ -37,7 +38,8 @@ struct ContentView: View {
                             }.tag("search")
                         NavigationStack {
                             SettingsView()
-                                    .navigationBarTitle("settings", displayMode: .inline)
+                                    .navigationBarTitle("settings")
+                                    .navigationBarTitleDisplayMode(.inline)
                         }
                             .tabItem {
                                 Image(systemName: "gearshape")

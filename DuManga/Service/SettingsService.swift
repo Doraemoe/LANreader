@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import Combine
 
 class SettingsService {
     private static var _shared: SettingsService?

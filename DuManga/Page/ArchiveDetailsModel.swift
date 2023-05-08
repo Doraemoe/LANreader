@@ -3,42 +3,83 @@
 //
 
 import Foundation
-import Combine
+import Logging
 
 class ArchiveDetailsModel: ObservableObject {
+    private static let logger = Logger(label: "ArchiveDetailsModel")
 
     @Published var title = ""
     @Published var tags = ""
 
-    @Published private(set) var loading = false
-    @Published private(set) var updateSuccess = false
-    @Published private(set) var deleteSuccess = false
-    @Published private(set) var errorCode: ErrorCode?
+    @Published var loading = false
+    @Published var isError = false
+    @Published var errorMessage = ""
 
-    private var cancellable: Set<AnyCancellable> = []
+    private let service = LANraragiService.shared
+    private let database = AppDatabase.shared
 
-    func load(state: AppState, title: String, tags: String) {
+    func load(title: String, tags: String) {
         self.title = title
         self.tags = tags
-
-        state.archive.$loading.receive(on: DispatchQueue.main)
-                .assign(to: \.loading, on: self)
-                .store(in: &cancellable)
-
-        state.archive.$updateArchiveSuccess.receive(on: DispatchQueue.main)
-                .assign(to: \.updateSuccess, on: self)
-                .store(in: &cancellable)
-
-        state.archive.$deleteArchiveSuccess.receive(on: DispatchQueue.main)
-                .assign(to: \.deleteSuccess, on: self)
-                .store(in: &cancellable)
-
-        state.archive.$errorCode.receive(on: DispatchQueue.main)
-                .assign(to: \.errorCode, on: self)
-                .store(in: &cancellable)
     }
 
-    func unload() {
-        cancellable.forEach({ $0.cancel() })
+    func reset() {
+        isError = false
+        errorMessage = ""
+    }
+
+    @MainActor
+    func updateArchive(archive: ArchiveItem) async -> Bool {
+        loading = true
+
+        do {
+            _ = try await service.updateArchive(archive: archive).value
+            do {
+                var archiveDto = archive.toArchive()
+                try database.saveArchive(&archiveDto)
+            } catch {
+                ArchiveDetailsModel.logger.error("failed to save archive. id=\(archive.id) \(error)")
+            }
+            loading = false
+            return true
+        } catch {
+            ArchiveDetailsModel.logger.error("failed to update archive. id=\(archive.id) \(error)")
+            loading = false
+            isError = true
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    @MainActor
+    func deleteArchive(id: String) async -> Bool {
+        loading = true
+
+        do {
+            let response = try await service.deleteArchive(id: id).value
+            if response.success == 1 {
+                do {
+                    let success = try database.deleteArchive(id)
+                    if !success {
+                        ArchiveDetailsModel.logger.error("failed to delete archive from db. id=\(id)")
+                    }
+                } catch {
+                    ArchiveDetailsModel.logger.error("failed to delete archive from db. id=\(id) \(error)")
+                }
+                loading = false
+                return true
+            } else {
+                isError = true
+                errorMessage = "failed to delete archives, please retry."
+                loading = false
+                return false
+            }
+        } catch {
+            ArchiveDetailsModel.logger.error("failed to delete archive. id=\(id) \(error)")
+            loading = false
+            isError = true
+            errorMessage = error.localizedDescription
+            return false
+        }
     }
 }

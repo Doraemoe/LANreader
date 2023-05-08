@@ -70,7 +70,6 @@
 		7D354CC224F1316E00617F4A /* DuMangaUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354CC124F1316E00617F4A /* DuMangaUITests.swift */; };
 		7D354CDA24F13C4900617F4A /* LANraragiResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354CD924F13C4900617F4A /* LANraragiResponse.swift */; };
 		7D354CED24F1FC3000617F4A /* ArchiveIndexResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CEC24F1FC3000617F4A /* ArchiveIndexResponse.json */; };
-		7D354CEF24F2084900617F4A /* placeholder.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CEE24F2084800617F4A /* placeholder.jpg */; };
 		7D354CF124F21B3400617F4A /* ArchiveExtractResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CF024F21B3400617F4A /* ArchiveExtractResponse.json */; };
 		7D354CF324F222FC00617F4A /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CF224F222FC00617F4A /* README.md */; };
 		7D354D0524F2387900617F4A /* ViewModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354D0424F2387900617F4A /* ViewModels.swift */; };
@@ -101,7 +100,6 @@
 		E9E3631726F463F800C58D01 /* NotificationBannerSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D7A6842250239750051F232 /* NotificationBannerSwift */; };
 		E9E3631826F463F800C58D01 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 7DF7EA792564E264003B5A5A /* GRDB */; };
 		E9E3631926F463F800C58D01 /* OHHTTPStubsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE924F1660200617F4A /* OHHTTPStubsSwift */; };
-		E9E3631A26F463F800C58D01 /* CombineExpectations in Frameworks */ = {isa = PBXBuildFile; productRef = 7DEBE7A4252DBF26001199CD /* CombineExpectations */; };
 		E9E3631F26F471E400C58D01 /* LogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9E3631E26F471E400C58D01 /* LogView.swift */; };
 /* End PBXBuildFile section */
 
@@ -192,7 +190,6 @@
 		7D354CC324F1316E00617F4A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7D354CD924F13C4900617F4A /* LANraragiResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LANraragiResponse.swift; sourceTree = "<group>"; };
 		7D354CEC24F1FC3000617F4A /* ArchiveIndexResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveIndexResponse.json; sourceTree = "<group>"; };
-		7D354CEE24F2084800617F4A /* placeholder.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = placeholder.jpg; sourceTree = "<group>"; };
 		7D354CF024F21B3400617F4A /* ArchiveExtractResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveExtractResponse.json; sourceTree = "<group>"; };
 		7D354CF224F222FC00617F4A /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		7D354D0424F2387900617F4A /* ViewModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModels.swift; sourceTree = "<group>"; };
@@ -241,7 +238,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				E9E3631926F463F800C58D01 /* OHHTTPStubsSwift in Frameworks */,
-				E9E3631A26F463F800C58D01 /* CombineExpectations in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -434,7 +430,6 @@
 			children = (
 				7DF7EA832564E64B003B5A5A /* Database */,
 				7D354D0324F2383A00617F4A /* Views */,
-				7D354CF424F22C8300617F4A /* Resources */,
 				7D354CA524F1316D00617F4A /* Assets.xcassets */,
 				7D354CAA24F1316D00617F4A /* LaunchScreen.storyboard */,
 				7D354CAD24F1316D00617F4A /* Info.plist */,
@@ -495,14 +490,6 @@
 				7D772E77250515C600070860 /* UpdateSearchCategoryResponse.json */,
 				7DE57779250780C100FD1603 /* SetArchiveMetadataResponse.json */,
 				7DF6FFB1252DCE97009280A5 /* UnauthorizedResponse.json */,
-			);
-			path = Resources;
-			sourceTree = "<group>";
-		};
-		7D354CF424F22C8300617F4A /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-				7D354CEE24F2084800617F4A /* placeholder.jpg */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -583,7 +570,6 @@
 			name = DuMangaTests;
 			packageProductDependencies = (
 				7D354CE924F1660200617F4A /* OHHTTPStubsSwift */,
-				7DEBE7A4252DBF26001199CD /* CombineExpectations */,
 			);
 			productName = DuMangaTests;
 			productReference = 7D354CB224F1316E00617F4A /* DuMangaTests.xctest */;
@@ -646,7 +632,6 @@
 				7D354CE024F15F1800617F4A /* XCRemoteSwiftPackageReference "swift-log" */,
 				7D354CE824F1660200617F4A /* XCRemoteSwiftPackageReference "OHHTTPStubs" */,
 				7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */,
-				7DEBE7A3252DBF26001199CD /* XCRemoteSwiftPackageReference "CombineExpectations" */,
 				7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */,
 				E90576BD29F8C10700C3CE3F /* XCRemoteSwiftPackageReference "Puppy" */,
 			);
@@ -684,7 +669,6 @@
 				7D354CED24F1FC3000617F4A /* ArchiveIndexResponse.json in Resources */,
 				7DE5777A250780C100FD1603 /* SetArchiveMetadataResponse.json in Resources */,
 				7D80326C24F68AB500AA8BD2 /* ArchiveCategoriesResponse.json in Resources */,
-				7D354CEF24F2084900617F4A /* placeholder.jpg in Resources */,
 				7DE70F562503C7B3006414DE /* ClearNewFlagResponse.json in Resources */,
 				7D354CF124F21B3400617F4A /* ArchiveExtractResponse.json in Resources */,
 				7DF6FFB2252DCE97009280A5 /* UnauthorizedResponse.json in Resources */,
@@ -970,6 +954,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -994,6 +979,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1162,14 +1148,6 @@
 				minimumVersion = 3.0.4;
 			};
 		};
-		7DEBE7A3252DBF26001199CD /* XCRemoteSwiftPackageReference "CombineExpectations" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/groue/CombineExpectations";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.5.0;
-			};
-		};
 		7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift";
@@ -1208,11 +1186,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */;
 			productName = NotificationBannerSwift;
-		};
-		7DEBE7A4252DBF26001199CD /* CombineExpectations */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 7DEBE7A3252DBF26001199CD /* XCRemoteSwiftPackageReference "CombineExpectations" */;
-			productName = CombineExpectations;
 		};
 		7DF7EA792564E264003B5A5A /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -14,23 +14,26 @@ struct PageImage: View {
     }
 
     var body: some View {
-        if let imageData = imageModel.imageData {
+        // If not wrapped in ZStack, TabView will render ALL pages when initial load
+        ZStack {
+            if let imageData = imageModel.checkImageData(id: id) {
                 Image(uiImage: UIImage(data: imageData)!)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: geometrySize.width)
                         .draggableAndZoomable(contentSize: geometrySize)
-        } else {
-            ProgressView(value: imageModel.progress, total: 1) {
-                Text("loading")
-            } currentValueLabel: {
-                Text(String(format: "%.2f%%", imageModel.progress * 100))
+            } else {
+                ProgressView(value: imageModel.progress, total: 1) {
+                    Text("loading")
+                } currentValueLabel: {
+                    Text(String(format: "%.2f%%", imageModel.progress * 100))
+                }
+                        .frame(width: geometrySize.width * 0.8, height: geometrySize.height)
+                        .tint(.primary)
+                        .onAppear {
+                            imageModel.load(id: id)
+                        }
             }
-                    .frame(width: geometrySize.width * 0.8, height: geometrySize.height)
-                    .tint(.primary)
-                    .onAppear {
-                        imageModel.load(id: id)
-                    }
         }
     }
 }
