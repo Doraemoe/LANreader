@@ -23,13 +23,14 @@ struct SettingsView: View {
                     label: {
                         Text("settings.debug.log")
                     }).padding()
+                // swiftlint:disable force_cast
+                let version = Bundle.main.infoDictionary!["CFBundleShortVersionString"] as! String
+                let build = Bundle.main.infoDictionary!["CFBundleVersion"] as! String
+                // swiftlint:enable force_cast
+                LabeledContent("version", value: "\(version)-\(build)")
+                    .padding()
             }
-        }
-    }
-}
 
-struct SettingsView_Previews: PreviewProvider {
-    static var previews: some View {
-        SettingsView()
+        }
     }
 }

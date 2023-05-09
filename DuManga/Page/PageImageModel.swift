@@ -10,11 +10,22 @@ class PageImageModel: ObservableObject {
     @Published var imageData: Data?
     @Published var progress: Double = 0
 
+    @Published private(set) var reloadPageId = ""
+
     private var isLoading = false
 
     private let service = LANraragiService.shared
     private let database = AppDatabase.shared
-    private var cancellable: Set<AnyCancellable> = []
+
+    private var cancellables: Set<AnyCancellable> = []
+
+    func load(state: AppState) {
+        reloadPageId = state.trigger.pageId
+
+        state.trigger.$pageId.receive(on: DispatchQueue.main)
+                .assign(to: \.reloadPageId, on: self)
+                .store(in: &cancellables)
+    }
 
     func checkImageData(id: String) -> Data? {
         if let data = imageData {
@@ -31,6 +42,9 @@ class PageImageModel: ObservableObject {
         }
 
         isLoading = true
+        _ = try? database.deleteArchiveImage(id)
+        imageData = nil
+        progress = 0
         service.fetchArchivePage(page: id)
                 .downloadProgress { progress in
                     self.progress = progress.fractionCompleted

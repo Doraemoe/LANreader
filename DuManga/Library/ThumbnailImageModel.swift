@@ -43,6 +43,8 @@ class ThumbnailImageModel: ObservableObject {
         }
 
         isLoading = true
+        _ = try? database.deleteArchiveThumbnail(id)
+        imageData = nil
         do {
             imageData = try await service.retrieveArchiveThumbnail(id: id).serializingData().value
             var thumbnail = ArchiveThumbnail(id: id, thumbnail: imageData!, lastUpdate: Date())

@@ -49,14 +49,7 @@ struct LibraryList: View {
                         }
                         .searchable(text: $libraryListModel.searchText, prompt: "filter.name")
                 if libraryListModel.loading && !libraryListModel.isPullToRefresh {
-                    VStack {
-                        ProgressView("loading")
-                    }
-                            .frame(width: geometry.size.width / 3,
-                                    height: geometry.size.height / 5)
-                            .background(Color.secondary)
-                            .foregroundColor(Color.primary)
-                            .cornerRadius(20)
+                    LoadingView(geometry: geometry)
                 }
             }
         }

@@ -11,6 +11,7 @@
 "delete" = "Delete";
 "copy" = "Copy";
 "edit" = "Edit";
+"version" = "Version";
 
 "filter.name" = "Filter archive by name";
 

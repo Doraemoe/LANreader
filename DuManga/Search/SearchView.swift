@@ -46,14 +46,7 @@ struct SearchView: View {
                             }
                         }
                 if searchViewModel.isLoading {
-                    VStack {
-                        ProgressView("loading")
-                    }
-                            .frame(width: geometry.size.width / 3,
-                                    height: geometry.size.height / 5)
-                            .background(Color.secondary)
-                            .foregroundColor(Color.primary)
-                            .cornerRadius(20)
+                    LoadingView(geometry: geometry)
                 }
             }
                     .navigationTitle("search")
