@@ -118,6 +118,12 @@ extension AppDatabase {
         }
     }
 
+    func deleteArchiveThumbnail(_ id: String) throws -> Bool {
+        try dbWriter.write { database in
+            try ArchiveThumbnail.deleteOne(database, key: id)
+        }
+    }
+
     func saveArchiveImage(_ image: inout ArchiveImage) throws {
         try dbWriter.write { database in
             try image.save(database)
@@ -130,9 +136,15 @@ extension AppDatabase {
         }
     }
 
-    func existsArchiveImage(_ id: String) throws -> Bool? {
+    func existsArchiveImage(_ id: String) throws -> Bool {
         try dbWriter.read { database in
             try ArchiveImage.exists(database, key: id)
+        }
+    }
+
+    func deleteArchiveImage(_ id: String) throws -> Bool {
+        try dbWriter.write { database in
+            try ArchiveImage.deleteOne(database, key: id)
         }
     }
 

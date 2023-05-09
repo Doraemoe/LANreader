@@ -6,13 +6,16 @@ import Foundation
 import Combine
 
 class ArchivePageModelV2: ObservableObject {
-    @Published var currentIndex: Double = 0.0
+    @Published var currentIndex = 0
     @Published var controlUiHidden = true
+    @Published var sliderIndex: Double = 0.0
 
     @Published private(set) var loading = false
     @Published private(set) var archiveItems = [String: ArchiveItem]()
     @Published private(set) var archivePages = [String: [String]]()
     @Published private(set) var errorCode: ErrorCode?
+
+    var verticalReaderReady = false
 
     private let service = LANraragiService.shared
     private let prefetch = PrefetchService.shared
@@ -25,7 +28,7 @@ class ArchivePageModelV2: ObservableObject {
         archivePages = state.page.archivePages
         errorCode = state.page.errorCode
         if currentIndex == 0 {
-            currentIndex = Double(progress)
+            currentIndex = progress
         }
 
         state.page.$loading.receive(on: DispatchQueue.main)
@@ -54,8 +57,8 @@ class ArchivePageModelV2: ObservableObject {
     }
 
     func prefetchImages(ids: [String]) {
-        var firstHalf = ids[..<currentIndex.int].reversed().makeIterator()
-        var secondHalf = ids[currentIndex.int...].dropFirst().makeIterator()
+        var firstHalf = ids[..<currentIndex].reversed().makeIterator()
+        var secondHalf = ids[currentIndex...].dropFirst().makeIterator()
         var nextPage = secondHalf.next()
         var previousPage = firstHalf.next()
         var fetchArray = [String]()

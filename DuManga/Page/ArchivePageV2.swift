@@ -32,7 +32,7 @@ struct ArchivePageV2: View {
 
     @StateObject private var archivePageModel = ArchivePageModelV2()
 
-    @State private var verticalScrollTarget: Double?
+    @State private var verticalScrollTarget: Int?
     @State private var prefetchRequested = false
 
     let archiveItem: ArchiveItem
@@ -46,96 +46,31 @@ struct ArchivePageV2: View {
         return GeometryReader { geometry in
             ZStack {
                 if verticalReader {
-                    GeometryReader { scrollGeo in
-                        ScrollViewReader { reader in
-                            ScrollView {
-                                LazyVStack {
-                                    ForEach(0..<pages.count, id: \.self) { index in
-                                        PageImage(id: pages[index], geometrySize: geometry.size)
-                                                .id(Double(index))
-                                                .anchorPreference(key: AnchorsKey.self, value: .center) {
-                                                    [index: $0]
-                                                }
-                                    }
-                                }
-                                        .onTapGesture(perform: { performAction(tapMiddle) })
-                                        .onAppear(perform: {
-                                            reader.scrollTo(archivePageModel.currentIndex, anchor: .top)
-                                        })
-                                        .onChange(of: verticalScrollTarget) { target in
-                                            if let target = target {
-                                                verticalScrollTarget = nil
-                                                reader.scrollTo(target, anchor: .top)
-                                            }
-                                        }
-                            }
-
-                        }
-                                .onPreferenceChange(AnchorsKey.self) { anchors in
-                                    let topIndex = topRow(of: anchors, in: scrollGeo) ?? 0
-                                    if topIndex != 0 && topIndex != archivePageModel.currentIndex.int {
-                                        archivePageModel.currentIndex = Double(topIndex)
-                                    }
-                                }
-                    }
+                    vReader(pages: pages, geometry: geometry)
                 } else {
-                    if pages.isEmpty == false {
-                        TabView(selection: self.$archivePageModel.currentIndex) {
-                            ForEach(0..<pages.count, id: \.self) { index in
-                                PageImage(id: pages[index], geometrySize: geometry.size).tag(Double(index))
-                            }
-                        }
-                                .tabViewStyle(.page(indexDisplayMode: .never))
-                                .onTapGesture { location in
-                                    if location.x < geometry.size.width / 3 {
-                                        performAction(tapLeft)
-                                    } else if location.x > geometry.size.width / 3 * 2 {
-                                        performAction(tapRight)
-                                    } else {
-                                        performAction(tapMiddle)
-                                    }
-                                }
-                    } else {
-                        // If not return a view here, when user click into already extracted archive, TabView will render ALL pages at once
-                        // However, if return empty view, the loading position will be wrong, thus return a color view
-                        Color.primary.colorInvert()
-                    }
+                    hReader(pages: pages, geometry: geometry)
                 }
                 if archivePageModel.loading {
-                    VStack {
-                        ProgressView("loading")
-                    }
-                            .frame(width: geometry.size.width / 3,
-                                    height: geometry.size.height / 5)
-                            .background(Color.secondary)
-                            .foregroundColor(Color.primary)
-                            .cornerRadius(20)
+                    LoadingView(geometry: geometry)
                 }
             }
                     .toolbar {
-                        ToolbarItem(placement: .primaryAction) {
+                        ToolbarItemGroup(placement: .primaryAction) {
+                            Button(action: {
+                                store.dispatch(
+                                    .trigger(action: .pageRefreshAction(
+                                        id: pages[archivePageModel.currentIndex])
+                                    )
+                                )
+                            }, label: {
+                                Image(systemName: "arrow.clockwise")
+                            })
                             NavigationLink("details") {
                                 ArchiveDetails(item: archiveItem)
                             }
                         }
-                        ToolbarItem(placement: .bottomBar) {
-                            VStack {
-                                Text(String(format: "%.0f/%d",
-                                        archivePageModel.currentIndex + 1,
-                                        pages.count))
-                                        .bold()
-                                Slider(value: self.$archivePageModel.currentIndex,
-                                        in: 0...Double(pages.count < 1 ? 1 : pages.count - 1),
-                                        step: 1) { onSlider in
-                                    if !onSlider {
-                                        verticalScrollTarget = archivePageModel.currentIndex
-                                    }
-                                }
-                                        .padding(.horizontal)
-                                        .padding(.bottom)
-                            }
-                                    .padding()
-                                    .background(Color.primary.colorInvert())
+                        ToolbarItemGroup(placement: .bottomBar) {
+                            bottomToolbar(pages: pages)
                         }
                     }
                     .navigationBarTitle(archiveItem.name)
@@ -172,12 +107,9 @@ struct ArchivePageV2: View {
                         }
                     }
                     .onChange(of: archivePageModel.currentIndex) { index in
+                        archivePageModel.sliderIndex = Double(archivePageModel.currentIndex)
                         Task {
-                            await store.dispatch(updateReadProgress(
-                                    id: archiveItem.id, progress: index.int + 1))
-                            if index.int == (archivePageModel.archiveItems[archiveItem.id]?.pagecount ?? 0) - 1 {
-                                await archivePageModel.clearNewFlag(id: archiveItem.id)
-                            }
+                            await onIndexChange(index: index)
                         }
 
                     }
@@ -189,6 +121,107 @@ struct ArchivePageV2: View {
                     .onDisappear {
                         archivePageModel.unload()
                     }
+        }
+    }
+
+    private func vReader(pages: [String], geometry: GeometryProxy) -> some View {
+        ZStack {
+            if pages.isEmpty {
+                // This is to make sure when onAppear called on ScrollView there is page to scroll to
+                Color.primary.colorInvert()
+            } else {
+                ScrollViewReader { reader in
+                    ScrollView {
+                        LazyVStack {
+                            ForEach(0..<pages.count, id: \.self) { index in
+                                PageImage(id: pages[index], geometrySize: geometry.size)
+                                        .id(index)
+                                        .anchorPreference(key: AnchorsKey.self, value: .center) {
+                                            [index: $0]
+                                        }
+                            }
+                        }
+                                .onTapGesture(perform: { performAction(tapMiddle) })
+                                .onAppear {
+                                    reader.scrollTo(archivePageModel.currentIndex, anchor: .top)
+                                    archivePageModel.verticalReaderReady = true
+                                }
+                                .onDisappear {
+                                    archivePageModel.verticalReaderReady = false
+                                }
+                                .onChange(of: verticalScrollTarget) { target in
+                                    if let target = target {
+                                        reader.scrollTo(target, anchor: .top)
+                                    }
+                                }
+                    }
+                }
+                        .onPreferenceChange(AnchorsKey.self) { anchors in
+                            // This is to prevent incorrectly assign index when page first open
+                            if archivePageModel.verticalReaderReady {
+                                let topIndex = topRow(of: anchors, in: geometry)
+                                if topIndex != nil && topIndex != archivePageModel.currentIndex {
+                                    archivePageModel.currentIndex = topIndex!
+                                }
+                            }
+
+                        }
+            }
+        }
+    }
+
+    private func hReader(pages: [String], geometry: GeometryProxy) -> some View {
+        ZStack {
+            if pages.isEmpty == false {
+                TabView(selection: self.$archivePageModel.currentIndex) {
+                    ForEach(0..<pages.count, id: \.self) { index in
+                        PageImage(id: pages[index], geometrySize: geometry.size).tag(index)
+                    }
+                }
+                        .tabViewStyle(.page(indexDisplayMode: .never))
+                        .onTapGesture { location in
+                            if location.x < geometry.size.width / 3 {
+                                performAction(tapLeft)
+                            } else if location.x > geometry.size.width / 3 * 2 {
+                                performAction(tapRight)
+                            } else {
+                                performAction(tapMiddle)
+                            }
+                        }
+            } else {
+                // If not return a view here, when user click into already extracted archive, TabView will render ALL pages at once
+                // However, if return empty view, the loading position will be wrong, thus return a color view
+                Color.primary.colorInvert()
+            }
+        }
+    }
+
+    private func bottomToolbar(pages: [String]) -> some View {
+        VStack {
+            Text(String(format: "%d/%d",
+                    archivePageModel.currentIndex + 1,
+                    pages.count))
+                    .bold()
+            Slider(value: self.$archivePageModel.sliderIndex,
+                    in: 0...Double(pages.count < 1 ? 1 : pages.count - 1),
+                    step: 1) { onSlider in
+                if !onSlider {
+                    archivePageModel.currentIndex = archivePageModel.sliderIndex.int
+                    verticalScrollTarget = archivePageModel.sliderIndex.int
+                }
+            }
+                    .padding(.horizontal)
+                    .padding(.bottom, 50)
+        }
+                .padding()
+                .background(Color.primary.colorInvert())
+    }
+
+    private func onIndexChange(index: Int) async {
+        await store.dispatch(updateReadProgress(
+                id: archiveItem.id, progress: index + 1))
+        if index == (archivePageModel.archiveItems[archiveItem.id]?.pagecount ?? 0) - 1 {
+            await archivePageModel.clearNewFlag(id: archiveItem.id)
         }
     }
 
@@ -209,9 +242,8 @@ struct ArchivePageV2: View {
     func performAction(_ action: String) {
         switch action {
         case PageControl.next.rawValue:
-            let currentIndexInt = archivePageModel.currentIndex.int
             let pageNumbers = archivePageModel.archivePages[archiveItem.id]?.count ?? 1
-            if currentIndexInt < pageNumbers - 1 {
+            if archivePageModel.currentIndex < pageNumbers - 1 {
                 withAnimation(.easeInOut) {
                     archivePageModel.currentIndex += 1
                 }

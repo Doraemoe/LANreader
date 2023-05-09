@@ -11,6 +11,7 @@
 "delete" = "删除";
 "copy" = "复制";
 "edit" = "编辑";
+"version" = "版本";
 
 "filter.name" = "过滤标题";
 
