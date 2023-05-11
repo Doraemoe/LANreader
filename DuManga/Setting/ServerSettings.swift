@@ -13,6 +13,10 @@ struct ServerSettings: View {
                 Text("settings.host.alwaysLoad")
             }
                     .padding()
+            NavigationLink(destination: UploadView()) {
+                Text("settings.host.upload")
+            }
+                    .padding()
         }
     }
 }

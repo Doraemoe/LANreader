@@ -61,9 +61,3 @@ struct LANraragiConfigView: View {
         })
     }
 }
-
-struct LANraragiConfigView_Previews: PreviewProvider {
-    static var previews: some View {
-        LANraragiConfigView(notLoggedIn: Binding.constant(true))
-    }
-}

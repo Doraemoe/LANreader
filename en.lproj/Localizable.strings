@@ -6,6 +6,7 @@
 "loading" = "Loading...";
 "done" = "Done";
 "save" = "Save";
+"success" = "Success";
 "cancel" = "Cancel";
 "error" = "Error";
 "delete" = "Delete";
@@ -13,7 +14,7 @@
 "edit" = "Edit";
 "version" = "Version";
 
-"filter.name" = "Filter archive by name";
+"filter.name" = "Filter by name";
 
 "lanraragi.config.url" = "http(s)://10.0.1.10:3000";
 "lanraragi.config.apiKey" = "API Key, can be set in settings. This is NOT your password";
@@ -37,8 +38,12 @@
 "settings.view.passcode" = "Require passcode to unlock app";
 "settings.view.hideRead" = "Hide read";
 
-"settings.host" = "Host settings";
+"settings.host" = "Host";
 "settings.host.config" = "Host";
+"settings.host.upload" = "Upload Archives";
+"settings.host.upload.label" = "Urls to upload, use newline to separate";
+"settings.host.upload.action" = "Upload";
+"settings.host.upload.note" = "Finished job will be removed after a while";
 "settings.host.alwaysLoad" = "Always load data from server when App start";
 
 "settings.nextPage" = "Next page";
@@ -69,9 +74,14 @@
 "error.metadata.update" = "Cannot update archive metadata, please try again";
 "error.passcode.verify" = "Passcode not match, please try again";
 "error.passcode.mismatch" = "Passcode incorrect, please try again";
+"error.archive.delete" = "Failed to delete archives, please retry.";
+"error.download.url" = "Invalid download url.";
+"error.download.queue" = "Failed to queue the download job, please retry.";
 
 "lock.label.new" = "Enter New Passcode";
 "lock.label.verify" = "Confirm Passcode";
 "lock.label.normal" = "Enter Passcode";
 "lock.label.remove" = "Enter Current Passcode";
 "lock.biometric.message" = "We need to unlock your App";
+
+"download.queue.success" = "Download added, please go to Settings - Host - Upload Archives to view progress";

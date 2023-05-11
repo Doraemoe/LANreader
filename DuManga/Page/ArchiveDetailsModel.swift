@@ -70,7 +70,7 @@ class ArchiveDetailsModel: ObservableObject {
                 return true
             } else {
                 isError = true
-                errorMessage = "failed to delete archives, please retry."
+                errorMessage = NSLocalizedString("error.archive.delete", comment: "error")
                 loading = false
                 return false
             }
