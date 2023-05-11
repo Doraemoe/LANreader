@@ -37,6 +37,42 @@ struct ArchiveDeleteResponse: Decodable {
     let success: Int
 }
 
+struct QueueUrlDownloadResponse: Decodable {
+    let job: Int
+    let operation: String
+    let success: Int
+    let url: String
+}
+
+struct JobStatus: Decodable {
+    let id: String
+    let state: String
+    let task: String
+    let result: JobResult?
+}
+
+struct JobResult: Decodable {
+    let message: String
+    let success: Int
+    let title: String?
+    let url: String
+}
+
+extension JobStatus {
+    func toDownloadJob(url: String) -> DownloadJob {
+        DownloadJob(
+                id: Int(id)!,
+                url: url,
+                title: result?.title ?? "",
+                isActive: state == "active",
+                isSuccess: result?.success == 1,
+                isError: result?.success == 0,
+                message: result?.message ?? "",
+                lastUpdate: Date()
+        )
+    }
+}
+
 extension ArchiveIndexResponse {
     func toArchiveItem() -> ArchiveItem {
         ArchiveItem(id: arcid,

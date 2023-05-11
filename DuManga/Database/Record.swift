@@ -34,6 +34,17 @@ struct Category: Identifiable {
     var lastUpdate: Date
 }
 
+struct DownloadJob: Identifiable, Equatable {
+    var id: Int
+    var url: String
+    var title: String
+    var isActive: Bool
+    var isSuccess: Bool
+    var isError: Bool
+    var message: String
+    var lastUpdate: Date
+}
+
 extension Archive: Codable, FetchableRecord, MutablePersistableRecord {
     fileprivate enum Columns {
         static let id = Column(CodingKeys.id)
@@ -88,5 +99,18 @@ extension Category: Codable, FetchableRecord, MutablePersistableRecord {
 extension Category {
     func toCategoryItem() -> CategoryItem {
         CategoryItem(id: id, name: name, archives: archives, search: search, pinned: pinned ? "1" : "0")
+    }
+}
+
+extension DownloadJob: Codable, FetchableRecord, MutablePersistableRecord {
+    fileprivate enum Columns {
+        static let id = Column(CodingKeys.id)
+        static let url = Column(CodingKeys.url)
+        static let title = Column(CodingKeys.title)
+        static let isActive = Column(CodingKeys.isActive)
+        static let isSuccess = Column(CodingKeys.isSuccess)
+        static let isError = Column(CodingKeys.isError)
+        static let message = Column(CodingKeys.message)
+        static let lastUpdate = Column(CodingKeys.lastUpdate)
     }
 }

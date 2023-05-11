@@ -118,6 +118,19 @@ class LANraragiService {
 
     }
 
+    func queueUrlDownload(downloadUrl: String) async -> DataTask<QueueUrlDownloadResponse> {
+        let query = ["url": downloadUrl]
+        return session.request("\(url)/api/download_url", method: .post, parameters: query)
+            .validate(statusCode: 200...200)
+            .serializingDecodable(QueueUrlDownloadResponse.self)
+    }
+
+    func checkJobStatus(id: Int) async -> DataTask<JobStatus> {
+        session.request("\(url)/api/minion/\(id)/detail", method: .get)
+                .validate(statusCode: 200...200)
+                .serializingDecodable(JobStatus.self)
+    }
+
     public static var shared: LANraragiService {
         if _shared == nil {
             _shared = LANraragiService()

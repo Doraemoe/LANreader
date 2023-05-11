@@ -6,6 +6,7 @@
 "loading" = "加载中";
 "done" = "完成";
 "save" = "保存";
+"success" = "成功";
 "cancel" = "取消";
 "error" = "错误";
 "delete" = "删除";
@@ -39,6 +40,10 @@
 
 "settings.host" = "服务器设定";
 "settings.host.config" = "服务器";
+"settings.host.upload" = "上传文档";
+"settings.host.upload.label" = "从指定URL上传文档，一行一个";
+"settings.host.upload.action" = "上传";
+"settings.host.upload.note" = "已结束任务将在一段时间后自动被移除";
 "settings.host.alwaysLoad" = "启动后总是从服务器自动拉取数据";
 
 "settings.nextPage" = "下一页";
@@ -69,9 +74,14 @@
 "error.metadata.update" = "无法更新压缩包信息，请重试";
 "error.passcode.verify" = "密码不匹配，请重试";
 "error.passcode.mismatch" = "密码不正确，请重试";
+"error.archive.delete" = "删除文档失败，请重试";
+"error.download.url" = "无法识别的下载链接";
+"error.download.queue" = "添加下载任务失败，请重试";
 
 "lock.label.new" = "输入新密码";
 "lock.label.verify" = "确认新密码";
 "lock.label.normal" = "输入密码";
 "lock.label.remove" = "输入当前密码";
 "lock.biometric.message" = "我们需要解锁您的App";
+
+"download.queue.success" = "下载任务已添加，请前往 设置 - 服务器 - 上传文档 查看进度";

@@ -23,8 +23,8 @@ struct DuMangaApp: App {
             }
 
             let logFileURL = try FileManager.default
-                .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-                .appendingPathComponent("app.log")
+                    .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+                    .appendingPathComponent("app.log")
 
             do {
                 try FileManager.default.removeItem(at: logFileURL)
@@ -41,8 +41,8 @@ struct DuMangaApp: App {
 
             LoggingSystem.bootstrap {
                 var handler = PuppyLogHandler(label: $0, puppy: puppy)
-                    handler.logLevel = .info
-                    return handler
+                handler.logLevel = .info
+                return handler
             }
         } catch {
             fatalError("Unresolved error \(error)")
@@ -54,31 +54,31 @@ struct DuMangaApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .blur(radius: lock ||
-                      (blurInterfaceWhenInactive || !storedPasscode.isEmpty) &&
-                      scenePhase != .active ? 200 : 0)
-                .environmentObject(store)
-                .fullScreenCover(isPresented: $lock) {
-                    LockScreen(initialState: LockScreenState.normal,
-                               storedPasscode: storedPasscode) { passcode, _, act in
-                        if passcode == storedPasscode {
-                            lock = false
-                            act(true)
-                        } else {
-                            act(false)
+                    .blur(radius: lock ||
+                            (blurInterfaceWhenInactive || !storedPasscode.isEmpty) &&
+                            scenePhase != .active ? 200 : 0)
+                    .environmentObject(store)
+                    .fullScreenCover(isPresented: $lock) {
+                        LockScreen(initialState: LockScreenState.normal,
+                                storedPasscode: storedPasscode) { passcode, _, act in
+                            if passcode == storedPasscode {
+                                lock = false
+                                act(true)
+                            } else {
+                                act(false)
+                            }
                         }
                     }
-                }
-                .onAppear {
-                    if !storedPasscode.isEmpty {
-                        lock = true
+                    .onAppear {
+                        if !storedPasscode.isEmpty {
+                            lock = true
+                        }
                     }
-                }
-                .onChange(of: scenePhase) { [scenePhase] newPhase in
-                    if !storedPasscode.isEmpty && newPhase == .inactive && scenePhase == .background {
-                        lock = true
+                    .onChange(of: scenePhase) { [scenePhase] newPhase in
+                        if !storedPasscode.isEmpty && newPhase == .inactive && scenePhase == .background {
+                            lock = true
+                        }
                     }
-                }
         }
     }
 }

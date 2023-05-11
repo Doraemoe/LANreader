@@ -24,11 +24,11 @@ struct ArchiveDetails: View {
         VStack {
             if editMode == .active {
                 TextField("", text: $archiveDetailsModel.title)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .textFieldStyle(.roundedBorder)
                         .padding()
             } else {
                 Text(archiveDetailsModel.title)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .textFieldStyle(.roundedBorder)
                         .padding()
             }
             ThumbnailImage(id: item.id)

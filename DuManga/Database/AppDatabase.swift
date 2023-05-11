@@ -56,6 +56,19 @@ struct AppDatabase {
             }
         }
 
+        migrator.registerMigration("downloadJob") { database in
+            try database.create(table: "downloadJob") { table in
+                table.column("id", .integer).primaryKey()
+                table.column("url", .text)
+                table.column("title", .text)
+                table.column("isActive", .boolean)
+                table.column("isSuccess", .boolean)
+                table.column("isError", .boolean)
+                table.column("message", .text)
+                table.column("lastUpdate", .datetime)
+            }
+        }
+
         return migrator
     }
 
@@ -166,6 +179,24 @@ extension AppDatabase {
         }
     }
 
+    func readAllDownloadJobs() throws -> [DownloadJob] {
+        try dbWriter.read { database in
+            try DownloadJob.fetchAll(database)
+        }
+    }
+
+    func saveDownloadJob(_ downloadJob: inout DownloadJob) throws {
+        try dbWriter.write { database in
+            try downloadJob.save(database)
+        }
+    }
+
+    func deleteDownloadJobs(_ id: Int) throws -> Bool {
+        try dbWriter.write({ database in
+            try DownloadJob.deleteOne(database, key: id)
+        })
+    }
+
     func databaseSize() throws -> Int? {
         try dbWriter.read { database in
             try Int.fetchOne(database,
@@ -181,5 +212,12 @@ extension AppDatabase {
             _ = try Category.deleteAll(database)
         }
         try dbWriter.vacuum()
+    }
+}
+
+extension AppDatabase {
+    /// Provides a read-only access to the database.
+    public var reader: any GRDB.DatabaseReader {
+        dbWriter
     }
 }
