@@ -12,6 +12,14 @@ enum PageControl: String, CaseIterable, Identifiable {
     var id: String { self.rawValue }
 }
 
+enum ReadDirection: String, CaseIterable, Identifiable {
+    case upDown
+    case rightLeft
+    case leftRight
+
+    var id: String { self.rawValue }
+}
+
 enum ArchiveListOrder: String, CaseIterable, Identifiable {
     case name
     case dateAdded
@@ -27,9 +35,7 @@ struct SettingsKey {
     static let tapLeftKey = "settings.read.tap.left"
     static let tapMiddleKey = "settings.read.tap.middle"
     static let tapRightKey = "settings.read.tap.right"
-    static let swipeLeftKey = "settings.read.swipe.left"
-    static let swipeRightKey = "settings.read.swipe.right"
-    static let verticalReader = "settings.read.vertical"
+    static let readDirection = "settings.read.direction"
 
     static let archiveListOrder = "settings.archive.list.order"
     static let useListView = "settings.view.use.list"

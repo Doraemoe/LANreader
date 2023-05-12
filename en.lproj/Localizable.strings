@@ -24,9 +24,10 @@
 "settings.read.tap.left" = "Tap on left side of the screen";
 "settings.read.tap.middle" = "Tap on middle of the screen";
 "settings.read.tap.right" = "Tap on right side of the screen";
-"settings.read.swipe.left" = "Swipe left";
-"settings.read.swipe.right" = "Swipe right";
-"settings.read.vertical" = "Reader scroll vertically";
+"settings.read.direction" = "Read direction";
+"settings.read.direction.upDown" = "Vertial";
+"settings.read.direction.leftRight" = "Left to right";
+"settings.read.direction.rightLeft" = "Right to left";
 
 "settings.view" = "View Settings";
 "settings.archive.list.order" = "Sort by";

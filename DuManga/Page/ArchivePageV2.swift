@@ -25,7 +25,7 @@ struct ArchivePageV2: View {
     @AppStorage(SettingsKey.tapLeftKey) var tapLeft: String = PageControl.next.rawValue
     @AppStorage(SettingsKey.tapMiddleKey) var tapMiddle: String = PageControl.navigation.rawValue
     @AppStorage(SettingsKey.tapRightKey) var tapRight: String = PageControl.previous.rawValue
-    @AppStorage(SettingsKey.verticalReader) var verticalReader: Bool = false
+    @AppStorage(SettingsKey.readDirection) var readDirection: String = ReadDirection.leftRight.rawValue
 
     @EnvironmentObject var store: AppStore
     @Environment(\.presentationMode) var presentationMode
@@ -45,7 +45,7 @@ struct ArchivePageV2: View {
         let pages = archivePageModel.archivePages[archiveItem.id] ?? [String]()
         return GeometryReader { geometry in
             ZStack {
-                if verticalReader {
+                if readDirection == ReadDirection.upDown.rawValue {
                     vReader(pages: pages, geometry: geometry)
                 } else {
                     hReader(pages: pages, geometry: geometry)
@@ -174,7 +174,7 @@ struct ArchivePageV2: View {
         ZStack {
             if pages.isEmpty == false {
                 TabView(selection: self.$archivePageModel.currentIndex) {
-                    ForEach(0..<pages.count, id: \.self) { index in
+                    ForEach(pageOrder(totalPage: pages.count), id: \.self) { index in
                         PageImage(id: pages[index], geometrySize: geometry.size).tag(index)
                     }
                 }
@@ -196,8 +196,17 @@ struct ArchivePageV2: View {
         }
     }
 
+    private func pageOrder(totalPage: Int) -> [Int] {
+        if readDirection == ReadDirection.rightLeft.rawValue {
+            return (0..<totalPage).reversed()
+        } else {
+            return Array(0..<totalPage)
+        }
+    }
+
     private func bottomToolbar(pages: [String]) -> some View {
-        VStack {
+        let flip = readDirection == ReadDirection.rightLeft.rawValue ? -1 : 1
+        return VStack {
             Text(String(format: "%d/%d",
                     archivePageModel.currentIndex + 1,
                     pages.count))
@@ -210,6 +219,7 @@ struct ArchivePageV2: View {
                     verticalScrollTarget = archivePageModel.sliderIndex.int
                 }
             }
+                    .scaleEffect(CGSize(width: flip, height: 1), anchor: .center)
                     .padding(.horizontal)
                     .padding(.bottom, 50)
         }
