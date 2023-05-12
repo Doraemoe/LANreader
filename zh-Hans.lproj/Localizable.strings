@@ -24,9 +24,10 @@
 "settings.read.tap.left" = "点击屏幕左侧";
 "settings.read.tap.middle" = "点击屏幕中间";
 "settings.read.tap.right" = "点击片屏幕右侧";
-"settings.read.swipe.left" = "向左滑动";
-"settings.read.swipe.right" = "向右滑动";
-"settings.read.vertical" = "纵向阅读";
+"settings.read.direction" = "阅读顺序";
+"settings.read.direction.upDown" = "纵向";
+"settings.read.direction.leftRight" = "从左向右";
+"settings.read.direction.rightLeft" = "从右向左";
 
 "settings.view" = "视图设定";
 "settings.archive.list.order" = "排序";

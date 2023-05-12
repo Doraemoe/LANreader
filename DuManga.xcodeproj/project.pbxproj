@@ -69,7 +69,6 @@
 		7D354CA924F1316D00617F4A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CA824F1316D00617F4A /* Preview Assets.xcassets */; };
 		7D354CAC24F1316D00617F4A /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CAA24F1316D00617F4A /* LaunchScreen.storyboard */; };
 		7D354CB724F1316E00617F4A /* DuMangaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354CB624F1316E00617F4A /* DuMangaTests.swift */; };
-		7D354CC224F1316E00617F4A /* DuMangaUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354CC124F1316E00617F4A /* DuMangaUITests.swift */; };
 		7D354CDA24F13C4900617F4A /* LANraragiResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D354CD924F13C4900617F4A /* LANraragiResponse.swift */; };
 		7D354CED24F1FC3000617F4A /* ArchiveIndexResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CEC24F1FC3000617F4A /* ArchiveIndexResponse.json */; };
 		7D354CF124F21B3400617F4A /* ArchiveExtractResponse.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D354CF024F21B3400617F4A /* ArchiveExtractResponse.json */; };
@@ -114,13 +113,6 @@
 
 /* Begin PBXContainerItemProxy section */
 		7D354CB324F1316E00617F4A /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 7D354C9424F1316800617F4A /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 7D354C9B24F1316800617F4A;
-			remoteInfo = DuManga;
-		};
-		7D354CBE24F1316E00617F4A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 7D354C9424F1316800617F4A /* Project object */;
 			proxyType = 1;
@@ -217,9 +209,6 @@
 		7D354CB224F1316E00617F4A /* DuMangaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DuMangaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7D354CB624F1316E00617F4A /* DuMangaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuMangaTests.swift; sourceTree = "<group>"; };
 		7D354CB824F1316E00617F4A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		7D354CBD24F1316E00617F4A /* DuMangaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DuMangaUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		7D354CC124F1316E00617F4A /* DuMangaUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuMangaUITests.swift; sourceTree = "<group>"; };
-		7D354CC324F1316E00617F4A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7D354CD924F13C4900617F4A /* LANraragiResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LANraragiResponse.swift; sourceTree = "<group>"; };
 		7D354CEC24F1FC3000617F4A /* ArchiveIndexResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveIndexResponse.json; sourceTree = "<group>"; };
 		7D354CF024F21B3400617F4A /* ArchiveExtractResponse.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveExtractResponse.json; sourceTree = "<group>"; };
@@ -279,13 +268,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				E9E3631926F463F800C58D01 /* OHHTTPStubsSwift in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		7D354CBA24F1316E00617F4A /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -461,7 +443,6 @@
 				7D354CF224F222FC00617F4A /* README.md */,
 				7D354C9E24F1316800617F4A /* DuManga */,
 				7D354CB524F1316E00617F4A /* DuMangaTests */,
-				7D354CC024F1316E00617F4A /* DuMangaUITests */,
 				E98B8B732A0A7B68004CBBC0 /* Action */,
 				E98B8B702A0A7B67004CBBC0 /* Frameworks */,
 				7D354C9D24F1316800617F4A /* Products */,
@@ -474,7 +455,6 @@
 			children = (
 				7D354C9C24F1316800617F4A /* DuManga.app */,
 				7D354CB224F1316E00617F4A /* DuMangaTests.xctest */,
-				7D354CBD24F1316E00617F4A /* DuMangaUITests.xctest */,
 				E98B8B6F2A0A7B67004CBBC0 /* Action.appex */,
 			);
 			name = Products;
@@ -520,15 +500,6 @@
 				4BD820A697A4726B7B747BFD /* Service */,
 			);
 			path = DuMangaTests;
-			sourceTree = "<group>";
-		};
-		7D354CC024F1316E00617F4A /* DuMangaUITests */ = {
-			isa = PBXGroup;
-			children = (
-				7D354CC124F1316E00617F4A /* DuMangaUITests.swift */,
-				7D354CC324F1316E00617F4A /* Info.plist */,
-			);
-			path = DuMangaUITests;
 			sourceTree = "<group>";
 		};
 		7D354CEB24F1FBEE00617F4A /* Resources */ = {
@@ -652,24 +623,6 @@
 			productReference = 7D354CB224F1316E00617F4A /* DuMangaTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		7D354CBC24F1316E00617F4A /* DuMangaUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 7D354CCC24F1316E00617F4A /* Build configuration list for PBXNativeTarget "DuMangaUITests" */;
-			buildPhases = (
-				7D354CB924F1316E00617F4A /* Sources */,
-				7D354CBA24F1316E00617F4A /* Frameworks */,
-				7D354CBB24F1316E00617F4A /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				7D354CBF24F1316E00617F4A /* PBXTargetDependency */,
-			);
-			name = DuMangaUITests;
-			productName = DuMangaUITests;
-			productReference = 7D354CBD24F1316E00617F4A /* DuMangaUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 		E98B8B6E2A0A7B67004CBBC0 /* Action */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E98B8B7E2A0A7B68004CBBC0 /* Build configuration list for PBXNativeTarget "Action" */;
@@ -705,10 +658,6 @@
 						CreatedOnToolsVersion = 11.6;
 						TestTargetID = 7D354C9B24F1316800617F4A;
 					};
-					7D354CBC24F1316E00617F4A = {
-						CreatedOnToolsVersion = 11.6;
-						TestTargetID = 7D354C9B24F1316800617F4A;
-					};
 					E98B8B6E2A0A7B67004CBBC0 = {
 						CreatedOnToolsVersion = 14.3;
 					};
@@ -738,7 +687,6 @@
 			targets = (
 				7D354C9B24F1316800617F4A /* DuManga */,
 				7D354CB124F1316E00617F4A /* DuMangaTests */,
-				7D354CBC24F1316E00617F4A /* DuMangaUITests */,
 				E98B8B6E2A0A7B67004CBBC0 /* Action */,
 			);
 		};
@@ -774,13 +722,6 @@
 				7D7A6845250241D80051F232 /* ServerInfoResponse.json in Resources */,
 				7D80326E24F68F6900AA8BD2 /* ArchiveSearchResponse.json in Resources */,
 				7DF2E89D24F7D30700689A6D /* ArchiveMetadataResponse.json in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		7D354CBB24F1316E00617F4A /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -883,14 +824,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		7D354CB924F1316E00617F4A /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				7D354CC224F1316E00617F4A /* DuMangaUITests.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		E98B8B6B2A0A7B67004CBBC0 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -906,11 +839,6 @@
 			isa = PBXTargetDependency;
 			target = 7D354C9B24F1316800617F4A /* DuManga */;
 			targetProxy = 7D354CB324F1316E00617F4A /* PBXContainerItemProxy */;
-		};
-		7D354CBF24F1316E00617F4A /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 7D354C9B24F1316800617F4A /* DuManga */;
-			targetProxy = 7D354CBE24F1316E00617F4A /* PBXContainerItemProxy */;
 		};
 		E98B8B7C2A0A7B68004CBBC0 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -1078,7 +1006,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 41;
+				CURRENT_PROJECT_VERSION = 42;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -1089,7 +1017,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 1.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1105,7 +1033,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 41;
+				CURRENT_PROJECT_VERSION = 42;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -1116,7 +1044,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 1.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1169,48 +1097,6 @@
 			};
 			name = Release;
 		};
-		7D354CCD24F1316E00617F4A /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = UUEBW58SA6;
-				INFOPLIST_FILE = DuMangaUITests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuMangaUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = DuManga;
-			};
-			name = Debug;
-		};
-		7D354CCE24F1316E00617F4A /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = UUEBW58SA6;
-				INFOPLIST_FILE = DuMangaUITests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuMangaUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = DuManga;
-			};
-			name = Release;
-		};
 		E98B8B7F2A0A7B68004CBBC0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1218,7 +1104,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 41;
+				CURRENT_PROJECT_VERSION = 42;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1230,7 +1116,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 1.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1247,7 +1133,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 41;
+				CURRENT_PROJECT_VERSION = 42;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1259,7 +1145,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.6.0;
+				MARKETING_VERSION = 1.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1295,15 +1181,6 @@
 			buildConfigurations = (
 				7D354CCA24F1316E00617F4A /* Debug */,
 				7D354CCB24F1316E00617F4A /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		7D354CCC24F1316E00617F4A /* Build configuration list for PBXNativeTarget "DuMangaUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				7D354CCD24F1316E00617F4A /* Debug */,
-				7D354CCE24F1316E00617F4A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

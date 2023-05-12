@@ -6,9 +6,7 @@ struct ReadSettings: View {
     @AppStorage(SettingsKey.tapLeftKey) var tapLeft: String = PageControl.next.rawValue
     @AppStorage(SettingsKey.tapMiddleKey) var tapMiddle: String = PageControl.navigation.rawValue
     @AppStorage(SettingsKey.tapRightKey) var tapRight: String = PageControl.previous.rawValue
-    @AppStorage(SettingsKey.swipeLeftKey) var swipeLeft: String = PageControl.next.rawValue
-    @AppStorage(SettingsKey.swipeRightKey) var swipeRight: String = PageControl.previous.rawValue
-    @AppStorage(SettingsKey.verticalReader) var verticalReader: Bool = false
+    @AppStorage(SettingsKey.readDirection) var readDirection: String = ReadDirection.leftRight.rawValue
 
     var body: some View {
         let pageControlSelectionView = Group {
@@ -17,30 +15,28 @@ struct ReadSettings: View {
             Text("settings.navigation").tag(PageControl.navigation.rawValue)
         }
         return List {
-            Picker("settings.read.tap.left", selection: self.$tapLeft) {
-                pageControlSelectionView
+            Picker("settings.read.direction", selection: self.$readDirection) {
+                Text("settings.read.direction.leftRight").tag(ReadDirection.leftRight.rawValue)
+                Text("settings.read.direction.rightLeft").tag(ReadDirection.rightLeft.rawValue)
+                Text("settings.read.direction.upDown").tag(ReadDirection.upDown.rawValue)
             }
                     .padding()
+            if readDirection != ReadDirection.upDown.rawValue {
+                Picker("settings.read.tap.left", selection: self.$tapLeft) {
+                    pageControlSelectionView
+                }
+                        .padding()
+            }
             Picker("settings.read.tap.middle", selection: self.$tapMiddle) {
                 pageControlSelectionView
             }
                     .padding()
-            Picker("settings.read.tap.right", selection: self.$tapRight) {
-                pageControlSelectionView
+            if readDirection != ReadDirection.upDown.rawValue {
+                Picker("settings.read.tap.right", selection: self.$tapRight) {
+                    pageControlSelectionView
+                }
+                        .padding()
             }
-                    .padding()
-            Picker("settings.read.swipe.left", selection: self.$swipeLeft) {
-                pageControlSelectionView
-            }
-                    .padding()
-            Picker("settings.read.swipe.right", selection: self.$swipeRight) {
-                pageControlSelectionView
-            }
-                    .padding()
-            Toggle(isOn: self.$verticalReader) {
-                Text("settings.read.vertical")
-            }
-                    .padding()
         }
     }
 }

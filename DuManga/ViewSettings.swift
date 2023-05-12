@@ -78,9 +78,3 @@ struct ViewSettings: View {
         }
     }
 }
-
-struct ViewSettings_Previews: PreviewProvider {
-    static var previews: some View {
-        ViewSettings()
-    }
-}
