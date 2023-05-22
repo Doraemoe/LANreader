@@ -9,8 +9,6 @@ import Logging
 class ContentViewModel: ObservableObject {
     private static let logger = Logger(label: "ContentViewModel")
     @Published var tabName: String = "library"
-    @Published var notLoggedIn: Bool = (UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? "").isEmpty ?
-            true : false
 
     private let service = LANraragiService.shared
     private let database = AppDatabase.shared

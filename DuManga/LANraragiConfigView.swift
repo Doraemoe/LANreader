@@ -4,11 +4,9 @@ import SwiftUI
 import NotificationBannerSwift
 
 struct LANraragiConfigView: View {
-    @EnvironmentObject var store: AppStore
     @Environment(\.presentationMode) var presentationMode
 
     @StateObject var configModel = LANraragiConfigViewModel()
-    @Binding var notLoggedIn: Bool
 
     var body: some View {
         VStack {
@@ -23,10 +21,10 @@ struct LANraragiConfigView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
             Button(action: {
                 Task {
-                    configModel.isVerifying = true
-                    await store.dispatch(verifyAndSaveLanraragiConfig(
-                            url: configModel.url, apiKey: configModel.apiKey))
-                    configModel.isVerifying = false
+                    let result = await configModel.verifyAndSave()
+                    if result {
+                        presentationMode.wrappedValue.dismiss()
+                    }
                 }
             }, label: {
                 Text("lanraragi.config.submit")
@@ -35,29 +33,14 @@ struct LANraragiConfigView: View {
                     .disabled(configModel.isVerifying)
                     .padding()
         }
-        .onAppear(perform: {
-            configModel.load(state: store.state)
-        })
-        .onDisappear(perform: {
-            configModel.unload()
-        })
-        .onChange(of: configModel.errorCode, perform: { errorCode in
-            if errorCode != nil {
-                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                        subtitle: NSLocalizedString("error.host", comment: "host error"),
-                        style: .danger)
-                banner.show()
-                store.dispatch(.setting(action: .resetState))
-            }
-        })
-        .onChange(of: configModel.savedSuccess, perform: { success in
-            if success {
-                store.dispatch(.setting(action: .resetState))
-                presentationMode.wrappedValue.dismiss()
-                if notLoggedIn {
-                    self.notLoggedIn = false
-                }
-            }
-        })
+                .onChange(of: configModel.errorMessage, perform: { errorMessage in
+                    if !errorMessage.isEmpty {
+                        let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                                subtitle: errorMessage,
+                                style: .danger)
+                        banner.show()
+                        configModel.reset()
+                    }
+                })
     }
 }

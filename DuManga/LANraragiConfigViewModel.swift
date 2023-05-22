@@ -3,32 +3,36 @@
 //
 
 import Foundation
-import Combine
+import Logging
 
 class LANraragiConfigViewModel: ObservableObject {
-    @Published var url = ""
-    @Published var apiKey = ""
+    private static let logger = Logger(label: "LANraragiConfigViewModel")
+
+    @Published var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
+    @Published var apiKey = UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey) ?? ""
     @Published var isVerifying = false
+    @Published var errorMessage = ""
 
-    @Published private(set) var savedSuccess = false
-    @Published private(set) var errorCode: ErrorCode?
+    private let settingsService = SettingsService.shared
+    private let lanraragiService = LANraragiService.shared
 
-    private var cancellable: Set<AnyCancellable> = []
-
-    func load(state: AppState) {
-        self.url = state.setting.url
-        self.apiKey = state.setting.apiKey
-
-        state.setting.$savedSuccess.receive(on: DispatchQueue.main)
-                .assign(to: \.savedSuccess, on: self)
-                .store(in: &cancellable)
-
-        state.setting.$errorCode.receive(on: DispatchQueue.main)
-                .assign(to: \.errorCode, on: self)
-                .store(in: &cancellable)
+    func reset() {
+        errorMessage = ""
     }
 
-    func unload() {
-        cancellable.forEach({ $0.cancel() })
+    @MainActor
+    func verifyAndSave() async -> Bool {
+        isVerifying = true
+        do {
+            _ = try await lanraragiService.verifyClient(url: url, apiKey: apiKey).value
+            settingsService.saveLanrargiServer(url: url, apiKey: apiKey)
+            isVerifying = false
+            return true
+        } catch {
+            LANraragiConfigViewModel.logger.error("failed to verify lanraragi server. \(error)")
+            errorMessage = NSLocalizedString("error.host", comment: "host error")
+        }
+        isVerifying = false
+        return false
     }
 }
