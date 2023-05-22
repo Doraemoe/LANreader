@@ -9,6 +9,7 @@ struct DuMangaApp: App {
     @Environment(\.scenePhase) var scenePhase
     @AppStorage(SettingsKey.blurInterfaceWhenInactive) var blurInterfaceWhenInactive: Bool = false
     @AppStorage(SettingsKey.passcode) var storedPasscode: String = ""
+    @AppStorage(SettingsKey.lanraragiUrl) var lanraragiUrl: String = ""
 
     @State var lock = false
 
@@ -53,32 +54,38 @@ struct DuMangaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                    .blur(radius: lock ||
-                            (blurInterfaceWhenInactive || !storedPasscode.isEmpty) &&
-                            scenePhase != .active ? 200 : 0)
-                    .environmentObject(store)
-                    .fullScreenCover(isPresented: $lock) {
-                        LockScreen(initialState: LockScreenState.normal,
-                                storedPasscode: storedPasscode) { passcode, _, act in
-                            if passcode == storedPasscode {
-                                lock = false
-                                act(true)
-                            } else {
-                                act(false)
+            if lanraragiUrl.isEmpty {
+                LANraragiConfigView()
+            } else {
+                ZStack {
+                    ContentView()
+                    // As of iOS 16, use .blur will case nav title overlap with safe area
+                    if blurInterfaceWhenInactive && scenePhase != .active {
+                        Color.primary.colorInvert()
+                    }
+                }
+                        .environmentObject(store)
+                        .fullScreenCover(isPresented: $lock.animation(nil)) {
+                            LockScreen(initialState: LockScreenState.normal,
+                                    storedPasscode: storedPasscode) { passcode, _, act in
+                                if passcode == storedPasscode {
+                                    lock = false
+                                    act(true)
+                                } else {
+                                    act(false)
+                                }
                             }
                         }
-                    }
-                    .onAppear {
-                        if !storedPasscode.isEmpty {
-                            lock = true
+                        .onChange(of: scenePhase) { newPhase in
+                            if !storedPasscode.isEmpty && newPhase == .inactive {
+                                var transaction = Transaction()
+                                transaction.disablesAnimations = true
+                                withTransaction(transaction) {
+                                    lock = true
+                                }
+                            }
                         }
-                    }
-                    .onChange(of: scenePhase) { [scenePhase] newPhase in
-                        if !storedPasscode.isEmpty && newPhase == .inactive && scenePhase == .background {
-                            lock = true
-                        }
-                    }
+            }
         }
     }
 }

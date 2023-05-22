@@ -33,16 +33,13 @@
 		4BD82A2A4437113DBD1DE74A /* ArchiveDetailsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8253353671DDCADE174C9 /* ArchiveDetailsModel.swift */; };
 		4BD82C152E77BFD137EC03DD /* LANraragiConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82CD5954DDD63ABB7DD22 /* LANraragiConfigView.swift */; };
 		4BD82C7F9CB71CAF8F33C171 /* ViewSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8297D9DA6589446C724EC /* ViewSettings.swift */; };
-		4BD82CDA1A27B1462DCCF3F4 /* SettingAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8297C7ACE73E81F4F374F /* SettingAction.swift */; };
 		4BD82CED54A4C9689B0E9E55 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82694B57396B2CD6BACED /* ContentView.swift */; };
 		4BD82D07506C7A9AE03DF051 /* PageState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82267616E4A2D61F2CDC7 /* PageState.swift */; };
 		4BD82D8C887F9B6271C26BDA /* CategoryState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD822689B9BBADE3685F3D8 /* CategoryState.swift */; };
 		4BD82D948032095FF807F54E /* Selector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82A7A1E34456CEE443689 /* Selector.swift */; };
 		4BD82DB8FD68F4BE80E2B221 /* ArchiveAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD822A6C9B5C44B6110ADC3 /* ArchiveAction.swift */; };
-		4BD82DEEF7DD674ECA330193 /* SettingReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82868F18238BE763DACAF /* SettingReducer.swift */; };
 		4BD82E213F290392837D5019 /* EditCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82106749F5064FE4AB4B6 /* EditCategory.swift */; };
 		4BD82E53B1A77AFD992AAC25 /* ArchiveDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD825AB0EEF9DE292B50E98 /* ArchiveDetails.swift */; };
-		4BD82EA26FFA071989D51CF1 /* SettingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82C50F0B889D20B260924 /* SettingState.swift */; };
 		4BD82EDD2C82F2F36EB547B3 /* PageAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82993840EA26706FD6AA8 /* PageAction.swift */; };
 		4BD82F2BEC56B95FB9BC9841 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD827ECEE1938273E758358 /* SettingsView.swift */; };
 		4BD82F9971576783E22B9CCC /* LibraryListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD827FF18A6F189F4DE5B30 /* LibraryListModel.swift */; };
@@ -55,6 +52,7 @@
 		6DA713301F56AA72BA0B4BE3 /* ServerSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA719F864E9AE9543831EFD /* ServerSettings.swift */; };
 		6DA714872ECD217D156570DD /* CategoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA71AD672FF59A31FF1E4D3 /* CategoryList.swift */; };
 		6DA714FD91E5AB45B581FD22 /* SearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA715FE4A96C5928663012F /* SearchViewModel.swift */; };
+		6DA715D4FC93C844BED80A65 /* ArchiveListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA719BFDFD90DB18CFF6EA2 /* ArchiveListModel.swift */; };
 		6DA715FCE0A2E6FE1DD32898 /* TriggerAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA710669B2A9CC696A13181 /* TriggerAction.swift */; };
 		6DA7183CA22A9CEB4A4AA4EE /* TriggerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA7141EB9B209FCA0A81D54 /* TriggerState.swift */; };
 		6DA718A54D3707C480069081 /* TriggerReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA71E94B1A28FCA2DBE2409 /* TriggerReducer.swift */; };
@@ -165,10 +163,8 @@
 		4BD827ECEE1938273E758358 /* SettingsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = DuManga/SettingsView.swift; sourceTree = SOURCE_ROOT; };
 		4BD827FF18A6F189F4DE5B30 /* LibraryListModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LibraryListModel.swift; sourceTree = "<group>"; };
 		4BD82837C2109B37482712EE /* ArchiveGrid.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ArchiveGrid.swift; path = DuManga/ArchiveGrid.swift; sourceTree = SOURCE_ROOT; };
-		4BD82868F18238BE763DACAF /* SettingReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingReducer.swift; sourceTree = "<group>"; };
 		4BD828AA12AB6AEB96EB44BB /* Store.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
 		4BD8293BAD09DE6D90D6A30C /* LANraragiConfigViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LANraragiConfigViewModel.swift; path = DuManga/LANraragiConfigViewModel.swift; sourceTree = SOURCE_ROOT; };
-		4BD8297C7ACE73E81F4F374F /* SettingAction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingAction.swift; sourceTree = "<group>"; };
 		4BD8297D9DA6589446C724EC /* ViewSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ViewSettings.swift; path = DuManga/ViewSettings.swift; sourceTree = SOURCE_ROOT; };
 		4BD82993840EA26706FD6AA8 /* PageAction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PageAction.swift; sourceTree = "<group>"; };
 		4BD829DF3149761EE3A81A1A /* ArchiveState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchiveState.swift; sourceTree = "<group>"; };
@@ -176,7 +172,6 @@
 		4BD82A7A1E34456CEE443689 /* Selector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Selector.swift; sourceTree = "<group>"; };
 		4BD82B3FE2BE59AACD7ABA3A /* CategoryArchiveList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryArchiveList.swift; sourceTree = "<group>"; };
 		4BD82B45987169916D0D32EF /* ArchiveRow.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ArchiveRow.swift; path = DuManga/ArchiveRow.swift; sourceTree = SOURCE_ROOT; };
-		4BD82C50F0B889D20B260924 /* SettingState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SettingState.swift; sourceTree = "<group>"; };
 		4BD82CCF0CDAB88F4FC224D1 /* CategoryReducer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryReducer.swift; sourceTree = "<group>"; };
 		4BD82CD5954DDD63ABB7DD22 /* LANraragiConfigView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LANraragiConfigView.swift; path = DuManga/LANraragiConfigView.swift; sourceTree = SOURCE_ROOT; };
 		4BD82D448F06457925BDCDEA /* ArchiveList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ArchiveList.swift; path = DuManga/ArchiveList.swift; sourceTree = SOURCE_ROOT; };
@@ -190,6 +185,7 @@
 		6DA71602777DF7C10A8FE9AA /* SearchView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		6DA71658B144080DABED8966 /* PrefetchService.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PrefetchService.swift; sourceTree = "<group>"; };
 		6DA71735AB962F282C638D4B /* ArchiveTrigger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchiveTrigger.swift; sourceTree = "<group>"; };
+		6DA719BFDFD90DB18CFF6EA2 /* ArchiveListModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ArchiveListModel.swift; path = DuManga/ArchiveListModel.swift; sourceTree = SOURCE_ROOT; };
 		6DA719F864E9AE9543831EFD /* ServerSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ServerSettings.swift; sourceTree = "<group>"; };
 		6DA71AA80493DE3160A68590 /* ArchivePageModelV2.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ArchivePageModelV2.swift; sourceTree = "<group>"; };
 		6DA71AD672FF59A31FF1E4D3 /* CategoryList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryList.swift; sourceTree = "<group>"; };
@@ -286,7 +282,6 @@
 			isa = PBXGroup;
 			children = (
 				4BD823EC00313FB6857A6036 /* AppReducer.swift */,
-				4BD82868F18238BE763DACAF /* SettingReducer.swift */,
 				4BD82CCF0CDAB88F4FC224D1 /* CategoryReducer.swift */,
 				4BD82E3AAF924901BE111A11 /* ArchiveReducer.swift */,
 				4BD8210BD5B0ADFE4CC63BC2 /* PageReducer.swift */,
@@ -307,7 +302,6 @@
 			isa = PBXGroup;
 			children = (
 				4BD82FB85284818BED0DE580 /* AppAction.swift */,
-				4BD8297C7ACE73E81F4F374F /* SettingAction.swift */,
 				4BD82127C1FF73E283825D59 /* CategoryAction.swift */,
 				4BD822A6C9B5C44B6110ADC3 /* ArchiveAction.swift */,
 				4BD82993840EA26706FD6AA8 /* PageAction.swift */,
@@ -379,6 +373,7 @@
 				E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */,
 				E9BE57B32942F1AB00A3AEA0 /* LockScreenModel.swift */,
 				6DA71C5CFBC9FDA5C1244254 /* LoadingView.swift */,
+				6DA719BFDFD90DB18CFF6EA2 /* ArchiveListModel.swift */,
 			);
 			path = Common;
 			sourceTree = "<group>";
@@ -404,7 +399,6 @@
 			isa = PBXGroup;
 			children = (
 				4BD82A14F4C3D7950CCCC8C1 /* AppState.swift */,
-				4BD82C50F0B889D20B260924 /* SettingState.swift */,
 				4BD822689B9BBADE3685F3D8 /* CategoryState.swift */,
 				4BD829DF3149761EE3A81A1A /* ArchiveState.swift */,
 				4BD82267616E4A2D61F2CDC7 /* PageState.swift */,
@@ -752,11 +746,8 @@
 				E90576BC29F7FB2900C3CE3F /* DraggableAndZoomableView.swift in Sources */,
 				4BD8252315A4CBC01ED5E1A3 /* AppAction.swift in Sources */,
 				4BD823F7B477CFE0048BB307 /* AppReducer.swift in Sources */,
-				4BD82DEEF7DD674ECA330193 /* SettingReducer.swift in Sources */,
 				E9BE57B42942F1AB00A3AEA0 /* LockScreenModel.swift in Sources */,
 				E98B8B902A0BA9D1004CBBC0 /* UploadView.swift in Sources */,
-				4BD82EA26FFA071989D51CF1 /* SettingState.swift in Sources */,
-				4BD82CDA1A27B1462DCCF3F4 /* SettingAction.swift in Sources */,
 				4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */,
 				4BD82760E9B084402AFE07F2 /* SettingsService.swift in Sources */,
 				4BD821C3FDF1FC3B60AB4823 /* AppModels.swift in Sources */,
@@ -811,6 +802,7 @@
 				6DA71086EFF70FA7C3D810C0 /* CategoryListModel.swift in Sources */,
 				6DA711FA92BEE61419224BB4 /* LoadingView.swift in Sources */,
 				6DA71197253CB7C8588B3819 /* UploadViewModel.swift in Sources */,
+				6DA715D4FC93C844BED80A65 /* ArchiveListModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1006,7 +998,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 42;
+				CURRENT_PROJECT_VERSION = 43;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -1017,7 +1009,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.7.0;
+				MARKETING_VERSION = 1.7.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1033,7 +1025,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 42;
+				CURRENT_PROJECT_VERSION = 43;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -1044,7 +1036,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.7.0;
+				MARKETING_VERSION = 1.7.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1104,7 +1096,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 42;
+				CURRENT_PROJECT_VERSION = 43;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1116,7 +1108,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.7.0;
+				MARKETING_VERSION = 1.7.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1133,7 +1125,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 42;
+				CURRENT_PROJECT_VERSION = 43;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1145,7 +1137,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.7.0;
+				MARKETING_VERSION = 1.7.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

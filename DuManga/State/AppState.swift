@@ -6,14 +6,12 @@ import Foundation
 import Combine
 
 struct AppState {
-    var setting: SettingState
     var archive: ArchiveState
     var category: CategoryState
     var page: PageState
     var trigger: TriggerState
 
     init() {
-        setting = SettingState()
         archive = ArchiveState()
         category = CategoryState()
         page = PageState()

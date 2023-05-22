@@ -12,52 +12,82 @@ struct ArchiveList: View {
 
     @EnvironmentObject var store: AppStore
 
+    @StateObject var archiveListModel = ArchiveListModel()
+
     init(archives: [ArchiveItem]) {
         self.archives = archives
     }
 
     var body: some View {
-        if useListView {
-            List {
-                sortPicker()
-                ForEach(processArchives()) { (item: ArchiveItem) in
-                    NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
-                        ArchiveRow(archiveItem: item)
-                    }
-                            .contextMenu {
-                                Button(action: {
-                                    store.dispatch(.trigger(action: .thumbnailRefreshAction(id: item.id)))
-                                }, label: {
-                                    Text("archive.reload.thumbnail")
-                                })
-                            }
-                }
-            }
-        } else {
-            let columns = [
-                GridItem(.adaptive(minimum: 160))
-            ]
-            ScrollView {
-                sortPicker()
-                        .padding([.trailing, .leading], 20)
-                Spacer(minLength: 30)
-                LazyVGrid(columns: columns, spacing: 20) {
-                    ForEach(processArchives()) { (item: ArchiveItem) in
+        Group {
+            if useListView {
+                List {
+                    sortPicker()
+                    ForEach(archiveListModel.sortedArchives) { (item: ArchiveItem) in
                         NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
-                            ArchiveGrid(archiveItem: item)
+                            ArchiveRow(archiveItem: item)
                         }
                                 .contextMenu {
-                                    Button(action: {
-                                        store.dispatch(.trigger(action: .thumbnailRefreshAction(id: item.id)))
-                                    }, label: {
-                                        Text("archive.reload.thumbnail")
-                                    })
+                                    contextMenu(id: item.id)
                                 }
                     }
                 }
-                        .padding(.horizontal)
+                        .listStyle(.grouped)
+            } else {
+                let columns = [
+                    GridItem(.adaptive(minimum: 160))
+                ]
+                ScrollView {
+                    sortPicker()
+                            .padding([.trailing, .leading], 20)
+                    Spacer(minLength: 30)
+                    LazyVGrid(columns: columns, spacing: 20) {
+                        ForEach(archiveListModel.sortedArchives) { (item: ArchiveItem) in
+                            NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
+                                ArchiveGrid(archiveItem: item)
+                            }
+                                    .contextMenu {
+                                        contextMenu(id: item.id)
+                                    }
+                        }
+                    }
+                            .padding(.horizontal)
+                }
             }
         }
+                .onChange(of: archives) { [archives] newArchives in
+                    if archives != newArchives {
+                        archiveListModel.processArchives(
+                                archives: newArchives, sortOrder: archiveListOrder, hideRead: hideRead
+                        )
+                    }
+                }
+                .onChange(of: archiveListOrder) { [archiveListOrder] newOrder in
+                    if archiveListOrder != newOrder {
+                        archiveListModel.processArchives(archives: archives, sortOrder: newOrder, hideRead: hideRead)
+                    }
+                }
+                .onChange(of: hideRead) { [hideRead] newHideRead in
+                    if hideRead != newHideRead {
+                        archiveListModel.processArchives(
+                                archives: archives, sortOrder: archiveListOrder, hideRead: newHideRead
+                        )
+                    }
+                }
+                .onAppear {
+                    archiveListModel.load(state: store.state)
+                }
+                .onDisappear {
+                    archiveListModel.unload()
+                }
+    }
+
+    private func contextMenu(id: String) -> some View {
+        Button(action: {
+            store.dispatch(.trigger(action: .thumbnailRefreshAction(id: id)))
+        }, label: {
+            Label("archive.reload.thumbnail", systemImage: "arrow.clockwise")
+        })
     }
 
     private func sortPicker() -> some View {
@@ -78,43 +108,6 @@ struct ArchiveList: View {
         }
     }
 
-    private func processArchives() -> [ArchiveItem] {
-        var archivesToProcess = archives
-        if archiveListOrder == ArchiveListOrder.name.rawValue {
-            archivesToProcess = archivesToProcess.sorted(by: { $0.name < $1.name })
-        } else if archiveListOrder == ArchiveListOrder.dateAdded.rawValue {
-            archivesToProcess = archivesToProcess.sorted { item, item2 in
-                let dateAdded1 = item.dateAdded
-                let dateAdded2 = item2.dateAdded
-                if dateAdded1 != nil && dateAdded2 != nil {
-                    return dateAdded1! > dateAdded2!
-                } else if dateAdded1 != nil {
-                    return true
-                } else if dateAdded2 != nil {
-                    return false
-                } else {
-                    return item.name < item2.name
-                }
-            }
-        } else if archiveListOrder == ArchiveListOrder.random.rawValue {
-            var generator = FixedRandomGenerator(seed: store.state.archive.randomOrderSeed)
-            archivesToProcess = archivesToProcess.shuffled(using: &generator)
-        }
-        if hideRead {
-            archivesToProcess = archivesToProcess.filter { item in
-                item.pagecount != item.progress
-            }
-        }
-        var seenId = Set<String>()
-        var distictArchives = [ArchiveItem]()
-        archivesToProcess.forEach { item in
-            if !seenId.contains(item.id) {
-                seenId.insert(item.id)
-                distictArchives.append(item)
-            }
-        }
-        return distictArchives
-    }
 }
 
 struct FixedRandomGenerator: RandomNumberGenerator {

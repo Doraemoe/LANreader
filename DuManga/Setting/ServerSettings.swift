@@ -5,7 +5,7 @@ struct ServerSettings: View {
 
     var body: some View {
         List {
-            NavigationLink(destination: LANraragiConfigView(notLoggedIn: Binding.constant(false))) {
+            NavigationLink(destination: LANraragiConfigView()) {
                 Text("settings.host.config")
             }
                     .padding()

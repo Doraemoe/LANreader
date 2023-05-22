@@ -20,8 +20,6 @@ class ThumbnailImageModel: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
 
     func load(state: AppState) {
-        reloadThumbnailId = state.trigger.thumbnailId
-
         state.trigger.$thumbnailId.receive(on: DispatchQueue.main)
                 .assign(to: \.reloadThumbnailId, on: self)
                 .store(in: &cancellables)
