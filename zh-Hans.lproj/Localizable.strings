@@ -1,4 +1,5 @@
 "library" = "库";
+"history" = "历史记录";
 "category" = "类别";
 "search" = "搜索";
 "settings" = "设置";
@@ -61,6 +62,7 @@
 "archive.delete" = "删除文档";
 "archive.delete.confirm" = "确定要删除此文档吗？";
 "archive.reload.thumbnail" = "刷新封面";
+"archive.read.fromStart" = "从头开始阅读";
 
 "category.edit" = "编辑类别";
 "category.name" = "类别名";
@@ -78,6 +80,7 @@
 "error.archive.delete" = "删除文档失败，请重试";
 "error.download.url" = "无法识别的下载链接";
 "error.download.queue" = "添加下载任务失败，请重试";
+"error.history.title" = "获取历史记录失败";
 
 "lock.label.new" = "输入新密码";
 "lock.label.verify" = "确认新密码";

@@ -45,6 +45,18 @@ struct DownloadJob: Identifiable, Equatable {
     var lastUpdate: Date
 }
 
+struct History: Identifiable, Equatable {
+    var id: String
+    var lastUpdate: Date
+}
+
+struct HistoryArchive: Identifiable, Decodable, FetchableRecord {
+    var history: History
+    var archive: Archive
+
+    var id: String { self.history.id }
+}
+
 extension Archive: Codable, FetchableRecord, MutablePersistableRecord {
     fileprivate enum Columns {
         static let id = Column(CodingKeys.id)
@@ -111,6 +123,17 @@ extension DownloadJob: Codable, FetchableRecord, MutablePersistableRecord {
         static let isSuccess = Column(CodingKeys.isSuccess)
         static let isError = Column(CodingKeys.isError)
         static let message = Column(CodingKeys.message)
+        static let lastUpdate = Column(CodingKeys.lastUpdate)
+    }
+}
+
+extension History: Codable, FetchableRecord, MutablePersistableRecord {
+    static let archive = belongsTo(Archive.self)
+    var archive: QueryInterfaceRequest<Archive> {
+            request(for: History.archive)
+        }
+    fileprivate enum Columns {
+        static let id = Column(CodingKeys.id)
         static let lastUpdate = Column(CodingKeys.lastUpdate)
     }
 }

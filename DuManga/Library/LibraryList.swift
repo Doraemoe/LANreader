@@ -47,6 +47,16 @@ struct LibraryList: View {
                                 libraryListModel.isPullToRefresh = false
                             }
                         }
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                NavigationLink {
+                                    HistoryList()
+                                } label: {
+                                    Image(systemName: "clock.arrow.circlepath")
+                                }
+
+                            }
+                        }
                         .searchable(text: $libraryListModel.searchText, prompt: "filter.name")
                 if libraryListModel.loading && !libraryListModel.isPullToRefresh {
                     LoadingView(geometry: geometry)

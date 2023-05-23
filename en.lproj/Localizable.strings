@@ -1,4 +1,5 @@
 "library" = "Library";
+"history" = "History";
 "category" = "Category";
 "search" = "Search";
 "settings" = "Settings";
@@ -58,6 +59,7 @@
 "archive.delete" = "Delete archive";
 "archive.delete.confirm" = "Are you sure you want to delete this?";
 "archive.reload.thumbnail" = "Reload thumbnail";
+"archive.read.fromStart" = "Read from beginning";
 
 "settings.debug" = "Debug";
 "settings.debug.log" = "Application log";
@@ -78,6 +80,7 @@
 "error.archive.delete" = "Failed to delete archives, please retry.";
 "error.download.url" = "Invalid download url.";
 "error.download.queue" = "Failed to queue the download job, please retry.";
+"error.history.title" = "Failed to load history";
 
 "lock.label.new" = "Enter New Passcode";
 "lock.label.verify" = "Confirm Passcode";
