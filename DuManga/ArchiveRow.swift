@@ -12,15 +12,17 @@ struct ArchiveRow: View {
                 .frame(width: 100, height: 125)
             Text(archiveItem.name)
                 .font(.title)
+                .badge(buildBadge())
             Spacer()
         }
     }
-}
 
-struct ArchiveRow_Previews: PreviewProvider {
-    static var previews: some View {
-        ArchiveRow(archiveItem: ArchiveItem(id: "id", name: "name", tags: "tags",
-                isNew: true, progress: 0, pagecount: 10, dateAdded: 1234))
-        .previewLayout(.fixed(width: 600, height: 125))
+    private func buildBadge() -> String? {
+        if archiveItem.pagecount == archiveItem.progress {
+            return "👑"
+        } else if archiveItem.progress < 2 {
+            return "🆕"
+        }
+        return nil
     }
 }

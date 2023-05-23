@@ -23,8 +23,8 @@ class ArchivePageModelV2: ObservableObject {
 
     private var cancellables: Set<AnyCancellable> = []
 
-    func load(state: AppState, progress: Int) {
-        if currentIndex == 0 {
+    func load(state: AppState, progress: Int, startFromBeginning: Bool) {
+        if currentIndex == 0 && !startFromBeginning {
             currentIndex = progress
         }
 

@@ -36,9 +36,11 @@ struct ArchivePageV2: View {
     @State private var prefetchRequested = false
 
     let archiveItem: ArchiveItem
+    let startFromBeginning: Bool
 
-    init(archiveItem: ArchiveItem) {
+    init(archiveItem: ArchiveItem, startFromBeginning: Bool = false) {
         self.archiveItem = archiveItem
+        self.startFromBeginning = startFromBeginning
     }
 
     var body: some View {
@@ -84,8 +86,11 @@ struct ArchivePageV2: View {
                         }
                     }
                     .onAppear(perform: {
-                        archivePageModel.load(state: store.state,
-                                progress: archiveItem.progress > 0 ? archiveItem.progress - 1 : 0)
+                        archivePageModel.load(
+                            state: store.state,
+                            progress: archiveItem.progress > 0 ? archiveItem.progress - 1 : 0,
+                            startFromBeginning: startFromBeginning
+                        )
                         archivePageModel.addToHistory(id: archiveItem.id)
                     })
                     .onChange(of: archivePageModel.archiveItems) { _ in

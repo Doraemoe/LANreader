@@ -7,7 +7,7 @@ struct ArchiveGrid: View {
 
     var body: some View {
         VStack(alignment: HorizontalAlignment.center, spacing: 2) {
-            Text(archiveItem.name)
+            Text(buildTitle())
                     .frame(width: 130)
                     .lineLimit(1)
                     .foregroundColor(.primary)
@@ -22,12 +22,14 @@ struct ArchiveGrid: View {
                                 .frame(width: 160, height: 230, alignment: .center)
                 )
     }
-}
 
-struct ArchiveGrid_Previews: PreviewProvider {
-    static var previews: some View {
-        ArchiveGrid(archiveItem: ArchiveItem(id: "id", name: "name", tags: "tags",
-                isNew: true, progress: 0, pagecount: 10, dateAdded: 1234))
-                .previewLayout(.fixed(width: 200, height: 280))
+    func buildTitle() -> String {
+        var title = archiveItem.name
+        if archiveItem.pagecount == archiveItem.progress {
+            title = "👑 " + title
+        } else if archiveItem.progress < 2 {
+            title = "🆕 " + title
+        }
+        return title
     }
 }

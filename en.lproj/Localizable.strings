@@ -59,6 +59,7 @@
 "archive.delete" = "Delete archive";
 "archive.delete.confirm" = "Are you sure you want to delete this?";
 "archive.reload.thumbnail" = "Reload thumbnail";
+"archive.read.fromStart" = "Read from beginning";
 
 "settings.debug" = "Debug";
 "settings.debug.log" = "Application log";

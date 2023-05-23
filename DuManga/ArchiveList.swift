@@ -32,7 +32,7 @@ struct ArchiveList: View {
                             ArchiveRow(archiveItem: item)
                         }
                                 .contextMenu {
-                                    contextMenu(id: item.id)
+                                    contextMenu(item: item)
                                 }
                     }
                 }
@@ -53,7 +53,7 @@ struct ArchiveList: View {
                                 ArchiveGrid(archiveItem: item)
                             }
                                     .contextMenu {
-                                        contextMenu(id: item.id)
+                                        contextMenu(item: item)
                                     }
                         }
                     }
@@ -99,12 +99,19 @@ struct ArchiveList: View {
                 }
     }
 
-    private func contextMenu(id: String) -> some View {
-        Button(action: {
-            store.dispatch(.trigger(action: .thumbnailRefreshAction(id: id)))
-        }, label: {
-            Label("archive.reload.thumbnail", systemImage: "arrow.clockwise")
-        })
+    private func contextMenu(item: ArchiveItem) -> some View {
+        Group {
+            NavigationLink {
+                ArchivePageV2(archiveItem: item, startFromBeginning: true)
+            } label: {
+                Label("archive.read.fromStart", systemImage: "arrow.left.to.line.compact")
+            }
+            Button(action: {
+                store.dispatch(.trigger(action: .thumbnailRefreshAction(id: item.id)))
+            }, label: {
+                Label("archive.reload.thumbnail", systemImage: "arrow.clockwise")
+            })
+        }
     }
 
     private func sortPicker() -> some View {
