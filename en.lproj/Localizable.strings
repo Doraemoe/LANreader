@@ -1,4 +1,5 @@
 "library" = "Library";
+"history" = "History";
 "category" = "Category";
 "search" = "Search";
 "settings" = "Settings";
@@ -78,6 +79,7 @@
 "error.archive.delete" = "Failed to delete archives, please retry.";
 "error.download.url" = "Invalid download url.";
 "error.download.queue" = "Failed to queue the download job, please retry.";
+"error.history.title" = "Failed to load history";
 
 "lock.label.new" = "Enter New Passcode";
 "lock.label.verify" = "Confirm Passcode";

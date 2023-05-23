@@ -69,6 +69,13 @@ struct AppDatabase {
             }
         }
 
+        migrator.registerMigration("history") { database in
+            try database.create(table: "history", body: { table in
+                table.column("id", .text).primaryKey().references("archive", column: "id", onDelete: .cascade)
+                table.column("lastUpdate", .datetime)
+            })
+        }
+
         return migrator
     }
 
@@ -195,6 +202,21 @@ extension AppDatabase {
         try dbWriter.write({ database in
             try DownloadJob.deleteOne(database, key: id)
         })
+    }
+
+    func saveHistory(_ history: inout History) throws {
+        try dbWriter.write { database in
+            try history.save(database)
+        }
+    }
+
+    func readAllArchiveHistory() throws -> [HistoryArchive] {
+        try dbWriter.read { database in
+            try History.including(required: History.archive)
+                .order(Column("lastUpdate").desc)
+                .asRequest(of: HistoryArchive.self)
+                .fetchAll(database)
+        }
     }
 
     func databaseSize() throws -> Int? {

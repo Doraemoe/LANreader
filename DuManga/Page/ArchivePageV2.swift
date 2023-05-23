@@ -86,6 +86,7 @@ struct ArchivePageV2: View {
                     .onAppear(perform: {
                         archivePageModel.load(state: store.state,
                                 progress: archiveItem.progress > 0 ? archiveItem.progress - 1 : 0)
+                        archivePageModel.addToHistory(id: archiveItem.id)
                     })
                     .onChange(of: archivePageModel.archiveItems) { _ in
                         if !archivePageModel.verifyArchiveExists(id: archiveItem.id) {

@@ -19,7 +19,11 @@ class ArchiveListModel: ObservableObject {
         cancellables.forEach({ $0.cancel() })
     }
 
-    func processArchives(archives: [ArchiveItem], sortOrder: String, hideRead: Bool) {
+    func processArchives(archives: [ArchiveItem], sortOrder: String, hideRead: Bool, sortArchives: Bool) {
+        if !sortArchives {
+            sortedArchives = archives
+            return
+        }
         var archivesToProcess = archives
         if sortOrder == ArchiveListOrder.name.rawValue {
             archivesToProcess = archivesToProcess.sorted(by: { $0.name < $1.name })

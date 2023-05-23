@@ -101,6 +101,8 @@
 		E98B8B902A0BA9D1004CBBC0 /* UploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E98B8B8F2A0BA9D1004CBBC0 /* UploadView.swift */; };
 		E9BE57B22942CFEC00A3AEA0 /* LockScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */; };
 		E9BE57B42942F1AB00A3AEA0 /* LockScreenModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BE57B32942F1AB00A3AEA0 /* LockScreenModel.swift */; };
+		E9C73DC42A1C5F4900EFDD81 /* HistoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C73DC32A1C5F4900EFDD81 /* HistoryList.swift */; };
+		E9C73DC72A1C6F2F00EFDD81 /* HistoryListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C73DC62A1C6F2F00EFDD81 /* HistoryListModel.swift */; };
 		E9E3631426F463F800C58D01 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CD024F1390400617F4A /* Alamofire */; };
 		E9E3631626F463F800C58D01 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE124F15F1800617F4A /* Logging */; };
 		E9E3631726F463F800C58D01 /* NotificationBannerSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D7A6842250239750051F232 /* NotificationBannerSwift */; };
@@ -243,6 +245,8 @@
 		E98B8B8F2A0BA9D1004CBBC0 /* UploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadView.swift; sourceTree = "<group>"; };
 		E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreen.swift; path = DuMangaTests/Resources/LockScreen.swift; sourceTree = SOURCE_ROOT; };
 		E9BE57B32942F1AB00A3AEA0 /* LockScreenModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreenModel.swift; path = DuMangaTests/Resources/LockScreenModel.swift; sourceTree = SOURCE_ROOT; };
+		E9C73DC32A1C5F4900EFDD81 /* HistoryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryList.swift; sourceTree = "<group>"; };
+		E9C73DC62A1C6F2F00EFDD81 /* HistoryListModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryListModel.swift; sourceTree = "<group>"; };
 		E9E3631E26F471E400C58D01 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -330,6 +334,8 @@
 				4BD82139F51916878474B349 /* LibraryList.swift */,
 				4BD827FF18A6F189F4DE5B30 /* LibraryListModel.swift */,
 				6DA71735AB962F282C638D4B /* ArchiveTrigger.swift */,
+				E9C73DC32A1C5F4900EFDD81 /* HistoryList.swift */,
+				E9C73DC62A1C6F2F00EFDD81 /* HistoryListModel.swift */,
 			);
 			path = Library;
 			sourceTree = "<group>";
@@ -338,7 +344,8 @@
 			isa = PBXGroup;
 			children = (
 			);
-			path = Middleware;
+			name = Middleware;
+			path = ../Middleware;
 			sourceTree = "<group>";
 		};
 		4BD824C107853A5BC514F2AD /* Page */ = {
@@ -457,21 +464,15 @@
 		7D354C9E24F1316800617F4A /* DuManga */ = {
 			isa = PBXGroup;
 			children = (
+				E9C73DC52A1C61E600EFDD81 /* Redux */,
 				7DF7EA832564E64B003B5A5A /* Database */,
 				7D354D0324F2383A00617F4A /* Views */,
 				7D354CA524F1316D00617F4A /* Assets.xcassets */,
 				7D354CAA24F1316D00617F4A /* LaunchScreen.storyboard */,
 				7D354CAD24F1316D00617F4A /* Info.plist */,
 				7D354CA724F1316D00617F4A /* Preview Content */,
-				4BD8282BB69B4FE53D25FF04 /* State */,
-				4BD821B067FD0F12760B5D64 /* Action */,
-				4BD82062F9E0A730C1C4402D /* Reducer */,
 				4BD82228A995BCC00EDC8A0C /* Service */,
-				4BD824562009503E813A0D93 /* Middleware */,
 				4BD8260DA98B959BE0550327 /* Models */,
-				4BD82A7A1E34456CEE443689 /* Selector.swift */,
-				4BD828AA12AB6AEB96EB44BB /* Store.swift */,
-				7D3DFF15251777B200686612 /* DuMangaApp.swift */,
 			);
 			path = DuManga;
 			sourceTree = "<group>";
@@ -517,14 +518,16 @@
 		7D354D0324F2383A00617F4A /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				4BD8274F482337A2C904D45A /* Setting */,
-				4BD82C9AD1A1D57332A10917 /* Category */,
 				4BD826D5E1C22874FD2F7426 /* Common */,
-				4BD82694B57396B2CD6BACED /* ContentView.swift */,
-				4BD824C107853A5BC514F2AD /* Page */,
 				4BD8240793F86C42AF3383BB /* Library */,
+				4BD82C9AD1A1D57332A10917 /* Category */,
 				4BD82F8526B52356C24BC491 /* Search */,
+				4BD8274F482337A2C904D45A /* Setting */,
+				4BD824C107853A5BC514F2AD /* Page */,
+				4BD82A7A1E34456CEE443689 /* Selector.swift */,
+				4BD82694B57396B2CD6BACED /* ContentView.swift */,
 				4BD8258293EA80CD9CC32653 /* ContentViewModel.swift */,
+				7D3DFF15251777B200686612 /* DuMangaApp.swift */,
 			);
 			name = Views;
 			sourceTree = "<group>";
@@ -565,6 +568,18 @@
 				E98B8B7A2A0A7B68004CBBC0 /* Info.plist */,
 			);
 			path = Action;
+			sourceTree = "<group>";
+		};
+		E9C73DC52A1C61E600EFDD81 /* Redux */ = {
+			isa = PBXGroup;
+			children = (
+				4BD828AA12AB6AEB96EB44BB /* Store.swift */,
+				4BD8282BB69B4FE53D25FF04 /* State */,
+				4BD821B067FD0F12760B5D64 /* Action */,
+				4BD82062F9E0A730C1C4402D /* Reducer */,
+				4BD824562009503E813A0D93 /* Middleware */,
+			);
+			path = Redux;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -763,6 +778,7 @@
 				4BD826B795F6A120E216A272 /* CategoryReducer.swift in Sources */,
 				4BD823A4FE3B643E84113C5D /* ArchiveState.swift in Sources */,
 				E9BE57B22942CFEC00A3AEA0 /* LockScreen.swift in Sources */,
+				E9C73DC72A1C6F2F00EFDD81 /* HistoryListModel.swift in Sources */,
 				4BD8202CBB691F358BDDA9FE /* ArchiveReducer.swift in Sources */,
 				4BD82DB8FD68F4BE80E2B221 /* ArchiveAction.swift in Sources */,
 				4BD82D948032095FF807F54E /* Selector.swift in Sources */,
@@ -770,6 +786,7 @@
 				4BD82E53B1A77AFD992AAC25 /* ArchiveDetails.swift in Sources */,
 				4BD826672D530C0A98D313F7 /* ArchiveRow.swift in Sources */,
 				4BD8291EBA7A94EE9E8C2ACE /* ArchiveGrid.swift in Sources */,
+				E9C73DC42A1C5F4900EFDD81 /* HistoryList.swift in Sources */,
 				4BD826130BCE1AC291C7D6A1 /* EditCategoryModel.swift in Sources */,
 				4BD828F432CB9B8D26EEAB92 /* LANraragiConfigViewModel.swift in Sources */,
 				7D34EAE0253B050900695AFD /* ThumbnailImage.swift in Sources */,
@@ -998,7 +1015,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 43;
+				CURRENT_PROJECT_VERSION = 44;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -1009,7 +1026,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.7.1;
+				MARKETING_VERSION = 1.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1025,7 +1042,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 43;
+				CURRENT_PROJECT_VERSION = 44;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -1036,7 +1053,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.7.1;
+				MARKETING_VERSION = 1.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1050,6 +1067,8 @@
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				INFOPLIST_FILE = DuMangaTests/Info.plist;
@@ -1061,6 +1080,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuMangaTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DuManga.app/DuManga";
@@ -1072,6 +1092,8 @@
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				INFOPLIST_FILE = DuMangaTests/Info.plist;
@@ -1083,6 +1105,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuMangaTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DuManga.app/DuManga";
@@ -1096,7 +1119,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 43;
+				CURRENT_PROJECT_VERSION = 44;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1108,7 +1131,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.7.1;
+				MARKETING_VERSION = 1.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1125,7 +1148,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 43;
+				CURRENT_PROJECT_VERSION = 44;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1137,7 +1160,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.7.1;
+				MARKETING_VERSION = 1.8.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

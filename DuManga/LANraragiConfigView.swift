@@ -6,6 +6,8 @@ import NotificationBannerSwift
 struct LANraragiConfigView: View {
     @Environment(\.presentationMode) var presentationMode
 
+    @FocusState private var focused: Bool
+
     @StateObject var configModel = LANraragiConfigViewModel()
 
     var body: some View {
@@ -16,13 +18,16 @@ struct LANraragiConfigView: View {
                     .padding()
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .disableAutocorrection(true)
+                    .focused($focused)
             SecureField("lanraragi.config.apiKey", text: self.$configModel.apiKey)
                     .padding()
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .focused($focused)
             Button(action: {
                 Task {
                     let result = await configModel.verifyAndSave()
                     if result {
+                        focused = false
                         presentationMode.wrappedValue.dismiss()
                     }
                 }

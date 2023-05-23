@@ -19,6 +19,7 @@ class ArchivePageModelV2: ObservableObject {
 
     private let service = LANraragiService.shared
     private let prefetch = PrefetchService.shared
+    private let database = AppDatabase.shared
 
     private var cancellables: Set<AnyCancellable> = []
 
@@ -74,5 +75,14 @@ class ArchivePageModelV2: ObservableObject {
 
     func clearNewFlag(id: String) async {
         _ = try? await service.clearNewFlag(id: id).value
+    }
+
+    func addToHistory(id: String) {
+        var history = History(id: id, lastUpdate: Date())
+        do {
+            try database.saveHistory(&history)
+        } catch {
+            print("\(error)")
+        }
     }
 }
