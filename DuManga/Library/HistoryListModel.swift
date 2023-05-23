@@ -17,7 +17,15 @@ class HistoryListModel: ObservableObject {
             let archives = history.map { item in
                 item.archive.toArchiveItem()
             }
-            self.archives = archives
+            if archives.count > 100 {
+                self.archives = Array(archives[..<100])
+                let extraIds = archives[100...].map { item in
+                    item.id
+                }
+                _ = try? database.deleteHistories(extraIds)
+            } else {
+                self.archives = archives
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
