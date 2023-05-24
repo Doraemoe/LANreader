@@ -93,14 +93,6 @@ struct ArchiveList: View {
                 }
                 .onAppear {
                     archiveListModel.load(state: store.state)
-                    if !archives.isEmpty && archiveListModel.sortedArchives.isEmpty {
-                        archiveListModel.processArchives(
-                            archives: archives,
-                            sortOrder: archiveListOrder,
-                            hideRead: hideRead,
-                            sortArchives: sortArchives
-                        )
-                    }
                 }
                 .onDisappear {
                     archiveListModel.unload()

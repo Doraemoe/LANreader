@@ -66,6 +66,7 @@ struct ArchiveDetails: View {
                         Task {
                             if await archiveDetailsModel.deleteArchive(id: item.id) {
                                 store.dispatch(.archive(action: .removeDeletedArchive(id: item.id)))
+                                store.dispatch(.trigger(action: .archiveDeleteAction(id: item.id)))
                                 presentationMode.wrappedValue.dismiss()
                             }
                         }

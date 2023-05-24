@@ -6,5 +6,7 @@ func triggerReducer(state: inout TriggerState, action: TriggerAction) {
         state.thumbnailId = id
     case let .pageRefreshAction(id):
         state.pageId = id
+    case let .archiveDeleteAction(id):
+        state.deletedArchiveId = id
     }
 }
