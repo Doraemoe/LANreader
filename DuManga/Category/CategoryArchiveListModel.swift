@@ -21,6 +21,8 @@ class CategoryArchiveListModel: ObservableObject {
     private var cancellable: Set<AnyCancellable> = []
 
     func load(state: AppState) {
+        archiveItems = state.archive.archiveItems
+
         state.archive.$archiveItems.receive(on: DispatchQueue.main)
                 .assign(to: \.archiveItems, on: self)
                 .store(in: &cancellable)

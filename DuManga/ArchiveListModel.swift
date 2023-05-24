@@ -3,19 +3,22 @@ import Combine
 
 class ArchiveListModel: ObservableObject {
 
-    @Published private(set) var randomSeed: UInt64 = 0
+    @Published private(set) var randomSeed: UInt64 = 1
 
     @Published var sortedArchives = [ArchiveItem]()
 
     private var cancellables: Set<AnyCancellable> = []
 
     func load(state: AppState) {
+        randomSeed = state.archive.randomOrderSeed
+
         state.archive.$randomOrderSeed.receive(on: DispatchQueue.main)
                 .assign(to: \.randomSeed, on: self)
                 .store(in: &cancellables)
     }
 
     func unload() {
+        sortedArchives = .init()
         cancellables.forEach({ $0.cancel() })
     }
 
