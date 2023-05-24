@@ -16,6 +16,10 @@ class LibraryListModel: ObservableObject {
     private var cancellable: Set<AnyCancellable> = []
 
     func load(state: AppState) {
+        loading = state.archive.loading
+        archiveItems = state.archive.archiveItems
+        errorCode = state.archive.errorCode
+
         state.archive.$loading.receive(on: DispatchQueue.main)
                 .assign(to: \.loading, on: self)
                 .store(in: &cancellable)

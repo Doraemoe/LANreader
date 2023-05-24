@@ -20,6 +20,8 @@ class PageImageModel: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
 
     func load(state: AppState) {
+        reloadPageId = state.trigger.pageId
+
         state.trigger.$pageId.receive(on: DispatchQueue.main)
                 .assign(to: \.reloadPageId, on: self)
                 .store(in: &cancellables)

@@ -17,6 +17,10 @@ class CategoryListModel: ObservableObject {
     private var cancellable: Set<AnyCancellable> = []
 
     func load(state: AppState) {
+        loading = state.category.loading
+        categoryItems = state.category.categoryItems
+        errorCode = state.category.errorCode
+
         state.category.$loading.receive(on: DispatchQueue.main)
                 .assign(to: \.loading, on: self)
                 .store(in: &cancellable)

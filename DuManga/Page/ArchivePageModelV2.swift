@@ -28,6 +28,11 @@ class ArchivePageModelV2: ObservableObject {
             currentIndex = progress
         }
 
+        loading = state.page.loading
+        archiveItems = state.archive.archiveItems
+        archivePages = state.page.archivePages
+        errorCode = state.page.errorCode
+
         state.page.$loading.receive(on: DispatchQueue.main)
                 .assign(to: \.loading, on: self)
                 .store(in: &cancellables)
