@@ -8,6 +8,7 @@ import NotificationBannerSwift
 import LocalAuthentication
 
 struct LockScreen: View {
+    @Environment(\.scenePhase) var scenePhase
 
     @StateObject var lockScreenModel = LockScreenModel()
 
@@ -25,10 +26,25 @@ struct LockScreen: View {
             }
             showPinStack
         }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active
+                && lockScreenModel.state == .normal
+                && !lockScreenModel.isAuthenticating
+                && !lockScreenModel.disableBiometricsAuth {
+                lockScreenModel.isAuthenticating = true
+                authenticate()
+                lockScreenModel.isAuthenticating = false
+            }
+        }
         .onAppear(perform: {
             lockScreenModel.state = initialState
-            if initialState == .normal || initialState == .remove {
+            if scenePhase == .active
+                && lockScreenModel.state == .normal
+                && !lockScreenModel.isAuthenticating
+                && !lockScreenModel.disableBiometricsAuth {
+                lockScreenModel.isAuthenticating = true
                 authenticate()
+                lockScreenModel.isAuthenticating = false
             }
         })
         .onDisappear(perform: {
@@ -147,6 +163,7 @@ struct LockScreen: View {
                     }
                 } else {
                     // there was a problem
+                    lockScreenModel.disableBiometricsAuth = true
                 }
             }
         } else {

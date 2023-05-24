@@ -11,6 +11,9 @@ class LockScreenModel: ObservableObject {
     @Published var isDisabled = false
     @Published var state = LockScreenState.normal
 
+    var disableBiometricsAuth = false
+    var isAuthenticating = false
+
     func switchToVerify() {
         state = .verify
         pin = ""
@@ -33,6 +36,7 @@ class LockScreenModel: ObservableObject {
         showPin = false
         isDisabled = false
         state = .normal
+        disableBiometricsAuth = false
     }
 }
 
