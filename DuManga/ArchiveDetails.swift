@@ -21,103 +21,106 @@ struct ArchiveDetails: View {
     }
 
     var body: some View {
-        VStack {
+        ScrollView {
             if editMode == .active {
-                TextField("", text: $archiveDetailsModel.title)
-                        .textFieldStyle(.roundedBorder)
-                        .padding()
+                TextField("", text: $archiveDetailsModel.title, axis: .vertical)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .textFieldStyle(.roundedBorder)
+                    .padding()
             } else {
                 Text(archiveDetailsModel.title)
-                        .textFieldStyle(.roundedBorder)
-                        .padding()
+                    .textFieldStyle(.roundedBorder)
+                    .textSelection(.enabled)
+                    .padding()
             }
             ThumbnailImage(id: item.id)
-                    .scaledToFit()
-                    .padding()
-                    .frame(width: 200, height: 250)
+                .scaledToFit()
+                .padding()
+                .frame(width: 200, height: 250)
             if editMode == .active {
-                TextEditor(text: $archiveDetailsModel.tags)
-                        .border(Color.secondary, width: 2)
-                        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: 200, alignment: .center)
-                        .disableAutocorrection(true)
-                        .padding()
+                TextField("", text: $archiveDetailsModel.tags, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .textInputAutocapitalization(.never)
+                    .disableAutocorrection(true)
+                    .padding()
             } else {
                 WrappingHStack(models: archiveDetailsModel.tags.split(separator: ","), viewGenerator: { tag in
                     parseTag(tag: String(tag))
-                            .padding()
-                            .controlSize(.mini)
-                            .foregroundColor(.white)
-                            .background(.blue)
-                            .clipShape(Capsule())
+                        .padding()
+                        .controlSize(.mini)
+                        .foregroundColor(.white)
+                        .background(.blue)
+                        .clipShape(Capsule())
                 })
             }
-            Button(action: { showingAlert = true },
+            if editMode != .active {
+                Button(
+                    role: .destructive,
+                    action: { showingAlert = true },
                     label: {
                         Text("archive.delete")
                     })
-                    .disabled(archiveDetailsModel.loading)
-                    .padding()
-                    .foregroundColor(.white)
-                    .background(Color.red)
-                    .cornerRadius(20)
-                    .alert(isPresented: $showingAlert) {
-                        Alert(
-                                title: Text("archive.delete.confirm"),
-                                primaryButton: .destructive(Text("delete")) {
-                                    Task {
-                                        if await archiveDetailsModel.deleteArchive(id: item.id) {
-                                            store.dispatch(.archive(action: .removeDeletedArchive(id: item.id)))
-                                            presentationMode.wrappedValue.dismiss()
-                                        }
-                                    }
-                                },
-                                secondaryButton: .cancel()
-                        )
-                    }
-            Spacer()
-        }
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        EditButton()
-                                .disabled(archiveDetailsModel.loading)
-                    }
-                }
-                .environment(\.editMode, $editMode)
-                .onAppear(perform: {
-                    archiveDetailsModel.load(title: item.name, tags: item.tags)
-                })
-                .onDisappear(perform: {
-                    archiveDetailsModel.reset()
-                })
-                .onChange(of: editMode) { [editMode] newMode in
-                    if editMode == .active && newMode == .inactive {
-                        let updated = ArchiveItem(
-                                id: item.id,
-                                name: archiveDetailsModel.title,
-                                tags: archiveDetailsModel.tags,
-                                isNew: item.isNew,
-                                progress: item.progress,
-                                pagecount: item.pagecount,
-                                dateAdded: item.dateAdded
-                        )
+                .alert("archive.delete.confirm", isPresented: $showingAlert) {
+                    Button("delete", role: .destructive) {
                         Task {
-                            if await archiveDetailsModel.updateArchive(archive: updated) {
-                                store.dispatch(.archive(action: .updateArchive(archive: updated)))
-                                archiveDetailsModel.title = updated.name
-                                archiveDetailsModel.tags = updated.tags
+                            if await archiveDetailsModel.deleteArchive(id: item.id) {
+                                store.dispatch(.archive(action: .removeDeletedArchive(id: item.id)))
+                                presentationMode.wrappedValue.dismiss()
                             }
                         }
                     }
+                    Button("cancel", role: .cancel) { }
                 }
-                .onChange(of: archiveDetailsModel.isError, perform: { isError in
-                    if isError {
-                        let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                                subtitle: archiveDetailsModel.errorMessage,
-                                style: .danger)
-                        banner.show()
-                        archiveDetailsModel.reset()
+                .padding()
+                .background(.red)
+                .foregroundColor(.white)
+                .clipShape(Capsule())
+                .disabled(archiveDetailsModel.loading)
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                EditButton()
+                    .disabled(archiveDetailsModel.loading)
+            }
+        }
+        .environment(\.editMode, $editMode)
+        .onAppear(perform: {
+            archiveDetailsModel.load(title: item.name, tags: item.tags)
+        })
+        .onDisappear(perform: {
+            archiveDetailsModel.reset()
+        })
+        .onChange(of: editMode) { [editMode] newMode in
+            if editMode == .active && newMode == .inactive {
+                let updated = ArchiveItem(
+                    id: item.id,
+                    name: archiveDetailsModel.title,
+                    tags: archiveDetailsModel.tags,
+                    isNew: item.isNew,
+                    progress: item.progress,
+                    pagecount: item.pagecount,
+                    dateAdded: item.dateAdded
+                )
+                Task {
+                    if await archiveDetailsModel.updateArchive(archive: updated) {
+                        store.dispatch(.archive(action: .updateArchive(archive: updated)))
+                        archiveDetailsModel.title = updated.name
+                        archiveDetailsModel.tags = updated.tags
                     }
-                })
+                }
+            }
+        }
+        .onChange(of: archiveDetailsModel.isError, perform: { isError in
+            if isError {
+                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                                                subtitle: archiveDetailsModel.errorMessage,
+                                                style: .danger)
+                banner.show()
+                archiveDetailsModel.reset()
+            }
+        })
     }
 
     private func parseTag(tag: String) -> some View {

@@ -79,10 +79,6 @@ class ArchivePageModelV2: ObservableObject {
 
     func addToHistory(id: String) {
         var history = History(id: id, lastUpdate: Date())
-        do {
-            try database.saveHistory(&history)
-        } catch {
-            print("\(error)")
-        }
+        try? database.saveHistory(&history)
     }
 }

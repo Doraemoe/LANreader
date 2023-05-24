@@ -13,6 +13,8 @@ struct DuMangaApp: App {
 
     @State var lock = false
 
+    private let noAnimationTransaction: Transaction
+
     init() {
         do {
             if let tmp = try? FileManager.default.contentsOfDirectory(
@@ -48,6 +50,10 @@ struct DuMangaApp: App {
         } catch {
             fatalError("Unresolved error \(error)")
         }
+
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        self.noAnimationTransaction = transaction
     }
 
     let store = AppStore(initialState: .init(), reducer: appReducer, middlewares: [])
@@ -65,22 +71,27 @@ struct DuMangaApp: App {
                     }
                 }
                         .environmentObject(store)
-                        .fullScreenCover(isPresented: $lock.animation(nil)) {
+                        .fullScreenCover(isPresented: $lock) {
                             LockScreen(initialState: LockScreenState.normal,
                                     storedPasscode: storedPasscode) { passcode, _, act in
                                 if passcode == storedPasscode {
-                                    lock = false
                                     act(true)
+                                    lock = false
                                 } else {
                                     act(false)
                                 }
                             }
                         }
+                        .onAppear {
+                            if !storedPasscode.isEmpty {
+                                withTransaction(self.noAnimationTransaction) {
+                                    lock = true
+                                }
+                            }
+                        }
                         .onChange(of: scenePhase) { newPhase in
-                            if !storedPasscode.isEmpty && newPhase == .inactive {
-                                var transaction = Transaction()
-                                transaction.disablesAnimations = true
-                                withTransaction(transaction) {
+                            if !storedPasscode.isEmpty && newPhase != .active && !lock {
+                                withTransaction(self.noAnimationTransaction) {
                                     lock = true
                                 }
                             }
