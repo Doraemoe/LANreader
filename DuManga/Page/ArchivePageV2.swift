@@ -33,7 +33,6 @@ struct ArchivePageV2: View {
     @StateObject private var archivePageModel = ArchivePageModelV2()
 
     @State private var verticalScrollTarget: Int?
-    @State private var prefetchRequested = false
 
     let archiveItem: ArchiveItem
     let startFromBeginning: Bool
@@ -93,11 +92,12 @@ struct ArchivePageV2: View {
                         )
                         archivePageModel.addToHistory(id: archiveItem.id)
                     })
-                    .onChange(of: archivePageModel.archiveItems) { _ in
-                        if !archivePageModel.verifyArchiveExists(id: archiveItem.id) {
+                    .onChange(of: archivePageModel.deletedArchiveId, perform: { deletedArchiveId in
+                        if archiveItem.id == deletedArchiveId {
+                            store.dispatch(.trigger(action: .archiveDeleteAction(id: "")))
                             presentationMode.wrappedValue.dismiss()
                         }
-                    }
+                    })
                     .onChange(of: archivePageModel.errorCode) { errorCode in
                         if errorCode != nil {
                             switch errorCode! {
@@ -236,7 +236,7 @@ struct ArchivePageV2: View {
     private func onIndexChange(index: Int) async {
         await store.dispatch(updateReadProgress(
                 id: archiveItem.id, progress: index + 1))
-        if index == (archivePageModel.archiveItems[archiveItem.id]?.pagecount ?? 0) - 1 {
+        if index == archiveItem.pagecount - 1 {
             await archivePageModel.clearNewFlag(id: archiveItem.id)
         }
     }

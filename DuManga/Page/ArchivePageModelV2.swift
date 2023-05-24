@@ -11,9 +11,9 @@ class ArchivePageModelV2: ObservableObject {
     @Published var sliderIndex: Double = 0.0
 
     @Published private(set) var loading = false
-    @Published private(set) var archiveItems = [String: ArchiveItem]()
     @Published private(set) var archivePages = [String: [String]]()
     @Published private(set) var errorCode: ErrorCode?
+    @Published private(set) var deletedArchiveId = ""
 
     var verticalReaderReady = false
 
@@ -29,33 +29,29 @@ class ArchivePageModelV2: ObservableObject {
         }
 
         loading = state.page.loading
-        archiveItems = state.archive.archiveItems
         archivePages = state.page.archivePages
         errorCode = state.page.errorCode
+        deletedArchiveId = state.trigger.deletedArchiveId
 
         state.page.$loading.receive(on: DispatchQueue.main)
-                .assign(to: \.loading, on: self)
-                .store(in: &cancellables)
-
-        state.archive.$archiveItems.receive(on: DispatchQueue.main)
-                .assign(to: \.archiveItems, on: self)
-                .store(in: &cancellables)
+            .assign(to: \.loading, on: self)
+            .store(in: &cancellables)
 
         state.page.$archivePages.receive(on: DispatchQueue.main)
-                .assign(to: \.archivePages, on: self)
-                .store(in: &cancellables)
+            .assign(to: \.archivePages, on: self)
+            .store(in: &cancellables)
 
         state.page.$errorCode.receive(on: DispatchQueue.main)
-                .assign(to: \.errorCode, on: self)
-                .store(in: &cancellables)
+            .assign(to: \.errorCode, on: self)
+            .store(in: &cancellables)
+
+        state.trigger.$deletedArchiveId.receive(on: DispatchQueue.main)
+            .assign(to: \.deletedArchiveId, on: self)
+            .store(in: &cancellables)
     }
 
     func unload() {
         cancellables.forEach({ $0.cancel() })
-    }
-
-    func verifyArchiveExists(id: String) -> Bool {
-        archiveItems[id] != nil
     }
 
     func prefetchImages(ids: [String]) {

@@ -18,7 +18,6 @@ class ArchiveListModel: ObservableObject {
     }
 
     func unload() {
-        sortedArchives = .init()
         cancellables.forEach({ $0.cancel() })
     }
 
