@@ -19,6 +19,15 @@
       }
     },
     {
+      "identity" : "grdbquery",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/groue/GRDBQuery",
+      "state" : {
+        "revision" : "be64298b4f9d70510226fa7e698aef84f41cec02",
+        "version" : "0.7.0"
+      }
+    },
+    {
       "identity" : "marqueelabel",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/cbpowell/MarqueeLabel",

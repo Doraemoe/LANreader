@@ -1,21 +1,26 @@
 // Created 17/10/20
 
 import SwiftUI
+import GRDBQuery
 
 struct ThumbnailImage: View {
     @StateObject private var imageModel = ThumbnailImageModel()
 
     @EnvironmentObject var store: AppStore
 
+    @Query<ArchiveThumbnailRequest>
+    private var archiveThumbnail: ArchiveThumbnail?
+
     private let id: String
 
     init(id: String) {
         self.id = id
+        _archiveThumbnail = Query(ArchiveThumbnailRequest(id: id))
     }
 
     var body: some View {
         Group {
-            if let imageData = imageModel.checkImageData(id: id) {
+            if let imageData = archiveThumbnail?.thumbnail {
                 Image(uiImage: UIImage(data: imageData)!)
                         .resizable()
             } else {

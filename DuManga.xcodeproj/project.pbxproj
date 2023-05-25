@@ -99,6 +99,8 @@
 		E98B8B872A0A7F33004CBBC0 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = E98B8B892A0A7F33004CBBC0 /* InfoPlist.strings */; };
 		E98B8B8E2A0B12F3004CBBC0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E98B8B8D2A0B12F3004CBBC0 /* Assets.xcassets */; };
 		E98B8B902A0BA9D1004CBBC0 /* UploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E98B8B8F2A0BA9D1004CBBC0 /* UploadView.swift */; };
+		E9A61FB12A1F1F2600391FCE /* GRDBQuery in Frameworks */ = {isa = PBXBuildFile; productRef = E9A61FB02A1F1F2600391FCE /* GRDBQuery */; };
+		E9A61FB32A1F243100391FCE /* Query.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A61FB22A1F243100391FCE /* Query.swift */; };
 		E9BE57B22942CFEC00A3AEA0 /* LockScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */; };
 		E9BE57B42942F1AB00A3AEA0 /* LockScreenModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BE57B32942F1AB00A3AEA0 /* LockScreenModel.swift */; };
 		E9C73DC42A1C5F4900EFDD81 /* HistoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C73DC32A1C5F4900EFDD81 /* HistoryList.swift */; };
@@ -243,6 +245,7 @@
 		E98B8B8A2A0A7F39004CBBC0 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		E98B8B8D2A0B12F3004CBBC0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E98B8B8F2A0BA9D1004CBBC0 /* UploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadView.swift; sourceTree = "<group>"; };
+		E9A61FB22A1F243100391FCE /* Query.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Query.swift; sourceTree = "<group>"; };
 		E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreen.swift; path = DuMangaTests/Resources/LockScreen.swift; sourceTree = SOURCE_ROOT; };
 		E9BE57B32942F1AB00A3AEA0 /* LockScreenModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreenModel.swift; path = DuMangaTests/Resources/LockScreenModel.swift; sourceTree = SOURCE_ROOT; };
 		E9C73DC32A1C5F4900EFDD81 /* HistoryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryList.swift; sourceTree = "<group>"; };
@@ -257,6 +260,7 @@
 			files = (
 				E9E3631626F463F800C58D01 /* Logging in Frameworks */,
 				E9E3631826F463F800C58D01 /* GRDB in Frameworks */,
+				E9A61FB12A1F1F2600391FCE /* GRDBQuery in Frameworks */,
 				E9E3631726F463F800C58D01 /* NotificationBannerSwift in Frameworks */,
 				E90576BF29F8C10700C3CE3F /* Puppy in Frameworks */,
 				E9E3631426F463F800C58D01 /* Alamofire in Frameworks */,
@@ -546,6 +550,7 @@
 				7DF7EA732564E1D2003B5A5A /* AppDatabase.swift */,
 				7DF7EA7E2564E5D1003B5A5A /* Persistence.swift */,
 				7DF7EA842564E675003B5A5A /* Record.swift */,
+				E9A61FB22A1F243100391FCE /* Query.swift */,
 			);
 			path = Database;
 			sourceTree = "<group>";
@@ -606,6 +611,7 @@
 				7D7A6842250239750051F232 /* NotificationBannerSwift */,
 				7DF7EA792564E264003B5A5A /* GRDB */,
 				E90576BE29F8C10700C3CE3F /* Puppy */,
+				E9A61FB02A1F1F2600391FCE /* GRDBQuery */,
 			);
 			productName = DuManga;
 			productReference = 7D354C9C24F1316800617F4A /* DuManga.app */;
@@ -689,6 +695,7 @@
 				7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */,
 				7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */,
 				E90576BD29F8C10700C3CE3F /* XCRemoteSwiftPackageReference "Puppy" */,
+				E9A61FAF2A1F1F2600391FCE /* XCRemoteSwiftPackageReference "GRDBQuery" */,
 			);
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
 			projectDirPath = "";
@@ -801,6 +808,7 @@
 				4BD822795ACE4090322B4F9F /* ArchiveList.swift in Sources */,
 				7DE399892578FB34003DC5F7 /* DatabaseSettings.swift in Sources */,
 				4BD822BA58A9F4C0B7EB8F85 /* ContentViewModel.swift in Sources */,
+				E9A61FB32A1F243100391FCE /* Query.swift in Sources */,
 				7DF7EA7F2564E5D1003B5A5A /* Persistence.swift in Sources */,
 				6DA7132C750DC84C5D4618F3 /* PageImage.swift in Sources */,
 				6DA71B2D585BA490A9265AA7 /* PageImageModel.swift in Sources */,
@@ -1015,7 +1023,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 47;
+				CURRENT_PROJECT_VERSION = 48;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -1026,7 +1034,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.8.3;
+				MARKETING_VERSION = 1.8.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1042,7 +1050,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 47;
+				CURRENT_PROJECT_VERSION = 48;
 				DEVELOPMENT_ASSET_PATHS = "\"DuManga/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -1053,7 +1061,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.8.3;
+				MARKETING_VERSION = 1.8.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1119,7 +1127,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 47;
+				CURRENT_PROJECT_VERSION = 48;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1131,7 +1139,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.8.3;
+				MARKETING_VERSION = 1.8.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1148,7 +1156,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 47;
+				CURRENT_PROJECT_VERSION = 48;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1160,7 +1168,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.8.3;
+				MARKETING_VERSION = 1.8.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.DuManga.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1260,6 +1268,14 @@
 				minimumVersion = 0.7.0;
 			};
 		};
+		E9A61FAF2A1F1F2600391FCE /* XCRemoteSwiftPackageReference "GRDBQuery" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDBQuery";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.7.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1292,6 +1308,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E90576BD29F8C10700C3CE3F /* XCRemoteSwiftPackageReference "Puppy" */;
 			productName = Puppy;
+		};
+		E9A61FB02A1F1F2600391FCE /* GRDBQuery */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E9A61FAF2A1F1F2600391FCE /* XCRemoteSwiftPackageReference "GRDBQuery" */;
+			productName = GRDBQuery;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

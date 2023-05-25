@@ -14,6 +14,7 @@ struct ArchiveGrid: View {
             ThumbnailImage(id: archiveItem.id)
                     .scaledToFit()
                     .frame(width: 160, height: 200)
+                    .queryObservation(.onRender)
         }
                 .overlay(
                         RoundedRectangle(cornerRadius: 8)

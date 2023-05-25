@@ -7,7 +7,6 @@ import Logging
 class PageImageModel: ObservableObject {
     private static let logger = Logger(label: "PageImageModel")
 
-    @Published var imageData: Data?
     @Published var progress: Double = 0
 
     @Published private(set) var reloadPageId = ""
@@ -27,15 +26,6 @@ class PageImageModel: ObservableObject {
                 .store(in: &cancellables)
     }
 
-    func checkImageData(id: String) -> Data? {
-        if let data = imageData {
-            return data
-        } else if let data = try? database.readArchiveImage(id) {
-            return data.image
-        }
-        return nil
-    }
-
     func load(id: String) {
         guard !isLoading else {
             return
@@ -43,7 +33,6 @@ class PageImageModel: ObservableObject {
 
         isLoading = true
         _ = try? database.deleteArchiveImage(id)
-        imageData = nil
         progress = 0
         service.fetchArchivePage(page: id)
                 .downloadProgress { progress in
@@ -51,8 +40,7 @@ class PageImageModel: ObservableObject {
                 }
                 .responseData { [self] response in
                     if let data = response.value {
-                        imageData = data
-                        var pageImage = ArchiveImage(id: id, image: imageData!, lastUpdate: Date())
+                        var pageImage = ArchiveImage(id: id, image: data, lastUpdate: Date())
                         do {
                             try database.saveArchiveImage(&pageImage)
                         } catch {

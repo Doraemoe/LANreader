@@ -10,6 +10,7 @@ struct ArchiveRow: View {
             ThumbnailImage(id: archiveItem.id)
                 .scaledToFit()
                 .frame(width: 100, height: 125)
+                .queryObservation(.onRender)
             Text(archiveItem.name)
                 .font(.title)
                 .badge(buildBadge())

@@ -8,8 +8,6 @@ import Logging
 class ThumbnailImageModel: ObservableObject {
     private static let logger = Logger(label: "ThumbnailImageModel")
 
-    @Published var imageData: Data?
-
     @Published private(set) var reloadThumbnailId = ""
 
     private let service = LANraragiService.shared
@@ -27,15 +25,6 @@ class ThumbnailImageModel: ObservableObject {
                 .store(in: &cancellables)
     }
 
-    func checkImageData(id: String) -> Data? {
-        if let data = imageData {
-            return data
-        } else if let data = try? database.readArchiveThumbnail(id) {
-            return data.thumbnail
-        }
-        return nil
-    }
-
     @MainActor
     func load(id: String) async {
         guard !isLoading else {
@@ -44,10 +33,9 @@ class ThumbnailImageModel: ObservableObject {
 
         isLoading = true
         _ = try? database.deleteArchiveThumbnail(id)
-        imageData = nil
         do {
-            imageData = try await service.retrieveArchiveThumbnail(id: id).serializingData().value
-            var thumbnail = ArchiveThumbnail(id: id, thumbnail: imageData!, lastUpdate: Date())
+            let imageData = try await service.retrieveArchiveThumbnail(id: id).serializingData().value
+            var thumbnail = ArchiveThumbnail(id: id, thumbnail: imageData, lastUpdate: Date())
             do {
                 try database.saveArchiveThumbnail(&thumbnail)
             } catch {
