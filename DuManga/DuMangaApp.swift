@@ -18,7 +18,7 @@ struct DuMangaApp: App {
     init() {
         do {
             if let tmp = try? FileManager.default.contentsOfDirectory(
-                    at: FileManager.default.temporaryDirectory, includingPropertiesForKeys: []
+                at: FileManager.default.temporaryDirectory, includingPropertiesForKeys: []
             ) {
                 tmp.forEach { url in
                     try? FileManager.default.removeItem(at: url)
@@ -26,8 +26,8 @@ struct DuMangaApp: App {
             }
 
             let logFileURL = try FileManager.default
-                    .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-                    .appendingPathComponent("app.log")
+                .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+                .appendingPathComponent("app.log")
 
             do {
                 try FileManager.default.removeItem(at: logFileURL)
@@ -67,35 +67,36 @@ struct DuMangaApp: App {
                     ContentView()
                     // As of iOS 16, use .blur will case nav title overlap with safe area
                     if blurInterfaceWhenInactive && scenePhase != .active {
-                        Color.primary.colorInvert()
+                        Color.primary.colorInvert().ignoresSafeArea()
                     }
                 }
-                        .environmentObject(store)
-                        .fullScreenCover(isPresented: $lock) {
-                            LockScreen(initialState: LockScreenState.normal,
-                                    storedPasscode: storedPasscode) { passcode, _, act in
-                                if passcode == storedPasscode {
-                                    act(true)
-                                    lock = false
-                                } else {
-                                    act(false)
-                                }
-                            }
+                .environment(\.appDatabase, .shared)
+                .environmentObject(store)
+                .fullScreenCover(isPresented: $lock) {
+                    LockScreen(initialState: LockScreenState.normal,
+                               storedPasscode: storedPasscode) { passcode, _, act in
+                        if passcode == storedPasscode {
+                            act(true)
+                            lock = false
+                        } else {
+                            act(false)
                         }
-                        .onAppear {
-                            if !storedPasscode.isEmpty {
-                                withTransaction(self.noAnimationTransaction) {
-                                    lock = true
-                                }
-                            }
+                    }
+                }
+                .onAppear {
+                    if !storedPasscode.isEmpty {
+                        withTransaction(self.noAnimationTransaction) {
+                            lock = true
                         }
-                        .onChange(of: scenePhase) { newPhase in
-                            if !storedPasscode.isEmpty && newPhase != .active && !lock {
-                                withTransaction(self.noAnimationTransaction) {
-                                    lock = true
-                                }
-                            }
+                    }
+                }
+                .onChange(of: scenePhase) { newPhase in
+                    if !storedPasscode.isEmpty && newPhase != .active && !lock {
+                        withTransaction(self.noAnimationTransaction) {
+                            lock = true
                         }
+                    }
+                }
             }
         }
     }

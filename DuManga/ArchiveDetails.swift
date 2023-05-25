@@ -38,6 +38,7 @@ struct ArchiveDetails: View {
                 .scaledToFit()
                 .padding()
                 .frame(width: 200, height: 250)
+                .queryObservation(.onRender)
             if editMode == .active {
                 TextField("", text: $archiveDetailsModel.tags, axis: .vertical)
                     .textFieldStyle(.roundedBorder)

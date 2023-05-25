@@ -145,6 +145,7 @@ struct ArchivePageV2: View {
                                         .anchorPreference(key: AnchorsKey.self, value: .center) {
                                             [index: $0]
                                         }
+                                        .queryObservation(.onRender)
                             }
                         }
                                 .onTapGesture(perform: { performAction(tapMiddle) })
@@ -182,6 +183,7 @@ struct ArchivePageV2: View {
                 TabView(selection: self.$archivePageModel.currentIndex) {
                     ForEach(pageOrder(totalPage: pages.count), id: \.self) { index in
                         PageImage(id: pages[index], geometrySize: geometry.size).tag(index)
+                            .queryObservation(.onRender)
                     }
                 }
                         .tabViewStyle(.page(indexDisplayMode: .never))

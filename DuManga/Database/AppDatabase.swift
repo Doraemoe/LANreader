@@ -95,13 +95,13 @@ extension AppDatabase {
     }
 
     func readArchive(_ id: String) throws -> Archive? {
-        try dbWriter.read { database in
+        try dbReader.read { database in
             try Archive.fetchOne(database, key: id)
         }
     }
 
     func readAllArchive() throws -> [Archive] {
-        try dbWriter.read { database in
+        try dbReader.read { database in
             try Archive.fetchAll(database)
         }
     }
@@ -133,7 +133,7 @@ extension AppDatabase {
     }
 
     func readArchiveThumbnail(_ id: String) throws -> ArchiveThumbnail? {
-        try dbWriter.read { database in
+        try dbReader.read { database in
             try ArchiveThumbnail.fetchOne(database, key: id)
         }
     }
@@ -151,13 +151,13 @@ extension AppDatabase {
     }
 
     func readArchiveImage(_ id: String) throws -> ArchiveImage? {
-        try dbWriter.read { database in
+        try dbReader.read { database in
             try ArchiveImage.fetchOne(database, key: id)
         }
     }
 
     func existsArchiveImage(_ id: String) throws -> Bool {
-        try dbWriter.read { database in
+        try dbReader.read { database in
             try ArchiveImage.exists(database, key: id)
         }
     }
@@ -169,7 +169,7 @@ extension AppDatabase {
     }
 
     func readAllCategories() throws -> [Category] {
-        try dbWriter.read { database in
+        try dbReader.read { database in
             try Category.fetchAll(database)
         }
     }
@@ -187,7 +187,7 @@ extension AppDatabase {
     }
 
     func readAllDownloadJobs() throws -> [DownloadJob] {
-        try dbWriter.read { database in
+        try dbReader.read { database in
             try DownloadJob.fetchAll(database)
         }
     }
@@ -211,7 +211,7 @@ extension AppDatabase {
     }
 
     func readAllArchiveHistory() throws -> [HistoryArchive] {
-        try dbWriter.read { database in
+        try dbReader.read { database in
             try History.including(required: History.archive)
                 .order(Column("lastUpdate").desc)
                 .asRequest(of: HistoryArchive.self)
@@ -226,7 +226,7 @@ extension AppDatabase {
     }
 
     func databaseSize() throws -> Int? {
-        try dbWriter.read { database in
+        try dbReader.read { database in
             try Int.fetchOne(database,
                     sql: "SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()")
         }
@@ -245,7 +245,7 @@ extension AppDatabase {
 
 extension AppDatabase {
     /// Provides a read-only access to the database.
-    public var reader: any GRDB.DatabaseReader {
+    public var dbReader: any GRDB.DatabaseReader {
         dbWriter
     }
 }

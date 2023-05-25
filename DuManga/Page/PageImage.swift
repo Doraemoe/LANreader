@@ -1,11 +1,15 @@
 // Created on 14/4/21.
 
 import SwiftUI
+import GRDBQuery
 
 struct PageImage: View {
     @StateObject private var imageModel = PageImageModel()
 
     @EnvironmentObject var store: AppStore
+
+    @Query<ArchiveImageRequest>
+    private var archiveImage: ArchiveImage?
 
     private let id: String
     private let geometrySize: CGSize
@@ -13,13 +17,14 @@ struct PageImage: View {
     init(id: String, geometrySize: CGSize) {
         self.id = id
         self.geometrySize = geometrySize
+        _archiveImage = Query(ArchiveImageRequest(id: id))
     }
 
     var body: some View {
         // If not wrapped in ZStack, TabView will render ALL pages when initial load
         ZStack {
             Group {
-                if let imageData = imageModel.checkImageData(id: id) {
+                if let imageData = archiveImage?.image {
                     Image(uiImage: UIImage(data: imageData)!)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
