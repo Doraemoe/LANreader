@@ -1,3 +1,7 @@
+[<img src="https://img.shields.io/github/downloads/doraemoe/dureader/total.svg">](https://github.com/Doraemoe/DuReader/releases)
+[<img src="https://img.shields.io/github/release/doraemoe/dureader.svg?display_name=tag">](https://github.com/Doraemoe/DuReader/releases/latest)
+[![Continuous Integration](https://github.com/Doraemoe/DuReader/actions/workflows/ci.yml/badge.svg)](https://github.com/Doraemoe/DuReader/actions/workflows/ci.yml)
+
 # DuReader
 
 DuReader is an iOS manga reader for [LANraragi](https://github.com/Difegue/LANraragi)
@@ -5,13 +9,16 @@ DuReader is an iOS manga reader for [LANraragi](https://github.com/Difegue/LANra
 ## Interface
 
 ### Library View
-![Simulator Screenshot - iPad Pro (11-inch) (4th generation) - 2023-05-25 at 22 38 35](https://github.com/Doraemoe/DuReader/assets/1129569/1fb88143-872c-4bf2-98c5-bafca1a29722)
+
+![Screenshot 2023-05-25 at 10 44 37 pm](https://github.com/Doraemoe/DuReader/assets/1129569/991dcd4e-b98a-486f-abf7-086f8e157173)
 
 ### Archive Page View
-![Simulator Screenshot - iPad Pro (11-inch) (4th generation) - 2023-05-25 at 22 39 08](https://github.com/Doraemoe/DuReader/assets/1129569/89c76bf4-a492-4f22-af7f-d8e0e957e7fa)
+
+![Screenshot 2023-05-25 at 10 45 54 pm](https://github.com/Doraemoe/DuReader/assets/1129569/158a8491-9870-4fbf-a58c-9d9573760ca4)
 
 ### Archive Details View
-![Simulator Screenshot - iPad Pro (11-inch) (4th generation) - 2023-05-25 at 22 40 58](https://github.com/Doraemoe/DuReader/assets/1129569/2deb517c-967c-4b65-82da-8ed5e724760c)
+
+![Screenshot 2023-05-25 at 10 46 02 pm](https://github.com/Doraemoe/DuReader/assets/1129569/5bb97483-0a18-47e0-af59-aec8e0f4e8dd)
 
 ## Test on your device
 
