@@ -4,6 +4,8 @@ import SwiftUI
 import GRDBQuery
 
 struct PageImage: View {
+    @AppStorage(SettingsKey.compressImageThreshold) var compressThreshold: CompressThreshold = .never
+
     @StateObject private var imageModel = PageImageModel()
 
     @EnvironmentObject var store: AppStore
@@ -26,32 +28,33 @@ struct PageImage: View {
             Group {
                 if let imageData = archiveImage?.image {
                     Image(uiImage: UIImage(data: imageData)!)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: geometrySize.width)
-                            .draggableAndZoomable(contentSize: geometrySize)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: geometrySize.width)
+                        .draggableAndZoomable(contentSize: geometrySize)
                 } else {
                     ProgressView(value: imageModel.progress, total: 1) {
                         Text("loading")
                     } currentValueLabel: {
                         Text(String(format: "%.2f%%", imageModel.progress * 100))
                     }
-                            .frame(width: geometrySize.width * 0.8, height: geometrySize.height)
-                            .tint(.primary)
-                            .onAppear {
-                                imageModel.load(id: id)
-                            }
+                    .progressViewStyle(.linear)
+                    .frame(width: geometrySize.width * 0.8, height: geometrySize.height)
+                    .tint(.primary)
+                    .onAppear {
+                        imageModel.load(id: id, compressThreshold: compressThreshold)
+                    }
                 }
             }
-                    .onAppear {
-                        imageModel.load(state: store.state)
-                    }
-                    .onChange(of: imageModel.reloadPageId) { reloadPageId in
-                        if reloadPageId == id {
-                            imageModel.load(id: id)
-                            store.dispatch(.trigger(action: .pageRefreshAction(id: "")))
-                        }
-                    }
+            .onAppear {
+                imageModel.load(state: store.state)
+            }
+            .onChange(of: imageModel.reloadPageId) { reloadPageId in
+                if reloadPageId == id {
+                    imageModel.load(id: id, compressThreshold: compressThreshold)
+                    store.dispatch(.trigger(action: .pageRefreshAction(id: "")))
+                }
+            }
         }
     }
 }
