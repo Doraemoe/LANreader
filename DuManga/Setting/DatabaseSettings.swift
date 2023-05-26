@@ -3,6 +3,8 @@
 import SwiftUI
 
 struct DatabaseSettings: View {
+    @EnvironmentObject var store: AppStore
+
     @State private var size = ""
 
     private let database = AppDatabase.shared
@@ -23,6 +25,8 @@ struct DatabaseSettings: View {
             Button(role: .destructive, action: {
                 do {
                     try database.clearDatabase()
+                    store.dispatch(.archive(action: .clearArchive))
+                    store.dispatch(.category(action: .clearCategory))
                     self.setDatabaseSize()
                 } catch {
                     // NOOP

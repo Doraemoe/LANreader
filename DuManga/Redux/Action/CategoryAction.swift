@@ -9,9 +9,9 @@ enum CategoryAction {
     case startFetchCategory
     case finishFetchCategory
     case storeCategory(category: [String: CategoryItem])
-
-    case error(error: ErrorCode)
     case updateCategory(category: CategoryItem)
+    case clearCategory
+    case error(error: ErrorCode)
     case resetState
 }
 

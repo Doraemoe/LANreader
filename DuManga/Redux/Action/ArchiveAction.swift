@@ -14,6 +14,7 @@ enum ArchiveAction {
     case updateReadProgress(id: String, progress: Int)
     case removeDeletedArchive(id: String)
     case setRandomOrderSeed(seed: UInt64)
+    case clearArchive
     case error(error: ErrorCode)
     case resetState
 }

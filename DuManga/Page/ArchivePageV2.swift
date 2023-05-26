@@ -26,6 +26,7 @@ struct ArchivePageV2: View {
     @AppStorage(SettingsKey.tapMiddleKey) var tapMiddle: String = PageControl.navigation.rawValue
     @AppStorage(SettingsKey.tapRightKey) var tapRight: String = PageControl.previous.rawValue
     @AppStorage(SettingsKey.readDirection) var readDirection: String = ReadDirection.leftRight.rawValue
+    @AppStorage(SettingsKey.compressImageThreshold) var compressThreshold: CompressThreshold = .never
 
     @EnvironmentObject var store: AppStore
     @Environment(\.presentationMode) var presentationMode
@@ -121,7 +122,7 @@ struct ArchivePageV2: View {
                     }
                     .onChange(of: pages) { [pages] newPages in
                         if pages.isEmpty && !newPages.isEmpty {
-                            archivePageModel.prefetchImages(ids: newPages)
+                            archivePageModel.prefetchImages(ids: newPages, compressThreshold: compressThreshold)
                         }
                     }
                     .onDisappear {

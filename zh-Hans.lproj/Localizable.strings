@@ -29,6 +29,12 @@
 "settings.read.direction.upDown" = "纵向";
 "settings.read.direction.leftRight" = "从左向右";
 "settings.read.direction.rightLeft" = "从右向左";
+"settings.read.image.compress" = "缩小过大尺寸图片";
+"settings.read.image.compress.never" = "永不";
+"settings.read.image.compress.one" = "大于屏幕分辨率";
+"settings.read.image.compress.two" = "大于2倍屏幕分辨率";
+"settings.read.image.compress.three" = "大于3倍屏幕分辨率";
+"settings.read.image.compress.four" = "大于4倍屏幕分辨率";
 
 "settings.view" = "视图设定";
 "settings.archive.list.order" = "排序";

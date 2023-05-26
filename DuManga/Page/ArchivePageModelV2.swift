@@ -54,7 +54,7 @@ class ArchivePageModelV2: ObservableObject {
         cancellables.forEach({ $0.cancel() })
     }
 
-    func prefetchImages(ids: [String]) {
+    func prefetchImages(ids: [String], compressThreshold: CompressThreshold) {
         var firstHalf = ids[..<currentIndex].reversed().makeIterator()
         var secondHalf = ids[currentIndex...].dropFirst().makeIterator()
         var nextPage = secondHalf.next()
@@ -71,7 +71,7 @@ class ArchivePageModelV2: ObservableObject {
                 previousPage = firstHalf.next()
             }
         }
-        prefetch.preloadImages(ids: fetchArray)
+        prefetch.preloadImages(ids: fetchArray, compressThreshold: compressThreshold)
     }
 
     func clearNewFlag(id: String) async {

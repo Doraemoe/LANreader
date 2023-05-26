@@ -28,6 +28,12 @@ enum ArchiveListOrder: String, CaseIterable, Identifiable {
     var id: String { self.rawValue }
 }
 
+enum CompressThreshold: Int, CaseIterable, Identifiable {
+    case never, one, two, three, four
+
+    var id: Int { self.rawValue }
+}
+
 struct SettingsKey {
     static let lanraragiUrl = "settings.lanraragi.url"
     static let lanraragiApiKey = "settings.lanraragi.apiKey"
@@ -36,6 +42,7 @@ struct SettingsKey {
     static let tapMiddleKey = "settings.read.tap.middle"
     static let tapRightKey = "settings.read.tap.right"
     static let readDirection = "settings.read.direction"
+    static let compressImageThreshold = "settings.read.image.compress.threshold"
 
     static let archiveListOrder = "settings.archive.list.order"
     static let useListView = "settings.view.use.list"

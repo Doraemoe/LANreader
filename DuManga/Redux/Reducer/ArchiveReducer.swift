@@ -28,6 +28,8 @@ func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
         state.archiveItems.removeValue(forKey: id)
     case let .setRandomOrderSeed(seed):
         state.randomOrderSeed = seed
+    case .clearArchive:
+        state.archiveItems = .init()
     case let .error(error):
         state.loading = false
         state.errorCode = error

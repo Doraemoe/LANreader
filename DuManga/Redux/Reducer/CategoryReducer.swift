@@ -18,6 +18,8 @@ func categoryReducer(state: inout CategoryState, action: CategoryAction) {
         state.errorCode = error
     case let .updateCategory(category):
         state.categoryItems[category.id] = category
+    case .clearCategory:
+        state.categoryItems = .init()
     case .resetState:
         state.errorCode = nil
     }

@@ -58,6 +58,7 @@ struct LibraryList: View {
                             }
                         }
                         .searchable(text: $libraryListModel.searchText, prompt: "filter.name")
+                        .autocorrectionDisabled()
                 if libraryListModel.loading && !libraryListModel.isPullToRefresh {
                     LoadingView(geometry: geometry)
                 }
