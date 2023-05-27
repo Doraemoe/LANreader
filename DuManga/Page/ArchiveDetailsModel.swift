@@ -60,7 +60,10 @@ class ArchiveDetailsModel: ObservableObject {
             if response.success == 1 {
                 do {
                     let success = try database.deleteArchive(id)
-                    if !success {
+                    if success {
+                        _ = try? database.deleteArchiveThumbnail(id)
+                    }
+                    else {
                         ArchiveDetailsModel.logger.error("failed to delete archive from db. id=\(id)")
                     }
                 } catch {

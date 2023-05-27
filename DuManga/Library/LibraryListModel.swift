@@ -15,25 +15,38 @@ class LibraryListModel: ObservableObject {
 
     private var cancellable: Set<AnyCancellable> = []
 
-    func load(state: AppState) {
-        loading = state.archive.loading
-        archiveItems = state.archive.archiveItems
-        errorCode = state.archive.errorCode
+    private let store = AppStore.shared
 
-        state.archive.$loading.receive(on: DispatchQueue.main)
+    init() {
+        loading = store.state.archive.loading
+        archiveItems = store.state.archive.archiveItems
+        errorCode = store.state.archive.errorCode
+
+        store.state.archive.$loading.receive(on: DispatchQueue.main)
                 .assign(to: \.loading, on: self)
                 .store(in: &cancellable)
 
-        state.archive.$archiveItems.receive(on: DispatchQueue.main)
+        store.state.archive.$archiveItems.receive(on: DispatchQueue.main)
                 .assign(to: \.archiveItems, on: self)
                 .store(in: &cancellable)
 
-        state.archive.$errorCode.receive(on: DispatchQueue.main)
+        store.state.archive.$errorCode.receive(on: DispatchQueue.main)
                 .assign(to: \.errorCode, on: self)
                 .store(in: &cancellable)
     }
 
-    func unload() {
-        cancellable.forEach({ $0.cancel() })
+    func load(fromServer: Bool) async {
+        await store.dispatch(fetchArchives(fromServer))
+    }
+
+    func resetArchiveState() {
+        store.dispatch(.archive(action: .resetState))
+    }
+
+    func refresh() async {
+        await store.dispatch(fetchArchives(true))
+        store.dispatch(.archive(
+            action: .setRandomOrderSeed(seed: UInt64.random(in: 1..<10000))
+        ))
     }
 }

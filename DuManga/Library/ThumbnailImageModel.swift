@@ -12,15 +12,15 @@ class ThumbnailImageModel: ObservableObject {
 
     private let service = LANraragiService.shared
     private let database = AppDatabase.shared
+    private let store = AppStore.shared
 
     private var isLoading = false
-
     private var cancellables: Set<AnyCancellable> = []
 
-    func load(state: AppState) {
-        reloadThumbnailId = state.trigger.thumbnailId
+    init() {
+        reloadThumbnailId = store.state.trigger.thumbnailId
 
-        state.trigger.$thumbnailId.receive(on: DispatchQueue.main)
+        store.state.trigger.$thumbnailId.receive(on: DispatchQueue.main)
                 .assign(to: \.reloadThumbnailId, on: self)
                 .store(in: &cancellables)
     }

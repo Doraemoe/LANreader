@@ -6,10 +6,11 @@ import NotificationBannerSwift
 struct EditCategory: View {
     @Environment (\.presentationMode) var presentationMode
 
-    @EnvironmentObject var store: AppStore
     @StateObject var editCategoryModel = EditCategoryModel()
 
     let item: CategoryItem
+
+    private let store = AppStore.shared
 
     init(item: CategoryItem) {
         self.item = item

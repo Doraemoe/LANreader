@@ -87,6 +87,7 @@
 "error.download.url" = "无法识别的下载链接";
 "error.download.queue" = "添加下载任务失败，请重试";
 "error.history.title" = "获取历史记录失败";
+"error.page.empty" = "服务器未返回任何页面";
 
 "lock.label.new" = "输入新密码";
 "lock.label.verify" = "确认新密码";

@@ -7,12 +7,13 @@ struct ArchiveDetails: View {
     private static let sourceTag = "source"
     private static let dateTag = "date_added"
 
-    @EnvironmentObject var store: AppStore
     @Environment(\.presentationMode) var presentationMode
     @State private var showingAlert = false
     @State private var editMode: EditMode = .inactive
 
     @StateObject var archiveDetailsModel = ArchiveDetailsModel()
+
+    private let store = AppStore.shared
 
     let item: ArchiveItem
 

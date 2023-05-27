@@ -56,7 +56,7 @@ struct DuMangaApp: App {
         self.noAnimationTransaction = transaction
     }
 
-    let store = AppStore(initialState: .init(), reducer: appReducer, middlewares: [])
+    let store = AppStore.shared
 
     var body: some Scene {
         WindowGroup {
@@ -71,7 +71,6 @@ struct DuMangaApp: App {
                     }
                 }
                 .environment(\.appDatabase, .shared)
-                .environmentObject(store)
                 .fullScreenCover(isPresented: $lock) {
                     LockScreen(initialState: LockScreenState.normal,
                                storedPasscode: storedPasscode) { passcode, _, act in

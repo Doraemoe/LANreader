@@ -31,7 +31,7 @@ struct AppDatabase {
 
         migrator.registerMigration("archiveThumbnail") { database in
             try database.create(table: "archiveThumbnail") { table in
-                table.column("id", .text).primaryKey().references("archive", column: "id", onDelete: .cascade)
+                table.column("id", .text).primaryKey()
                 table.column("thumbnail", .blob)
                 table.column("lastUpdate", .datetime)
             }

@@ -11,8 +11,6 @@ struct ArchiveList: View {
     private let archives: [ArchiveItem]
     private let sortArchives: Bool
 
-    @EnvironmentObject var store: AppStore
-
     @StateObject var archiveListModel = ArchiveListModel()
 
     init(archives: [ArchiveItem], sortArchives: Bool = true) {
@@ -91,12 +89,6 @@ struct ArchiveList: View {
                         )
                     }
                 }
-                .onAppear {
-                    archiveListModel.load(state: store.state)
-                }
-                .onDisappear {
-                    archiveListModel.unload()
-                }
     }
 
     private func contextMenu(item: ArchiveItem) -> some View {
@@ -107,7 +99,7 @@ struct ArchiveList: View {
                 Label("archive.read.fromStart", systemImage: "arrow.left.to.line.compact")
             }
             Button(action: {
-                store.dispatch(.trigger(action: .thumbnailRefreshAction(id: item.id)))
+                archiveListModel.refreshThumbnail(id: item.id)
             }, label: {
                 Label("archive.reload.thumbnail", systemImage: "arrow.clockwise")
             })

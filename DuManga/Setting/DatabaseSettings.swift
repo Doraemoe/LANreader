@@ -3,11 +3,10 @@
 import SwiftUI
 
 struct DatabaseSettings: View {
-    @EnvironmentObject var store: AppStore
-
     @State private var size = ""
 
     private let database = AppDatabase.shared
+    private let store = AppStore.shared
 
     func setDatabaseSize() {
         do {

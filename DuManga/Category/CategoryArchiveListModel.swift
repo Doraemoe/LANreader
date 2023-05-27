@@ -17,19 +17,16 @@ class CategoryArchiveListModel: ObservableObject {
     @Published private(set) var errorMessage = ""
 
     private let service = LANraragiService.shared
+    private let store = AppStore.shared
 
     private var cancellable: Set<AnyCancellable> = []
 
-    func load(state: AppState) {
-        archiveItems = state.archive.archiveItems
+    init() {
+        archiveItems = store.state.archive.archiveItems
 
-        state.archive.$archiveItems.receive(on: DispatchQueue.main)
+        store.state.archive.$archiveItems.receive(on: DispatchQueue.main)
                 .assign(to: \.archiveItems, on: self)
                 .store(in: &cancellable)
-    }
-
-    func unload() {
-        cancellable.forEach({ $0.cancel() })
     }
 
     func reset() {

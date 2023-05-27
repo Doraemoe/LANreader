@@ -15,13 +15,14 @@ class PageImageModel: ObservableObject {
 
     private let service = LANraragiService.shared
     private let database = AppDatabase.shared
+    private let store =  AppStore.shared
 
     private var cancellables: Set<AnyCancellable> = []
 
-    func load(state: AppState) {
-        reloadPageId = state.trigger.pageId
+    init() {
+        reloadPageId = store.state.trigger.pageId
 
-        state.trigger.$pageId.receive(on: DispatchQueue.main)
+        store.state.trigger.$pageId.receive(on: DispatchQueue.main)
             .assign(to: \.reloadPageId, on: self)
             .store(in: &cancellables)
     }
