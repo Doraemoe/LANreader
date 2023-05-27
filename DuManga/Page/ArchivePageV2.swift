@@ -44,13 +44,12 @@ struct ArchivePageV2: View {
     }
 
     var body: some View {
-        let pages = archivePageModel.archivePages[archiveItem.id] ?? [String]()
         return GeometryReader { geometry in
             ZStack {
                 if readDirection == ReadDirection.upDown.rawValue {
-                    vReader(pages: pages, geometry: geometry)
+                    vReader(geometry: geometry)
                 } else {
-                    hReader(pages: pages, geometry: geometry)
+                    hReader(geometry: geometry)
                 }
                 if archivePageModel.loading {
                     LoadingView(geometry: geometry)
@@ -61,18 +60,20 @@ struct ArchivePageV2: View {
                             Button(action: {
                                 store.dispatch(
                                     .trigger(action: .pageRefreshAction(
-                                        id: pages[archivePageModel.currentIndex])
+                                        id: archivePageModel.pages[archivePageModel.currentIndex])
                                     )
                                 )
                             }, label: {
                                 Image(systemName: "arrow.clockwise")
                             })
-                            NavigationLink("details") {
+                            NavigationLink {
                                 ArchiveDetails(item: archiveItem)
+                            } label: {
+                                Image(systemName: "info.circle")
                             }
                         }
                         ToolbarItemGroup(placement: .bottomBar) {
-                            bottomToolbar(pages: pages)
+                            bottomToolbar(pages: archivePageModel.pages)
                         }
                     }
                     .navigationBarTitle(archiveItem.name)
@@ -81,13 +82,20 @@ struct ArchivePageV2: View {
                     .toolbar(archivePageModel.controlUiHidden ? .hidden : .visible, for: .bottomBar)
                     .toolbar(.hidden, for: .tabBar)
                     .task {
-                        if archivePageModel.archivePages[archiveItem.id]?.isEmpty ?? true {
+                        if archivePageModel.pages.isEmpty {
                             await store.dispatch(extractArchive(id: archiveItem.id))
                         }
                     }
                     .onAppear(perform: {
+                        let pages = store.state.page.archivePages[archiveItem.id]?.wrappedValue
+                        store.dispatch(
+                            .page(action: .storeExtractedArchive(
+                                id: archiveItem.id, pages: pages != nil ? pages! : .init()
+                            ))
+                        )
                         archivePageModel.load(
                             state: store.state,
+                            id: archiveItem.id,
                             progress: archiveItem.progress > 0 ? archiveItem.progress - 1 : 0,
                             startFromBeginning: startFromBeginning
                         )
@@ -120,7 +128,7 @@ struct ArchivePageV2: View {
                         }
 
                     }
-                    .onChange(of: pages) { [pages] newPages in
+                    .onChange(of: archivePageModel.pages) { [pages = archivePageModel.pages] newPages in
                         if pages.isEmpty && !newPages.isEmpty {
                             archivePageModel.prefetchImages(ids: newPages, compressThreshold: compressThreshold)
                         }
@@ -131,17 +139,17 @@ struct ArchivePageV2: View {
         }
     }
 
-    private func vReader(pages: [String], geometry: GeometryProxy) -> some View {
+    private func vReader(geometry: GeometryProxy) -> some View {
         ZStack {
-            if pages.isEmpty {
+            if archivePageModel.pages.isEmpty {
                 // This is to make sure when onAppear called on ScrollView there is page to scroll to
                 Color.primary.colorInvert()
             } else {
                 ScrollViewReader { reader in
                     ScrollView {
                         LazyVStack {
-                            ForEach(0..<pages.count, id: \.self) { index in
-                                PageImage(id: pages[index], geometrySize: geometry.size)
+                            ForEach(0..<archivePageModel.pages.count, id: \.self) { index in
+                                PageImage(id: archivePageModel.pages[index], geometrySize: geometry.size)
                                         .id(index)
                                         .anchorPreference(key: AnchorsKey.self, value: .center) {
                                             [index: $0]
@@ -178,12 +186,12 @@ struct ArchivePageV2: View {
         }
     }
 
-    private func hReader(pages: [String], geometry: GeometryProxy) -> some View {
+    private func hReader(geometry: GeometryProxy) -> some View {
         ZStack {
-            if pages.isEmpty == false {
+            if archivePageModel.pages.isEmpty == false {
                 TabView(selection: self.$archivePageModel.currentIndex) {
-                    ForEach(pageOrder(totalPage: pages.count), id: \.self) { index in
-                        PageImage(id: pages[index], geometrySize: geometry.size).tag(index)
+                    ForEach(pageOrder(totalPage: archivePageModel.pages.count), id: \.self) { index in
+                        PageImage(id: archivePageModel.pages[index], geometrySize: geometry.size).tag(index)
                             .queryObservation(.onRender)
                     }
                 }
@@ -261,7 +269,7 @@ struct ArchivePageV2: View {
     func performAction(_ action: String) {
         switch action {
         case PageControl.next.rawValue:
-            let pageNumbers = archivePageModel.archivePages[archiveItem.id]?.count ?? 1
+            let pageNumbers = archivePageModel.pages.count
             if archivePageModel.currentIndex < pageNumbers - 1 {
                 withAnimation(.easeInOut) {
                     archivePageModel.currentIndex += 1

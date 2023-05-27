@@ -11,7 +11,7 @@ class ArchivePageModelV2: ObservableObject {
     @Published var sliderIndex: Double = 0.0
 
     @Published private(set) var loading = false
-    @Published private(set) var archivePages = [String: [String]]()
+    @Published private(set) var pages = [String]()
     @Published private(set) var errorCode: ErrorCode?
     @Published private(set) var deletedArchiveId = ""
 
@@ -23,13 +23,13 @@ class ArchivePageModelV2: ObservableObject {
 
     private var cancellables: Set<AnyCancellable> = []
 
-    func load(state: AppState, progress: Int, startFromBeginning: Bool) {
+    func load(state: AppState, id: String, progress: Int, startFromBeginning: Bool) {
         if currentIndex == 0 && !startFromBeginning {
             currentIndex = progress
         }
 
         loading = state.page.loading
-        archivePages = state.page.archivePages
+        pages = state.page.archivePages[id]!.wrappedValue
         errorCode = state.page.errorCode
         deletedArchiveId = state.trigger.deletedArchiveId
 
@@ -37,8 +37,8 @@ class ArchivePageModelV2: ObservableObject {
             .assign(to: \.loading, on: self)
             .store(in: &cancellables)
 
-        state.page.$archivePages.receive(on: DispatchQueue.main)
-            .assign(to: \.archivePages, on: self)
+        state.page.archivePages[id]!.projectedValue.receive(on: DispatchQueue.main)
+            .assign(to: \.pages, on: self)
             .store(in: &cancellables)
 
         state.page.$errorCode.receive(on: DispatchQueue.main)
