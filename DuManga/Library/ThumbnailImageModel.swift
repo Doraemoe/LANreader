@@ -25,7 +25,6 @@ class ThumbnailImageModel: ObservableObject {
                 .store(in: &cancellables)
     }
 
-    @MainActor
     func load(id: String) async {
         guard !isLoading else {
             return

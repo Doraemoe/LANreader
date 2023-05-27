@@ -54,6 +54,7 @@ struct ArchiveDetails: View {
                         .background(.blue)
                         .clipShape(Capsule())
                 })
+                .padding()
             }
             if editMode != .active {
                 Button(

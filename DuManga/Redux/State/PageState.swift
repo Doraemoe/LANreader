@@ -7,7 +7,8 @@ import SwiftUI
 
 struct PageState {
     @PublishedState var loading = false
-    @PublishedState var archivePages = [String: [String]]()
     @PublishedState var archiveCurrentIndex = [String: Double]()
     @PublishedState var errorCode: ErrorCode?
+
+    var archivePages = [String: PublishedState<[String]>]()
 }
