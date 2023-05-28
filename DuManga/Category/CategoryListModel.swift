@@ -14,27 +14,33 @@ class CategoryListModel: ObservableObject {
     @Published private(set) var categoryItems = [String: CategoryItem]()
     @Published private(set) var errorCode: ErrorCode?
 
+    private let store = AppStore.shared
+
     private var cancellable: Set<AnyCancellable> = []
 
-    func load(state: AppState) {
-        loading = state.category.loading
-        categoryItems = state.category.categoryItems
-        errorCode = state.category.errorCode
+    init() {
+        loading = store.state.category.loading
+        categoryItems = store.state.category.categoryItems
+        errorCode = store.state.category.errorCode
 
-        state.category.$loading.receive(on: DispatchQueue.main)
+        store.state.category.$loading.receive(on: DispatchQueue.main)
                 .assign(to: \.loading, on: self)
                 .store(in: &cancellable)
 
-        state.category.$categoryItems.receive(on: DispatchQueue.main)
+        store.state.category.$categoryItems.receive(on: DispatchQueue.main)
                 .assign(to: \.categoryItems, on: self)
                 .store(in: &cancellable)
 
-        state.category.$errorCode.receive(on: DispatchQueue.main)
+        store.state.category.$errorCode.receive(on: DispatchQueue.main)
                 .assign(to: \.errorCode, on: self)
                 .store(in: &cancellable)
     }
 
-    func unload() {
-        cancellable.forEach({ $0.cancel() })
+    func load(fromServer: Bool) async {
+        await store.dispatch(fetchCategory(fromServer: fromServer))
+    }
+
+    func reset() {
+        store.dispatch(.category(action: .resetState))
     }
 }

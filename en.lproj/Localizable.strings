@@ -87,6 +87,7 @@
 "error.download.url" = "Invalid download url.";
 "error.download.queue" = "Failed to queue the download job, please retry.";
 "error.history.title" = "Failed to load history";
+"error.page.empty" = "Server returned empty content for this archive.";
 
 "lock.label.new" = "Enter New Passcode";
 "lock.label.verify" = "Confirm Passcode";

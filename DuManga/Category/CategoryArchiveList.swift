@@ -6,8 +6,6 @@ import SwiftUI
 import NotificationBannerSwift
 
 struct CategoryArchiveList: View {
-    @EnvironmentObject var store: AppStore
-
     @StateObject private var categoryArchiveListModel = CategoryArchiveListModel()
 
     private let categoryItem: CategoryItem
@@ -21,7 +19,6 @@ struct CategoryArchiveList: View {
             ZStack {
                 ArchiveList(archives: categoryArchiveListModel.result)
                         .onAppear {
-                            categoryArchiveListModel.load(state: store.state)
                             if !categoryItem.archives.isEmpty {
                                 categoryArchiveListModel.loadStaticCategory(ids: categoryItem.archives)
                             }
@@ -36,7 +33,6 @@ struct CategoryArchiveList: View {
                         }
                         .onDisappear {
                             categoryArchiveListModel.reset()
-                            categoryArchiveListModel.unload()
                         }
                         .onChange(of: categoryArchiveListModel.isError) { isError in
                             if isError {

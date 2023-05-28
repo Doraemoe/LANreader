@@ -6,11 +6,11 @@ import Foundation
 import Logging
 
 class EditCategoryModel: ObservableObject {
+    private static let logger = Logger(label: "CategoryAction")
     @Published var categoryName = ""
     @Published var searchKeyword = ""
     @Published var saving = false
 
-    private let logger = Logger(label: "CategoryAction")
     private let database = AppDatabase.shared
     private let lanraragiService = LANraragiService.shared
 
@@ -28,12 +28,12 @@ class EditCategoryModel: ObservableObject {
                 var categoryDto = category.toCategory()
                 try database.saveCategory(&categoryDto)
             } catch {
-                logger.warning("failed to save category. id=\(category.id) \(error)")
+                EditCategoryModel.logger.warning("failed to save category. id=\(category.id) \(error)")
             }
             saving = false
             return nil
         } catch {
-            logger.error("failed to update category. id=\(category.id) \(error)")
+            EditCategoryModel.logger.error("failed to update category. id=\(category.id) \(error)")
             saving = false
             return error.localizedDescription
         }

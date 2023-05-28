@@ -43,3 +43,14 @@ typealias Middleware<State, Action> = (State, Action) -> AnyPublisher<Action, Ne
 typealias AppStore = Store<AppState, AppAction>
 typealias Dispatch<Action> = (Action) -> Void
 typealias ThunkAction<Action, State> = (Dispatch<Action>, () -> State) async -> Void
+
+extension AppStore {
+    private static var _shared: AppStore?
+
+    public static var shared: AppStore {
+        if _shared == nil {
+            _shared = AppStore(initialState: .init(), reducer: appReducer, middlewares: [])
+        }
+        return _shared!
+    }
+}

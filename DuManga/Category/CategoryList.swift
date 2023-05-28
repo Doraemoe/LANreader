@@ -6,8 +6,6 @@ struct CategoryList: View {
 
     @State private var editMode: EditMode = .inactive
 
-    @EnvironmentObject var store: AppStore
-
     @StateObject var categoryListModel = CategoryListModel()
 
     var body: some View {
@@ -52,23 +50,16 @@ struct CategoryList: View {
                     .toolbar {
                         EditButton()
                     }
-                    .onAppear {
-                        categoryListModel.load(state: store.state)
-                    }
-                    .onDisappear {
-                        categoryListModel.unload()
-                    }
                     .task {
-                        if categoryListModel.categoryItems.count > 0 {
-                            return
+                        if categoryListModel.categoryItems.isEmpty {
+                            await categoryListModel.load(fromServer: alwaysLoadFromServer)
                         }
-                        await store.dispatch(fetchCategory(fromServer: alwaysLoadFromServer))
                     }
                     .environment(\.editMode, $editMode)
                     .refreshable {
                         if categoryListModel.loading != true {
                             categoryListModel.isPullToRefresh = true
-                            await store.dispatch(fetchCategory(fromServer: true))
+                            await categoryListModel.load(fromServer: true)
                             categoryListModel.isPullToRefresh = false
                         }
                     }
@@ -81,7 +72,7 @@ struct CategoryList: View {
                                     subtitle: NSLocalizedString("error.category", comment: "category error"),
                                     style: .danger)
                             banner.show()
-                            store.dispatch(.category(action: .resetState))
+                            categoryListModel.reset()
                         }
                     })
         }

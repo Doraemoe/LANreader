@@ -20,38 +20,37 @@ class ArchivePageModelV2: ObservableObject {
     private let service = LANraragiService.shared
     private let prefetch = PrefetchService.shared
     private let database = AppDatabase.shared
+    private let store = AppStore.shared
 
     private var cancellables: Set<AnyCancellable> = []
 
-    func load(state: AppState, id: String, progress: Int, startFromBeginning: Bool) {
-        if currentIndex == 0 && !startFromBeginning {
-            currentIndex = progress
-        }
+    init() {
+        loading = store.state.page.loading
+        errorCode = store.state.page.errorCode
+        deletedArchiveId = store.state.trigger.deletedArchiveId
 
-        loading = state.page.loading
-        pages = state.page.archivePages[id]!.wrappedValue
-        errorCode = state.page.errorCode
-        deletedArchiveId = state.trigger.deletedArchiveId
-
-        state.page.$loading.receive(on: DispatchQueue.main)
+        store.state.page.$loading.receive(on: DispatchQueue.main)
             .assign(to: \.loading, on: self)
             .store(in: &cancellables)
 
-        state.page.archivePages[id]!.projectedValue.receive(on: DispatchQueue.main)
-            .assign(to: \.pages, on: self)
-            .store(in: &cancellables)
-
-        state.page.$errorCode.receive(on: DispatchQueue.main)
+        store.state.page.$errorCode.receive(on: DispatchQueue.main)
             .assign(to: \.errorCode, on: self)
             .store(in: &cancellables)
 
-        state.trigger.$deletedArchiveId.receive(on: DispatchQueue.main)
+        store.state.trigger.$deletedArchiveId.receive(on: DispatchQueue.main)
             .assign(to: \.deletedArchiveId, on: self)
             .store(in: &cancellables)
     }
 
-    func unload() {
-        cancellables.forEach({ $0.cancel() })
+    func load(id: String, progress: Int, startFromBeginning: Bool) {
+        if currentIndex == 0 && !startFromBeginning {
+            currentIndex = progress
+        }
+
+        pages = store.state.page.archivePages[id]!.wrappedValue
+        store.state.page.archivePages[id]!.projectedValue.receive(on: DispatchQueue.main)
+            .assign(to: \.pages, on: self)
+            .store(in: &cancellables)
     }
 
     func prefetchImages(ids: [String], compressThreshold: CompressThreshold) {

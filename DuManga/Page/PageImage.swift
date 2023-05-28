@@ -8,13 +8,12 @@ struct PageImage: View {
 
     @StateObject private var imageModel = PageImageModel()
 
-    @EnvironmentObject var store: AppStore
-
     @Query<ArchiveImageRequest>
     private var archiveImage: ArchiveImage?
 
     private let id: String
     private let geometrySize: CGSize
+    private let store = AppStore.shared
 
     init(id: String, geometrySize: CGSize) {
         self.id = id
@@ -45,9 +44,6 @@ struct PageImage: View {
                         imageModel.load(id: id, compressThreshold: compressThreshold)
                     }
                 }
-            }
-            .onAppear {
-                imageModel.load(state: store.state)
             }
             .onChange(of: imageModel.reloadPageId) { reloadPageId in
                 if reloadPageId == id {

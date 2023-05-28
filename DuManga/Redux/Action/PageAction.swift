@@ -26,12 +26,17 @@ func extractArchive(id: String) async -> ThunkAction<AppAction, AppState> {
         dispatch(.page(action: .startExtractArchive))
         do {
             let extractResponse = try await lanraragiService.extractArchive(id: id).value
-            var allPages = [String]()
-            extractResponse.pages.forEach { page in
-                let normalizedPage = String(page.dropFirst(2))
-                allPages.append(normalizedPage)
+            if extractResponse.pages.isEmpty {
+                logger.error("server returned empty pages. id=\(id)")
+                dispatch(.page(action: .error(error: .emptyPageError)))
+            } else {
+                var allPages = [String]()
+                extractResponse.pages.forEach { page in
+                    let normalizedPage = String(page.dropFirst(2))
+                    allPages.append(normalizedPage)
+                }
+                dispatch(.page(action: .storeExtractedArchive(id: id, pages: allPages)))
             }
-            dispatch(.page(action: .storeExtractedArchive(id: id, pages: allPages)))
         } catch {
             logger.error("failed to extract archive page. id=\(id) \(error)")
             dispatch(.page(action: .error(error: .archiveExtractError)))

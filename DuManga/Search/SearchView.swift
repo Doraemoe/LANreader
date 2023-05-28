@@ -4,8 +4,6 @@ import NotificationBannerSwift
 struct SearchView: View {
     @StateObject private var searchViewModel = SearchViewModel()
 
-    @EnvironmentObject var store: AppStore
-
     private let initKeyword: String?
 
     init(keyword: String? = nil) {

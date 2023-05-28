@@ -6,11 +6,10 @@ import GRDBQuery
 struct ThumbnailImage: View {
     @StateObject private var imageModel = ThumbnailImageModel()
 
-    @EnvironmentObject var store: AppStore
-
     @Query<ArchiveThumbnailRequest>
     private var archiveThumbnail: ArchiveThumbnail?
 
+    private let store = AppStore.shared
     private let id: String
 
     init(id: String) {
@@ -31,9 +30,6 @@ struct ThumbnailImage: View {
                         }
             }
         }
-                .onAppear(perform: {
-                    imageModel.load(state: store.state)
-                })
                 .onChange(of: imageModel.reloadThumbnailId, perform: { reload in
                     if reload == id {
                         Task {

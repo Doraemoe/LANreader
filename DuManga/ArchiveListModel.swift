@@ -9,16 +9,18 @@ class ArchiveListModel: ObservableObject {
 
     private var cancellables: Set<AnyCancellable> = []
 
-    func load(state: AppState) {
-        randomSeed = state.archive.randomOrderSeed
+    private let store = AppStore.shared
 
-        state.archive.$randomOrderSeed.receive(on: DispatchQueue.main)
+    init() {
+        randomSeed = store.state.archive.randomOrderSeed
+
+        store.state.archive.$randomOrderSeed.receive(on: DispatchQueue.main)
                 .assign(to: \.randomSeed, on: self)
                 .store(in: &cancellables)
     }
 
-    func unload() {
-        cancellables.forEach({ $0.cancel() })
+    func refreshThumbnail(id: String) {
+        store.dispatch(.trigger(action: .thumbnailRefreshAction(id: id)))
     }
 
     func processArchives(archives: [ArchiveItem], sortOrder: String, hideRead: Bool, sortArchives: Bool) {

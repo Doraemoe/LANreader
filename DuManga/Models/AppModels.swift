@@ -70,9 +70,13 @@ struct ErrorCode: Equatable {
     }
 
     static let lanraragiServerError = ErrorCode(name: "error.host", code: 1000)
+
     static let archiveFetchError = ErrorCode(name: "error.list", code: 2000)
     static let archiveExtractError = ErrorCode(name: "error.extract", code: 2002)
+
     static let categoryFetchError = ErrorCode(name: "error.category", code: 3000)
+
+    static let emptyPageError = ErrorCode(name: "error.page.empty", code: 4000)
 }
 
 extension Double {

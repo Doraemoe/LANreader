@@ -9,8 +9,6 @@ import Logging
 struct LibraryList: View {
     @AppStorage(SettingsKey.alwaysLoadFromServer) var alwaysLoadFromServer: Bool = false
 
-    @EnvironmentObject var store: AppStore
-
     @StateObject private var libraryListModel = LibraryListModel()
 
     var body: some View {
@@ -18,15 +16,11 @@ struct LibraryList: View {
             ZStack {
                 ArchiveList(archives: searchArchives())
                         .onAppear(perform: {
-                            libraryListModel.load(state: store.state)
                             if libraryListModel.archiveItems.isEmpty {
                                 Task {
-                                    await store.dispatch(fetchArchives(alwaysLoadFromServer))
+                                    await libraryListModel.load(fromServer: alwaysLoadFromServer)
                                 }
                             }
-                        })
-                        .onDisappear(perform: {
-                            libraryListModel.unload()
                         })
                         .onChange(of: libraryListModel.errorCode, perform: { errorCode in
                             if errorCode != nil {
@@ -34,16 +28,13 @@ struct LibraryList: View {
                                         subtitle: NSLocalizedString("error.list", comment: "list error"),
                                         style: .danger)
                                 banner.show()
-                                store.dispatch(.archive(action: .resetState))
+                                libraryListModel.resetArchiveState()
                             }
                         })
                         .refreshable {
                             if libraryListModel.loading != true {
                                 libraryListModel.isPullToRefresh = true
-                                await store.dispatch(fetchArchives(true))
-                                store.dispatch(.archive(
-                                    action: .setRandomOrderSeed(seed: UInt64.random(in: 1..<10000))
-                                ))
+                                await libraryListModel.refresh()
                                 libraryListModel.isPullToRefresh = false
                             }
                         }
