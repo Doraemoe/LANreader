@@ -135,6 +135,7 @@ struct ArchivePageV2: View {
                 }
             }
             .onChange(of: archivePageModel.currentIndex) { index in
+                archivePageModel.prefetchImages()
                 archivePageModel.sliderIndex = Double(archivePageModel.currentIndex)
                 Task {
                     await onIndexChange(index: index)
@@ -143,7 +144,7 @@ struct ArchivePageV2: View {
             }
             .onChange(of: archivePageModel.pages) { [pages = archivePageModel.pages] newPages in
                 if pages.isEmpty && !newPages.isEmpty {
-                    archivePageModel.prefetchImages(ids: newPages, compressThreshold: compressThreshold)
+                    archivePageModel.prefetchImages()
                 }
             }
         }
