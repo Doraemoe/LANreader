@@ -39,7 +39,7 @@ class PageImageModel: ObservableObject {
             .downloadProgress { progress in
                 self.progress = progress.fractionCompleted
             }
-            .responseData { [self] response in
+            .responseData(queue: .global(qos: .userInitiated)) { [self] response in
                 if let data = response.value {
                     let dataToSave = resizeImage(data: data, threshold: compressThreshold)
                     var pageImage = ArchiveImage(id: id, image: dataToSave, lastUpdate: Date())

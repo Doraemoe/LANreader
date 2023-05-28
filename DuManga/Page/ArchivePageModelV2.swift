@@ -6,6 +6,8 @@ import Foundation
 import Combine
 
 class ArchivePageModelV2: ObservableObject {
+    private static let prefetchNumber = 2
+
     @Published var currentIndex = 0
     @Published var controlUiHidden = true
     @Published var sliderIndex: Double = 0.0
@@ -22,7 +24,8 @@ class ArchivePageModelV2: ObservableObject {
     private let database = AppDatabase.shared
     private let store = AppStore.shared
 
-    private var cancellables: Set<AnyCancellable> = []
+    private var prefetchRequested: Set<String> = .init()
+    private var cancellables: Set<AnyCancellable> = .init()
 
     init() {
         loading = store.state.page.loading
@@ -53,24 +56,21 @@ class ArchivePageModelV2: ObservableObject {
             .store(in: &cancellables)
     }
 
-    func prefetchImages(ids: [String], compressThreshold: CompressThreshold) {
-        var firstHalf = ids[..<currentIndex].reversed().makeIterator()
-        var secondHalf = ids[currentIndex...].dropFirst().makeIterator()
-        var nextPage = secondHalf.next()
-        var previousPage = firstHalf.next()
-        var fetchArray = [String]()
-
-        while  nextPage != nil || previousPage != nil {
-            if nextPage != nil {
-                fetchArray.append(nextPage!)
-                nextPage = secondHalf.next()
-            }
-            if previousPage != nil {
-                fetchArray.append(previousPage!)
-                previousPage = firstHalf.next()
+    func prefetchImages() {
+        var ids = [String]()
+        for page in 1...ArchivePageModelV2.prefetchNumber where currentIndex + page < pages.count {
+            ids.append(pages[currentIndex + page])
+            if currentIndex - page > 0 {
+                ids.append(pages[currentIndex - page])
             }
         }
-        prefetch.preloadImages(ids: fetchArray, compressThreshold: compressThreshold)
+
+        ids.filter { id in
+            let (notExists, _) = prefetchRequested.insert(id)
+            return notExists
+        }.forEach { id in
+            prefetch.prefetchSubject.send(id)
+        }
     }
 
     func clearNewFlag(id: String) async {
