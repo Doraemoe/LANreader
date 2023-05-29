@@ -14,6 +14,7 @@
 "copy" = "复制";
 "edit" = "编辑";
 "version" = "版本";
+"downsampling" = "正在缩小图片尺寸";
 
 "filter.name" = "过滤标题";
 
