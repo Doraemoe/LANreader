@@ -14,7 +14,6 @@ struct ArchiveRow: View {
             Text(archiveItem.name)
                 .font(.title)
                 .badge(buildBadge())
-            Spacer()
         }
     }
 
