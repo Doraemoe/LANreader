@@ -34,7 +34,7 @@ class PrefetchService {
                         .publishData(queue: .global(qos: .userInteractive))
                         .result()
                         .map { result in
-                            return (id, result)
+                            (id, result)
                         }
                 }
                 .receive(on: DispatchQueue.global(qos: .userInteractive))

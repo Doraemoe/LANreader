@@ -37,7 +37,7 @@ struct ArchiveList: View {
                         .listStyle(.grouped)
             } else {
                 let columns = [
-                    GridItem(.adaptive(minimum: 160))
+                    GridItem(.adaptive(minimum: 160), spacing: 20, alignment: .top)
                 ]
                 ScrollView {
                     if sortArchives {
@@ -45,7 +45,7 @@ struct ArchiveList: View {
                                 .padding([.trailing, .leading], 20)
                     }
                     Spacer(minLength: 30)
-                    LazyVGrid(columns: columns, spacing: 20) {
+                    LazyVGrid(columns: columns) {
                         ForEach(archiveListModel.sortedArchives) { (item: ArchiveItem) in
                             NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
                                 ArchiveGrid(archiveItem: item)

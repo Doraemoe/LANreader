@@ -8,20 +8,21 @@ struct ArchiveGrid: View {
     var body: some View {
         VStack(alignment: HorizontalAlignment.center, spacing: 2) {
             Text(buildTitle())
-                    .frame(width: 130)
-                    .lineLimit(1)
-                    .foregroundColor(.primary)
+                .lineLimit(2)
+                .foregroundColor(.primary)
+                .padding(4)
+                .font(.caption)
             ThumbnailImage(id: archiveItem.id)
-                    .scaledToFit()
-                    .frame(width: 160, height: 200)
-                    .queryObservation(.onRender)
+                .scaledToFit()
+                .queryObservation(.onRender)
         }
-                .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.secondary, lineWidth: 2)
-                                .opacity(0.9)
-                                .frame(width: 160, height: 230, alignment: .center)
-                )
+        .frame(maxHeight: .infinity, alignment: .top)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.secondary, lineWidth: 2)
+                .opacity(0.9)
+        )
     }
 
     func buildTitle() -> String {
