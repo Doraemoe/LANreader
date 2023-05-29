@@ -32,9 +32,14 @@ struct PageImage: View {
                         .frame(width: geometrySize.width)
                         .draggableAndZoomable(contentSize: geometrySize)
                 } else {
-                    ProgressView(value: imageModel.progress, total: 1) {
+                    ProgressView(
+                        value: imageModel.progress > 1 ? 1 : imageModel.progress,
+                        total: 1
+                    ) {
                         Text("loading")
                     } currentValueLabel: {
+                        imageModel.progress > 1 ?
+                        Text("downsampling") :
                         Text(String(format: "%.2f%%", imageModel.progress * 100))
                     }
                     .progressViewStyle(.linear)

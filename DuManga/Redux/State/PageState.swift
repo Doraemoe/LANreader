@@ -11,4 +11,5 @@ struct PageState {
     @PublishedState var errorCode: ErrorCode?
 
     var archivePages = [String: PublishedState<[String]>]()
+    var loadingProgress = [String: PublishedState<Double>]()
 }

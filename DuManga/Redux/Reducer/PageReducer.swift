@@ -16,6 +16,14 @@ func pageReducer(state: inout PageState, action: PageAction) {
         } else {
             state.archivePages[id]!.wrappedValue = pages
         }
+    case let .updateLoadingProgress(id, progress):
+        if progress == nil {
+            state.loadingProgress.removeValue(forKey: id)
+        } else if state.loadingProgress[id] == nil {
+            state.loadingProgress[id] = PublishedState(wrappedValue: progress!)
+        } else {
+            state.loadingProgress[id]!.wrappedValue = progress!
+        }
     case let .error(error):
         state.loading = false
         state.errorCode = error

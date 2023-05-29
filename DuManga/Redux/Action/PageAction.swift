@@ -10,6 +10,7 @@ enum PageAction {
     case startExtractArchive
     case finishExtractArchive
     case storeExtractedArchive(id: String, pages: [String])
+    case updateLoadingProgress(id: String, progress: Double?)
 
     case error(error: ErrorCode)
     case resetState

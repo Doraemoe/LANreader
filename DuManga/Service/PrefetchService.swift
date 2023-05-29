@@ -15,23 +15,29 @@ class PrefetchService {
         if _shared == nil {
             let service = LANraragiService.shared
             let database = AppDatabase.shared
+            let store = AppStore.shared
             _shared = PrefetchService()
 
             _shared!.prefetchSubject
-                .subscribe(on: DispatchQueue.global(qos: .background))
+                .subscribe(on: DispatchQueue.global(qos: .userInteractive))
                 .filter { id in
                     (try? database.existsArchiveImage(id)) != true
                 }
                 .flatMap { id in
                     service.fetchArchivePage(page: id)
                         .validate()
-                        .publishData()
+                        .downloadProgress(queue: .global(qos: .userInteractive)) { progress in
+                            store.dispatch(.page(
+                                action: .updateLoadingProgress(id: id, progress: progress.fractionCompleted)
+                            ))
+                        }
+                        .publishData(queue: .global(qos: .userInteractive))
                         .result()
                         .map { result in
-                            (id, result)
+                            return (id, result)
                         }
                 }
-                .receive(on: DispatchQueue.global(qos: .background))
+                .receive(on: DispatchQueue.global(qos: .userInteractive))
                 .sink(
                     receiveValue: { (id, result) in
                         switch result {
@@ -40,6 +46,9 @@ class PrefetchService {
                                 forKey: SettingsKey.compressImageThreshold
                             )
                             let threshold = CompressThreshold(rawValue: thresholdValue) ?? .never
+                            if threshold != .never {
+                                store.dispatch(.page(action: .updateLoadingProgress(id: id, progress: 2)))
+                            }
                             let dataToSave = resizeImage(data: data, threshold: threshold)
                             var archiveImage = ArchiveImage(id: id, image: dataToSave, lastUpdate: Date())
                             do {
@@ -52,6 +61,7 @@ class PrefetchService {
                         case let .failure(error):
                             PrefetchService.logger.warning("failed to prefetch image. pageId=\(id) \(error)")
                         }
+                        store.dispatch(.page(action: .updateLoadingProgress(id: id, progress: nil)))
                     })
                 .store(in: &cancellables)
         }
