@@ -70,6 +70,8 @@
 "archive.delete.confirm" = "确定要删除此文档吗？";
 "archive.reload.thumbnail" = "刷新封面";
 "archive.read.fromStart" = "从头开始阅读";
+"archive.thumbnail.current" = "设置当前页为封面";
+"archive.thumbnail.set" = "成功设置当前页为封面";
 
 "category.edit" = "编辑类别";
 "category.name" = "类别名";
