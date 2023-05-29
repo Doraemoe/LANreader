@@ -67,6 +67,8 @@
 "archive.delete.confirm" = "Are you sure you want to delete this?";
 "archive.reload.thumbnail" = "Reload thumbnail";
 "archive.read.fromStart" = "Read from beginning";
+"archive.thumbnail.current" = "Set current page as thumbnail";
+"archive.thumbnail.set" = "Successfully set current page as thumbnail";
 
 "settings.debug" = "Debug";
 "settings.debug.log" = "Application log";

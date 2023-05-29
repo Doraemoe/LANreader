@@ -4,8 +4,10 @@
 
 import Foundation
 import Combine
+import Logging
 
 class ArchivePageModelV2: ObservableObject {
+    private static let logger = Logger(label: "ArchivePageModel")
     private static let prefetchNumber = 2
 
     @Published var currentIndex = 0
@@ -80,5 +82,16 @@ class ArchivePageModelV2: ObservableObject {
     func addToHistory(id: String) {
         var history = History(id: id, lastUpdate: Date())
         try? database.saveHistory(&history)
+    }
+
+    func setCurrentPageAsThumbnail(id: String) async -> String {
+        do {
+            _ = try await service.updateArchiveThumbnail(id: id, page: currentIndex + 1).value
+            store.dispatch(.trigger(action: .thumbnailRefreshAction(id: id)))
+            return ""
+        } catch {
+            ArchivePageModelV2.logger.error("Failed to set current page as thumbnail. id=\(id) \(error)")
+            return error.localizedDescription
+        }
     }
 }

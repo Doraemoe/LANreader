@@ -79,6 +79,32 @@ struct ArchivePageV2: View {
                     } label: {
                         Image(systemName: "info.circle")
                     }
+                    Menu {
+                        Button("archive.thumbnail.current") {
+                            Task {
+                                let result = await archivePageModel.setCurrentPageAsThumbnail(id: archiveItem.id)
+                                if result.isEmpty {
+                                    let banner = NotificationBanner(
+                                        title: NSLocalizedString("success", comment: "error"),
+                                        subtitle: NSLocalizedString(
+                                            "archive.thumbnail.set", comment: "set thumbnail success"
+                                        ),
+                                        style: .success
+                                    )
+                                    banner.show()
+                                } else {
+                                    let banner = NotificationBanner(
+                                        title: NSLocalizedString("error", comment: "error"),
+                                        subtitle: result,
+                                        style: .danger
+                                    )
+                                    banner.show()
+                                }
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
                 }
                 ToolbarItemGroup(placement: .bottomBar) {
                     bottomToolbar(pages: archivePageModel.pages)

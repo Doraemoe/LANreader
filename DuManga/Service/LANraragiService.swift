@@ -40,6 +40,13 @@ class LANraragiService {
         return session.download(request)
     }
 
+    func updateArchiveThumbnail(id: String, page: Int) -> DataTask<String> {
+        let query = ["page": page]
+        return session.request("\(url)/api/archives/\(id)/thumbnail", method: .put, parameters: query)
+            .validate(statusCode: 200...200)
+            .serializingString()
+    }
+
     func searchArchive(category: String? = nil,
                        filter: String? = nil,
                        start: String = "-1",
