@@ -112,8 +112,7 @@ struct ArchivePageV2: View {
             }
             .navigationBarTitle(archiveItem.name)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar(archivePageModel.controlUiHidden ? .hidden : .visible, for: .navigationBar)
-            .toolbar(archivePageModel.controlUiHidden ? .hidden : .visible, for: .bottomBar)
+            .toolbar(archivePageModel.controlUiHidden ? .hidden : .visible, for: .navigationBar, .bottomBar)
             .toolbar(.hidden, for: .tabBar)
             .task {
                 if archivePageModel.pages.isEmpty {

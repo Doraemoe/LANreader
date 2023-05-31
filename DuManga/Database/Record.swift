@@ -8,9 +8,13 @@ struct Archive: Identifiable {
     var isNew: Bool
     var pageCount: Int
     var progress: Int
-    var tags: String
+    var tags: [String]
     var title: String
     var lastUpdate: Date
+}
+
+struct TagItem {
+    var tag: String
 }
 
 struct ArchiveThumbnail: Identifiable {
@@ -71,13 +75,21 @@ extension Archive: Codable, FetchableRecord, MutablePersistableRecord {
 
 extension Archive {
     func toArchiveItem() -> ArchiveItem {
-        ArchiveItem(id: id,
+        let tagString = tags.joined(separator: ",")
+        return ArchiveItem(id: id,
                 name: title,
-                tags: tags,
+                tags: tagString,
                 isNew: isNew,
                 progress: progress,
                 pagecount: pageCount,
-                dateAdded: extractDateAdded(tags: tags))
+                dateAdded: extractDateAdded(tags: tagString))
+    }
+}
+
+extension TagItem: Codable, FetchableRecord, MutablePersistableRecord {
+    static let databaseTableName = "tag"
+    fileprivate enum Columns {
+        static let tar = Column(CodingKeys.tag)
     }
 }
 

@@ -60,6 +60,7 @@ struct UploadView: View {
                     try? await Task.sleep(for: .seconds(5))
                 } while (true)
             }
+            .toolbar(.hidden, for: .tabBar)
         }
     }
 

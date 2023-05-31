@@ -4,6 +4,7 @@ import Logging
 
 class PrefetchService {
     private static let logger = Logger(label: "PrefetchService")
+    private static let prefetchQueue = DispatchQueue(label: "PrefetchProgressQueue", qos: .utility)
 
     private static var _shared: PrefetchService?
 
@@ -26,7 +27,7 @@ class PrefetchService {
                 .flatMap { id in
                     service.fetchArchivePage(page: id)
                         .validate()
-                        .downloadProgress(queue: .global(qos: .userInteractive)) { progress in
+                        .downloadProgress(queue: prefetchQueue) { progress in
                             store.dispatch(.page(
                                 action: .updateLoadingProgress(id: id, progress: progress.fractionCompleted)
                             ))
@@ -47,7 +48,9 @@ class PrefetchService {
                             )
                             let threshold = CompressThreshold(rawValue: thresholdValue) ?? .never
                             if threshold != .never {
-                                store.dispatch(.page(action: .updateLoadingProgress(id: id, progress: 2)))
+                                prefetchQueue.async {
+                                    store.dispatch(.page(action: .updateLoadingProgress(id: id, progress: 2)))
+                                }
                             }
                             let dataToSave = resizeImage(data: data, threshold: threshold)
                             var archiveImage = ArchiveImage(id: id, image: dataToSave, lastUpdate: Date())
@@ -61,7 +64,9 @@ class PrefetchService {
                         case let .failure(error):
                             PrefetchService.logger.warning("failed to prefetch image. pageId=\(id) \(error)")
                         }
-                        store.dispatch(.page(action: .updateLoadingProgress(id: id, progress: nil)))
+                        prefetchQueue.async {
+                            store.dispatch(.page(action: .updateLoadingProgress(id: id, progress: nil)))
+                        }
                     })
                 .store(in: &cancellables)
         }

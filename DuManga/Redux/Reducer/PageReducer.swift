@@ -11,12 +11,16 @@ func pageReducer(state: inout PageState, action: PageAction) {
     case .finishExtractArchive:
         state.loading = false
     case let .storeExtractedArchive(id, pages):
+        // This block of code is NOT THREAD SAFE
+        // Use it with cautious
         if state.archivePages[id] == nil {
             state.archivePages[id] = PublishedState(wrappedValue: pages)
         } else {
             state.archivePages[id]!.wrappedValue = pages
         }
     case let .updateLoadingProgress(id, progress):
+        // This block of code is NOT THREAD SAFE
+        // Use it with cautious
         if progress == nil {
             state.loadingProgress.removeValue(forKey: id)
         } else if state.loadingProgress[id] == nil {

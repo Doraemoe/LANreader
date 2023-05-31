@@ -14,41 +14,56 @@ struct SearchView: View {
         GeometryReader { geometry in
             ZStack {
                 ArchiveList(archives: searchViewModel.result)
-                        .searchable(
-                                text: $searchViewModel.keyword,
-                                placement: .navigationBarDrawer(displayMode: .always)
-                        )
-                        .onSubmit(of: .search) {
+                    .searchable(
+                        text: $searchViewModel.keyword,
+                        placement: .navigationBarDrawer(displayMode: .always)
+                    )
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .searchSuggestions {
+                        ForEach(searchViewModel.suggestedTag, id: \.self) { tag in
+                            HStack {
+                                Text(tag)
+                                    .foregroundColor(.accentColor)
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                searchViewModel.keyword = searchViewModel.completeString(tag: tag)
+                            }
+                        }
+                    }
+                    .onSubmit(of: .search) {
+                        Task {
+                            await searchViewModel.search()
+                        }
+                    }
+                    .onAppear {
+                        if initKeyword != searchViewModel.keyword, let key = initKeyword {
+                            searchViewModel.keyword = key
                             Task {
                                 await searchViewModel.search()
                             }
                         }
-                        .onAppear {
-                            if initKeyword != searchViewModel.keyword, let key = initKeyword {
-                                searchViewModel.keyword = key
-                                Task {
-                                    await searchViewModel.search()
-                                }
-                            }
-                        }
-                        .onDisappear {
+                    }
+                    .onDisappear {
+                        searchViewModel.reset()
+                    }
+                    .onChange(of: searchViewModel.isError) { isError in
+                        if isError {
+                            let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                                                            subtitle: searchViewModel.errorMessage,
+                                                            style: .danger)
+                            banner.show()
                             searchViewModel.reset()
                         }
-                        .onChange(of: searchViewModel.isError) { isError in
-                            if isError {
-                                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                                        subtitle: searchViewModel.errorMessage,
-                                        style: .danger)
-                                banner.show()
-                                searchViewModel.reset()
-                            }
-                        }
+                    }
                 if searchViewModel.isLoading {
                     LoadingView(geometry: geometry)
                 }
             }
-                    .navigationTitle("search")
-                    .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("search")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
