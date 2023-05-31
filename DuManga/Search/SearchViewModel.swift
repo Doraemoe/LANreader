@@ -12,6 +12,22 @@ class SearchViewModel: ObservableObject {
     @Published var errorMessage = ""
 
     let service = LANraragiService.shared
+    let database = AppDatabase.shared
+
+    var suggestedTag: [String] {
+        let lastToken = keyword.split(separator: " ", omittingEmptySubsequences: false).last.map(String.init) ?? ""
+        guard !lastToken.isEmpty else { return [] }
+        let result = try? database.searchTag(keyword: lastToken)
+        return result?.map { item in
+            item.tag
+        } ?? []
+    }
+
+    func completeString(tag: String) -> String {
+        let validKeyword = keyword.split(separator: " ").dropLast(1).joined(separator: " ")
+        return "\(validKeyword) \(tag)$,"
+
+    }
 
     func reset() {
         isLoading = false
@@ -39,5 +55,4 @@ class SearchViewModel: ObservableObject {
         }
         isLoading = false
     }
-
 }

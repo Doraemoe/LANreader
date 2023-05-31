@@ -85,11 +85,13 @@ extension ArchiveIndexResponse {
     }
 
     func toArchive() -> Archive {
-        Archive(id: arcid,
+        let tagArray = tags?.split(separator: ",")
+            .map { String($0).trimmingCharacters(in: .whitespaces) } ?? []
+        return Archive(id: arcid,
                 isNew: Bool(isnew) ?? false,
                 pageCount: pagecount,
                 progress: progress,
-                tags: tags ?? "",
+                tags: tagArray,
                 title: title,
                 lastUpdate: Date())
     }

@@ -13,17 +13,17 @@ struct LANraragiConfigView: View {
     var body: some View {
         VStack {
             TextField("lanraragi.config.url", text: self.$configModel.url)
-                    .textContentType(.URL)
-                    .keyboardType(.URL)
-                    .padding()
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .focused($focused)
+                .textContentType(.URL)
+                .keyboardType(.URL)
+                .padding()
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .focused($focused)
             SecureField("lanraragi.config.apiKey", text: self.$configModel.apiKey)
-                    .padding()
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .focused($focused)
+                .padding()
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .focused($focused)
             Button(action: {
                 Task {
                     let result = await configModel.verifyAndSave()
@@ -34,19 +34,20 @@ struct LANraragiConfigView: View {
                 }
             }, label: {
                 Text("lanraragi.config.submit")
-                        .font(.headline)
+                    .font(.headline)
             })
-                    .disabled(configModel.isVerifying)
-                    .padding()
+            .disabled(configModel.isVerifying)
+            .padding()
         }
-                .onChange(of: configModel.errorMessage, perform: { errorMessage in
-                    if !errorMessage.isEmpty {
-                        let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                                subtitle: errorMessage,
-                                style: .danger)
-                        banner.show()
-                        configModel.reset()
-                    }
-                })
+        .toolbar(.hidden, for: .tabBar)
+        .onChange(of: configModel.errorMessage, perform: { errorMessage in
+            if !errorMessage.isEmpty {
+                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                                                subtitle: errorMessage,
+                                                style: .danger)
+                banner.show()
+                configModel.reset()
+            }
+        })
     }
 }

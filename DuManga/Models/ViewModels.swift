@@ -27,7 +27,7 @@ extension ArchiveItem {
                 isNew: isNew,
                 pageCount: pagecount,
                 progress: progress,
-                tags: tags,
+                tags: tags.split(separator: ",").map(String.init),
                 title: name,
                 lastUpdate: Date())
     }

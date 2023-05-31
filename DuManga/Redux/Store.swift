@@ -49,7 +49,11 @@ extension AppStore {
 
     public static var shared: AppStore {
         if _shared == nil {
-            _shared = AppStore(initialState: .init(), reducer: appReducer, middlewares: [])
+            _shared = AppStore(
+                initialState: .init(),
+                reducer: appReducer,
+                middlewares: [tagMiddleware(database: AppDatabase.shared)]
+            )
         }
         return _shared!
     }

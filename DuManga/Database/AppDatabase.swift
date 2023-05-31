@@ -76,6 +76,12 @@ struct AppDatabase {
             })
         }
 
+        migrator.registerMigration("tag") { database in
+            try database.create(table: "tag") { table in
+                table.column("tag", .text).unique(onConflict: .ignore)
+            }
+        }
+
         return migrator
     }
 
@@ -109,6 +115,24 @@ extension AppDatabase {
     func deleteAllArchive() throws -> Int {
         try dbWriter.write { database in
             try Archive.deleteAll(database)
+        }
+    }
+
+    func saveTag(tagItem: inout TagItem) throws {
+        try dbWriter.write { database in
+            try tagItem.save(database)
+        }
+    }
+
+    func searchTag(keyword: String) throws -> [TagItem] {
+        return try dbReader.read { database in
+            try TagItem.filter(Column("tag").like("%\(keyword)%")).limit(10).fetchAll(database)
+        }
+    }
+
+    func deleteAllTag() throws -> Int {
+        try dbWriter.write { database in
+            try TagItem.deleteAll(database)
         }
     }
 

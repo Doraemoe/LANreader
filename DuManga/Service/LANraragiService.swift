@@ -14,9 +14,11 @@ class LANraragiService {
     private var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
     private let authInterceptor = AuthInterceptor()
     private var session: Session
+    private var prefetchSession: Session
 
     private init() {
         self.session = Session(interceptor: authInterceptor)
+        self.prefetchSession = Session(interceptor: authInterceptor)
     }
 
     func verifyClient(url: String, apiKey: String) async -> DataTask<String> {
@@ -93,6 +95,11 @@ class LANraragiService {
     func fetchArchivePage(page: String) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
         return session.download(request)
+    }
+
+    func prefetchArchivePage(page: String) -> DownloadRequest {
+        let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
+        return prefetchSession.download(request)
     }
 
     func clearNewFlag(id: String) -> DataTask<String> {
