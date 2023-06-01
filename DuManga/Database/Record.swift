@@ -25,7 +25,7 @@ struct ArchiveThumbnail: Identifiable {
 
 struct ArchiveImage: Identifiable {
     var id: String
-    var image: Data
+    var image: String
     var lastUpdate: Date
 }
 

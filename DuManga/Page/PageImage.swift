@@ -25,8 +25,8 @@ struct PageImage: View {
         // If not wrapped in ZStack, TabView will render ALL pages when initial load
         ZStack {
             Group {
-                if let imageData = archiveImage?.image {
-                    Image(uiImage: UIImage(data: imageData)!)
+                if let imageUrl = archiveImage?.image {
+                    Image(uiImage: UIImage(contentsOfFile: imageUrl)!)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: geometrySize.width)

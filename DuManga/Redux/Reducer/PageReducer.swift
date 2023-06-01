@@ -21,12 +21,10 @@ func pageReducer(state: inout PageState, action: PageAction) {
     case let .updateLoadingProgress(id, progress):
         // This block of code is NOT THREAD SAFE
         // Use it with cautious
-        if progress == nil {
-            state.loadingProgress.removeValue(forKey: id)
-        } else if state.loadingProgress[id] == nil {
-            state.loadingProgress[id] = PublishedState(wrappedValue: progress!)
+        if state.loadingProgress[id] == nil {
+            state.loadingProgress[id] = PublishedState(wrappedValue: progress)
         } else {
-            state.loadingProgress[id]!.wrappedValue = progress!
+            state.loadingProgress[id]!.wrappedValue = progress
         }
     case let .error(error):
         state.loading = false
