@@ -25,14 +25,14 @@ class PrefetchService {
                     (try? database.existsArchiveImage(id)) != true
                 }
                 .flatMap { id in
-                    service.fetchArchivePage(page: id)
+                    service.prefetchArchivePage(page: id)
                         .validate()
                         .downloadProgress(queue: prefetchQueue) { progress in
                             store.dispatch(.page(
                                 action: .updateLoadingProgress(id: id, progress: progress.fractionCompleted)
                             ))
                         }
-                        .publishData(queue: .global(qos: .userInteractive))
+                        .publishURL(queue: .global(qos: .userInteractive))
                         .result()
                         .map { result in
                             (id, result)
@@ -42,7 +42,7 @@ class PrefetchService {
                 .sink(
                     receiveValue: { (id, result) in
                         switch result {
-                        case let .success(data):
+                        case let .success(url):
                             let thresholdValue = UserDefaults.standard.integer(
                                 forKey: SettingsKey.compressImageThreshold
                             )
@@ -52,8 +52,8 @@ class PrefetchService {
                                     store.dispatch(.page(action: .updateLoadingProgress(id: id, progress: 2)))
                                 }
                             }
-                            let dataToSave = resizeImage(data: data, threshold: threshold)
-                            var archiveImage = ArchiveImage(id: id, image: dataToSave, lastUpdate: Date())
+                            resizeImage(url: url, threshold: threshold)
+                            var archiveImage = ArchiveImage(id: id, image: url.path, lastUpdate: Date())
                             do {
                                 try database.saveArchiveImage(&archiveImage)
                             } catch {
@@ -63,9 +63,6 @@ class PrefetchService {
                             }
                         case let .failure(error):
                             PrefetchService.logger.warning("failed to prefetch image. pageId=\(id) \(error)")
-                        }
-                        prefetchQueue.async {
-                            store.dispatch(.page(action: .updateLoadingProgress(id: id, progress: nil)))
                         }
                     })
                 .store(in: &cancellables)

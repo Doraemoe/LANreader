@@ -7,6 +7,7 @@ import Alamofire
 import Logging
 
 class LANraragiService {
+    public static let currentSessionDownloadFolder = "current session"
     private static let logger = Logger(label: "LANraragiService")
 
     private static var _shared: LANraragiService?
@@ -16,9 +17,18 @@ class LANraragiService {
     private var session: Session
     private var prefetchSession: Session
 
+    private let downloadPath: URL?
+
     private init() {
         self.session = Session(interceptor: authInterceptor)
         self.prefetchSession = Session(interceptor: authInterceptor)
+        self.downloadPath = try? FileManager.default.url(
+            for: .documentDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        .appendingPathComponent(LANraragiService.currentSessionDownloadFolder, conformingTo: .folder)
     }
 
     func verifyClient(url: String, apiKey: String) async -> DataTask<String> {
@@ -94,12 +104,18 @@ class LANraragiService {
 
     func fetchArchivePage(page: String) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
-        return session.download(request)
+        return session.download(request, to: { tempUrl, _ in
+            let destinationUrl = self.downloadPath?.appendingPathComponent(page, conformingTo: .image) ?? tempUrl
+            return (destinationUrl, [.createIntermediateDirectories, .removePreviousFile])
+        })
     }
 
     func prefetchArchivePage(page: String) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
-        return prefetchSession.download(request)
+        return prefetchSession.download(request, to: { tempUrl, _ in
+            let destinationUrl = self.downloadPath?.appendingPathComponent(page, conformingTo: .image) ?? tempUrl
+            return (destinationUrl, [.createIntermediateDirectories, .removePreviousFile])
+        })
     }
 
     func clearNewFlag(id: String) -> DataTask<String> {

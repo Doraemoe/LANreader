@@ -40,7 +40,7 @@ struct AppDatabase {
         migrator.registerMigration("archiveImage") { database in
             try database.create(table: "archiveImage") { table in
                 table.column("id", .text).primaryKey()
-                table.column("image", .blob)
+                table.column("image", .text)
                 table.column("lastUpdate", .datetime)
             }
         }

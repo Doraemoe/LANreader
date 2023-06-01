@@ -27,12 +27,26 @@ struct DuMangaApp: App {
 
             let logFileURL = try FileManager.default
                 .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-                .appendingPathComponent("app.log")
+                .appendingPathComponent("app.log", conformingTo: .log)
 
             do {
                 try FileManager.default.removeItem(at: logFileURL)
             } catch {
                 // NOOP
+            }
+
+            if let sessionDownloadFolder = try? FileManager.default.contentsOfDirectory(
+                at: FileManager.default.url(
+                    for: .documentDirectory,
+                    in: .userDomainMask,
+                    appropriateFor: nil,
+                    create: true
+                ).appendingPathComponent(LANraragiService.currentSessionDownloadFolder, conformingTo: .folder),
+                includingPropertiesForKeys: []
+            ) {
+                sessionDownloadFolder.forEach { url in
+                    try? FileManager.default.removeItem(at: url)
+                }
             }
 
             let console = ConsoleLogger("com.jif.DuManga.console")

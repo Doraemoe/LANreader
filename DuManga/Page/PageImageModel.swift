@@ -45,13 +45,13 @@ class PageImageModel: ObservableObject {
                 .downloadProgress { progress in
                     self.progress = progress.fractionCompleted
                 }
-                .responseData { [self] response in
-                    if let data = response.value {
+                .responseURL { [self] response in
+                    if let url = response.value {
                         if compressThreshold != .never {
                             self.progress = 2
                         }
-                        let dataToSave = resizeImage(data: data, threshold: compressThreshold)
-                        var pageImage = ArchiveImage(id: id, image: dataToSave, lastUpdate: Date())
+                        resizeImage(url: url, threshold: compressThreshold)
+                        var pageImage = ArchiveImage(id: id, image: url.path, lastUpdate: Date())
                         do {
                             try database.saveArchiveImage(&pageImage)
                         } catch {
