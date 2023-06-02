@@ -111,15 +111,20 @@ struct ArchiveList: View {
             if archives.isEmpty {
                 EmptyView()
             } else {
-                Picker("settings.archive.list.order", selection: self.$archiveListOrder) {
-                    Group {
-                        Text("settings.archive.list.order.name").tag(ArchiveListOrder.name.rawValue)
-                        Text("settings.archive.list.order.dateAdded").tag(ArchiveListOrder.dateAdded.rawValue)
-                        Text("settings.archive.list.order.random").tag(ArchiveListOrder.random.rawValue)
+                HStack {
+                    Picker("settings.archive.list.order", selection: self.$archiveListOrder) {
+                        Group {
+                            Text("settings.archive.list.order.name").tag(ArchiveListOrder.name.rawValue)
+                            Text("settings.archive.list.order.dateAdded").tag(ArchiveListOrder.dateAdded.rawValue)
+                            Text("settings.archive.list.order.random").tag(ArchiveListOrder.random.rawValue)
+                        }
                     }
+                    .pickerStyle(.segmented)
+                    Text("settings.view.hideRead")
+                    Toggle("", isOn: self.$hideRead)
+                        .labelsHidden()
                 }
-                        .pickerStyle(.segmented)
-                        .padding()
+                .padding()
             }
         }
     }
