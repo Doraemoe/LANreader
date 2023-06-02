@@ -79,7 +79,7 @@
 
 "error.host" = "Cannot connect to server, please check your settings";
 "error.list" = "Cannot load library, please try again or check your server settings";
-"error.extract" = "Cannot archive, please try again";
+"error.extract" = "Cannot extract archive";
 "error.load.page" = "Cannot load page, please try again";
 "error.category" = "Cannot load category, please try again";
 "error.category.update" = "Cannot update category, please try again";

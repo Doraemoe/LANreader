@@ -13,10 +13,10 @@ class ArchivePageModelV2: ObservableObject {
     @Published var currentIndex = 0
     @Published var controlUiHidden = true
     @Published var sliderIndex: Double = 0.0
+    @Published var errorMessage = ""
 
     @Published private(set) var loading = false
     @Published private(set) var pages = [String]()
-    @Published private(set) var errorCode: ErrorCode?
     @Published private(set) var deletedArchiveId = ""
 
     var verticalReaderReady = false
@@ -30,17 +30,7 @@ class ArchivePageModelV2: ObservableObject {
     private var cancellables: Set<AnyCancellable> = .init()
 
     init() {
-        loading = store.state.page.loading
-        errorCode = store.state.page.errorCode
         deletedArchiveId = store.state.trigger.deletedArchiveId
-
-        store.state.page.$loading.receive(on: DispatchQueue.main)
-            .assign(to: \.loading, on: self)
-            .store(in: &cancellables)
-
-        store.state.page.$errorCode.receive(on: DispatchQueue.main)
-            .assign(to: \.errorCode, on: self)
-            .store(in: &cancellables)
 
         store.state.trigger.$deletedArchiveId.receive(on: DispatchQueue.main)
             .assign(to: \.deletedArchiveId, on: self)
@@ -51,11 +41,29 @@ class ArchivePageModelV2: ObservableObject {
         if currentIndex == 0 && !startFromBeginning {
             currentIndex = progress
         }
+    }
 
-        pages = store.state.page.archivePages[id]!.wrappedValue
-        store.state.page.archivePages[id]!.projectedValue.receive(on: DispatchQueue.main)
-            .assign(to: \.pages, on: self)
-            .store(in: &cancellables)
+    @MainActor
+    func extractArchive(id: String) async {
+        loading = true
+        do {
+            let extractResponse = try await service.extractArchive(id: id).value
+            if extractResponse.pages.isEmpty {
+                ArchivePageModelV2.logger.error("server returned empty pages. id=\(id)")
+                errorMessage = NSLocalizedString("error.page.empty", comment: "empty content")
+            } else {
+                var allPages = [String]()
+                extractResponse.pages.forEach { page in
+                    let normalizedPage = String(page.dropFirst(2))
+                    allPages.append(normalizedPage)
+                }
+                self.pages = allPages
+            }
+        } catch {
+            ArchivePageModelV2.logger.error("failed to extract archive page. id=\(id) \(error)")
+            self.errorMessage = error.localizedDescription
+        }
+        loading = false
     }
 
     func prefetchImages() {
@@ -93,5 +101,9 @@ class ArchivePageModelV2: ObservableObject {
             ArchivePageModelV2.logger.error("Failed to set current page as thumbnail. id=\(id) \(error)")
             return error.localizedDescription
         }
+    }
+
+    func resetError() {
+        self.errorMessage = ""
     }
 }
