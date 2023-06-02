@@ -104,16 +104,24 @@ class LANraragiService {
 
     func fetchArchivePage(page: String) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
-        return session.download(request, to: { tempUrl, _ in
-            let destinationUrl = self.downloadPath?.appendingPathComponent(page, conformingTo: .image) ?? tempUrl
+        return session.download(request, to: { tempUrl, response in
+            let id = String(page.split(separator: "/")[2])
+            let destinationUrl = self.downloadPath?
+                .appendingPathComponent(id, conformingTo: .folder)
+                .appendingPathComponent(response.suggestedFilename!, conformingTo: .image)
+            ?? tempUrl
             return (destinationUrl, [.createIntermediateDirectories, .removePreviousFile])
         })
     }
 
     func prefetchArchivePage(page: String) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
-        return prefetchSession.download(request, to: { tempUrl, _ in
-            let destinationUrl = self.downloadPath?.appendingPathComponent(page, conformingTo: .image) ?? tempUrl
+        return prefetchSession.download(request, to: { tempUrl, response in
+            let id = String(page.split(separator: "/")[2])
+            let destinationUrl = self.downloadPath?
+                .appendingPathComponent(id, conformingTo: .folder)
+                .appendingPathComponent(response.suggestedFilename!, conformingTo: .image)
+            ?? tempUrl
             return (destinationUrl, [.createIntermediateDirectories, .removePreviousFile])
         })
     }
