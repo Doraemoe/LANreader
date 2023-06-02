@@ -79,7 +79,7 @@
 
 "error.host" = "无法连接服务器，请检查设置";
 "error.list" = "无法加载媒体库，请重试或检查服务器设定";
-"error.extract" = "无法打开压缩包，请重试";
+"error.extract" = "无法打开压缩包";
 "error.load.page" = "无法加载图像，请重试";
 "error.category" = "无法加载类别，请重试";
 "error.category.update" = "无法更新类别，请重试";

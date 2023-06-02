@@ -42,13 +42,6 @@ struct ArchivePageV2: View {
     init(archiveItem: ArchiveItem, startFromBeginning: Bool = false) {
         self.archiveItem = archiveItem
         self.startFromBeginning = startFromBeginning
-
-        let currentPages = store.state.page.archivePages[archiveItem.id]?.wrappedValue
-        store.dispatch(
-            .page(action: .storeExtractedArchive(
-                id: archiveItem.id, pages: currentPages != nil ? currentPages! : .init()
-            ))
-        )
     }
 
     var body: some View {
@@ -116,7 +109,7 @@ struct ArchivePageV2: View {
             .toolbar(.hidden, for: .tabBar)
             .task {
                 if archivePageModel.pages.isEmpty {
-                    await store.dispatch(extractArchive(id: archiveItem.id))
+                    await archivePageModel.extractArchive(id: archiveItem.id)
                 }
             }
             .onAppear(perform: {
@@ -133,30 +126,15 @@ struct ArchivePageV2: View {
                     presentationMode.wrappedValue.dismiss()
                 }
             })
-            .onChange(of: archivePageModel.errorCode) { errorCode in
-                if errorCode != nil {
-                    switch errorCode! {
-                    case .archiveExtractError:
-                        let banner = NotificationBanner(
-                            title: NSLocalizedString("error", comment: "error"),
-                            subtitle: NSLocalizedString("error.extract", comment: "list error"),
-                            style: .danger
-                        )
-                        banner.show()
-                        store.dispatch(.page(action: .resetState))
-                        archivePageModel.controlUiHidden = false
-                    case .emptyPageError:
-                        let banner = NotificationBanner(
-                            title: NSLocalizedString("error", comment: "error"),
-                            subtitle: NSLocalizedString("error.page.empty", comment: "empty content"),
-                            style: .danger
-                        )
-                        banner.show()
-                        store.dispatch(.page(action: .resetState))
-                        archivePageModel.controlUiHidden = false
-                    default:
-                        break
-                    }
+            .onChange(of: archivePageModel.errorMessage) { errorMessage in
+                if !errorMessage.isEmpty {
+                    let banner = NotificationBanner(
+                        title: NSLocalizedString("error", comment: "error"),
+                        subtitle: errorMessage,
+                        style: .danger
+                    )
+                    banner.show()
+                    archivePageModel.controlUiHidden = false
                 }
             }
             .onChange(of: archivePageModel.currentIndex) { index in
@@ -179,7 +157,7 @@ struct ArchivePageV2: View {
         ZStack {
             if archivePageModel.pages.isEmpty {
                 // This is to make sure when onAppear called on ScrollView there is page to scroll to
-                Color.primary.colorInvert()
+                Color.clear
             } else {
                 ScrollViewReader { reader in
                     ScrollView {
@@ -244,7 +222,7 @@ struct ArchivePageV2: View {
             } else {
                 // If not return a view here, when user click into already extracted archive, TabView will render ALL pages at once
                 // However, if return empty view, the loading position will be wrong, thus return a color view
-                Color.primary.colorInvert()
+                Color.clear
             }
         }
     }

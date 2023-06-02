@@ -9,7 +9,4 @@ struct PageState {
     @PublishedState var loading = false
     @PublishedState var archiveCurrentIndex = [String: Double]()
     @PublishedState var errorCode: ErrorCode?
-
-    var archivePages = [String: PublishedState<[String]>]()
-    var loadingProgress = [String: PublishedState<Double>]()
 }
