@@ -32,36 +32,30 @@ class PageImageModel: ObservableObject {
             return
         }
 
-        if store.state.page.loadingProgress[id] != nil {
-            store.state.page.loadingProgress[id]!.projectedValue.receive(on: DispatchQueue.main)
-                .assign(to: \.progress, on: self)
-                .store(in: &cancellables)
-        } else {
-            isLoading = true
-            progress = 0
-            _ = try? database.deleteArchiveImage(id)
-            service.fetchArchivePage(page: id)
-                .validate()
-                .downloadProgress { progress in
-                    self.progress = progress.fractionCompleted
-                }
-                .responseURL { [self] response in
-                    if let url = response.value {
-                        if compressThreshold != .never {
-                            self.progress = 2
-                        }
-                        resizeImage(url: url, threshold: compressThreshold)
-                        var pageImage = ArchiveImage(id: id, image: url.path, lastUpdate: Date())
-                        do {
-                            try database.saveArchiveImage(&pageImage)
-                        } catch {
-                            PageImageModel.logger.error("failed to save page to db. pageId=\(id) \(error)")
-                        }
-                    } else if let error = response.error {
-                        PageImageModel.logger.error("failed to load image. \(error)")
+        isLoading = true
+        progress = 0
+        _ = try? database.deleteArchiveImage(id)
+        service.fetchArchivePage(page: id)
+            .validate()
+            .downloadProgress { progress in
+                self.progress = progress.fractionCompleted
+            }
+            .responseURL { [self] response in
+                if let url = response.value {
+                    if compressThreshold != .never {
+                        self.progress = 2
                     }
-                    isLoading = false
+                    resizeImage(url: url, threshold: compressThreshold)
+                    var pageImage = ArchiveImage(id: id, image: url.path, lastUpdate: Date())
+                    do {
+                        try database.saveArchiveImage(&pageImage)
+                    } catch {
+                        PageImageModel.logger.error("failed to save page to db. pageId=\(id) \(error)")
+                    }
+                } else if let error = response.error {
+                    PageImageModel.logger.error("failed to load image. \(error)")
                 }
-        }
+                isLoading = false
+            }
     }
 }
