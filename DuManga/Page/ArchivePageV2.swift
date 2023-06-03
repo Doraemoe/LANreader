@@ -52,60 +52,29 @@ struct ArchivePageV2: View {
                 } else {
                     hReader(geometry: geometry)
                 }
+                // SwiftUI build in bottom tool bar only support single line height
+                if !archivePageModel.controlUiHidden {
+                    VStack {
+                        Spacer()
+                        bottomToolbar(pages: archivePageModel.pages)
+                    }
+                }
                 if archivePageModel.loading {
                     LoadingView(geometry: geometry)
                 }
             }
             .toolbar {
-                ToolbarItemGroup(placement: .primaryAction) {
-                    Button(action: {
-                        store.dispatch(
-                            .trigger(action: .pageRefreshAction(
-                                id: archivePageModel.pages[archivePageModel.currentIndex])
-                            )
-                        )
-                    }, label: {
-                        Image(systemName: "arrow.clockwise")
-                    })
+                ToolbarItem(placement: .primaryAction) {
                     NavigationLink {
                         ArchiveDetails(item: archiveItem)
                     } label: {
                         Image(systemName: "info.circle")
                     }
-                    Menu {
-                        Button("archive.thumbnail.current") {
-                            Task {
-                                let result = await archivePageModel.setCurrentPageAsThumbnail(id: archiveItem.id)
-                                if result.isEmpty {
-                                    let banner = NotificationBanner(
-                                        title: NSLocalizedString("success", comment: "error"),
-                                        subtitle: NSLocalizedString(
-                                            "archive.thumbnail.set", comment: "set thumbnail success"
-                                        ),
-                                        style: .success
-                                    )
-                                    banner.show()
-                                } else {
-                                    let banner = NotificationBanner(
-                                        title: NSLocalizedString("error", comment: "error"),
-                                        subtitle: result,
-                                        style: .danger
-                                    )
-                                    banner.show()
-                                }
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                    }
-                }
-                ToolbarItemGroup(placement: .bottomBar) {
-                    bottomToolbar(pages: archivePageModel.pages)
                 }
             }
             .navigationBarTitle(archiveItem.name)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar(archivePageModel.controlUiHidden ? .hidden : .visible, for: .navigationBar, .bottomBar)
+            .toolbar(archivePageModel.controlUiHidden ? .hidden : .visible, for: .navigationBar)
             .toolbar(.hidden, for: .tabBar)
             .task {
                 if archivePageModel.pages.isEmpty {
@@ -234,28 +203,69 @@ struct ArchivePageV2: View {
         }
     }
 
+    // swiftlint:disable function_body_length
     private func bottomToolbar(pages: [String]) -> some View {
         let flip = readDirection == ReadDirection.rightLeft.rawValue ? -1 : 1
-        return VStack {
-            Text(String(format: "%d/%d",
-                        archivePageModel.currentIndex + 1,
-                        pages.count))
-            .bold()
-            Slider(value: self.$archivePageModel.sliderIndex,
-                   in: 0...Double(pages.count < 1 ? 1 : pages.count - 1),
-                   step: 1) { onSlider in
-                if !onSlider {
-                    archivePageModel.currentIndex = archivePageModel.sliderIndex.int
-                    verticalScrollTarget = archivePageModel.sliderIndex.int
-                }
+        return Grid {
+            GridRow {
+                Button(action: {
+                    store.dispatch(
+                        .trigger(action: .pageRefreshAction(
+                            id: archivePageModel.pages[archivePageModel.currentIndex])
+                        )
+                    )
+                }, label: {
+                    Image(systemName: "arrow.clockwise")
+                })
+                Text(String(format: "%d/%d",
+                            archivePageModel.currentIndex + 1,
+                            pages.count))
+                .bold()
+                Button(action: {
+                    Task {
+                        let result = await archivePageModel.setCurrentPageAsThumbnail(id: archiveItem.id)
+                        if result.isEmpty {
+                            let banner = NotificationBanner(
+                                title: NSLocalizedString("success", comment: "error"),
+                                subtitle: NSLocalizedString(
+                                    "archive.thumbnail.set", comment: "set thumbnail success"
+                                ),
+                                style: .success
+                            )
+                            banner.show()
+                        } else {
+                            let banner = NotificationBanner(
+                                title: NSLocalizedString("error", comment: "error"),
+                                subtitle: result,
+                                style: .danger
+                            )
+                            banner.show()
+                        }
+                    }
+                }, label: {
+                    Text("archive.thumbnail.current")
+                })
             }
-                   .scaleEffect(CGSize(width: flip, height: 1), anchor: .center)
-                   .padding(.horizontal)
-                   .padding(.bottom, 50)
+            GridRow {
+                Slider(
+                    value: self.$archivePageModel.sliderIndex,
+                    in: 0...Double(pages.count < 1 ? 1 : pages.count - 1),
+                    step: 1
+                ) { onSlider in
+                    if !onSlider {
+                        archivePageModel.currentIndex = archivePageModel.sliderIndex.int
+                        verticalScrollTarget = archivePageModel.sliderIndex.int
+                    }
+                }
+                .scaleEffect(CGSize(width: flip, height: 1), anchor: .center)
+                .padding(.horizontal)
+                .gridCellColumns(3)
+            }
         }
         .padding()
-        .background(Color.primary.colorInvert())
+        .background(.thinMaterial)
     }
+    // swiftlint:enable function_body_length
 
     private func onIndexChange(index: Int) async {
         await store.dispatch(updateReadProgress(
