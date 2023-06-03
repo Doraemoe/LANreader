@@ -114,7 +114,6 @@ struct ArchivePageV2: View {
             }
             .onAppear(perform: {
                 archivePageModel.load(
-                    id: archiveItem.id,
                     progress: archiveItem.progress > 0 ? archiveItem.progress - 1 : 0,
                     startFromBeginning: startFromBeginning
                 )
@@ -285,15 +284,11 @@ struct ArchivePageV2: View {
         case PageControl.next.rawValue:
             let pageNumbers = archivePageModel.pages.count
             if archivePageModel.currentIndex < pageNumbers - 1 {
-                withAnimation(.easeInOut) {
-                    archivePageModel.currentIndex += 1
-                }
+                archivePageModel.currentIndex += 1
             }
         case PageControl.previous.rawValue:
             if archivePageModel.currentIndex > 0 {
-                withAnimation(.easeInOut) {
-                    archivePageModel.currentIndex -= 1
-                }
+                archivePageModel.currentIndex -= 1
             }
         case PageControl.navigation.rawValue:
             archivePageModel.controlUiHidden.toggle()

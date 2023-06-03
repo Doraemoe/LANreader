@@ -10,6 +10,8 @@ func pageReducer(state: inout PageState, action: PageAction) {
         state.loading = true
     case .finishExtractArchive:
         state.loading = false
+    case let .storeExtractedArchive(id, pages):
+        state.archivePages[id] = pages
     case let .error(error):
         state.loading = false
         state.errorCode = error
