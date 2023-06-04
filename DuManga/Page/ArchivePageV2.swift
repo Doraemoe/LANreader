@@ -54,10 +54,7 @@ struct ArchivePageV2: View {
                 }
                 // SwiftUI build in bottom tool bar only support single line height
                 if !archivePageModel.controlUiHidden {
-                    VStack {
-                        Spacer()
-                        bottomToolbar(pages: archivePageModel.pages)
-                    }
+                    bottomToolbar(pages: archivePageModel.pages)
                 }
                 if archivePageModel.loading {
                     LoadingView(geometry: geometry)
@@ -206,64 +203,67 @@ struct ArchivePageV2: View {
     // swiftlint:disable function_body_length
     private func bottomToolbar(pages: [String]) -> some View {
         let flip = readDirection == ReadDirection.rightLeft.rawValue ? -1 : 1
-        return Grid {
-            GridRow {
-                Button(action: {
-                    store.dispatch(
-                        .trigger(action: .pageRefreshAction(
-                            id: archivePageModel.pages[archivePageModel.currentIndex])
+        return VStack {
+            Spacer()
+            Grid {
+                GridRow {
+                    Button(action: {
+                        store.dispatch(
+                            .trigger(action: .pageRefreshAction(
+                                id: archivePageModel.pages[archivePageModel.currentIndex])
+                            )
                         )
-                    )
-                }, label: {
-                    Image(systemName: "arrow.clockwise")
-                })
-                Text(String(format: "%d/%d",
-                            archivePageModel.currentIndex + 1,
-                            pages.count))
-                .bold()
-                Button(action: {
-                    Task {
-                        let result = await archivePageModel.setCurrentPageAsThumbnail(id: archiveItem.id)
-                        if result.isEmpty {
-                            let banner = NotificationBanner(
-                                title: NSLocalizedString("success", comment: "error"),
-                                subtitle: NSLocalizedString(
-                                    "archive.thumbnail.set", comment: "set thumbnail success"
-                                ),
-                                style: .success
-                            )
-                            banner.show()
-                        } else {
-                            let banner = NotificationBanner(
-                                title: NSLocalizedString("error", comment: "error"),
-                                subtitle: result,
-                                style: .danger
-                            )
-                            banner.show()
+                    }, label: {
+                        Image(systemName: "arrow.clockwise")
+                    })
+                    Text(String(format: "%d/%d",
+                                archivePageModel.currentIndex + 1,
+                                pages.count))
+                    .bold()
+                    Button(action: {
+                        Task {
+                            let result = await archivePageModel.setCurrentPageAsThumbnail(id: archiveItem.id)
+                            if result.isEmpty {
+                                let banner = NotificationBanner(
+                                    title: NSLocalizedString("success", comment: "error"),
+                                    subtitle: NSLocalizedString(
+                                        "archive.thumbnail.set", comment: "set thumbnail success"
+                                    ),
+                                    style: .success
+                                )
+                                banner.show()
+                            } else {
+                                let banner = NotificationBanner(
+                                    title: NSLocalizedString("error", comment: "error"),
+                                    subtitle: result,
+                                    style: .danger
+                                )
+                                banner.show()
+                            }
+                        }
+                    }, label: {
+                        Text("archive.thumbnail.current")
+                    })
+                }
+                GridRow {
+                    Slider(
+                        value: self.$archivePageModel.sliderIndex,
+                        in: 0...Double(pages.count < 1 ? 1 : pages.count - 1),
+                        step: 1
+                    ) { onSlider in
+                        if !onSlider {
+                            archivePageModel.currentIndex = archivePageModel.sliderIndex.int
+                            verticalScrollTarget = archivePageModel.sliderIndex.int
                         }
                     }
-                }, label: {
-                    Text("archive.thumbnail.current")
-                })
-            }
-            GridRow {
-                Slider(
-                    value: self.$archivePageModel.sliderIndex,
-                    in: 0...Double(pages.count < 1 ? 1 : pages.count - 1),
-                    step: 1
-                ) { onSlider in
-                    if !onSlider {
-                        archivePageModel.currentIndex = archivePageModel.sliderIndex.int
-                        verticalScrollTarget = archivePageModel.sliderIndex.int
-                    }
+                    .scaleEffect(CGSize(width: flip, height: 1), anchor: .center)
+                    .padding(.horizontal)
+                    .gridCellColumns(3)
                 }
-                .scaleEffect(CGSize(width: flip, height: 1), anchor: .center)
-                .padding(.horizontal)
-                .gridCellColumns(3)
             }
+            .padding()
+            .background(.thinMaterial)
         }
-        .padding()
-        .background(.thinMaterial)
     }
     // swiftlint:enable function_body_length
 
