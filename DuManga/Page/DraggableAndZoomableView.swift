@@ -44,8 +44,8 @@ struct DraggableAndZoomableView: ViewModifier {
                 }
                 .onEnded { value in
                     if scale > 1.0 {
-                        offset.height += value.translation.height
-                        offset.width += value.translation.width
+                        offset.height = calEdge(offset: offset.height + value.translation.height, isWidth: false)
+                        offset.width = calEdge(offset: offset.width + value.translation.width, isWidth: true)
                     }
                 }
 
@@ -63,7 +63,7 @@ struct DraggableAndZoomableView: ViewModifier {
                 .offset(x: calEdge(offset: offset.width + offsetState.width, isWidth: true),
                         y: calEdge(offset: offset.height + offsetState.height, isWidth: false))
                 .gesture(SimultaneousGesture(zoomGesture, dragGesture))
-                .gesture(doubleTapGesture)
+                .simultaneousGesture(doubleTapGesture)
     }
 
     private func minDistance() -> CGFloat {

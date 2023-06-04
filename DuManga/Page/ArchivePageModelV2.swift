@@ -37,7 +37,7 @@ class ArchivePageModelV2: ObservableObject {
             .store(in: &cancellables)
     }
 
-    func load(id: String, progress: Int, startFromBeginning: Bool) {
+    func load(progress: Int, startFromBeginning: Bool) {
         if currentIndex == 0 && !startFromBeginning {
             currentIndex = progress
         }
@@ -45,25 +45,30 @@ class ArchivePageModelV2: ObservableObject {
 
     @MainActor
     func extractArchive(id: String) async {
-        loading = true
-        do {
-            let extractResponse = try await service.extractArchive(id: id).value
-            if extractResponse.pages.isEmpty {
-                ArchivePageModelV2.logger.error("server returned empty pages. id=\(id)")
-                errorMessage = NSLocalizedString("error.page.empty", comment: "empty content")
-            } else {
-                var allPages = [String]()
-                extractResponse.pages.forEach { page in
-                    let normalizedPage = String(page.dropFirst(2))
-                    allPages.append(normalizedPage)
+        if let storedPages = store.state.page.archivePages[id] {
+            self.pages = storedPages
+        } else {
+            loading = true
+            do {
+                let extractResponse = try await service.extractArchive(id: id).value
+                if extractResponse.pages.isEmpty {
+                    ArchivePageModelV2.logger.error("server returned empty pages. id=\(id)")
+                    errorMessage = NSLocalizedString("error.page.empty", comment: "empty content")
+                } else {
+                    var allPages = [String]()
+                    extractResponse.pages.forEach { page in
+                        let normalizedPage = String(page.dropFirst(2))
+                        allPages.append(normalizedPage)
+                    }
+                    self.pages = allPages
+                    store.dispatch(.page(action: .storeExtractedArchive(id: id, pages: allPages)))
                 }
-                self.pages = allPages
+            } catch {
+                ArchivePageModelV2.logger.error("failed to extract archive page. id=\(id) \(error)")
+                self.errorMessage = error.localizedDescription
             }
-        } catch {
-            ArchivePageModelV2.logger.error("failed to extract archive page. id=\(id) \(error)")
-            self.errorMessage = error.localizedDescription
+            loading = false
         }
-        loading = false
     }
 
     func prefetchImages() {
