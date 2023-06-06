@@ -41,6 +41,10 @@ DuReader is an iOS manga reader for [LANraragi](https://github.com/Difegue/LANra
 - Open it in Xcode
 - Follow [this guide](https://developer.apple.com/documentation/xcode/running_your_app_in_the_simulator_or_on_a_device)
 
+## Donation
+
+BTC: bc1q0364ah7u88kkgh0w9l2223e5kdrffesp9t8y0r
+
 ## License
 
 MIT
