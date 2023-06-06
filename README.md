@@ -10,15 +10,23 @@ DuReader is an iOS manga reader for [LANraragi](https://github.com/Difegue/LANra
 
 ### Library View
 
-![Screenshot 2023-05-25 at 10 44 37 pm](https://github.com/Doraemoe/DuReader/assets/1129569/991dcd4e-b98a-486f-abf7-086f8e157173)
+![Screenshot 2023-06-06 at 11 12 12 pm](https://github.com/Doraemoe/DuReader/assets/1129569/1b91353e-06c5-4d76-892c-8781f7722d89)
 
 ### Archive Page View
 
-![Screenshot 2023-05-25 at 10 45 54 pm](https://github.com/Doraemoe/DuReader/assets/1129569/158a8491-9870-4fbf-a58c-9d9573760ca4)
+![Screenshot 2023-06-06 at 11 12 38 pm](https://github.com/Doraemoe/DuReader/assets/1129569/a1232b58-8a90-4f77-8b6b-e1343bebf93d)
 
 ### Archive Details View
 
-![Screenshot 2023-05-25 at 10 46 02 pm](https://github.com/Doraemoe/DuReader/assets/1129569/5bb97483-0a18-47e0-af59-aec8e0f4e8dd)
+![Screenshot 2023-06-06 at 11 12 57 pm](https://github.com/Doraemoe/DuReader/assets/1129569/342674e7-bd6b-4db7-b1ab-56e746422286)
+
+### Settings Page
+
+![Screenshot 2023-06-06 at 11 13 50 pm](https://github.com/Doraemoe/DuReader/assets/1129569/27b1708d-f6ee-4a0f-b146-5466f95fc582)
+
+### Save URL
+
+![237701532-4518935c-ca93-43a8-b190-064c6424aea5](https://github.com/Doraemoe/DuReader/assets/1129569/e8dab3ba-8eb0-49e6-930e-2c8b2fbd5cad)
 
 ## Test on your device
 
