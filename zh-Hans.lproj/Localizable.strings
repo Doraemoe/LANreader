@@ -19,6 +19,7 @@
 "filter.name" = "过滤标题";
 
 "lanraragi.config.url" = "http(s)://10.0.1.10:3000";
+"lanraragi.config.url.explain" = "非本地网络必须使用https协议";
 "lanraragi.config.apiKey" = "API Key, 可以在设置里设定. 这不是你的密码";
 "lanraragi.config.submit" = "提交";
 
