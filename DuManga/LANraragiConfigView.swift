@@ -11,33 +11,32 @@ struct LANraragiConfigView: View {
     @StateObject var configModel = LANraragiConfigViewModel()
 
     var body: some View {
-        VStack {
-            TextField("lanraragi.config.url", text: self.$configModel.url)
-                .textContentType(.URL)
-                .keyboardType(.URL)
-                .padding()
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-                .focused($focused)
-            SecureField("lanraragi.config.apiKey", text: self.$configModel.apiKey)
-                .padding()
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .focused($focused)
-            Button(action: {
-                Task {
-                    let result = await configModel.verifyAndSave()
-                    if result {
-                        focused = false
-                        presentationMode.wrappedValue.dismiss()
+        Form {
+            Section(footer: Text("lanraragi.config.url.explain")) {
+                TextField("lanraragi.config.url", text: self.$configModel.url)
+                    .textContentType(.URL)
+                    .keyboardType(.URL)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .focused($focused)
+                SecureField("lanraragi.config.apiKey", text: self.$configModel.apiKey)
+                    .focused($focused)
+            }
+            Section {
+                Button(action: {
+                    Task {
+                        let result = await configModel.verifyAndSave()
+                        if result {
+                            focused = false
+                            presentationMode.wrappedValue.dismiss()
+                        }
                     }
-                }
-            }, label: {
-                Text("lanraragi.config.submit")
-                    .font(.headline)
-            })
-            .disabled(configModel.isVerifying)
-            .padding()
+                }, label: {
+                    Text("lanraragi.config.submit")
+                        .font(.headline)
+                })
+                .disabled(configModel.isVerifying)
+            }
         }
         .toolbar(.hidden, for: .tabBar)
         .onChange(of: configModel.errorMessage, perform: { errorMessage in
