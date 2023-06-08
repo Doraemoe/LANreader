@@ -7,9 +7,9 @@ import Logging
 class PageImageModel: ObservableObject {
     private static let logger = Logger(label: "PageImageModel")
 
-    @Published var progress: Double = 0
-
+    @Published private(set) var progress: Double = 0
     @Published private(set) var reloadPageId = ""
+    @Published private(set) var errorMessage = ""
 
     private var isLoading = false
 
@@ -25,6 +25,10 @@ class PageImageModel: ObservableObject {
         store.state.trigger.$pageId.receive(on: DispatchQueue.main)
             .assign(to: \.reloadPageId, on: self)
             .store(in: &cancellables)
+    }
+
+    func reset() {
+        errorMessage = ""
     }
 
     func load(id: String, compressThreshold: CompressThreshold) {
@@ -54,6 +58,7 @@ class PageImageModel: ObservableObject {
                     }
                 } else if let error = response.error {
                     PageImageModel.logger.error("failed to load image. \(error)")
+                    errorMessage = error.localizedDescription
                 }
                 isLoading = false
             }

@@ -5,14 +5,26 @@ import Logging
 class SearchViewModel: ObservableObject {
     private static let logger = Logger(label: "SearchViewModel")
 
-    @Published var isLoading = false
     @Published var keyword = ""
-    @Published var result = [ArchiveItem]()
-    @Published var isError = false
-    @Published var errorMessage = ""
+    @Published private(set) var isLoading = false
+    @Published private(set) var archiveItems = [String: ArchiveItem]()
+    @Published private(set) var isError = false
+    @Published private(set) var errorMessage = ""
 
+    let store = AppStore.shared
     let service = LANraragiService.shared
     let database = AppDatabase.shared
+
+    private var result = [String]()
+    private var cancellable: Set<AnyCancellable> = []
+
+    init() {
+        archiveItems = store.state.archive.archiveItems
+
+        store.state.archive.$archiveItems.receive(on: DispatchQueue.main)
+                .assign(to: \.archiveItems, on: self)
+                .store(in: &cancellable)
+    }
 
     var suggestedTag: [String] {
         let lastToken = keyword.split(separator: " ", omittingEmptySubsequences: false).last.map(String.init) ?? ""
@@ -35,18 +47,24 @@ class SearchViewModel: ObservableObject {
         errorMessage = ""
     }
 
+    func searchResult() -> [ArchiveItem] {
+        return archiveItems.values.filter { item in
+            result.contains(item.id)
+        }
+    }
+
     @MainActor
     func search() async {
         guard !isLoading else {
             return
         }
-        isLoading = true
         result = .init()
+        isLoading = true
         do {
             let response = try await service.searchArchive(filter: keyword).value
 
             result = response.data.map { item in
-                item.toArchiveItem()
+                item.arcid
             }
         } catch {
             SearchViewModel.logger.error("failed to search archive. keyword=\(keyword) \(error)")

@@ -15,41 +15,41 @@ struct LibraryList: View {
         GeometryReader { geometry in
             ZStack {
                 ArchiveList(archives: searchArchives())
-                        .onAppear(perform: {
-                            if libraryListModel.archiveItems.isEmpty {
-                                Task {
-                                    await libraryListModel.load(fromServer: alwaysLoadFromServer)
-                                }
-                            }
-                        })
-                        .onChange(of: libraryListModel.errorCode, perform: { errorCode in
-                            if errorCode != nil {
-                                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                                        subtitle: NSLocalizedString("error.list", comment: "list error"),
-                                        style: .danger)
-                                banner.show()
-                                libraryListModel.resetArchiveState()
-                            }
-                        })
-                        .refreshable {
-                            if libraryListModel.loading != true {
-                                libraryListModel.isPullToRefresh = true
-                                await libraryListModel.refresh()
-                                libraryListModel.isPullToRefresh = false
-                            }
+                    .task {
+                        if libraryListModel.archiveItems.isEmpty {
+                            await libraryListModel.load(fromServer: alwaysLoadFromServer)
                         }
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarLeading) {
-                                NavigationLink {
-                                    HistoryList()
-                                } label: {
-                                    Image(systemName: "clock.arrow.circlepath")
-                                }
+                    }
+                    .onChange(of: libraryListModel.errorCode, perform: { errorCode in
+                        if errorCode != nil {
+                            let banner = NotificationBanner(
+                                title: NSLocalizedString("error", comment: "error"),
+                                subtitle: NSLocalizedString("error.list", comment: "list error"),
+                                style: .danger
+                            )
+                            banner.show()
+                            libraryListModel.resetArchiveState()
+                        }
+                    })
+                    .refreshable {
+                        if libraryListModel.loading != true {
+                            libraryListModel.isPullToRefresh = true
+                            await libraryListModel.refresh()
+                            libraryListModel.isPullToRefresh = false
+                        }
+                    }
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            NavigationLink {
+                                HistoryList()
+                            } label: {
+                                Image(systemName: "clock.arrow.circlepath")
+                            }
 
-                            }
                         }
-                        .searchable(text: $libraryListModel.searchText, prompt: "filter.name")
-                        .autocorrectionDisabled()
+                    }
+                    .searchable(text: $libraryListModel.searchText, prompt: "filter.name")
+                    .autocorrectionDisabled()
                 if libraryListModel.loading && !libraryListModel.isPullToRefresh {
                     LoadingView(geometry: geometry)
                 }

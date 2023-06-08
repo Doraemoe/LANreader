@@ -13,7 +13,7 @@ struct SearchView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                ArchiveList(archives: searchViewModel.result)
+                ArchiveList(archives: searchViewModel.searchResult())
                     .searchable(
                         text: $searchViewModel.keyword,
                         placement: .navigationBarDrawer(displayMode: .always)

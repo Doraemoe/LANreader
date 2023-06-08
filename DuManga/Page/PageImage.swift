@@ -2,6 +2,7 @@
 
 import SwiftUI
 import GRDBQuery
+import NotificationBannerSwift
 
 struct PageImage: View {
     @AppStorage(SettingsKey.compressImageThreshold) var compressThreshold: CompressThreshold = .never
@@ -26,11 +27,15 @@ struct PageImage: View {
         ZStack {
             Group {
                 if let imageUrl = archiveImage?.image {
-                    Image(uiImage: UIImage(contentsOfFile: imageUrl)!)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: geometrySize.width)
-                        .draggableAndZoomable(contentSize: geometrySize)
+                    if let uiImage = UIImage(contentsOfFile: imageUrl) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: geometrySize.width)
+                            .draggableAndZoomable(contentSize: geometrySize)
+                    } else {
+                        Image(systemName: "rectangle.slash")
+                    }
                 } else {
                     ProgressView(
                         value: imageModel.progress > 1 ? 1 : imageModel.progress,
@@ -54,6 +59,17 @@ struct PageImage: View {
                 if reloadPageId == id {
                     imageModel.load(id: id, compressThreshold: compressThreshold)
                     store.dispatch(.trigger(action: .pageRefreshAction(id: "")))
+                }
+            }
+            .onChange(of: imageModel.errorMessage) { errorMessage in
+                if !errorMessage.isEmpty {
+                    let banner = NotificationBanner(
+                        title: NSLocalizedString("error", comment: "error"),
+                        subtitle: errorMessage,
+                        style: .danger
+                    )
+                    banner.show()
+                    imageModel.reset()
                 }
             }
         }
