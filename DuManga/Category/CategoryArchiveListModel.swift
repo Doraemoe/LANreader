@@ -9,16 +9,15 @@ import Logging
 class CategoryArchiveListModel: ObservableObject {
     private static let logger = Logger(label: "CategoryArchiveListModel")
 
-    @Published var keyword = ""
     @Published private(set) var archiveItems = [String: ArchiveItem]()
     @Published private(set) var isLoading = false
-    @Published private(set) var result = [ArchiveItem]()
     @Published private(set) var isError = false
     @Published private(set) var errorMessage = ""
 
     private let service = LANraragiService.shared
     private let store = AppStore.shared
 
+    private var result = [String]()
     private var cancellable: Set<AnyCancellable> = []
 
     init() {
@@ -35,28 +34,29 @@ class CategoryArchiveListModel: ObservableObject {
         errorMessage = ""
     }
 
+    func loadCategory() -> [ArchiveItem] {
+        return archiveItems.values.filter { item in
+            result.contains(item.id)
+        }
+    }
+
     func loadStaticCategory(ids: [String]) {
-        result = Array(
-                archiveItems
-                        .filter { key, _ in
-                            ids.contains(key)
-                        }
-                        .values
-        )
+        result = ids
     }
 
     @MainActor
-    func loadDynamicCategory() async {
+    func loadDynamicCategory(keyword: String) async {
         guard !isLoading else {
             return
         }
+        if !result.isEmpty {
+            return
+        }
         isLoading = true
-        result = .init()
         do {
             let response = try await service.searchArchive(filter: keyword).value
-
             result = response.data.map { item in
-                item.toArchiveItem()
+                item.arcid
             }
         } catch {
             CategoryArchiveListModel.logger.error("failed to search archive. keyword=\(keyword) \(error)")

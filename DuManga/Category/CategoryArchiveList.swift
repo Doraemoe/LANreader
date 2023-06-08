@@ -17,18 +17,12 @@ struct CategoryArchiveList: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                ArchiveList(archives: categoryArchiveListModel.result)
-                        .onAppear {
+                ArchiveList(archives: categoryArchiveListModel.loadCategory())
+                        .task {
                             if !categoryItem.archives.isEmpty {
                                 categoryArchiveListModel.loadStaticCategory(ids: categoryItem.archives)
-                            }
-                        }
-                        .task {
-                            if !categoryItem.search.isEmpty
-                                && (categoryItem.search != categoryArchiveListModel.keyword
-                                    || categoryArchiveListModel.result.isEmpty) {
-                                categoryArchiveListModel.keyword = categoryItem.search
-                                await categoryArchiveListModel.loadDynamicCategory()
+                            } else if !categoryItem.search.isEmpty {
+                                await categoryArchiveListModel.loadDynamicCategory(keyword: categoryItem.search)
                             }
                         }
                         .onDisappear {

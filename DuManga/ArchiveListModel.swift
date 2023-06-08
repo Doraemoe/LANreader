@@ -5,10 +5,8 @@ class ArchiveListModel: ObservableObject {
 
     @Published private(set) var randomSeed: UInt64 = 1
 
-    @Published var sortedArchives = [ArchiveItem]()
-
+    private var sortedArchives = [String: [ArchiveItem]]()
     private var cancellables: Set<AnyCancellable> = []
-
     private let store = AppStore.shared
 
     init() {
@@ -23,32 +21,50 @@ class ArchiveListModel: ObservableObject {
         store.dispatch(.trigger(action: .thumbnailRefreshAction(id: id)))
     }
 
-    func processArchives(archives: [ArchiveItem], sortOrder: String, hideRead: Bool, sortArchives: Bool) {
+    func resetSortedArchives() {
+        sortedArchives = .init()
+    }
+
+    func processArchives(
+        archives: [ArchiveItem],
+        sortOrder: String,
+        hideRead: Bool,
+        sortArchives: Bool
+    ) -> [ArchiveItem] {
         if !sortArchives {
-            sortedArchives = archives
-            return
+            return archives
         }
-        var archivesToProcess = archives
-        if sortOrder == ArchiveListOrder.name.rawValue {
-            archivesToProcess = archivesToProcess.sorted(by: { $0.name < $1.name })
-        } else if sortOrder == ArchiveListOrder.dateAdded.rawValue {
-            archivesToProcess = archivesToProcess.sorted { item, item2 in
-                let dateAdded1 = item.dateAdded
-                let dateAdded2 = item2.dateAdded
-                if dateAdded1 != nil && dateAdded2 != nil {
-                    return dateAdded1! > dateAdded2!
-                } else if dateAdded1 != nil {
-                    return true
-                } else if dateAdded2 != nil {
-                    return false
-                } else {
-                    return item.name < item2.name
+
+        var archivesToProcess: [ArchiveItem]
+        let existingArchives = sortedArchives[sortOrder]
+        if existingArchives?.isEmpty == false {
+            archivesToProcess = existingArchives!
+        } else {
+            archivesToProcess = archives
+            if sortOrder == ArchiveListOrder.name.rawValue {
+                archivesToProcess = archivesToProcess.sorted(by: { $0.name < $1.name })
+            } else if sortOrder == ArchiveListOrder.dateAdded.rawValue {
+                archivesToProcess = archivesToProcess.sorted { item, item2 in
+                    let dateAdded1 = item.dateAdded
+                    let dateAdded2 = item2.dateAdded
+                    if dateAdded1 != nil && dateAdded2 != nil {
+                        return dateAdded1! > dateAdded2!
+                    } else if dateAdded1 != nil {
+                        return true
+                    } else if dateAdded2 != nil {
+                        return false
+                    } else {
+                        return item.name < item2.name
+                    }
                 }
+
+            } else if sortOrder == ArchiveListOrder.random.rawValue {
+                var generator = FixedRandomGenerator(seed: randomSeed)
+                archivesToProcess = archivesToProcess.shuffled(using: &generator)
             }
-        } else if sortOrder == ArchiveListOrder.random.rawValue {
-            var generator = FixedRandomGenerator(seed: randomSeed)
-            archivesToProcess = archivesToProcess.shuffled(using: &generator)
+            sortedArchives[sortOrder] = archivesToProcess
         }
+
         if hideRead {
             archivesToProcess = archivesToProcess.filter { item in
                 item.pagecount != item.progress
@@ -62,6 +78,6 @@ class ArchiveListModel: ObservableObject {
                 distinctArchives.append(item)
             }
         }
-        sortedArchives = distinctArchives
+        return distinctArchives
     }
 }

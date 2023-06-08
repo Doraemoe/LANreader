@@ -8,8 +8,7 @@ struct EditCategory: View {
 
     @StateObject var editCategoryModel = EditCategoryModel()
 
-    let item: CategoryItem
-
+    private let item: CategoryItem
     private let store = AppStore.shared
 
     init(item: CategoryItem) {

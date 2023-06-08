@@ -19,13 +19,19 @@ struct ArchiveList: View {
     }
 
     var body: some View {
+        let archivesToDisplay = archiveListModel.processArchives(
+            archives: archives,
+            sortOrder: archiveListOrder,
+            hideRead: hideRead,
+            sortArchives: sortArchives
+        )
         Group {
             if useListView {
                 List {
                     if sortArchives {
                         sortPicker()
                     }
-                    ForEach(archiveListModel.sortedArchives) { (item: ArchiveItem) in
+                    ForEach(archivesToDisplay) { (item: ArchiveItem) in
                         NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
                             ArchiveRow(archiveItem: item)
                         }
@@ -46,7 +52,7 @@ struct ArchiveList: View {
                     }
                     Spacer(minLength: 30)
                     LazyVGrid(columns: columns) {
-                        ForEach(archiveListModel.sortedArchives) { (item: ArchiveItem) in
+                        ForEach(archivesToDisplay) { (item: ArchiveItem) in
                             NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
                                 ArchiveGrid(archiveItem: item)
                             }
@@ -61,32 +67,7 @@ struct ArchiveList: View {
         }
                 .onChange(of: archives) { [archives] newArchives in
                     if archives != newArchives {
-                        archiveListModel.processArchives(
-                            archives: newArchives,
-                            sortOrder: archiveListOrder,
-                            hideRead: hideRead,
-                            sortArchives: sortArchives
-                        )
-                    }
-                }
-                .onChange(of: archiveListOrder) { [archiveListOrder] newOrder in
-                    if archiveListOrder != newOrder {
-                        archiveListModel.processArchives(
-                            archives: archives,
-                            sortOrder: newOrder,
-                            hideRead: hideRead,
-                            sortArchives: sortArchives
-                        )
-                    }
-                }
-                .onChange(of: hideRead) { [hideRead] newHideRead in
-                    if hideRead != newHideRead {
-                        archiveListModel.processArchives(
-                                archives: archives,
-                                sortOrder: archiveListOrder,
-                                hideRead: newHideRead,
-                                sortArchives: sortArchives
-                        )
+                        archiveListModel.resetSortedArchives()
                     }
                 }
     }

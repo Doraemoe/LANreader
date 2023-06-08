@@ -30,7 +30,7 @@ class LANraragiConfigViewModel: ObservableObject {
             return true
         } catch {
             LANraragiConfigViewModel.logger.error("failed to verify lanraragi server. \(error)")
-            errorMessage = NSLocalizedString("error.host", comment: "host error")
+            errorMessage = error.localizedDescription
         }
         isVerifying = false
         return false
