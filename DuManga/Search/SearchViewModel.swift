@@ -8,7 +8,6 @@ class SearchViewModel: ObservableObject {
     @Published var keyword = ""
     @Published private(set) var isLoading = false
     @Published private(set) var archiveItems = [String: ArchiveItem]()
-    @Published private(set) var isError = false
     @Published private(set) var errorMessage = ""
 
     let store = AppStore.shared
@@ -43,7 +42,6 @@ class SearchViewModel: ObservableObject {
 
     func reset() {
         isLoading = false
-        isError = false
         errorMessage = ""
     }
 
@@ -68,7 +66,6 @@ class SearchViewModel: ObservableObject {
             }
         } catch {
             SearchViewModel.logger.error("failed to search archive. keyword=\(keyword) \(error)")
-            isError = true
             errorMessage = error.localizedDescription
         }
         isLoading = false

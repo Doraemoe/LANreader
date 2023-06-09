@@ -49,8 +49,8 @@ struct SearchView: View {
                     .onDisappear {
                         searchViewModel.reset()
                     }
-                    .onChange(of: searchViewModel.isError) { isError in
-                        if isError {
+                    .onChange(of: searchViewModel.errorMessage) { errorMessage in
+                        if !errorMessage.isEmpty {
                             let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
                                                             subtitle: searchViewModel.errorMessage,
                                                             style: .danger)

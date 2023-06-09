@@ -2,7 +2,6 @@
 
 import SwiftUI
 import GRDBQuery
-import NotificationBannerSwift
 
 struct PageImage: View {
     @AppStorage(SettingsKey.compressImageThreshold) var compressThreshold: CompressThreshold = .never
@@ -59,17 +58,6 @@ struct PageImage: View {
                 if reloadPageId == id {
                     imageModel.load(id: id, compressThreshold: compressThreshold)
                     store.dispatch(.trigger(action: .pageRefreshAction(id: "")))
-                }
-            }
-            .onChange(of: imageModel.errorMessage) { errorMessage in
-                if !errorMessage.isEmpty {
-                    let banner = NotificationBanner(
-                        title: NSLocalizedString("error", comment: "error"),
-                        subtitle: errorMessage,
-                        style: .danger
-                    )
-                    banner.show()
-                    imageModel.reset()
                 }
             }
         }
