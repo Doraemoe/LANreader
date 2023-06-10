@@ -54,6 +54,12 @@ struct PageImage: View {
                     }
                 }
             }
+            .onAppear {
+                imageModel.connectStore()
+            }
+            .onDisappear {
+                imageModel.disconnectStore()
+            }
             .onChange(of: imageModel.reloadPageId) { reloadPageId in
                 if reloadPageId == id {
                     imageModel.load(id: id, compressThreshold: compressThreshold)

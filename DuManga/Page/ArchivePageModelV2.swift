@@ -30,11 +30,19 @@ class ArchivePageModelV2: ObservableObject {
     private var cancellables: Set<AnyCancellable> = .init()
 
     init() {
+        connectStore()
+    }
+
+    func connectStore() {
         deletedArchiveId = store.state.trigger.deletedArchiveId
 
         store.state.trigger.$deletedArchiveId.receive(on: DispatchQueue.main)
             .assign(to: \.deletedArchiveId, on: self)
             .store(in: &cancellables)
+    }
+
+    func disconnectStore() {
+        cancellables.forEach { $0.cancel() }
     }
 
     func load(progress: Int, startFromBeginning: Bool) {

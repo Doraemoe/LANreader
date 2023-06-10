@@ -62,6 +62,12 @@ struct SearchView: View {
                     LoadingView(geometry: geometry)
                 }
             }
+            .onAppear {
+                searchViewModel.connectStore()
+            }
+            .onDisappear {
+                searchViewModel.disconnectStore()
+            }
             .navigationTitle("search")
             .navigationBarTitleDisplayMode(.inline)
         }

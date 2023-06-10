@@ -45,7 +45,7 @@ struct ArchivePageV2: View {
     }
 
     var body: some View {
-        return GeometryReader { geometry in
+        GeometryReader { geometry in
             ZStack {
                 if readDirection == ReadDirection.upDown.rawValue {
                     vReader(geometry: geometry)
@@ -79,12 +79,16 @@ struct ArchivePageV2: View {
                 }
             }
             .onAppear(perform: {
+                archivePageModel.connectStore()
                 archivePageModel.load(
                     progress: archiveItem.progress > 0 ? archiveItem.progress - 1 : 0,
                     startFromBeginning: startFromBeginning
                 )
                 archivePageModel.addToHistory(id: archiveItem.id)
             })
+            .onDisappear {
+                archivePageModel.disconnectStore()
+            }
             .onChange(of: archivePageModel.deletedArchiveId, perform: { deletedArchiveId in
                 if archiveItem.id == deletedArchiveId {
                     store.dispatch(.trigger(action: .archiveDeleteAction(id: "")))

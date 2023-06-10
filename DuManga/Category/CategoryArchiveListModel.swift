@@ -21,11 +21,19 @@ class CategoryArchiveListModel: ObservableObject {
     private var cancellable: Set<AnyCancellable> = []
 
     init() {
+        connectStore()
+    }
+
+    func connectStore() {
         archiveItems = store.state.archive.archiveItems
 
         store.state.archive.$archiveItems.receive(on: DispatchQueue.main)
                 .assign(to: \.archiveItems, on: self)
                 .store(in: &cancellable)
+    }
+
+    func disconnectStore() {
+        cancellable.forEach { $0.cancel() }
     }
 
     func reset() {

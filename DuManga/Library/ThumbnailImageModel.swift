@@ -18,11 +18,19 @@ class ThumbnailImageModel: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
 
     init() {
+        connectStore()
+    }
+
+    func connectStore() {
         reloadThumbnailId = store.state.trigger.thumbnailId
 
         store.state.trigger.$thumbnailId.receive(on: DispatchQueue.main)
                 .assign(to: \.reloadThumbnailId, on: self)
                 .store(in: &cancellables)
+    }
+
+    func disconnectStore() {
+        cancellables.forEach { $0.cancel() }
     }
 
     func load(id: String) async {

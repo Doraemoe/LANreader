@@ -21,22 +21,28 @@ struct ThumbnailImage: View {
         Group {
             if let imageData = archiveThumbnail?.thumbnail {
                 Image(uiImage: UIImage(data: imageData)!)
-                        .resizable()
+                    .resizable()
             } else {
                 Image(systemName: "photo")
-                        .foregroundColor(.primary)
-                        .task {
-                            await imageModel.load(id: id)
-                        }
+                    .foregroundColor(.primary)
+                    .task {
+                        await imageModel.load(id: id)
+                    }
             }
         }
-                .onChange(of: imageModel.reloadThumbnailId, perform: { reload in
-                    if reload == id {
-                        Task {
-                            await imageModel.load(id: id)
-                            store.dispatch(.trigger(action: .thumbnailRefreshAction(id: "")))
-                        }
-                    }
-                })
+        .onAppear {
+            imageModel.connectStore()
+        }
+        .onDisappear {
+            imageModel.disconnectStore()
+        }
+        .onChange(of: imageModel.reloadThumbnailId, perform: { reload in
+            if reload == id {
+                Task {
+                    await imageModel.load(id: id)
+                    store.dispatch(.trigger(action: .thumbnailRefreshAction(id: "")))
+                }
+            }
+        })
     }
 }

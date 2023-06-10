@@ -10,11 +10,19 @@ class ArchiveListModel: ObservableObject {
     private let store = AppStore.shared
 
     init() {
+        connectStore()
+    }
+
+    func connectStore() {
         randomSeed = store.state.archive.randomOrderSeed
 
         store.state.archive.$randomOrderSeed.receive(on: DispatchQueue.main)
                 .assign(to: \.randomSeed, on: self)
                 .store(in: &cancellables)
+    }
+
+    func disconnectStore() {
+        cancellables.forEach { $0.cancel() }
     }
 
     func refreshThumbnail(id: String) {
