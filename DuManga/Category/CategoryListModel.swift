@@ -19,6 +19,10 @@ class CategoryListModel: ObservableObject {
     private var cancellable: Set<AnyCancellable> = []
 
     init() {
+        connectStore()
+    }
+
+    func connectStore() {
         loading = store.state.category.loading
         categoryItems = store.state.category.categoryItems
         errorCode = store.state.category.errorCode
@@ -34,6 +38,10 @@ class CategoryListModel: ObservableObject {
         store.state.category.$errorCode.receive(on: DispatchQueue.main)
                 .assign(to: \.errorCode, on: self)
                 .store(in: &cancellable)
+    }
+
+    func disconnectStore() {
+        cancellable.forEach { $0.cancel() }
     }
 
     func load(fromServer: Bool) async {

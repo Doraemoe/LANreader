@@ -19,11 +19,19 @@ class PageImageModel: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
 
     init() {
+        connectStore()
+    }
+
+    func connectStore() {
         reloadPageId = store.state.trigger.pageId
 
         store.state.trigger.$pageId.receive(on: DispatchQueue.main)
             .assign(to: \.reloadPageId, on: self)
             .store(in: &cancellables)
+    }
+
+    func disconnectStore() {
+        cancellables.forEach { $0.cancel() }
     }
 
     func load(id: String, compressThreshold: CompressThreshold) {

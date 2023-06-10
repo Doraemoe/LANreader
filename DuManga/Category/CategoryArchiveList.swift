@@ -18,30 +18,36 @@ struct CategoryArchiveList: View {
         GeometryReader { geometry in
             ZStack {
                 ArchiveList(archives: categoryArchiveListModel.loadCategory())
-                        .task {
-                            if !categoryItem.archives.isEmpty {
-                                categoryArchiveListModel.loadStaticCategory(ids: categoryItem.archives)
-                            } else if !categoryItem.search.isEmpty {
-                                await categoryArchiveListModel.loadDynamicCategory(keyword: categoryItem.search)
-                            }
+                    .task {
+                        if !categoryItem.archives.isEmpty {
+                            categoryArchiveListModel.loadStaticCategory(ids: categoryItem.archives)
+                        } else if !categoryItem.search.isEmpty {
+                            await categoryArchiveListModel.loadDynamicCategory(keyword: categoryItem.search)
                         }
-                        .onDisappear {
+                    }
+                    .onDisappear {
+                        categoryArchiveListModel.reset()
+                    }
+                    .onChange(of: categoryArchiveListModel.isError) { isError in
+                        if isError {
+                            let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                                                            subtitle: categoryArchiveListModel.errorMessage,
+                                                            style: .danger)
+                            banner.show()
                             categoryArchiveListModel.reset()
                         }
-                        .onChange(of: categoryArchiveListModel.isError) { isError in
-                            if isError {
-                                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                                        subtitle: categoryArchiveListModel.errorMessage,
-                                        style: .danger)
-                                banner.show()
-                                categoryArchiveListModel.reset()
-                            }
-                        }
+                    }
                 if categoryArchiveListModel.isLoading {
                     LoadingView(geometry: geometry)
                 }
             }
-                    .toolbar(.hidden, for: .tabBar)
+            .onAppear {
+                categoryArchiveListModel.connectStore()
+            }
+            .onDisappear {
+                categoryArchiveListModel.disconnectStore()
+            }
+            .toolbar(.hidden, for: .tabBar)
         }
     }
 }

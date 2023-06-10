@@ -35,12 +35,12 @@ struct ArchiveList: View {
                         NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
                             ArchiveRow(archiveItem: item)
                         }
-                                .contextMenu {
-                                    contextMenu(item: item)
-                                }
+                        .contextMenu {
+                            contextMenu(item: item)
+                        }
                     }
                 }
-                        .listStyle(.grouped)
+                .listStyle(.grouped)
             } else {
                 let columns = [
                     GridItem(.adaptive(minimum: 160), spacing: 20, alignment: .top)
@@ -48,7 +48,7 @@ struct ArchiveList: View {
                 ScrollView {
                     if sortArchives {
                         sortPicker()
-                                .padding([.trailing, .leading], 20)
+                            .padding([.trailing, .leading], 20)
                     }
                     Spacer(minLength: 30)
                     LazyVGrid(columns: columns) {
@@ -56,20 +56,26 @@ struct ArchiveList: View {
                             NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
                                 ArchiveGrid(archiveItem: item)
                             }
-                                    .contextMenu {
-                                        contextMenu(item: item)
-                                    }
+                            .contextMenu {
+                                contextMenu(item: item)
+                            }
                         }
                     }
-                            .padding(.horizontal)
+                    .padding(.horizontal)
                 }
             }
         }
-                .onChange(of: archives) { [archives] newArchives in
-                    if archives != newArchives {
-                        archiveListModel.resetSortedArchives()
-                    }
-                }
+        .onAppear {
+            archiveListModel.connectStore()
+        }
+        .onDisappear {
+            archiveListModel.disconnectStore()
+        }
+        .onChange(of: archives) { [archives] newArchives in
+            if archives != newArchives {
+                archiveListModel.resetSortedArchives()
+            }
+        }
     }
 
     private func contextMenu(item: ArchiveItem) -> some View {

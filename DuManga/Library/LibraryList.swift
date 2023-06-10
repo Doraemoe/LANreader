@@ -54,6 +54,12 @@ struct LibraryList: View {
                     LoadingView(geometry: geometry)
                 }
             }
+            .onAppear {
+                libraryListModel.connectStore()
+            }
+            .onDisappear {
+                libraryListModel.disconnectStore()
+            }
         }
     }
 
