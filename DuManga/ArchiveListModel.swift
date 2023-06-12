@@ -80,9 +80,10 @@ class ArchiveListModel: ObservableObject {
         }
         var seenId = Set<String>()
         var distinctArchives = [ArchiveItem]()
+
         archivesToProcess.forEach { item in
-            if !seenId.contains(item.id) {
-                seenId.insert(item.id)
+            let (success, _) = seenId.insert(item.id)
+            if success {
                 distinctArchives.append(item)
             }
         }

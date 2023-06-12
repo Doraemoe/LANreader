@@ -13,6 +13,7 @@
 "delete" = "Delete";
 "copy" = "Copy";
 "edit" = "Edit";
+"select" = "Select";
 "version" = "Version";
 "downsampling" = "Downsampling image...";
 
@@ -70,6 +71,9 @@
 "archive.read.fromStart" = "Read from beginning";
 "archive.thumbnail.current" = "Set current page as thumbnail";
 "archive.thumbnail.set" = "Successfully set current page as thumbnail";
+"archive.selected" = "%d Selected";
+"archive.selected.delete" = "Are you sure you want to delete all selected?";
+"archive.selected.delete.error" = "Failed to delete some archive(s)";
 
 "settings.debug" = "Debug";
 "settings.debug.log" = "Application log";

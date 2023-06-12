@@ -116,8 +116,8 @@ struct ArchiveDetails: View {
                 }
             }
         }
-        .onChange(of: archiveDetailsModel.isError, perform: { isError in
-            if isError {
+        .onChange(of: archiveDetailsModel.errorMessage, perform: { errorMessage in
+            if !errorMessage.isEmpty {
                 let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
                                                 subtitle: archiveDetailsModel.errorMessage,
                                                 style: .danger)
