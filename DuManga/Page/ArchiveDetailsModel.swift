@@ -12,7 +12,6 @@ class ArchiveDetailsModel: ObservableObject {
     @Published var tags = ""
 
     @Published var loading = false
-    @Published var isError = false
     @Published var errorMessage = ""
 
     private let service = LANraragiService.shared
@@ -24,7 +23,6 @@ class ArchiveDetailsModel: ObservableObject {
     }
 
     func reset() {
-        isError = false
         errorMessage = ""
     }
 
@@ -45,7 +43,6 @@ class ArchiveDetailsModel: ObservableObject {
         } catch {
             ArchiveDetailsModel.logger.error("failed to update archive. id=\(archive.id) \(error)")
             loading = false
-            isError = true
             errorMessage = error.localizedDescription
             return false
         }
@@ -72,7 +69,6 @@ class ArchiveDetailsModel: ObservableObject {
                 loading = false
                 return true
             } else {
-                isError = true
                 errorMessage = NSLocalizedString("error.archive.delete", comment: "error")
                 loading = false
                 return false
@@ -80,7 +76,6 @@ class ArchiveDetailsModel: ObservableObject {
         } catch {
             ArchiveDetailsModel.logger.error("failed to delete archive. id=\(id) \(error)")
             loading = false
-            isError = true
             errorMessage = error.localizedDescription
             return false
         }

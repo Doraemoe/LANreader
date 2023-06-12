@@ -9,47 +9,49 @@ import Logging
 struct LibraryList: View {
     @AppStorage(SettingsKey.alwaysLoadFromServer) var alwaysLoadFromServer: Bool = false
 
+    @State private var enableSelect: EditMode = .inactive
     @StateObject private var libraryListModel = LibraryListModel()
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                ArchiveList(archives: searchArchives())
-                    .task {
-                        if libraryListModel.archiveItems.isEmpty {
-                            await libraryListModel.load(fromServer: alwaysLoadFromServer)
-                        }
-                    }
-                    .onChange(of: libraryListModel.errorCode, perform: { errorCode in
-                        if errorCode != nil {
-                            let banner = NotificationBanner(
-                                title: NSLocalizedString("error", comment: "error"),
-                                subtitle: NSLocalizedString("error.list", comment: "list error"),
-                                style: .danger
-                            )
-                            banner.show()
-                            libraryListModel.resetArchiveState()
-                        }
-                    })
-                    .refreshable {
-                        if libraryListModel.loading != true {
-                            libraryListModel.isPullToRefresh = true
-                            await libraryListModel.refresh()
-                            libraryListModel.isPullToRefresh = false
-                        }
-                    }
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            NavigationLink {
-                                HistoryList()
-                            } label: {
-                                Image(systemName: "clock.arrow.circlepath")
+                if enableSelect == .active {
+                    ArchiveSelection(archives: searchArchives())
+                } else {
+                    ArchiveList(archives: searchArchives())
+                        .task {
+                            if libraryListModel.archiveItems.isEmpty {
+                                await libraryListModel.load(fromServer: alwaysLoadFromServer)
                             }
-
                         }
-                    }
-                    .searchable(text: $libraryListModel.searchText, prompt: "filter.name")
-                    .autocorrectionDisabled()
+                        .refreshable {
+                            if libraryListModel.loading != true {
+                                libraryListModel.isPullToRefresh = true
+                                await libraryListModel.refresh()
+                                libraryListModel.isPullToRefresh = false
+                            }
+                        }
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                NavigationLink {
+                                    HistoryList()
+                                } label: {
+                                    Image(systemName: "clock.arrow.circlepath")
+                                }
+                            }
+                        }
+                        .onChange(of: libraryListModel.errorCode, perform: { errorCode in
+                            if errorCode != nil {
+                                let banner = NotificationBanner(
+                                    title: NSLocalizedString("error", comment: "error"),
+                                    subtitle: NSLocalizedString("error.list", comment: "list error"),
+                                    style: .danger
+                                )
+                                banner.show()
+                                libraryListModel.resetArchiveState()
+                            }
+                        })
+                }
                 if libraryListModel.loading && !libraryListModel.isPullToRefresh {
                     LoadingView(geometry: geometry)
                 }
@@ -60,6 +62,23 @@ struct LibraryList: View {
             .onDisappear {
                 libraryListModel.disconnectStore()
             }
+            .searchable(text: $libraryListModel.searchText, prompt: "filter.name")
+            .autocorrectionDisabled()
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(enableSelect == .active ? "cancel" : "select") {
+                        switch enableSelect {
+                        case .active:
+                            self.enableSelect = .inactive
+                        case .inactive:
+                            self.enableSelect = .active
+                        default:
+                            break
+                        }
+                    }
+                }
+            }
+            .environment(\.editMode, $enableSelect)
         }
     }
 

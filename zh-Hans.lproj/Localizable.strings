@@ -13,6 +13,7 @@
 "delete" = "删除";
 "copy" = "复制";
 "edit" = "编辑";
+"select" = "选择";
 "version" = "版本";
 "downsampling" = "正在缩小图片尺寸";
 
@@ -73,6 +74,9 @@
 "archive.read.fromStart" = "从头开始阅读";
 "archive.thumbnail.current" = "设置当前页为封面";
 "archive.thumbnail.set" = "成功设置当前页为封面";
+"archive.selected" = "%d 已选";
+"archive.selected.delete" = "确定要删除全部选定文档吗?";
+"archive.selected.delete.error" = "部分文档删除失败";
 
 "category.edit" = "编辑类别";
 "category.name" = "类别名";

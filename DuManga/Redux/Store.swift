@@ -5,11 +5,11 @@
 import Foundation
 import Combine
 
-final class Store<State, Action>: ObservableObject {
+final class Store<State, Action> {
     private(set) var state: State
 
     private let reducer: Reducer<State, Action>
-    let middlewares: [Middleware<State, Action>]
+    private let middlewares: [Middleware<State, Action>]
     private var middlewareCancellables: Set<AnyCancellable> = []
 
     init(initialState: State,

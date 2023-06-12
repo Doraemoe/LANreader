@@ -50,7 +50,7 @@ class UploadViewModel: ObservableObject {
             downloadJobs = .init()
         }
         for job in downloadJobs {
-            if job.isActive {
+            if !job.isSuccess && !job.isError {
                 do {
                     let response = try await service.checkJobStatus(id: job.id).value
                     var downloadJob = response.toDownloadJob(url: job.url)
