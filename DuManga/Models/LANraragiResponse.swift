@@ -33,7 +33,7 @@ struct ArchiveSearchResponse: Decodable {
     let recordsTotal: Int
 }
 
-struct ArchiveDeleteResponse: Decodable {
+struct GenericSuccessResponse: Decodable {
     let success: Int
 }
 

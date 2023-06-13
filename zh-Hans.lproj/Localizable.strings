@@ -11,6 +11,7 @@
 "cancel" = "取消";
 "error" = "错误";
 "delete" = "删除";
+"remove" = "移除";
 "copy" = "复制";
 "edit" = "编辑";
 "select" = "选择";
@@ -76,11 +77,19 @@
 "archive.thumbnail.set" = "成功设置当前页为封面";
 "archive.selected" = "%d 已选";
 "archive.selected.delete" = "确定要删除全部选定文档吗?";
+"archive.selected.delete.success" = "成功删除选定文档";
 "archive.selected.delete.error" = "部分文档删除失败";
+"archive.selected.category.add" = "添加选定的文档至类别";
+"archive.selected.category.add.success" = "成功添加文档至类别";
+"archive.selected.category.add.error" = "部分文档添加失败";
+"archive.selected.category.remove" = "确定从类别中移除所选文档吗?";
+"archive.selected.category.remove.success" = "成功从类别中移除选定文档";
+"archive.selected.category.remove.error" = "部分文档移除失败";
 
 "category.edit" = "编辑类别";
 "category.name" = "类别名";
 "category.search" = "搜索关键词";
+"category.static.edit" = "请使用库与类别视图中的选择功能编辑固定类别";
 
 "error.host" = "无法连接服务器，请检查设置";
 "error.list" = "无法加载媒体库，请重试或检查服务器设定";

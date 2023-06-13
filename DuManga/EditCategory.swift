@@ -32,7 +32,7 @@ struct EditCategory: View {
                     }
                             .padding()
                 } else {
-                    Text("Only support dynamic category edit for now.")
+                    Text("category.static.edit")
                 }
             }
                     .navigationBarTitle("category.edit")

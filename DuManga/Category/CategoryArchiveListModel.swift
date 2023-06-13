@@ -10,6 +10,8 @@ class CategoryArchiveListModel: ObservableObject {
     private static let logger = Logger(label: "CategoryArchiveListModel")
 
     @Published private(set) var archiveItems = [String: ArchiveItem]()
+    @Published private(set) var categoryItems = [String: CategoryItem]()
+    @Published private(set) var result = [String]()
     @Published private(set) var isLoading = false
     @Published private(set) var isError = false
     @Published private(set) var errorMessage = ""
@@ -17,7 +19,6 @@ class CategoryArchiveListModel: ObservableObject {
     private let service = LANraragiService.shared
     private let store = AppStore.shared
 
-    private var result = [String]()
     private var cancellable: Set<AnyCancellable> = []
 
     init() {
@@ -26,9 +27,13 @@ class CategoryArchiveListModel: ObservableObject {
 
     func connectStore() {
         archiveItems = store.state.archive.archiveItems
+        categoryItems = store.state.category.categoryItems
 
         store.state.archive.$archiveItems.receive(on: DispatchQueue.main)
                 .assign(to: \.archiveItems, on: self)
+                .store(in: &cancellable)
+        store.state.category.$categoryItems.receive(on: DispatchQueue.main)
+                .assign(to: \.categoryItems, on: self)
                 .store(in: &cancellable)
     }
 
@@ -48,8 +53,8 @@ class CategoryArchiveListModel: ObservableObject {
         }
     }
 
-    func loadStaticCategory(ids: [String]) {
-        result = ids
+    func loadStaticCategory(id: String) {
+        result = categoryItems[id]?.archives ?? []
     }
 
     @MainActor

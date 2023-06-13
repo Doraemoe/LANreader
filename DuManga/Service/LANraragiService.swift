@@ -96,6 +96,18 @@ class LANraragiService {
             .serializingString()
     }
 
+    func addArchiveToCategory(categoryId: String, archiveId: String) async -> DataTask<GenericSuccessResponse> {
+        session.request("\(url)/api/categories/\(categoryId)/\(archiveId)", method: .put)
+            .validate(statusCode: 200...200)
+            .serializingDecodable(GenericSuccessResponse.self)
+    }
+
+    func removeArchiveFromCategory(categoryId: String, archiveId: String) async -> DataTask<GenericSuccessResponse> {
+        session.request("\(url)/api/categories/\(categoryId)/\(archiveId)", method: .delete)
+            .validate(statusCode: 200...200)
+            .serializingDecodable(GenericSuccessResponse.self)
+    }
+
     func extractArchive(id: String) async -> DataTask<ArchiveExtractResponse> {
         session.request("\(url)/api/archives/\(id)/extract", method: .post)
             .validate()
@@ -149,10 +161,10 @@ class LANraragiService {
             .serializingString()
     }
 
-    func deleteArchive(id: String) async -> DataTask<ArchiveDeleteResponse> {
+    func deleteArchive(id: String) async -> DataTask<GenericSuccessResponse> {
         session.request("\(url)/api/archives/\(id)", method: .delete)
             .validate(statusCode: 200...200)
-            .serializingDecodable(ArchiveDeleteResponse.self)
+            .serializingDecodable(GenericSuccessResponse.self)
 
     }
 

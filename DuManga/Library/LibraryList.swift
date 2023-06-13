@@ -16,7 +16,7 @@ struct LibraryList: View {
         GeometryReader { geometry in
             ZStack {
                 if enableSelect == .active {
-                    ArchiveSelection(archives: searchArchives())
+                    ArchiveSelection(archives: searchArchives(), archiveSelectFor: .library)
                 } else {
                     ArchiveList(archives: searchArchives())
                         .task {
