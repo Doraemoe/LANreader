@@ -67,7 +67,7 @@ struct ArchiveSelection: View {
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItemGroup(placement: .bottomBar) {
-                if archiveSelectFor == .library {
+                if archiveSelectFor == .library || archiveSelectFor == .search {
                     Menu {
                         ForEach(archiveSelectionModel.getStaticCategories()) { category in
                             Button {

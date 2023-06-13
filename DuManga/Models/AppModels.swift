@@ -35,7 +35,7 @@ enum CompressThreshold: Int, CaseIterable, Identifiable {
 }
 
 enum ArchiveSelectFor: Int, CaseIterable, Identifiable {
-    case library, categoryStatic, categoryDynamic
+    case library, categoryStatic, categoryDynamic, search
 
     var id: Int { self.rawValue }
 }
