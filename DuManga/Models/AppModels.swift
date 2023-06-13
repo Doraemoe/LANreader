@@ -34,6 +34,12 @@ enum CompressThreshold: Int, CaseIterable, Identifiable {
     var id: Int { self.rawValue }
 }
 
+enum ArchiveSelectFor: Int, CaseIterable, Identifiable {
+    case library, categoryStatic, categoryDynamic
+
+    var id: Int { self.rawValue }
+}
+
 struct SettingsKey {
     static let lanraragiUrl = "settings.lanraragi.url"
     static let lanraragiApiKey = "settings.lanraragi.apiKey"

@@ -8,6 +8,8 @@ import NotificationBannerSwift
 struct CategoryArchiveList: View {
     @StateObject private var categoryArchiveListModel = CategoryArchiveListModel()
 
+    @State private var enableSelect: EditMode = .inactive
+
     private let categoryItem: CategoryItem
 
     init(categoryItem: CategoryItem) {
@@ -17,26 +19,34 @@ struct CategoryArchiveList: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                ArchiveList(archives: categoryArchiveListModel.loadCategory())
-                    .task {
-                        if !categoryItem.archives.isEmpty {
-                            categoryArchiveListModel.loadStaticCategory(ids: categoryItem.archives)
-                        } else if !categoryItem.search.isEmpty {
-                            await categoryArchiveListModel.loadDynamicCategory(keyword: categoryItem.search)
+                if enableSelect == .active {
+                    ArchiveSelection(
+                        archives: categoryArchiveListModel.loadCategory(),
+                        archiveSelectFor: categoryItem.search.isEmpty ? .categoryStatic : .categoryDynamic,
+                        categoryId: categoryItem.id
+                    )
+                } else {
+                    ArchiveList(archives: categoryArchiveListModel.loadCategory())
+                        .task {
+                            if categoryItem.search.isEmpty {
+                                categoryArchiveListModel.loadStaticCategory(id: categoryItem.id)
+                            } else {
+                                await categoryArchiveListModel.loadDynamicCategory(keyword: categoryItem.search)
+                            }
                         }
-                    }
-                    .onDisappear {
-                        categoryArchiveListModel.reset()
-                    }
-                    .onChange(of: categoryArchiveListModel.isError) { isError in
-                        if isError {
-                            let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                                                            subtitle: categoryArchiveListModel.errorMessage,
-                                                            style: .danger)
-                            banner.show()
+                        .onDisappear {
                             categoryArchiveListModel.reset()
                         }
-                    }
+                        .onChange(of: categoryArchiveListModel.isError) { isError in
+                            if isError {
+                                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                                                                subtitle: categoryArchiveListModel.errorMessage,
+                                                                style: .danger)
+                                banner.show()
+                                categoryArchiveListModel.reset()
+                            }
+                        }
+                }
                 if categoryArchiveListModel.isLoading {
                     LoadingView(geometry: geometry)
                 }
@@ -48,6 +58,29 @@ struct CategoryArchiveList: View {
                 categoryArchiveListModel.disconnectStore()
             }
             .toolbar(.hidden, for: .tabBar)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(enableSelect == .active ? "cancel" : "select") {
+                        switch enableSelect {
+                        case .active:
+                            self.enableSelect = .inactive
+                        case .inactive:
+                            self.enableSelect = .active
+                        default:
+                            break
+                        }
+                    }
+                }
+            }
+            .environment(\.editMode, $enableSelect)
+            .onChange(of: categoryArchiveListModel.categoryItems[categoryItem.id]) {
+                // swiftlint:disable closure_parameter_position
+                [oldCategory = categoryArchiveListModel.categoryItems[categoryItem.id]] newCategory in
+                // swiftlint:enable closure_parameter_position
+                if oldCategory?.archives != newCategory?.archives {
+                    categoryArchiveListModel.loadStaticCategory(id: categoryItem.id)
+                }
+            }
         }
     }
 }

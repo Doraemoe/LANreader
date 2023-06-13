@@ -11,6 +11,7 @@
 "cancel" = "Cancel";
 "error" = "Error";
 "delete" = "Delete";
+"remove" = "Remove";
 "copy" = "Copy";
 "edit" = "Edit";
 "select" = "Select";
@@ -73,7 +74,14 @@
 "archive.thumbnail.set" = "Successfully set current page as thumbnail";
 "archive.selected" = "%d Selected";
 "archive.selected.delete" = "Are you sure you want to delete all selected?";
+"archive.selected.delete.success" = "Successfully deleted selected archive(s)";
 "archive.selected.delete.error" = "Failed to delete some archive(s)";
+"archive.selected.category.add" = "Add selected archive(s) to category";
+"archive.selected.category.add.success" = "Successfully added archive(s) to category";
+"archive.selected.category.add.error" = "Failed to add some archive(s) to category";
+"archive.selected.category.remove" = "Are you sure to remove selected archive(s) from category?";
+"archive.selected.category.remove.success" = "Successfully removed selected archive(s) from category";
+"archive.selected.category.remove.error" = "Failed to remove some archive(s) from category";
 
 "settings.debug" = "Debug";
 "settings.debug.log" = "Application log";
@@ -81,6 +89,7 @@
 "category.edit" = "Edit category";
 "category.name" = "Category name";
 "category.search" = "Search keyword";
+"category.static.edit" = "Please use select function in library and category view to edit static category";
 
 "error.host" = "Cannot connect to server, please check your settings";
 "error.list" = "Cannot load library, please try again or check your server settings";
