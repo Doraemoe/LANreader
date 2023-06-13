@@ -85,6 +85,11 @@
 "archive.selected.category.remove" = "确定从类别中移除所选文档吗?";
 "archive.selected.category.remove.success" = "成功从类别中移除选定文档";
 "archive.selected.category.remove.error" = "部分文档移除失败";
+"archive.category.manage" = "管理文档所属类别";
+"archive.category.add.success" = "成功添加文档至类别";
+"archive.category.add.error" = "添加文档至类别失败";
+"archive.category.remove.success" = "成功从类别中移除文档";
+"archive.category.remove.error" = "从类别中移除文档失败";
 
 "category.edit" = "编辑类别";
 "category.name" = "类别名";

@@ -82,6 +82,11 @@
 "archive.selected.category.remove" = "Are you sure to remove selected archive(s) from category?";
 "archive.selected.category.remove.success" = "Successfully removed selected archive(s) from category";
 "archive.selected.category.remove.error" = "Failed to remove some archive(s) from category";
+"archive.category.manage" = "Add/Remove archive from category";
+"archive.category.add.success" = "Successfully added archive to category";
+"archive.category.add.error" = "Failed to add archive to category";
+"archive.category.remove.success" = "Successfully removed archive from category";
+"archive.category.remove.error" = "Failed to remove archive from category";
 
 "settings.debug" = "Debug";
 "settings.debug.log" = "Application log";

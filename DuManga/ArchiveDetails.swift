@@ -84,17 +84,53 @@ struct ArchiveDetails: View {
             }
         }
         .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                Menu {
+                    Text("archive.category.manage")
+                    ForEach(archiveDetailsModel.getStaticCategories()) { category in
+                        Button {
+                            if category.archives.contains(item.id) {
+                                Task {
+                                    await archiveDetailsModel.removeArchiveToCategory(
+                                        categoryId: category.id,
+                                        archiveId: item.id
+                                    )
+                                }
+                            } else {
+                                Task {
+                                    await archiveDetailsModel.addArchiveToCategory(
+                                        categoryId: category.id,
+                                        archiveId: item.id
+                                    )
+                                }
+                            }
+                        } label: {
+                            if category.archives.contains(item.id) {
+                                Label(category.name, systemImage: "checkmark")
+                            } else {
+                                Text(category.name)
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "folder.badge.gear")
+                }
+                .disabled(archiveDetailsModel.loading)
                 EditButton()
                     .disabled(archiveDetailsModel.loading)
             }
         }
+        .task {
+            await archiveDetailsModel.fetchCategories()
+        }
         .environment(\.editMode, $editMode)
         .onAppear(perform: {
             archiveDetailsModel.load(title: item.name, tags: item.tags)
+            archiveDetailsModel.connectStore()
         })
         .onDisappear(perform: {
             archiveDetailsModel.reset()
+            archiveDetailsModel.disconnectStore()
         })
         .onChange(of: editMode) { [editMode] newMode in
             if editMode == .active && newMode == .inactive {
@@ -118,13 +154,26 @@ struct ArchiveDetails: View {
         }
         .onChange(of: archiveDetailsModel.errorMessage, perform: { errorMessage in
             if !errorMessage.isEmpty {
-                let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                                                subtitle: archiveDetailsModel.errorMessage,
-                                                style: .danger)
+                let banner = NotificationBanner(
+                    title: NSLocalizedString("error", comment: "error"),
+                    subtitle: errorMessage,
+                    style: .danger
+                )
                 banner.show()
                 archiveDetailsModel.reset()
             }
         })
+        .onChange(of: archiveDetailsModel.successMessage) { successMessage in
+            if !successMessage.isEmpty {
+                let banner = NotificationBanner(
+                    title: NSLocalizedString("success", comment: "success"),
+                    subtitle: successMessage,
+                    style: .success
+                )
+                banner.show()
+                archiveDetailsModel.reset()
+            }
+        }
     }
 
     private func parseTag(tag: String) -> some View {
