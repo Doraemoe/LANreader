@@ -9,23 +9,25 @@ struct LogView: View {
     @State var log = ""
 
     var body: some View {
-        Text(log)
-            .textSelection(.enabled)
-            .onAppear(perform: {
-                do {
-                    let logFileURL = try FileManager.default
-                        .url(
-                            for: .applicationSupportDirectory,
-                            in: .userDomainMask,
-                            appropriateFor: nil,
-                            create: true
-                        )
-                        .appendingPathComponent("app.log")
-                    log = try String(contentsOf: logFileURL, encoding: .utf8)
-                } catch {
-                    log = "error reading log"
-                }
-            })
-            .toolbar(.hidden, for: .tabBar)
+        ScrollView {
+            Text(log)
+                .textSelection(.enabled)
+        }
+        .onAppear(perform: {
+            do {
+                let logFileURL = try FileManager.default
+                    .url(
+                        for: .applicationSupportDirectory,
+                        in: .userDomainMask,
+                        appropriateFor: nil,
+                        create: true
+                    )
+                    .appendingPathComponent("app.log")
+                log = try String(contentsOf: logFileURL, encoding: .utf8)
+            } catch {
+                log = "error reading log"
+            }
+        })
+        .toolbar(.hidden, for: .tabBar)
     }
 }

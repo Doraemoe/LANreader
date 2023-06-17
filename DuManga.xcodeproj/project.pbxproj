@@ -107,6 +107,7 @@
 		E9BE57B42942F1AB00A3AEA0 /* LockScreenModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BE57B32942F1AB00A3AEA0 /* LockScreenModel.swift */; };
 		E9C73DC42A1C5F4900EFDD81 /* HistoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C73DC32A1C5F4900EFDD81 /* HistoryList.swift */; };
 		E9C73DC72A1C6F2F00EFDD81 /* HistoryListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C73DC62A1C6F2F00EFDD81 /* HistoryListModel.swift */; };
+		E9CBC0F02A3DD62F00CCD592 /* LogFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */; };
 		E9D40C9B2A26334E00FC3405 /* TagMiddleware.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9D40C9A2A26334E00FC3405 /* TagMiddleware.swift */; };
 		E9E3631426F463F800C58D01 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CD024F1390400617F4A /* Alamofire */; };
 		E9E3631626F463F800C58D01 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE124F15F1800617F4A /* Logging */; };
@@ -255,6 +256,7 @@
 		E9BE57B32942F1AB00A3AEA0 /* LockScreenModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreenModel.swift; path = DuMangaTests/Resources/LockScreenModel.swift; sourceTree = SOURCE_ROOT; };
 		E9C73DC32A1C5F4900EFDD81 /* HistoryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryList.swift; sourceTree = "<group>"; };
 		E9C73DC62A1C6F2F00EFDD81 /* HistoryListModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryListModel.swift; sourceTree = "<group>"; };
+		E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogFormatter.swift; sourceTree = "<group>"; };
 		E9D40C9A2A26334E00FC3405 /* TagMiddleware.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagMiddleware.swift; sourceTree = "<group>"; };
 		E9E3631E26F471E400C58D01 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -541,6 +543,7 @@
 				4BD82694B57396B2CD6BACED /* ContentView.swift */,
 				4BD8258293EA80CD9CC32653 /* ContentViewModel.swift */,
 				7D3DFF15251777B200686612 /* DuMangaApp.swift */,
+				E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */,
 			);
 			name = Views;
 			sourceTree = "<group>";
@@ -770,6 +773,7 @@
 				7DF7EA742564E1D2003B5A5A /* AppDatabase.swift in Sources */,
 				7D3DFF16251777B200686612 /* DuMangaApp.swift in Sources */,
 				E94C1DDC2A204DDA00552ABD /* ImageService.swift in Sources */,
+				E9CBC0F02A3DD62F00CCD592 /* LogFormatter.swift in Sources */,
 				7DF7EA852564E675003B5A5A /* Record.swift in Sources */,
 				7D354D0524F2387900617F4A /* ViewModels.swift in Sources */,
 				7D354CDA24F13C4900617F4A /* LANraragiResponse.swift in Sources */,
