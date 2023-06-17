@@ -72,6 +72,8 @@ struct CategoryArchiveList: View {
                     }
                 }
             }
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(categoryItem.name)
             .environment(\.editMode, $enableSelect)
             .onChange(of: categoryArchiveListModel.categoryItems[categoryItem.id]) {
                 // swiftlint:disable closure_parameter_position

@@ -28,6 +28,7 @@ struct ArchiveSelection: View {
             LazyVGrid(columns: columns) {
                 ForEach(archivesToDisplay) { item in
                     ArchiveGrid(archiveItem: item)
+                        .contentShape(Rectangle())
                         .onTapGesture {
                             if selected.contains(item.id) {
                                 selected.remove(item.id)

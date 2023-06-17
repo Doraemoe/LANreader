@@ -50,7 +50,12 @@ struct DuMangaApp: App {
             }
 
             let console = ConsoleLogger("com.jif.DuManga.console")
-            let fileLogger = try FileLogger("com.jif.DuManga.file", logLevel: .info, fileURL: logFileURL)
+            let fileLogger = try FileLogger(
+                "com.jif.DuManga.file",
+                logLevel: .info,
+                logFormat: LogFormatter(),
+                fileURL: logFileURL
+            )
 
             var puppy = Puppy()
             puppy.add(console)

@@ -47,6 +47,8 @@ struct CategoryList: View {
                     .cornerRadius(20)
                 }
             }
+            .navigationTitle("category")
+            .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 categoryListModel.connectStore()
             }

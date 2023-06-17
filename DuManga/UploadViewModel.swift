@@ -50,6 +50,9 @@ class UploadViewModel: ObservableObject {
             downloadJobs = .init()
         }
         for job in downloadJobs {
+            if job.lastUpdate.addingTimeInterval(3600) < Date() {
+                _ = try? database.deleteDownloadJobs(job.id)
+            }
             if !job.isSuccess && !job.isError {
                 do {
                     let response = try await service.checkJobStatus(id: job.id).value
@@ -64,11 +67,7 @@ class UploadViewModel: ObservableObject {
                     UploadViewModel.logger.error("failed to check job status. id=\(job.id) \(error)")
                 }
             } else {
-                if job.lastUpdate.addingTimeInterval(3600) < Date() {
-                    _ = try? database.deleteDownloadJobs(job.id)
-                } else {
-                    jobDetails[job.id] = job
-                }
+                jobDetails[job.id] = job
             }
         }
     }
