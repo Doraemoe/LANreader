@@ -77,6 +77,11 @@ extension ArchiveIndexResponse {
     func toArchiveItem() -> ArchiveItem {
         ArchiveItem(id: arcid,
                 name: title,
+                normalizedName: title.replacingOccurrences(
+                    of: "\\s*(\\[|\\()[^\\]\\)]*(\\]|\\))\\s*",
+                    with: "",
+                    options: .regularExpression
+                ),
                 tags: tags ?? "",
                 isNew: isnew == "true",
                 progress: progress,

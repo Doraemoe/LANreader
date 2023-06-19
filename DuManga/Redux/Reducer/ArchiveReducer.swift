@@ -19,6 +19,7 @@ func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
         let archive = state.archiveItems[id]!
         state.archiveItems[id] = ArchiveItem(id: archive.id,
                 name: archive.name,
+                normalizedName: archive.normalizedName,
                 tags: archive.tags,
                 isNew: archive.isNew,
                 progress: progress,

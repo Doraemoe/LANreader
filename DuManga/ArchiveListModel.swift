@@ -50,7 +50,7 @@ class ArchiveListModel: ObservableObject {
         } else {
             archivesToProcess = archives
             if sortOrder == ArchiveListOrder.name.rawValue {
-                archivesToProcess = archivesToProcess.sorted(by: { $0.name < $1.name })
+                archivesToProcess = archivesToProcess.sorted(by: { $0.normalizedName < $1.normalizedName })
             } else if sortOrder == ArchiveListOrder.dateAdded.rawValue {
                 archivesToProcess = archivesToProcess.sorted { item, item2 in
                     let dateAdded1 = item.dateAdded
