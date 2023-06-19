@@ -63,13 +63,13 @@ struct ArchivePageV2: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     NavigationLink {
-                        ArchiveDetails(item: archiveItem)
+                        ArchiveDetails(item: archivePageModel.archiveItems[archiveItem.id] ?? archiveItem)
                     } label: {
                         Image(systemName: "info.circle")
                     }
                 }
             }
-            .navigationBarTitle(archiveItem.name)
+            .navigationBarTitle(archivePageModel.archiveItems[archiveItem.id]?.name ?? archiveItem.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(archivePageModel.controlUiHidden ? .hidden : .visible, for: .navigationBar)
             .toolbar(.hidden, for: .tabBar)
