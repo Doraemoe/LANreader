@@ -6,6 +6,7 @@ import SwiftUI
 struct ArchiveItem: Identifiable, Equatable, Hashable {
     let id: String
     let name: String
+    let normalizedName: String
     let tags: String
     let isNew: Bool
     let progress: Int

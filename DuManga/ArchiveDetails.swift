@@ -137,6 +137,11 @@ struct ArchiveDetails: View {
                 let updated = ArchiveItem(
                     id: item.id,
                     name: archiveDetailsModel.title,
+                    normalizedName: archiveDetailsModel.title.replacingOccurrences(
+                        of: "\\s*(\\[|\\()[^\\]\\)]*(\\]|\\))\\s*",
+                        with: "",
+                        options: .regularExpression
+                    ),
                     tags: archiveDetailsModel.tags,
                     isNew: item.isNew,
                     progress: item.progress,

@@ -58,6 +58,17 @@ struct JobResult: Decodable {
     let url: String
 }
 
+struct ServerInfo: Decodable {
+    let archivesPerPage: String
+    let debugMode: String
+    let hasPassword: String
+    let motd: String
+    let name: String
+    let nofunMode: String
+    let version: String
+    let versionName: String
+}
+
 extension JobStatus {
     func toDownloadJob(url: String) -> DownloadJob {
         DownloadJob(
@@ -77,6 +88,11 @@ extension ArchiveIndexResponse {
     func toArchiveItem() -> ArchiveItem {
         ArchiveItem(id: arcid,
                 name: title,
+                normalizedName: title.replacingOccurrences(
+                    of: "\\s*(\\[|\\()[^\\]\\)]*(\\]|\\))\\s*",
+                    with: "",
+                    options: .regularExpression
+                ),
                 tags: tags ?? "",
                 isNew: isnew == "true",
                 progress: progress,

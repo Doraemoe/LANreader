@@ -16,6 +16,7 @@ class ArchivePageModelV2: ObservableObject {
     @Published var errorMessage = ""
 
     @Published private(set) var loading = false
+    @Published private(set) var archiveItems = [String: ArchiveItem]()
     @Published private(set) var pages = [String]()
     @Published private(set) var deletedArchiveId = ""
 
@@ -34,7 +35,12 @@ class ArchivePageModelV2: ObservableObject {
     }
 
     func connectStore() {
+        archiveItems = store.state.archive.archiveItems
         deletedArchiveId = store.state.trigger.deletedArchiveId
+
+        store.state.archive.$archiveItems.receive(on: DispatchQueue.main)
+                .assign(to: \.archiveItems, on: self)
+                .store(in: &cancellables)
 
         store.state.trigger.$deletedArchiveId.receive(on: DispatchQueue.main)
             .assign(to: \.deletedArchiveId, on: self)
