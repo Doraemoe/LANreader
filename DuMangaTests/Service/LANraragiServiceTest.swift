@@ -38,8 +38,9 @@ class LANraragiServiceTest: XCTestCase {
         }
 
         let actual = try await service.verifyClient(url: url, apiKey: apiKey).value
-        let expected = try FileUtils.readJsonFile(filename: "ServerInfoResponse")
-        XCTAssertEqual(actual, expected)
+        XCTAssertEqual(actual.archivesPerPage, "100")
+        XCTAssertEqual(actual.debugMode, "0")
+        XCTAssertEqual(actual.hasPassword, "1")
     }
 
     func testGetServerInfoUnauthorized() async throws {
@@ -291,7 +292,7 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let metadata = ArchiveItem(id: "id", name: "name",
+        let metadata = ArchiveItem(id: "id", name: "name", normalizedName: "normalName",
                                    tags: "tags", isNew: true,
                                    progress: 0, pagecount: 10, dateAdded: 1234)
         let actual = try await service.updateArchive(archive: metadata).value
@@ -310,7 +311,7 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
-        let metadata = ArchiveItem(id: "id", name: "name",
+        let metadata = ArchiveItem(id: "id", name: "name", normalizedName: "normalName",
                                    tags: "tags", isNew: true,
                                    progress: 0, pagecount: 10, dateAdded: 1234)
         let actual = try? await service.updateArchive(archive: metadata).value

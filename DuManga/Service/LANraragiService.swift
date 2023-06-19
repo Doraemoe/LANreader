@@ -16,6 +16,7 @@ class LANraragiService {
     private let authInterceptor = AuthInterceptor()
     private var session: Session
     private var prefetchSession: Session
+    private let snakeCaseEncoder: JSONDecoder
 
     private let downloadPath: URL?
 
@@ -29,16 +30,19 @@ class LANraragiService {
             create: true
         )
         .appendingPathComponent(LANraragiService.currentSessionDownloadFolder, conformingTo: .folder)
+
+        self.snakeCaseEncoder = JSONDecoder()
+        self.snakeCaseEncoder.keyDecodingStrategy = .convertFromSnakeCase
     }
 
-    func verifyClient(url: String, apiKey: String) async -> DataTask<String> {
+    func verifyClient(url: String, apiKey: String) async -> DataTask<ServerInfo> {
         self.url = url
         self.authInterceptor.updateApiKey(apiKey)
         let cacher = ResponseCacher(behavior: .doNotCache)
         return session.request("\(self.url)/api/info")
             .cacheResponse(using: cacher)
             .validate(statusCode: 200...200)
-            .serializingString()
+            .serializingDecodable(ServerInfo.self, decoder: self.snakeCaseEncoder)
     }
 
     func retrieveArchiveIndex() async -> DataTask<[ArchiveIndexResponse]> {
