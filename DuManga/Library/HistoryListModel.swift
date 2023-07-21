@@ -5,6 +5,7 @@ class HistoryListModel: ObservableObject {
     @Published var archives = [ArchiveItem]()
     @Published var errorMessage = ""
 
+    private let store = AppStore.shared
     private let database = AppDatabase.shared
 
     func reset() {
@@ -13,10 +14,9 @@ class HistoryListModel: ObservableObject {
 
     func loadHistory() {
         do {
-            let history = try database.readAllArchiveHistory()
-            let archives = history.map { item in
-                item.archive.toArchiveItem()
-            }
+            let archives = try database.readAllArchiveHistory()
+                .compactMap { store.state.archive.archiveItems[$0.id] }
+
             if archives.count > 100 {
                 self.archives = Array(archives[..<100])
                 let extraIds = archives[100...].map { item in

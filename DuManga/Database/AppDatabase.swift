@@ -234,11 +234,10 @@ extension AppDatabase {
         }
     }
 
-    func readAllArchiveHistory() throws -> [HistoryArchive] {
+    func readAllArchiveHistory() throws -> [History] {
         try dbReader.read { database in
-            try History.including(required: History.archive)
+            try History
                 .order(Column("lastUpdate").desc)
-                .asRequest(of: HistoryArchive.self)
                 .fetchAll(database)
         }
     }
