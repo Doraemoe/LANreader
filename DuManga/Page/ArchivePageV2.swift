@@ -103,7 +103,19 @@ struct ArchivePageV2: View {
                         style: .danger
                     )
                     banner.show()
+                    archivePageModel.reset()
                     archivePageModel.controlUiHidden = false
+                }
+            }
+            .onChange(of: archivePageModel.successMessage) { successMessage in
+                if !successMessage.isEmpty {
+                    let banner = NotificationBanner(
+                        title: NSLocalizedString("success", comment: "success"),
+                        subtitle: successMessage,
+                        style: .success
+                    )
+                    banner.show()
+                    archivePageModel.reset()
                 }
             }
             .onChange(of: archivePageModel.currentIndex) { index in
@@ -204,7 +216,6 @@ struct ArchivePageV2: View {
         }
     }
 
-    // swiftlint:disable function_body_length
     private func bottomToolbar(pages: [String]) -> some View {
         let flip = readDirection == ReadDirection.rightLeft.rawValue ? -1 : 1
         return VStack {
@@ -226,24 +237,7 @@ struct ArchivePageV2: View {
                     .bold()
                     Button(action: {
                         Task {
-                            let result = await archivePageModel.setCurrentPageAsThumbnail(id: archiveItem.id)
-                            if result.isEmpty {
-                                let banner = NotificationBanner(
-                                    title: NSLocalizedString("success", comment: "error"),
-                                    subtitle: NSLocalizedString(
-                                        "archive.thumbnail.set", comment: "set thumbnail success"
-                                    ),
-                                    style: .success
-                                )
-                                banner.show()
-                            } else {
-                                let banner = NotificationBanner(
-                                    title: NSLocalizedString("error", comment: "error"),
-                                    subtitle: result,
-                                    style: .danger
-                                )
-                                banner.show()
-                            }
+                            await archivePageModel.setCurrentPageAsThumbnail(id: archiveItem.id)
                         }
                     }, label: {
                         Text("archive.thumbnail.current")
@@ -269,7 +263,6 @@ struct ArchivePageV2: View {
             .background(.thinMaterial)
         }
     }
-    // swiftlint:enable function_body_length
 
     private func onIndexChange(index: Int) async {
         await store.dispatch(updateReadProgress(

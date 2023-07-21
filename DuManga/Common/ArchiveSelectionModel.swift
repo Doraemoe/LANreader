@@ -57,6 +57,42 @@ class ArchiveSelectionModel: ObservableObject {
         return staticCategories.sorted(by: { $0.name < $1.name })
     }
 
+    func processArchives(archives: [ArchiveItem], sortOrder: String) -> [ArchiveItem] {
+        var archivesToProcess = archives
+
+        if sortOrder == ArchiveListOrder.name.rawValue {
+            archivesToProcess = archivesToProcess.sorted(by: { $0.normalizedName < $1.normalizedName })
+        } else if sortOrder == ArchiveListOrder.dateAdded.rawValue {
+            archivesToProcess = archivesToProcess.sorted { item, item2 in
+                let dateAdded1 = item.dateAdded
+                let dateAdded2 = item2.dateAdded
+                if dateAdded1 != nil && dateAdded2 != nil {
+                    return dateAdded1! > dateAdded2!
+                } else if dateAdded1 != nil {
+                    return true
+                } else if dateAdded2 != nil {
+                    return false
+                } else {
+                    return item.name < item2.name
+                }
+            }
+
+        } else if sortOrder == ArchiveListOrder.random.rawValue {
+            var generator = FixedRandomGenerator(seed: randomSeed)
+            archivesToProcess = archivesToProcess.shuffled(using: &generator)
+        }
+
+        var seenId = Set<String>()
+        var distinctArchives = [ArchiveItem]()
+        archivesToProcess.forEach { item in
+            let (success, _) = seenId.insert(item.id)
+            if success {
+                distinctArchives.append(item)
+            }
+        }
+        return distinctArchives
+    }
+
     @MainActor
     func addArchivesToCategory(categoryId: String, archiveIds: Set<String>) async -> Set<String> {
         loading = true
@@ -165,42 +201,6 @@ class ArchiveSelectionModel: ObservableObject {
         return successIds
     }
 
-    func processArchives(archives: [ArchiveItem], sortOrder: String) -> [ArchiveItem] {
-        var archivesToProcess = archives
-
-        if sortOrder == ArchiveListOrder.name.rawValue {
-            archivesToProcess = archivesToProcess.sorted(by: { $0.normalizedName < $1.normalizedName })
-        } else if sortOrder == ArchiveListOrder.dateAdded.rawValue {
-            archivesToProcess = archivesToProcess.sorted { item, item2 in
-                let dateAdded1 = item.dateAdded
-                let dateAdded2 = item2.dateAdded
-                if dateAdded1 != nil && dateAdded2 != nil {
-                    return dateAdded1! > dateAdded2!
-                } else if dateAdded1 != nil {
-                    return true
-                } else if dateAdded2 != nil {
-                    return false
-                } else {
-                    return item.name < item2.name
-                }
-            }
-
-        } else if sortOrder == ArchiveListOrder.random.rawValue {
-            var generator = FixedRandomGenerator(seed: randomSeed)
-            archivesToProcess = archivesToProcess.shuffled(using: &generator)
-        }
-
-        var seenId = Set<String>()
-        var distinctArchives = [ArchiveItem]()
-        archivesToProcess.forEach { item in
-            let (success, _) = seenId.insert(item.id)
-            if success {
-                distinctArchives.append(item)
-            }
-        }
-        return distinctArchives
-    }
-
     @MainActor
     func deleteArchives(ids: Set<String>) async -> Set<String> {
         loading = true
@@ -228,6 +228,7 @@ class ArchiveSelectionModel: ObservableObject {
             ArchiveSelectionModel.logger.error("failed to delete some archive ids=\(errorIds)")
             errorMessage = NSLocalizedString("archive.selected.delete.error", comment: "error")
         } else {
+            _ = try? database.deleteHistories(Array(ids))
             successMessage = NSLocalizedString("archive.selected.delete.success", comment: "success")
         }
 

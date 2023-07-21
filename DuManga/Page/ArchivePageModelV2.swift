@@ -14,6 +14,7 @@ class ArchivePageModelV2: ObservableObject {
     @Published var controlUiHidden = true
     @Published var sliderIndex: Double = 0.0
     @Published var errorMessage = ""
+    @Published var successMessage = ""
 
     @Published private(set) var loading = false
     @Published private(set) var archiveItems = [String: ArchiveItem]()
@@ -27,6 +28,7 @@ class ArchivePageModelV2: ObservableObject {
     private let database = AppDatabase.shared
     private let store = AppStore.shared
 
+    private var settingThumbnail = false
     private var prefetchRequested: Set<String> = .init()
     private var cancellables: Set<AnyCancellable> = .init()
 
@@ -111,18 +113,24 @@ class ArchivePageModelV2: ObservableObject {
         try? database.saveHistory(&history)
     }
 
-    func setCurrentPageAsThumbnail(id: String) async -> String {
+    func setCurrentPageAsThumbnail(id: String) async {
+        guard settingThumbnail == false else {
+            return
+        }
+        settingThumbnail = true
         do {
             _ = try await service.updateArchiveThumbnail(id: id, page: currentIndex + 1).value
             store.dispatch(.trigger(action: .thumbnailRefreshAction(id: id)))
-            return ""
+            successMessage = NSLocalizedString("archive.thumbnail.set", comment: "set thumbnail success")
         } catch {
             ArchivePageModelV2.logger.error("Failed to set current page as thumbnail. id=\(id) \(error)")
-            return error.localizedDescription
+            errorMessage = error.localizedDescription
         }
+        settingThumbnail = false
     }
 
-    func resetError() {
+    func reset() {
         self.errorMessage = ""
+        self.successMessage = ""
     }
 }

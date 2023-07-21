@@ -97,6 +97,7 @@ class ArchiveDetailsModel: ObservableObject {
                     let success = try database.deleteArchive(id)
                     if success {
                         _ = try? database.deleteArchiveThumbnail(id)
+                        _ = try? database.deleteHistories([id])
                     }
                     else {
                         ArchiveDetailsModel.logger.error("failed to delete archive from db. id=\(id)")
