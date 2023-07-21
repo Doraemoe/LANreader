@@ -71,7 +71,7 @@ struct AppDatabase {
 
         migrator.registerMigration("history") { database in
             try database.create(table: "history", body: { table in
-                table.column("id", .text).primaryKey().references("archive", column: "id", onDelete: .cascade)
+                table.column("id", .text).primaryKey()
                 table.column("lastUpdate", .datetime)
             })
         }
