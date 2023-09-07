@@ -74,8 +74,8 @@ struct CategoryList: View {
             .sheet(isPresented: $categoryListModel.showSheetView) {
                 EditCategory(item: categoryListModel.selectedCategoryItem!)
             }
-            .onChange(of: categoryListModel.errorCode, perform: { code in
-                if code != nil {
+            .onChange(of: categoryListModel.errorCode) {
+                if categoryListModel.errorCode != nil {
                     let banner = NotificationBanner(
                         title: NSLocalizedString("error", comment: "error"),
                         subtitle: NSLocalizedString("error.category", comment: "category error"),
@@ -84,7 +84,7 @@ struct CategoryList: View {
                     banner.show()
                     categoryListModel.reset()
                 }
-            })
+            }
         }
     }
 }

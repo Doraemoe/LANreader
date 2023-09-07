@@ -36,13 +36,13 @@ struct ThumbnailImage: View {
         .onDisappear {
             imageModel.disconnectStore()
         }
-        .onChange(of: imageModel.reloadThumbnailId, perform: { reload in
-            if reload == id {
+        .onChange(of: imageModel.reloadThumbnailId) {
+            if imageModel.reloadThumbnailId == id {
                 Task {
                     await imageModel.load(id: id)
                     store.dispatch(.trigger(action: .thumbnailRefreshAction(id: "")))
                 }
             }
-        })
+        }
     }
 }

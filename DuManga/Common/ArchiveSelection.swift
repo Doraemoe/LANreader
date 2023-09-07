@@ -148,22 +148,22 @@ struct ArchiveSelection: View {
                 }
             }
         }
-        .onChange(of: archiveSelectionModel.errorMessage) { errorMessage in
-            if !errorMessage.isEmpty {
+        .onChange(of: archiveSelectionModel.errorMessage) {
+            if !archiveSelectionModel.errorMessage.isEmpty {
                 let banner = NotificationBanner(
                     title: NSLocalizedString("error", comment: "error"),
-                    subtitle: errorMessage,
+                    subtitle: archiveSelectionModel.errorMessage,
                     style: .danger
                 )
                 banner.show()
                 archiveSelectionModel.reset()
             }
         }
-        .onChange(of: archiveSelectionModel.successMessage) { successMessage in
-            if !successMessage.isEmpty {
+        .onChange(of: archiveSelectionModel.successMessage) {
+            if !archiveSelectionModel.successMessage.isEmpty {
                 let banner = NotificationBanner(
                     title: NSLocalizedString("success", comment: "success"),
-                    subtitle: successMessage,
+                    subtitle: archiveSelectionModel.successMessage,
                     style: .success
                 )
                 banner.show()
