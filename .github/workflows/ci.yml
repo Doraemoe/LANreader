@@ -10,7 +10,7 @@ jobs:
     
     strategy:
         matrix:
-          destination: ['platform=iOS Simulator,OS=16.4,name=iPad Pro (11-inch) (4th generation)']
+          destination: ['platform=iOS Simulator,OS=17.0,name=iPad Pro (11-inch) (4th generation)']
     steps:
       - uses: actions/checkout@v2
 
@@ -18,7 +18,7 @@ jobs:
         run: swiftlint --strict
 
       - name: Select Xcode version
-        run: sudo xcode-select -switch /Applications/Xcode_14.3.app
+        run: sudo xcode-select -switch /Applications/Xcode_15.0.app
       
       - name: Build and test
         run: xcodebuild clean test -project DuManga.xcodeproj -scheme DuManga -destination "${destination}"
