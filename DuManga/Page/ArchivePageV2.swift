@@ -89,17 +89,17 @@ struct ArchivePageV2: View {
             .onDisappear {
                 archivePageModel.disconnectStore()
             }
-            .onChange(of: archivePageModel.deletedArchiveId, perform: { deletedArchiveId in
-                if archiveItem.id == deletedArchiveId {
+            .onChange(of: archivePageModel.deletedArchiveId) {
+                if archiveItem.id == archivePageModel.deletedArchiveId {
                     store.dispatch(.trigger(action: .archiveDeleteAction(id: "")))
                     presentationMode.wrappedValue.dismiss()
                 }
-            })
-            .onChange(of: archivePageModel.errorMessage) { errorMessage in
-                if !errorMessage.isEmpty {
+            }
+            .onChange(of: archivePageModel.errorMessage) {
+                if !archivePageModel.errorMessage.isEmpty {
                     let banner = NotificationBanner(
                         title: NSLocalizedString("error", comment: "error"),
-                        subtitle: errorMessage,
+                        subtitle: archivePageModel.errorMessage,
                         style: .danger
                     )
                     banner.show()
@@ -107,27 +107,27 @@ struct ArchivePageV2: View {
                     archivePageModel.controlUiHidden = false
                 }
             }
-            .onChange(of: archivePageModel.successMessage) { successMessage in
-                if !successMessage.isEmpty {
+            .onChange(of: archivePageModel.successMessage) {
+                if !archivePageModel.successMessage.isEmpty {
                     let banner = NotificationBanner(
                         title: NSLocalizedString("success", comment: "success"),
-                        subtitle: successMessage,
+                        subtitle: archivePageModel.successMessage,
                         style: .success
                     )
                     banner.show()
                     archivePageModel.reset()
                 }
             }
-            .onChange(of: archivePageModel.currentIndex) { index in
+            .onChange(of: archivePageModel.currentIndex) {
                 archivePageModel.prefetchImages()
                 archivePageModel.sliderIndex = Double(archivePageModel.currentIndex)
                 Task {
-                    await onIndexChange(index: index)
+                    await onIndexChange(index: archivePageModel.currentIndex)
                 }
 
             }
-            .onChange(of: archivePageModel.pages) { [pages = archivePageModel.pages] newPages in
-                if pages.isEmpty && !newPages.isEmpty {
+            .onChange(of: archivePageModel.pages) { oldPages, newPages in
+                if oldPages.isEmpty && !newPages.isEmpty {
                     archivePageModel.prefetchImages()
                 }
             }
@@ -160,8 +160,8 @@ struct ArchivePageV2: View {
                         .onDisappear {
                             archivePageModel.verticalReaderReady = false
                         }
-                        .onChange(of: verticalScrollTarget) { target in
-                            if let target = target {
+                        .onChange(of: verticalScrollTarget) {
+                            if let target = verticalScrollTarget {
                                 reader.scrollTo(target, anchor: .top)
                             }
                         }

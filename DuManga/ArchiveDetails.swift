@@ -132,8 +132,8 @@ struct ArchiveDetails: View {
             archiveDetailsModel.reset()
             archiveDetailsModel.disconnectStore()
         })
-        .onChange(of: editMode) { [editMode] newMode in
-            if editMode == .active && newMode == .inactive {
+        .onChange(of: editMode) { oldMode, newMode in
+            if oldMode == .active && newMode == .inactive {
                 let updated = ArchiveItem(
                     id: item.id,
                     name: archiveDetailsModel.title,
@@ -157,22 +157,22 @@ struct ArchiveDetails: View {
                 }
             }
         }
-        .onChange(of: archiveDetailsModel.errorMessage, perform: { errorMessage in
-            if !errorMessage.isEmpty {
+        .onChange(of: archiveDetailsModel.errorMessage) {
+            if !archiveDetailsModel.errorMessage.isEmpty {
                 let banner = NotificationBanner(
                     title: NSLocalizedString("error", comment: "error"),
-                    subtitle: errorMessage,
+                    subtitle: archiveDetailsModel.errorMessage,
                     style: .danger
                 )
                 banner.show()
                 archiveDetailsModel.reset()
             }
-        })
-        .onChange(of: archiveDetailsModel.successMessage) { successMessage in
-            if !successMessage.isEmpty {
+        }
+        .onChange(of: archiveDetailsModel.successMessage) {
+            if !archiveDetailsModel.successMessage.isEmpty {
                 let banner = NotificationBanner(
                     title: NSLocalizedString("success", comment: "success"),
-                    subtitle: successMessage,
+                    subtitle: archiveDetailsModel.successMessage,
                     style: .success
                 )
                 banner.show()

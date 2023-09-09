@@ -10,11 +10,11 @@ struct HistoryList: View {
             .onAppear {
                 historyListModel.loadHistory()
             }
-            .onChange(of: historyListModel.errorMessage) { errorMessage in
-                if !errorMessage.isEmpty {
+            .onChange(of: historyListModel.errorMessage) {
+                if !historyListModel.errorMessage.isEmpty {
                     let banner = NotificationBanner(
                         title: NSLocalizedString("error.history.title", comment: "error"),
-                        subtitle: errorMessage,
+                        subtitle: historyListModel.errorMessage,
                         style: .danger
                     )
                     banner.show()

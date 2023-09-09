@@ -37,8 +37,8 @@ struct CategoryArchiveList: View {
                         .onDisappear {
                             categoryArchiveListModel.reset()
                         }
-                        .onChange(of: categoryArchiveListModel.isError) { isError in
-                            if isError {
+                        .onChange(of: categoryArchiveListModel.isError) {
+                            if categoryArchiveListModel.isError {
                                 let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
                                                                 subtitle: categoryArchiveListModel.errorMessage,
                                                                 style: .danger)
@@ -75,10 +75,7 @@ struct CategoryArchiveList: View {
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle(categoryItem.name)
             .environment(\.editMode, $enableSelect)
-            .onChange(of: categoryArchiveListModel.categoryItems[categoryItem.id]) {
-                // swiftlint:disable closure_parameter_position
-                [oldCategory = categoryArchiveListModel.categoryItems[categoryItem.id]] newCategory in
-                // swiftlint:enable closure_parameter_position
+            .onChange(of: categoryArchiveListModel.categoryItems[categoryItem.id]) { oldCategory, newCategory in
                 if oldCategory?.archives != newCategory?.archives {
                     categoryArchiveListModel.loadStaticCategory(id: categoryItem.id)
                 }

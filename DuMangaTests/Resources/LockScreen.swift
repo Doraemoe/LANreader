@@ -26,8 +26,8 @@ struct LockScreen: View {
             }
             showPinStack
         }
-        .onChange(of: scenePhase) { newPhase in
-            if newPhase == .active
+        .onChange(of: scenePhase) {
+            if scenePhase == .active
                 && lockScreenModel.state == .normal
                 && !lockScreenModel.isAuthenticating
                 && !lockScreenModel.disableBiometricsAuth {
@@ -69,13 +69,13 @@ struct LockScreen: View {
             .foregroundColor(.clear)
             .keyboardType(.numberPad)
             .disabled(lockScreenModel.isDisabled)
-            .onChange(of: lockScreenModel.pin, perform: { [pin = lockScreenModel.pin] newPin in
+            .onChange(of: lockScreenModel.pin) { oldPin, newPin in
                 if newPin.last?.isWholeNumber == false {
-                    lockScreenModel.pin = pin
+                    lockScreenModel.pin = oldPin
                 } else {
                     self.submitPin()
                 }
-            })
+            }
     }
 
     private var showPinStack: some View {

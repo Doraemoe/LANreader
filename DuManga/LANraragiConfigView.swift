@@ -39,14 +39,14 @@ struct LANraragiConfigView: View {
             }
         }
         .toolbar(.hidden, for: .tabBar)
-        .onChange(of: configModel.errorMessage, perform: { errorMessage in
-            if !errorMessage.isEmpty {
+        .onChange(of: configModel.errorMessage) {
+            if !configModel.errorMessage.isEmpty {
                 let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                                                subtitle: errorMessage,
+                                                subtitle: configModel.errorMessage,
                                                 style: .danger)
                 banner.show()
                 configModel.reset()
             }
-        })
+        }
     }
 }

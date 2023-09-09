@@ -60,8 +60,8 @@ struct PageImage: View {
             .onDisappear {
                 imageModel.disconnectStore()
             }
-            .onChange(of: imageModel.reloadPageId) { reloadPageId in
-                if reloadPageId == id {
+            .onChange(of: imageModel.reloadPageId) {
+                if imageModel.reloadPageId == id {
                     imageModel.load(id: id, compressThreshold: compressThreshold)
                     store.dispatch(.trigger(action: .pageRefreshAction(id: "")))
                 }

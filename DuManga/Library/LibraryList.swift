@@ -40,8 +40,8 @@ struct LibraryList: View {
                                 }
                             }
                         }
-                        .onChange(of: libraryListModel.errorCode, perform: { errorCode in
-                            if errorCode != nil {
+                        .onChange(of: libraryListModel.errorCode) {
+                            if libraryListModel.errorCode != nil {
                                 let banner = NotificationBanner(
                                     title: NSLocalizedString("error", comment: "error"),
                                     subtitle: NSLocalizedString("error.list", comment: "list error"),
@@ -50,7 +50,7 @@ struct LibraryList: View {
                                 banner.show()
                                 libraryListModel.resetArchiveState()
                             }
-                        })
+                        }
                 }
                 if libraryListModel.loading && !libraryListModel.isPullToRefresh {
                     LoadingView(geometry: geometry)

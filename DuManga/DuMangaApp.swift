@@ -108,8 +108,8 @@ struct DuMangaApp: App {
                         }
                     }
                 }
-                .onChange(of: scenePhase) { newPhase in
-                    if !storedPasscode.isEmpty && newPhase != .active && !lock {
+                .onChange(of: scenePhase) {
+                    if !storedPasscode.isEmpty && scenePhase != .active && !lock {
                         withTransaction(self.noAnimationTransaction) {
                             lock = true
                         }

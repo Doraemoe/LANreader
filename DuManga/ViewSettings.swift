@@ -33,10 +33,10 @@ struct ViewSettings: View {
                 enablePasscode = true
             }
         }
-        .onChange(of: enablePasscode) { [enablePasscode] _ in
-            if enablePasscode && storedPasscode.isEmpty {
+        .onChange(of: enablePasscode) { oldPasscode, _ in
+            if oldPasscode && storedPasscode.isEmpty {
                 //
-            } else if !enablePasscode && !storedPasscode.isEmpty {
+            } else if !oldPasscode && !storedPasscode.isEmpty {
                 //
             } else {
                 showPasscodeView = true

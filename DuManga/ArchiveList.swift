@@ -71,8 +71,8 @@ struct ArchiveList: View {
         .onDisappear {
             archiveListModel.disconnectStore()
         }
-        .onChange(of: archives) { [archives] newArchives in
-            if archives != newArchives {
+        .onChange(of: archives) { oldArchives, newArchives in
+            if oldArchives != newArchives {
                 archiveListModel.resetSortedArchives()
             }
         }
