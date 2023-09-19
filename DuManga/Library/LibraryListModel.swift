@@ -5,13 +5,14 @@
 import Foundation
 import Combine
 
-class LibraryListModel: ObservableObject {
-    @Published var isPullToRefresh = false
-    @Published var searchText = ""
+@Observable
+class LibraryListModel {
+    var isPullToRefresh = false
+    var searchText = ""
 
-    @Published private(set) var loading = false
-    @Published private(set) var archiveItems = [String: ArchiveItem]()
-    @Published private(set) var errorCode: ErrorCode?
+    private(set) var loading = false
+    private(set) var archiveItems = [String: ArchiveItem]()
+    private(set) var errorCode: ErrorCode?
 
     private var cancellable: Set<AnyCancellable> = []
 

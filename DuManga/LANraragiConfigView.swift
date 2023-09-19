@@ -8,7 +8,7 @@ struct LANraragiConfigView: View {
 
     @FocusState private var focused: Bool
 
-    @StateObject var configModel = LANraragiConfigViewModel()
+    @State var configModel = LANraragiConfigViewModel()
 
     var body: some View {
         Form {

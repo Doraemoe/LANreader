@@ -4,7 +4,7 @@ import SwiftUI
 import GRDBQuery
 
 struct ThumbnailImage: View {
-    @StateObject private var imageModel = ThumbnailImageModel()
+    @State private var imageModel = ThumbnailImageModel()
 
     @Query<ArchiveThumbnailRequest>
     private var archiveThumbnail: ArchiveThumbnail?

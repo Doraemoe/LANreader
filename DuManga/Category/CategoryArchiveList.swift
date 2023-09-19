@@ -6,7 +6,7 @@ import SwiftUI
 import NotificationBannerSwift
 
 struct CategoryArchiveList: View {
-    @StateObject private var categoryArchiveListModel = CategoryArchiveListModel()
+    @State private var categoryArchiveListModel = CategoryArchiveListModel()
 
     @State private var enableSelect: EditMode = .inactive
 

@@ -6,7 +6,7 @@ import GRDBQuery
 struct PageImage: View {
     @AppStorage(SettingsKey.compressImageThreshold) var compressThreshold: CompressThreshold = .never
 
-    @StateObject private var imageModel = PageImageModel()
+    @State private var imageModel = PageImageModel()
 
     @Query<ArchiveImageRequest>
     private var archiveImage: ArchiveImage?

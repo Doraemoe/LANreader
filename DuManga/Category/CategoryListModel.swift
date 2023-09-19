@@ -5,14 +5,15 @@
 import Foundation
 import Combine
 
-class CategoryListModel: ObservableObject {
-    @Published var showSheetView = false
-    @Published var isPullToRefresh = false
-    @Published var selectedCategoryItem: CategoryItem?
+@Observable
+class CategoryListModel {
+    var showSheetView = false
+    var isPullToRefresh = false
+    var selectedCategoryItem: CategoryItem?
 
-    @Published private(set) var loading = false
-    @Published private(set) var categoryItems = [String: CategoryItem]()
-    @Published private(set) var errorCode: ErrorCode?
+    private(set) var loading = false
+    private(set) var categoryItems = [String: CategoryItem]()
+    private(set) var errorCode: ErrorCode?
 
     private let store = AppStore.shared
 

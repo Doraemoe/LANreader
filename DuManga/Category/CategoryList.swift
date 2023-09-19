@@ -6,7 +6,7 @@ struct CategoryList: View {
 
     @State private var editMode: EditMode = .inactive
 
-    @StateObject var categoryListModel = CategoryListModel()
+    @State var categoryListModel = CategoryListModel()
 
     var body: some View {
         GeometryReader { geometry in

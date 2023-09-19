@@ -30,7 +30,7 @@ struct ArchivePageV2: View {
 
     @Environment(\.presentationMode) var presentationMode
 
-    @StateObject private var archivePageModel = ArchivePageModelV2()
+    @State private var archivePageModel = ArchivePageModelV2()
 
     @State private var verticalScrollTarget: Int?
 

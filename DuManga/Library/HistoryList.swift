@@ -3,7 +3,7 @@ import NotificationBannerSwift
 
 struct HistoryList: View {
 
-    @StateObject var historyListModel = HistoryListModel()
+    @State var historyListModel = HistoryListModel()
 
     var body: some View {
         ArchiveList(archives: historyListModel.archives, sortArchives: false)

@@ -11,7 +11,7 @@ struct ArchiveDetails: View {
     @State private var showingAlert = false
     @State private var editMode: EditMode = .inactive
 
-    @StateObject var archiveDetailsModel = ArchiveDetailsModel()
+    @State var archiveDetailsModel = ArchiveDetailsModel()
 
     private let store = AppStore.shared
 

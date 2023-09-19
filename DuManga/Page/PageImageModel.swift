@@ -4,11 +4,12 @@ import Foundation
 import Combine
 import Logging
 
-class PageImageModel: ObservableObject {
+@Observable
+class PageImageModel {
     private static let logger = Logger(label: "PageImageModel")
 
-    @Published private(set) var progress: Double = 0
-    @Published private(set) var reloadPageId = ""
+    private(set) var progress: Double = 0
+    private(set) var reloadPageId = ""
 
     private var isLoading = false
 

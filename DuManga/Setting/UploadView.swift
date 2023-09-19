@@ -2,7 +2,7 @@ import SwiftUI
 
 struct UploadView: View {
 
-    @StateObject var uploadViewModel = UploadViewModel()
+    @State var uploadViewModel = UploadViewModel()
 
     var body: some View {
         GeometryReader { geometry in

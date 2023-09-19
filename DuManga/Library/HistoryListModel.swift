@@ -1,9 +1,10 @@
 import Foundation
 
-class HistoryListModel: ObservableObject {
+@Observable
+class HistoryListModel {
 
-    @Published var archives = [ArchiveItem]()
-    @Published var errorMessage = ""
+    var archives = [ArchiveItem]()
+    var errorMessage = ""
 
     private let store = AppStore.shared
     private let database = AppDatabase.shared

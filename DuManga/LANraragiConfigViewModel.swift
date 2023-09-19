@@ -5,13 +5,14 @@
 import Foundation
 import Logging
 
-class LANraragiConfigViewModel: ObservableObject {
+@Observable
+class LANraragiConfigViewModel {
     private static let logger = Logger(label: "LANraragiConfigViewModel")
 
-    @Published var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
-    @Published var apiKey = UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey) ?? ""
-    @Published var isVerifying = false
-    @Published var errorMessage = ""
+    var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
+    var apiKey = UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey) ?? ""
+    var isVerifying = false
+    var errorMessage = ""
 
     private let settingsService = SettingsService.shared
     private let lanraragiService = LANraragiService.shared

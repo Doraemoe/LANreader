@@ -11,7 +11,7 @@ struct ArchiveList: View {
     private let archives: [ArchiveItem]
     private let sortArchives: Bool
 
-    @StateObject var archiveListModel = ArchiveListModel()
+    @State var archiveListModel = ArchiveListModel()
 
     init(archives: [ArchiveItem], sortArchives: Bool = true) {
         self.archives = archives

@@ -6,15 +6,16 @@ import Foundation
 import Combine
 import Logging
 
-class CategoryArchiveListModel: ObservableObject {
+@Observable
+class CategoryArchiveListModel {
     private static let logger = Logger(label: "CategoryArchiveListModel")
 
-    @Published private(set) var archiveItems = [String: ArchiveItem]()
-    @Published private(set) var categoryItems = [String: CategoryItem]()
-    @Published private(set) var result = [String]()
-    @Published private(set) var isLoading = false
-    @Published private(set) var isError = false
-    @Published private(set) var errorMessage = ""
+    private(set) var archiveItems = [String: ArchiveItem]()
+    private(set) var categoryItems = [String: CategoryItem]()
+    private(set) var result = [String]()
+    private(set) var isLoading = false
+    private(set) var isError = false
+    private(set) var errorMessage = ""
 
     private let service = LANraragiService.shared
     private let store = AppStore.shared

@@ -5,10 +5,11 @@ import Combine
 import Foundation
 import Logging
 
-class ThumbnailImageModel: ObservableObject {
+@Observable
+class ThumbnailImageModel {
     private static let logger = Logger(label: "ThumbnailImageModel")
 
-    @Published private(set) var reloadThumbnailId = ""
+    private(set) var reloadThumbnailId = ""
 
     private let service = LANraragiService.shared
     private let database = AppDatabase.shared
