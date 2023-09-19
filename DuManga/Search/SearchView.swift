@@ -3,7 +3,7 @@ import NotificationBannerSwift
 
 struct SearchView: View {
     @State private var enableSelect: EditMode = .inactive
-    @StateObject private var searchViewModel = SearchViewModel()
+    @State private var searchViewModel = SearchViewModel()
 
     private let initKeyword: String?
 

@@ -10,7 +10,7 @@ import LocalAuthentication
 struct LockScreen: View {
     @Environment(\.scenePhase) var scenePhase
 
-    @StateObject var lockScreenModel = LockScreenModel()
+    @State var lockScreenModel = LockScreenModel()
 
     let initialState: LockScreenState
     let storedPasscode: String

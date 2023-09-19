@@ -2,13 +2,14 @@ import Foundation
 import Combine
 import Logging
 
-class SearchViewModel: ObservableObject {
+@Observable
+class SearchViewModel {
     private static let logger = Logger(label: "SearchViewModel")
 
-    @Published var keyword = ""
-    @Published private(set) var isLoading = false
-    @Published private(set) var archiveItems = [String: ArchiveItem]()
-    @Published private(set) var errorMessage = ""
+    var keyword = ""
+    private(set) var isLoading = false
+    private(set) var archiveItems = [String: ArchiveItem]()
+    private(set) var errorMessage = ""
 
     let store = AppStore.shared
     let service = LANraragiService.shared

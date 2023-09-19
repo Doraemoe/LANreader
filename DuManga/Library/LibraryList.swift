@@ -10,7 +10,7 @@ struct LibraryList: View {
     @AppStorage(SettingsKey.alwaysLoadFromServer) var alwaysLoadFromServer: Bool = false
 
     @State private var enableSelect: EditMode = .inactive
-    @StateObject private var libraryListModel = LibraryListModel()
+    @State private var libraryListModel = LibraryListModel()
 
     var body: some View {
         GeometryReader { geometry in

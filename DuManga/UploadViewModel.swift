@@ -1,11 +1,12 @@
 import SwiftUI
 import Logging
 
-class UploadViewModel: ObservableObject {
+@Observable
+class UploadViewModel {
     private static let logger = Logger(label: "UploadViewModel")
 
-    @Published var urls = ""
-    @Published var jobDetails: [Int: DownloadJob] = .init()
+    var urls = ""
+    var jobDetails: [Int: DownloadJob] = .init()
 
     private var processing = false
 

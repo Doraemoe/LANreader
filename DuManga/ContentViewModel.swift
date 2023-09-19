@@ -6,9 +6,10 @@ import SwiftUI
 import Combine
 import Logging
 
-class ContentViewModel: ObservableObject {
+@Observable
+class ContentViewModel {
     private static let logger = Logger(label: "ContentViewModel")
-    @Published var tabName: String = "library"
+    var tabName: String = "library"
 
     private let service = LANraragiService.shared
     private let database = AppDatabase.shared

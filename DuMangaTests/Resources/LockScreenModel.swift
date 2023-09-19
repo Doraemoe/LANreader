@@ -5,14 +5,15 @@
 
 import Foundation
 
-class LockScreenModel: ObservableObject {
-    @Published var pin: String = ""
-    @Published var showPin = false
-    @Published var isDisabled = false
-    @Published var state = LockScreenState.normal
+@Observable
+class LockScreenModel {
+    var pin: String = ""
+    var showPin = false
+    var isDisabled = false
+    var state = LockScreenState.normal
 
-    var disableBiometricsAuth = false
-    var isAuthenticating = false
+    @ObservationIgnored var disableBiometricsAuth = false
+    @ObservationIgnored var isAuthenticating = false
 
     func switchToVerify() {
         state = .verify

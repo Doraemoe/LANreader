@@ -4,7 +4,7 @@ import SwiftUI
 import NotificationBannerSwift
 
 struct ContentView: View {
-    @StateObject var contentViewModel = ContentViewModel()
+    @State var contentViewModel = ContentViewModel()
 
     var body: some View {
         TabView(selection: $contentViewModel.tabName) {

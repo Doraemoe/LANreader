@@ -2,13 +2,14 @@ import Foundation
 import Combine
 import Logging
 
-class ArchiveSelectionModel: ObservableObject {
+@Observable
+class ArchiveSelectionModel {
     private static let logger = Logger(label: "ArchiveSelectionModel")
 
-    @Published private(set) var loading = false
-    @Published private(set) var categoryItems = [String: CategoryItem]()
-    @Published private(set) var successMessage = ""
-    @Published private(set) var errorMessage = ""
+    private(set) var loading = false
+    private(set) var categoryItems = [String: CategoryItem]()
+    private(set) var successMessage = ""
+    private(set) var errorMessage = ""
 
     private var randomSeed: UInt64 = 1
     private var cancellables: Set<AnyCancellable> = []

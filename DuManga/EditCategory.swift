@@ -6,7 +6,7 @@ import NotificationBannerSwift
 struct EditCategory: View {
     @Environment (\.presentationMode) var presentationMode
 
-    @StateObject var editCategoryModel = EditCategoryModel()
+    @State var editCategoryModel = EditCategoryModel()
 
     private let item: CategoryItem
     private let store = AppStore.shared

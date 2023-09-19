@@ -1,11 +1,12 @@
 import Foundation
 import Combine
 
-class ArchiveListModel: ObservableObject {
+@Observable
+class ArchiveListModel {
 
-    @Published private(set) var randomSeed: UInt64 = 1
+    private(set) var randomSeed: UInt64 = 1
 
-    private var sortedArchives = [String: [ArchiveItem]]()
+    @ObservationIgnored private var sortedArchives = [String: [ArchiveItem]]()
     private var cancellables: Set<AnyCancellable> = []
     private let store = AppStore.shared
 

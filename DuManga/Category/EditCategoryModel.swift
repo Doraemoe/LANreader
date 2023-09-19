@@ -5,11 +5,12 @@
 import Foundation
 import Logging
 
-class EditCategoryModel: ObservableObject {
+@Observable
+class EditCategoryModel {
     private static let logger = Logger(label: "CategoryAction")
-    @Published var categoryName = ""
-    @Published var searchKeyword = ""
-    @Published var saving = false
+    var categoryName = ""
+    var searchKeyword = ""
+    var saving = false
 
     private let database = AppDatabase.shared
     private let lanraragiService = LANraragiService.shared

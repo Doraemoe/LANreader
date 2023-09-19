@@ -7,7 +7,7 @@ struct ArchiveSelection: View {
     @State var selected: Set<String> = .init()
     @State private var deleteAlert = false
     @State private var removeAlert = false
-    @StateObject var archiveSelectionModel = ArchiveSelectionModel()
+    @State var archiveSelectionModel = ArchiveSelectionModel()
 
     private let archives: [ArchiveItem]
     private let archiveSelectFor: ArchiveSelectFor

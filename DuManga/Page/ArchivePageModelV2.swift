@@ -6,22 +6,23 @@ import Foundation
 import Combine
 import Logging
 
-class ArchivePageModelV2: ObservableObject {
+@Observable
+class ArchivePageModelV2 {
     private static let logger = Logger(label: "ArchivePageModel")
     private static let prefetchNumber = 2
 
-    @Published var currentIndex = 0
-    @Published var controlUiHidden = true
-    @Published var sliderIndex: Double = 0.0
-    @Published var errorMessage = ""
-    @Published var successMessage = ""
+    var currentIndex = 0
+    var controlUiHidden = true
+    var sliderIndex: Double = 0.0
+    var errorMessage = ""
+    var successMessage = ""
 
-    @Published private(set) var loading = false
-    @Published private(set) var archiveItems = [String: ArchiveItem]()
-    @Published private(set) var pages = [String]()
-    @Published private(set) var deletedArchiveId = ""
+    private(set) var loading = false
+    private(set) var archiveItems = [String: ArchiveItem]()
+    private(set) var pages = [String]()
+    private(set) var deletedArchiveId = ""
 
-    var verticalReaderReady = false
+    @ObservationIgnored var verticalReaderReady = false
 
     private let service = LANraragiService.shared
     private let prefetch = PrefetchService.shared
