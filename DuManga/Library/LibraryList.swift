@@ -26,9 +26,7 @@ struct LibraryList: View {
                         }
                         .refreshable {
                             if libraryListModel.loading != true {
-                                libraryListModel.isPullToRefresh = true
-                                await libraryListModel.refresh()
-                                libraryListModel.isPullToRefresh = false
+                                await libraryListModel.refresh(isPullToRefrsh: true)
                             }
                         }
                         .toolbar {
@@ -52,7 +50,7 @@ struct LibraryList: View {
                             }
                         }
                 }
-                if libraryListModel.loading && !libraryListModel.isPullToRefresh {
+                if libraryListModel.loading {
                     LoadingView(geometry: geometry)
                 }
             }

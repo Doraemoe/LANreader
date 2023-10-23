@@ -25,9 +25,11 @@ private let logger = Logger(label: "ArchiveAction")
 private let database = AppDatabase.shared
 private let lanraragiService = LANraragiService.shared
 
-func fetchArchives(_ fromServer: Bool) -> ThunkAction<AppAction, AppState> {
+func fetchArchives(_ fromServer: Bool, isPullToRefrsh: Bool) -> ThunkAction<AppAction, AppState> {
     { dispatch, _ in
-        dispatch(.archive(action: .startFetchArchive))
+        if !isPullToRefrsh {
+            dispatch(.archive(action: .startFetchArchive))
+        }
         if !fromServer {
             do {
                 let archives = try database.readAllArchive()
