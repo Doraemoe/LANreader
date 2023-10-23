@@ -46,7 +46,7 @@ class LANraragiService {
     }
 
     func retrieveArchiveIndex() async -> DataTask<[ArchiveIndexResponse]> {
-        session.request("\(url)/api/archives") { $0.timeoutInterval = 120 }
+        session.request("\(url)/api/archives") { $0.timeoutInterval = 240 }
             .validate()
             .serializingDecodable([ArchiveIndexResponse].self)
     }

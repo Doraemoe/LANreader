@@ -7,7 +7,6 @@ import Combine
 
 @Observable
 class LibraryListModel {
-    var isPullToRefresh = false
     var searchText = ""
 
     private(set) var loading = false
@@ -45,15 +44,15 @@ class LibraryListModel {
     }
 
     func load(fromServer: Bool) async {
-        await store.dispatch(fetchArchives(fromServer))
+        await store.dispatch(fetchArchives(fromServer, isPullToRefrsh: false))
     }
 
     func resetArchiveState() {
         store.dispatch(.archive(action: .resetState))
     }
 
-    func refresh() async {
-        await store.dispatch(fetchArchives(true))
+    func refresh(isPullToRefrsh: Bool) async {
+        await store.dispatch(fetchArchives(true, isPullToRefrsh: isPullToRefrsh))
         store.dispatch(.archive(
             action: .setRandomOrderSeed(seed: UInt64.random(in: 1..<10000))
         ))

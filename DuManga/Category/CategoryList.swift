@@ -36,15 +36,7 @@ struct CategoryList: View {
                         CategoryArchiveList(categoryItem: item)
                     }
                 if !categoryListModel.isPullToRefresh && categoryListModel.loading {
-                    VStack {
-                        Text("loading")
-                        ProgressView()
-                    }
-                    .frame(width: geometry.size.width / 3,
-                           height: geometry.size.height / 5)
-                    .background(Color.secondary)
-                    .foregroundColor(Color.primary)
-                    .cornerRadius(20)
+                    LoadingView(geometry: geometry)
                 }
             }
             .navigationTitle("category")
