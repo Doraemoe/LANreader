@@ -5,6 +5,7 @@
 import Foundation
 import Alamofire
 import Logging
+import Dependencies
 
 class LANraragiService {
     public static let currentSessionDownloadFolder = "current session"
@@ -212,4 +213,15 @@ class AuthInterceptor: RequestInterceptor {
         modifiedURLRequest.headers.add(.authorization(bearerToken: apiKey.data(using: .utf8)!.base64EncodedString()))
         completion(.success(modifiedURLRequest))
     }
+}
+
+extension LANraragiService: DependencyKey {
+    static let liveValue = LANraragiService.shared
+}
+
+extension DependencyValues {
+  var lanraragiService: LANraragiService {
+    get { self[LANraragiService.self] }
+    set { self[LANraragiService.self] = newValue }
+  }
 }

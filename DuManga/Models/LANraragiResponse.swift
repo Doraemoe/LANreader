@@ -2,7 +2,7 @@
 
 import Foundation
 
-struct ArchiveIndexResponse: Decodable {
+struct ArchiveIndexResponse: Decodable, Equatable {
     let arcid: String
     let isnew: String
     let tags: String?

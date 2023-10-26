@@ -1,5 +1,5 @@
 // Created 20/9/20
-
+import ComposableArchitecture
 import SwiftUI
 import Logging
 import Puppy
@@ -80,7 +80,9 @@ struct DuMangaApp: App {
     var body: some Scene {
         WindowGroup {
             if lanraragiUrl.isEmpty {
-                LANraragiConfigView()
+                LANraragiConfigView(store: Store(initialState: LANraragiConfigFeature.State(), reducer: {
+                    LANraragiConfigFeature()
+                }))
             } else {
                 ZStack {
                     ContentView()

@@ -3,7 +3,6 @@
 import SwiftUI
 
 struct ViewSettings: View {
-    @AppStorage(SettingsKey.useListView) var useListView: Bool = false
     @AppStorage(SettingsKey.blurInterfaceWhenInactive) var blurInterfaceWhenInactive: Bool = false
     @AppStorage(SettingsKey.enablePasscode) var enablePasscode: Bool = false
     @AppStorage(SettingsKey.passcode) var storedPasscode: String = ""
@@ -13,10 +12,6 @@ struct ViewSettings: View {
 
     var body: some View {
         List {
-            Toggle(isOn: self.$useListView) {
-                Text("settings.archive.list.view")
-            }
-            .padding()
             Toggle(isOn: self.$blurInterfaceWhenInactive, label: {
                 Text("settings.view.blur.inactive")
             })

@@ -1,5 +1,5 @@
 //  Created 22/8/20.
-
+import ComposableArchitecture
 import SwiftUI
 import NotificationBannerSwift
 
@@ -34,11 +34,9 @@ struct ContentView: View {
                         Text("search")
                     }
                     .tag("search")
-            NavigationStack {
-                SettingsView()
-                        .navigationBarTitle("settings")
-                        .navigationBarTitleDisplayMode(.inline)
-            }
+            SettingsView(store: Store(initialState: SettingsFeature.State(), reducer: {
+                SettingsFeature()
+            }))
                     .tabItem {
                         Image(systemName: "gearshape")
                         Text("settings")

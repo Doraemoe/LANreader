@@ -4,20 +4,19 @@ import SwiftUI
 import NotificationBannerSwift
 
 struct ArchiveList: View {
-    @AppStorage(SettingsKey.useListView) var useListView: Bool = false
     @AppStorage(SettingsKey.archiveListOrder) var archiveListOrder: String = ArchiveListOrder.name.rawValue
     @AppStorage(SettingsKey.hideRead) var hideRead: Bool = false
-
+    
     private let archives: [ArchiveItem]
     private let sortArchives: Bool
-
+    
     @State var archiveListModel = ArchiveListModel()
-
+    
     init(archives: [ArchiveItem], sortArchives: Bool = true) {
         self.archives = archives
         self.sortArchives = sortArchives
     }
-
+    
     var body: some View {
         let archivesToDisplay = archiveListModel.processArchives(
             archives: archives,
@@ -26,44 +25,28 @@ struct ArchiveList: View {
             sortArchives: sortArchives
         )
         Group {
-            if useListView {
-                List {
-                    if sortArchives {
-                        sortPicker()
-                    }
+            let columns = [
+                GridItem(.adaptive(minimum: 160), spacing: 20, alignment: .top)
+            ]
+            ScrollView {
+                if sortArchives {
+                    sortPicker()
+                        .padding([.trailing, .leading], 20)
+                }
+                Spacer(minLength: 30)
+                LazyVGrid(columns: columns) {
                     ForEach(archivesToDisplay) { (item: ArchiveItem) in
                         NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
-                            ArchiveRow(archiveItem: item)
+                            ArchiveGrid(archiveItem: item)
                         }
                         .contextMenu {
                             contextMenu(item: item)
                         }
                     }
                 }
-                .listStyle(.grouped)
-            } else {
-                let columns = [
-                    GridItem(.adaptive(minimum: 160), spacing: 20, alignment: .top)
-                ]
-                ScrollView {
-                    if sortArchives {
-                        sortPicker()
-                            .padding([.trailing, .leading], 20)
-                    }
-                    Spacer(minLength: 30)
-                    LazyVGrid(columns: columns) {
-                        ForEach(archivesToDisplay) { (item: ArchiveItem) in
-                            NavigationLink(destination: ArchivePageV2(archiveItem: item)) {
-                                ArchiveGrid(archiveItem: item)
-                            }
-                            .contextMenu {
-                                contextMenu(item: item)
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                }
+                .padding(.horizontal)
             }
+            
         }
         .onAppear {
             archiveListModel.connectStore()
@@ -77,7 +60,7 @@ struct ArchiveList: View {
             }
         }
     }
-
+    
     private func contextMenu(item: ArchiveItem) -> some View {
         Group {
             NavigationLink {
@@ -92,7 +75,7 @@ struct ArchiveList: View {
             })
         }
     }
-
+    
     private func sortPicker() -> some View {
         Group {
             if archives.isEmpty {
@@ -115,16 +98,16 @@ struct ArchiveList: View {
             }
         }
     }
-
+    
 }
 
 struct FixedRandomGenerator: RandomNumberGenerator {
     private let seed: UInt64
-
+    
     init(seed: UInt64) {
         self.seed = seed
     }
-
+    
     func next() -> UInt64 {
         seed
     }

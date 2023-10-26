@@ -5,15 +5,15 @@
 import Foundation
 import Combine
 
-final class Store<State, Action> {
+final class InternalStore<State, Action> {
     private(set) var state: State
 
-    private let reducer: Reducer<State, Action>
+    private let reducer: ReducerInternal<State, Action>
     private let middlewares: [Middleware<State, Action>]
     private var middlewareCancellables: Set<AnyCancellable> = []
 
     init(initialState: State,
-         reducer: @escaping Reducer<State, Action>,
+         reducer: @escaping ReducerInternal<State, Action>,
          middlewares: [Middleware<State, Action>] = []) {
         self.state = initialState
         self.reducer = reducer
@@ -40,7 +40,7 @@ final class Store<State, Action> {
 }
 
 typealias Middleware<State, Action> = (State, Action) -> AnyPublisher<Action, Never>?
-typealias AppStore = Store<AppState, AppAction>
+typealias AppStore = InternalStore<AppState, AppAction>
 typealias Dispatch<Action> = (Action) -> Void
 typealias ThunkAction<Action, State> = (Dispatch<Action>, () -> State) async -> Void
 

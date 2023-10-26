@@ -2,6 +2,7 @@
 
 import Foundation
 import GRDB
+import Dependencies
 
 struct AppDatabase {
     private let dbWriter: DatabaseWriter
@@ -271,4 +272,16 @@ extension AppDatabase {
     public var dbReader: any GRDB.DatabaseReader {
         dbWriter
     }
+}
+
+extension AppDatabase: DependencyKey {
+  static let liveValue = AppDatabase.shared
+}
+
+
+extension DependencyValues {
+  var appDatabase: AppDatabase {
+    get { self[AppDatabase.self] }
+    set { self[AppDatabase.self] = newValue }
+  }
 }
