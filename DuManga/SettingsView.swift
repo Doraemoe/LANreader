@@ -8,12 +8,16 @@ struct SettingsFeature: Reducer {
     }
     enum Action: Equatable {
         case path(StackAction<Path.State, Path.Action>)
+        case goToLANraragiSettings
     }
     
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            default:
+            case .goToLANraragiSettings:
+                state.path.append(.lanraragiSettings(.init()))
+                return .none
+            case .path:
                 return .none
             }
         }
@@ -25,7 +29,7 @@ struct SettingsFeature: Reducer {
     
     struct Path: Reducer {
         enum State: Equatable {
-            case lanraragiSettings(LANraragiConfigFeature.State = .init())
+            case lanraragiSettings(LANraragiConfigFeature.State)
         }
         enum Action: Equatable {
             case lanraragiSettings(LANraragiConfigFeature.Action)
@@ -50,7 +54,7 @@ struct SettingsView: View {
                     ReadSettings()
                 }
                 Section(header: Text("settings.host")) {
-                    ServerSettings()
+                    ServerSettings(store: store)
                 }
                 Section(header: Text("settings.view")) {
                     ViewSettings()
