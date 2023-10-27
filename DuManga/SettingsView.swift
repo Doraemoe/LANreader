@@ -8,15 +8,11 @@ struct SettingsFeature: Reducer {
     }
     enum Action: Equatable {
         case path(StackAction<Path.State, Path.Action>)
-        case goToLANraragiSettings
     }
-    
+
     var body: some ReducerOf<Self> {
-        Reduce { state, action in
+        Reduce { _, action in
             switch action {
-            case .goToLANraragiSettings:
-                state.path.append(.lanraragiSettings(.init()))
-                return .none
             case .path:
                 return .none
             }
@@ -25,18 +21,27 @@ struct SettingsFeature: Reducer {
             Path()
         }
     }
-    
-    
+
     struct Path: Reducer {
         enum State: Equatable {
-            case lanraragiSettings(LANraragiConfigFeature.State)
+            case lanraragiSettings(LANraragiConfigFeature.State = .init())
+            case upload(UploadFeature.State = .init())
+            case log(LogFeature.State = .init())
         }
         enum Action: Equatable {
             case lanraragiSettings(LANraragiConfigFeature.Action)
+            case upload(UploadFeature.Action)
+            case log(LogFeature.Action)
         }
         var body: some ReducerOf<Self> {
             Scope(state: /State.lanraragiSettings, action: /Action.lanraragiSettings) {
                 LANraragiConfigFeature()
+            }
+            Scope(state: /State.upload, action: /Action.upload) {
+                UploadFeature()
+            }
+            Scope(state: /State.log, action: /Action.log) {
+                LogFeature()
             }
         }
     }
@@ -44,7 +49,7 @@ struct SettingsFeature: Reducer {
 
 struct SettingsView: View {
     let store: StoreOf<SettingsFeature>
-    
+
     var body: some View {
         NavigationStackStore(
             self.store.scope(state: \.path, action: { .path($0) })
@@ -54,20 +59,19 @@ struct SettingsView: View {
                     ReadSettings()
                 }
                 Section(header: Text("settings.host")) {
-                    ServerSettings(store: store)
+                    ServerSettings()
                 }
                 Section(header: Text("settings.view")) {
                     ViewSettings()
                 }
                 Section(header: Text("settings.database")) {
-                    DatabaseSettings()
+                    DatabaseSettings(store: Store(initialState: DatabaseSettingsFeature.State(), reducer: {
+                        DatabaseSettingsFeature()
+                    }))
                 }
                 Section(header: Text("settings.debug")) {
-                    NavigationLink(
-                        destination: LogView(),
-                        label: {
-                            Text("settings.debug.log")
-                        }).padding()
+                    NavigationLink("settings.debug.log", state: SettingsFeature.Path.State.log())
+               .padding()
                     // swiftlint:disable force_cast
                     let version = Bundle.main.infoDictionary!["CFBundleShortVersionString"] as! String
                     let build = Bundle.main.infoDictionary!["CFBundleVersion"] as! String
@@ -84,6 +88,18 @@ struct SettingsView: View {
                     /SettingsFeature.Path.State.lanraragiSettings,
                      action: SettingsFeature.Path.Action.lanraragiSettings,
                      then: LANraragiConfigView.init(store:)
+                )
+            case .upload:
+                CaseLet(
+                    /SettingsFeature.Path.State.upload,
+                     action: SettingsFeature.Path.Action.upload,
+                     then: UploadView.init(store:)
+                )
+            case .log:
+                CaseLet(
+                    /SettingsFeature.Path.State.log,
+                     action: SettingsFeature.Path.Action.log,
+                     then: LogView.init(store:)
                 )
             }
         }

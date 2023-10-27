@@ -278,7 +278,6 @@ extension AppDatabase: DependencyKey {
   static let liveValue = AppDatabase.shared
 }
 
-
 extension DependencyValues {
   var appDatabase: AppDatabase {
     get { self[AppDatabase.self] }

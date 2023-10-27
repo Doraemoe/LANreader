@@ -7,15 +7,15 @@ struct TriggerFeature: Reducer {
         var pageId = ""
         var deletedArchiveId = ""
     }
-    
+
     enum Action: Equatable {
         case thumbnailRefreshAction(String)
         case pageRefreshAction(String)
         case archiveDeleteAction(String)
      }
-    
+
     func reduce(into state: inout State, action: Action) -> Effect<Action> {
-        switch action{
+        switch action {
         case let .thumbnailRefreshAction(id):
             state.thumbnailId = id
             return .none

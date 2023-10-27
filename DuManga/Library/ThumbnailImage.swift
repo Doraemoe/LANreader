@@ -16,7 +16,7 @@ struct ThumbnailImage: View {
         self.id = id
         _archiveThumbnail = Query(ArchiveThumbnailRequest(id: id))
     }
-    
+
     struct ViewState: Equatable {
         let reloadThumbnailId: String
         init(state: AppFeature.State) {

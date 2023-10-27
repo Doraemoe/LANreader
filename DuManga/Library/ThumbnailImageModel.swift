@@ -13,7 +13,6 @@ class ThumbnailImageModel {
     private let database = AppDatabase.shared
     private var isLoading = false
 
-
     func load(id: String) async {
         guard !isLoading else {
             return

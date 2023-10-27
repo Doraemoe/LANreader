@@ -2,24 +2,19 @@ import ComposableArchitecture
 import SwiftUI
 
 struct ServerSettings: View {
-    let store: StoreOf<SettingsFeature>
-    
+
     @AppStorage(SettingsKey.alwaysLoadFromServer) var alwaysLoadFromServer: Bool = false
-    
+
     var body: some View {
         List {
-            Button("settings.host.config") {
-                self.store.send(.goToLANraragiSettings)
-            }
-            .padding()
+            NavigationLink("settings.host.config", state: SettingsFeature.Path.State.lanraragiSettings() )
+                .padding()
             Toggle(isOn: self.$alwaysLoadFromServer) {
                 Text("settings.host.alwaysLoad")
             }
             .padding()
-            NavigationLink(destination: UploadView()) {
-                Text("settings.host.upload")
-            }
-            .padding()
+            NavigationLink("settings.host.upload", state: SettingsFeature.Path.State.upload())
+                .padding()
         }
     }
 }

@@ -9,7 +9,6 @@ import Logging
 @Observable
 class ContentViewModel {
     private static let logger = Logger(label: "ContentViewModel")
-    var tabName: String = "library"
 
     private let service = LANraragiService.shared
     private let database = AppDatabase.shared

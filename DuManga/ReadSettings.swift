@@ -2,7 +2,6 @@
 import ComposableArchitecture
 import SwiftUI
 
-
 struct ReadSettings: View {
     @AppStorage(SettingsKey.tapLeftKey) var tapLeft: String = PageControl.next.rawValue
     @AppStorage(SettingsKey.tapMiddleKey) var tapMiddle: String = PageControl.navigation.rawValue

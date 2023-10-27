@@ -13,6 +13,10 @@ struct DuMangaApp: App {
 
     @State var lock = false
 
+    let store = Store(initialState: AppFeature.State()) {
+        AppFeature()
+    }
+
     private let noAnimationTransaction: Transaction
 
     init() {
@@ -75,7 +79,7 @@ struct DuMangaApp: App {
         self.noAnimationTransaction = transaction
     }
 
-    let store = AppStore.shared
+    //    let store = AppStore.shared
 
     var body: some Scene {
         WindowGroup {
@@ -85,7 +89,7 @@ struct DuMangaApp: App {
                 }))
             } else {
                 ZStack {
-                    ContentView()
+                    ContentView(store: self.store)
                     // As of iOS 16, use .blur will case nav title overlap with safe area
                     if blurInterfaceWhenInactive && scenePhase != .active {
                         Color.primary.colorInvert().ignoresSafeArea()

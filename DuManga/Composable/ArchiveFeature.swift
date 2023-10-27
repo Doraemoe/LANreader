@@ -4,14 +4,14 @@ import Logging
 struct ArchiveFeature: Reducer {
     private let logger = Logger(label: "ArchiveFeature")
     private let excludeTags = ["date_added", "source"]
-    
+
     struct State: Equatable {
         var showLoading = true
         var archiveItems = [String: ArchiveItem]()
         var randomOrderSeed = UInt64.random(in: 1..<10000)
         var errorCode: ErrorCode?
     }
-    
+
     enum Action: Equatable {
         case fetchArchives(Bool, Bool)
         case populateArchives([ArchiveIndexResponse], ErrorCode?)
@@ -23,13 +23,13 @@ struct ArchiveFeature: Reducer {
         case error(ErrorCode)
         case resetState
      }
-    
+
     @Dependency(\.continuousClock) var clock
     @Dependency(\.lanraragiService) var lanraragiService
     @Dependency(\.appDatabase) var database
-    
+
     func reduce(into state: inout State, action: Action) -> Effect<Action> {
-        switch action{
+        switch action {
         case let .fetchArchives(fromServer, showLoading):
             state.showLoading = showLoading
             if !fromServer {
@@ -69,7 +69,7 @@ struct ArchiveFeature: Reducer {
                 state.errorCode = errorCode
             }
             state.showLoading = false
-            return .run { send in
+            return .run { _ in
                 Task.detached(priority: .background) {
                     try? await clock.sleep(for: .seconds(10))
                     _ = try? database.deleteAllTag()
@@ -89,7 +89,7 @@ struct ArchiveFeature: Reducer {
             state.archiveItems[archive.id] = archive
             var dbArchive = archive.toArchive()
             try? database.saveArchive(&dbArchive)
-            return .run { send in
+            return .run { _ in
                 Task.detached(priority: .background) {
                     try? await clock.sleep(for: .seconds(10))
                     let tagList = archive.tags.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }

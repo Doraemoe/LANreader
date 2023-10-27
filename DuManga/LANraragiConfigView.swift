@@ -6,14 +6,14 @@ import Logging
 
 struct LANraragiConfigFeature: Reducer {
     private let logger = Logger(label: "LANraragiConfigFeature")
-    
+
     struct State: Equatable {
         @BindingState var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
         @BindingState var apiKey = UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey) ?? ""
         var isVerifying = false
         var errorMessage = ""
     }
-    
+
     enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
         case verifyServer(String, String)
@@ -21,19 +21,21 @@ struct LANraragiConfigFeature: Reducer {
         case setErrorMessage(String)
         case reset
     }
-    
+
     @Dependency(\.lanraragiService) var lanraragiService
     @Dependency(\.dismiss) var dismiss
-    
+
     var body: some Reducer<State, Action> {
         BindingReducer()
         Reduce { state, action in
-            switch action{
+            switch action {
             case let .verifyServer(url, apiKey):
                 state.isVerifying = true
                 return .run { send in
                     do {
                         _ = try await lanraragiService.verifyClient(url: url, apiKey: apiKey).value
+                        UserDefaults.standard.set(apiKey, forKey: SettingsKey.lanraragiApiKey)
+                        UserDefaults.standard.set(url, forKey: SettingsKey.lanraragiUrl)
                         await send(.saveComplate)
                     } catch {
                         logger.error("failed to verify lanraragi server. \(error)")
@@ -41,8 +43,6 @@ struct LANraragiConfigFeature: Reducer {
                     }
                 }
             case .saveComplate:
-                UserDefaults.standard.set(state.url, forKey: SettingsKey.lanraragiUrl)
-                UserDefaults.standard.set(state.apiKey, forKey: SettingsKey.lanraragiApiKey)
                 state.isVerifying = false
                 return .run { _ in
                     await self.dismiss()
@@ -51,7 +51,6 @@ struct LANraragiConfigFeature: Reducer {
                 state.errorMessage = errorMessage
                 state.isVerifying = false
                 return .none
-                
             case .reset:
                 state.errorMessage = ""
                 return .none
@@ -63,11 +62,11 @@ struct LANraragiConfigFeature: Reducer {
 }
 
 struct LANraragiConfigView: View {
-    
+
     @FocusState private var focused: Bool
-    
+
     let store: StoreOf<LANraragiConfigFeature>
-    
+
     var body: some View {
         WithViewStore(self.store, observe: { $0 }) { viewStore in
             Form {

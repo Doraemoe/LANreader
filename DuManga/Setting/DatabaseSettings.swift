@@ -1,45 +1,70 @@
 // Created 3/12/20
-
+import ComposableArchitecture
 import SwiftUI
+import Logging
 
-struct DatabaseSettings: View {
-    @State private var size = ""
+struct DatabaseSettingsFeature: Reducer {
+    private let logger = Logger(label: "DatabaseSettingsFeature")
 
-    private let database = AppDatabase.shared
-    private let store = AppStore.shared
+    struct State: Equatable {
+        var size = ""
+    }
 
-    func setDatabaseSize() {
-        do {
-            let dbSize = try database.databaseSize()!
-            let bcf = ByteCountFormatter()
-            bcf.allowedUnits = [.useMB]
-            size = bcf.string(fromByteCount: Int64(dbSize))
-        } catch {
-            size = NSLocalizedString("settings.database.error", comment: "read db error")
+    enum Action: Equatable {
+        case setDatabaseSize
+        case clearDatabase
+    }
+
+    @Dependency(\.appDatabase) var database
+
+    func reduce(into state: inout State, action: Action) -> Effect<Action> {
+        switch action {
+        case .setDatabaseSize:
+            do {
+                let dbSize = try database.databaseSize()!
+                let bcf = ByteCountFormatter()
+                bcf.allowedUnits = [.useMB]
+                state.size = bcf.string(fromByteCount: Int64(dbSize))
+            } catch {
+                state.size = NSLocalizedString("settings.database.error", comment: "read db error")
+            }
+            return .none
+        case .clearDatabase:
+            do {
+                try database.clearDatabase()
+            } catch {
+                logger.error("failed to clear database. \(error)")
+            }
+            return .run { send in
+                await send(.setDatabaseSize)
+            }
         }
     }
 
+}
+
+struct DatabaseSettings: View {
+
+    let store: StoreOf<DatabaseSettingsFeature>
+
     var body: some View {
-        return List {
-            Button(role: .destructive, action: {
-                do {
-                    try database.clearDatabase()
-                    store.dispatch(.archive(action: .clearArchive))
-                    store.dispatch(.category(action: .clearCategory))
-                    self.setDatabaseSize()
-                } catch {
-                    // NOOP
-                }
-            }, label: {
-                HStack {
-                    Text("settings.database.clear")
-                    Spacer()
-                    Text(size)
+        WithViewStore(self.store, observe: { $0 }) { viewStore in
+            return List {
+                Button(role: .destructive, action: {
+                    viewStore.send(.clearDatabase)
+                }, label: {
+                    HStack {
+                        Text("settings.database.clear")
+                        Spacer()
+                        Text(viewStore.size)
                             .foregroundColor(.secondary)
-                }
-                        .padding()
-            })
+                    }
+                    .padding()
+                })
+            }
+            .onAppear {
+                viewStore.send(.setDatabaseSize)
+            }
         }
-                .onAppear(perform: self.setDatabaseSize)
     }
 }

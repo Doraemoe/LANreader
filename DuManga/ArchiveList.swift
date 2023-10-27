@@ -6,17 +6,17 @@ import NotificationBannerSwift
 struct ArchiveList: View {
     @AppStorage(SettingsKey.archiveListOrder) var archiveListOrder: String = ArchiveListOrder.name.rawValue
     @AppStorage(SettingsKey.hideRead) var hideRead: Bool = false
-    
+
     private let archives: [ArchiveItem]
     private let sortArchives: Bool
-    
+
     @State var archiveListModel = ArchiveListModel()
-    
+
     init(archives: [ArchiveItem], sortArchives: Bool = true) {
         self.archives = archives
         self.sortArchives = sortArchives
     }
-    
+
     var body: some View {
         let archivesToDisplay = archiveListModel.processArchives(
             archives: archives,
@@ -46,7 +46,7 @@ struct ArchiveList: View {
                 }
                 .padding(.horizontal)
             }
-            
+
         }
         .onAppear {
             archiveListModel.connectStore()
@@ -60,7 +60,7 @@ struct ArchiveList: View {
             }
         }
     }
-    
+
     private func contextMenu(item: ArchiveItem) -> some View {
         Group {
             NavigationLink {
@@ -75,7 +75,7 @@ struct ArchiveList: View {
             })
         }
     }
-    
+
     private func sortPicker() -> some View {
         Group {
             if archives.isEmpty {
@@ -98,16 +98,16 @@ struct ArchiveList: View {
             }
         }
     }
-    
+
 }
 
 struct FixedRandomGenerator: RandomNumberGenerator {
     private let seed: UInt64
-    
+
     init(seed: UInt64) {
         self.seed = seed
     }
-    
+
     func next() -> UInt64 {
         seed
     }

@@ -8,12 +8,12 @@ import Logging
 
 struct LibraryList: View {
     @AppStorage(SettingsKey.alwaysLoadFromServer) var alwaysLoadFromServer: Bool = false
-    
+
     @State private var enableSelect: EditMode = .inactive
     @State private var searchText = ""
-    
+
     let store = AppFeature.shared
-    
+
     struct ViewState: Equatable {
         let showLoading: Bool
         let archiveItems: [String: ArchiveItem]
@@ -24,7 +24,7 @@ struct LibraryList: View {
             self.errorCode = state.archive.errorCode
         }
     }
-    
+
     var body: some View {
         WithViewStore(self.store, observe: ViewState.init) { viewStore in
             GeometryReader { geometry in
@@ -88,7 +88,7 @@ struct LibraryList: View {
             }
         }
     }
-    
+
     private func searchArchives(archiveItems: [String: ArchiveItem]) -> [ArchiveItem] {
         var archives: [ArchiveItem] = Array(archiveItems.values)
         if !searchText.isEmpty {
