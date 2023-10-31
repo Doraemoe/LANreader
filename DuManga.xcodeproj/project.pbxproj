@@ -110,6 +110,12 @@
 		E9C73DC72A1C6F2F00EFDD81 /* HistoryListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C73DC62A1C6F2F00EFDD81 /* HistoryListModel.swift */; };
 		E9CBC0F02A3DD62F00CCD592 /* LogFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */; };
 		E9D40C9B2A26334E00FC3405 /* TagMiddleware.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9D40C9A2A26334E00FC3405 /* TagMiddleware.swift */; };
+		E9DCE8952AF05EA900C17236 /* SettingsFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9DCE8942AF05EA900C17236 /* SettingsFeature.swift */; };
+		E9DCE8992AF0665900C17236 /* ArchiveListV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9DCE8982AF0665900C17236 /* ArchiveListV2.swift */; };
+		E9DCE89C2AF0672200C17236 /* Collections in Frameworks */ = {isa = PBXBuildFile; productRef = E9DCE89B2AF0672200C17236 /* Collections */; };
+		E9DCE89E2AF0672200C17236 /* DequeModule in Frameworks */ = {isa = PBXBuildFile; productRef = E9DCE89D2AF0672200C17236 /* DequeModule */; };
+		E9DCE8A02AF0672200C17236 /* OrderedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = E9DCE89F2AF0672200C17236 /* OrderedCollections */; };
+		E9DCE8A22AF0795600C17236 /* SearchViewV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9DCE8A12AF0795600C17236 /* SearchViewV2.swift */; };
 		E9E3631426F463F800C58D01 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CD024F1390400617F4A /* Alamofire */; };
 		E9E3631626F463F800C58D01 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE124F15F1800617F4A /* Logging */; };
 		E9E3631726F463F800C58D01 /* NotificationBannerSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D7A6842250239750051F232 /* NotificationBannerSwift */; };
@@ -258,6 +264,9 @@
 		E9C73DC62A1C6F2F00EFDD81 /* HistoryListModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryListModel.swift; sourceTree = "<group>"; };
 		E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogFormatter.swift; sourceTree = "<group>"; };
 		E9D40C9A2A26334E00FC3405 /* TagMiddleware.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagMiddleware.swift; sourceTree = "<group>"; };
+		E9DCE8942AF05EA900C17236 /* SettingsFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsFeature.swift; sourceTree = "<group>"; };
+		E9DCE8982AF0665900C17236 /* ArchiveListV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveListV2.swift; sourceTree = "<group>"; };
+		E9DCE8A12AF0795600C17236 /* SearchViewV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewV2.swift; sourceTree = "<group>"; };
 		E9E3631E26F471E400C58D01 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -266,12 +275,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E9DCE8A02AF0672200C17236 /* OrderedCollections in Frameworks */,
 				E9E3631626F463F800C58D01 /* Logging in Frameworks */,
 				E9E3631826F463F800C58D01 /* GRDB in Frameworks */,
 				E90369C02AE72D64001BC558 /* ComposableArchitecture in Frameworks */,
 				E924CF762AEA70C1000AB76A /* Dependencies in Frameworks */,
 				E9A61FB12A1F1F2600391FCE /* GRDBQuery in Frameworks */,
 				E9E3631726F463F800C58D01 /* NotificationBannerSwift in Frameworks */,
+				E9DCE89C2AF0672200C17236 /* Collections in Frameworks */,
+				E9DCE89E2AF0672200C17236 /* DequeModule in Frameworks */,
 				E90576BF29F8C10700C3CE3F /* Puppy in Frameworks */,
 				E9E3631426F463F800C58D01 /* Alamofire in Frameworks */,
 			);
@@ -396,6 +408,7 @@
 				6DA71C5CFBC9FDA5C1244254 /* LoadingView.swift */,
 				E9399C672A37312300B1DFB4 /* ArchiveSelection.swift */,
 				E9399C692A37313C00B1DFB4 /* ArchiveSelectionModel.swift */,
+				E9DCE8982AF0665900C17236 /* ArchiveListV2.swift */,
 			);
 			path = Common;
 			sourceTree = "<group>";
@@ -444,6 +457,7 @@
 			isa = PBXGroup;
 			children = (
 				6DA71602777DF7C10A8FE9AA /* SearchView.swift */,
+				E9DCE8A12AF0795600C17236 /* SearchViewV2.swift */,
 				6DA715FE4A96C5928663012F /* SearchViewModel.swift */,
 			);
 			path = Search;
@@ -572,6 +586,7 @@
 				E90369BD2AE72D40001BC558 /* AppFeature.swift */,
 				E90369C12AE72DE0001BC558 /* ArchiveFeature.swift */,
 				E924CF722AE950F4000AB76A /* TriggerFeature.swift */,
+				E9DCE8942AF05EA900C17236 /* SettingsFeature.swift */,
 			);
 			path = Composable;
 			sourceTree = "<group>";
@@ -635,6 +650,9 @@
 				E9A61FB02A1F1F2600391FCE /* GRDBQuery */,
 				E90369BF2AE72D64001BC558 /* ComposableArchitecture */,
 				E924CF752AEA70C1000AB76A /* Dependencies */,
+				E9DCE89B2AF0672200C17236 /* Collections */,
+				E9DCE89D2AF0672200C17236 /* DequeModule */,
+				E9DCE89F2AF0672200C17236 /* OrderedCollections */,
 			);
 			productName = DuManga;
 			productReference = 7D354C9C24F1316800617F4A /* DuManga.app */;
@@ -721,6 +739,7 @@
 				E9A61FAF2A1F1F2600391FCE /* XCRemoteSwiftPackageReference "GRDBQuery" */,
 				E90369BB2AE72B11001BC558 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
 				E924CF742AEA70C1000AB76A /* XCRemoteSwiftPackageReference "swift-dependencies" */,
+				E9DCE89A2AF0672200C17236 /* XCRemoteSwiftPackageReference "swift-collections" */,
 			);
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
 			projectDirPath = "";
@@ -784,6 +803,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7DF7EA742564E1D2003B5A5A /* AppDatabase.swift in Sources */,
+				E9DCE8A22AF0795600C17236 /* SearchViewV2.swift in Sources */,
 				7D3DFF16251777B200686612 /* DuMangaApp.swift in Sources */,
 				E94C1DDC2A204DDA00552ABD /* ImageService.swift in Sources */,
 				E9CBC0F02A3DD62F00CCD592 /* LogFormatter.swift in Sources */,
@@ -802,6 +822,7 @@
 				4BD82760E9B084402AFE07F2 /* SettingsService.swift in Sources */,
 				4BD821C3FDF1FC3B60AB4823 /* AppModels.swift in Sources */,
 				E9D40C9B2A26334E00FC3405 /* TagMiddleware.swift in Sources */,
+				E9DCE8952AF05EA900C17236 /* SettingsFeature.swift in Sources */,
 				4BD82C152E77BFD137EC03DD /* LANraragiConfigView.swift in Sources */,
 				4BD823AC73ED9E45F8B7E436 /* ReadSettings.swift in Sources */,
 				4BD82F2BEC56B95FB9BC9841 /* SettingsView.swift in Sources */,
@@ -826,6 +847,7 @@
 				4BD8291EBA7A94EE9E8C2ACE /* ArchiveGrid.swift in Sources */,
 				E90369C22AE72DE0001BC558 /* ArchiveFeature.swift in Sources */,
 				E9C73DC42A1C5F4900EFDD81 /* HistoryList.swift in Sources */,
+				E9DCE8992AF0665900C17236 /* ArchiveListV2.swift in Sources */,
 				4BD826130BCE1AC291C7D6A1 /* EditCategoryModel.swift in Sources */,
 				7D34EAE0253B050900695AFD /* ThumbnailImage.swift in Sources */,
 				4BD82A2A4437113DBD1DE74A /* ArchiveDetailsModel.swift in Sources */,
@@ -1324,6 +1346,14 @@
 				minimumVersion = 0.7.0;
 			};
 		};
+		E9DCE89A2AF0672200C17236 /* XCRemoteSwiftPackageReference "swift-collections" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-collections.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.5;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1371,6 +1401,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E9A61FAF2A1F1F2600391FCE /* XCRemoteSwiftPackageReference "GRDBQuery" */;
 			productName = GRDBQuery;
+		};
+		E9DCE89B2AF0672200C17236 /* Collections */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E9DCE89A2AF0672200C17236 /* XCRemoteSwiftPackageReference "swift-collections" */;
+			productName = Collections;
+		};
+		E9DCE89D2AF0672200C17236 /* DequeModule */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E9DCE89A2AF0672200C17236 /* XCRemoteSwiftPackageReference "swift-collections" */;
+			productName = DequeModule;
+		};
+		E9DCE89F2AF0672200C17236 /* OrderedCollections */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E9DCE89A2AF0672200C17236 /* XCRemoteSwiftPackageReference "swift-collections" */;
+			productName = OrderedCollections;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

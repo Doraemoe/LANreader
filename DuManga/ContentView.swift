@@ -36,7 +36,9 @@ struct ContentView: View {
                 }
                 .tag("category")
                 NavigationStack {
-                    SearchView()
+                    SearchViewV2(store: store.scope(state: \.search, action: {
+                        .search($0)
+                    }))
                 }
                 .tabItem {
                     Image(systemName: "magnifyingglass")

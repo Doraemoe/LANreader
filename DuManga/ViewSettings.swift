@@ -3,6 +3,7 @@
 import SwiftUI
 
 struct ViewSettings: View {
+    @AppStorage(SettingsKey.searchSort) var searchSort: String = SearchSort.dateAdded.rawValue
     @AppStorage(SettingsKey.blurInterfaceWhenInactive) var blurInterfaceWhenInactive: Bool = false
     @AppStorage(SettingsKey.enablePasscode) var enablePasscode: Bool = false
     @AppStorage(SettingsKey.passcode) var storedPasscode: String = ""
@@ -12,6 +13,11 @@ struct ViewSettings: View {
 
     var body: some View {
         List {
+            Picker("settings.archive.list.order", selection: self.$searchSort) {
+                Text("settings.archive.list.order.dateAdded").tag(SearchSort.dateAdded.rawValue)
+                Text("settings.archive.list.order.name").tag(SearchSort.name.rawValue)
+            }
+            .padding()
             Toggle(isOn: self.$blurInterfaceWhenInactive, label: {
                 Text("settings.view.blur.inactive")
             })

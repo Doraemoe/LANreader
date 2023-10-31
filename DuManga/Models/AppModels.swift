@@ -28,6 +28,13 @@ enum ArchiveListOrder: String, CaseIterable, Identifiable {
     var id: String { self.rawValue }
 }
 
+enum SearchSort: String, CaseIterable, Identifiable {
+    case name = "name"
+    case dateAdded = "date_added"
+
+    var id: String { self.rawValue }
+}
+
 enum CompressThreshold: Int, CaseIterable, Identifiable {
     case never, one, two, three, four
 
@@ -51,6 +58,7 @@ struct SettingsKey {
     static let compressImageThreshold = "settings.read.image.compress.threshold"
 
     static let archiveListOrder = "settings.archive.list.order"
+    static let searchSort = "settings.search.sort"
     static let useListView = "settings.view.use.list"
     static let blurInterfaceWhenInactive = "settings.view.blur.inactive"
     static let enablePasscode = "settings.view.passcode.enable"
