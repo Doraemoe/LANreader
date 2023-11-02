@@ -7,8 +7,10 @@ struct AppFeature: Reducer {
 
         var archive = ArchiveFeature.State()
         var trigger = TriggerFeature.State()
-        var settings = SettingsFeature.State()
+
+        var library = LibraryFeature.State()
         var search = SearchFeature.State()
+        var settings = SettingsFeature.State()
     }
 
     enum Action: Equatable, BindableAction {
@@ -16,8 +18,11 @@ struct AppFeature: Reducer {
 
         case archive(ArchiveFeature.Action)
         case trigger(TriggerFeature.Action)
-        case settings(SettingsFeature.Action)
+
+        case library(LibraryFeature.Action)
         case search(SearchFeature.Action)
+        case settings(SettingsFeature.Action)
+
     }
 
     var body: some Reducer<State, Action> {
@@ -35,12 +40,17 @@ struct AppFeature: Reducer {
         Scope(state: \.trigger, action: /Action.trigger) {
             TriggerFeature()
         }
-        Scope(state: \.settings, action: /Action.settings) {
-            SettingsFeature()
+
+        Scope(state: \.library, action: /Action.library) {
+            LibraryFeature()
         }
         Scope(state: \.search, action: /Action.search) {
             SearchFeature()
         }
+        Scope(state: \.settings, action: /Action.settings) {
+            SettingsFeature()
+        }
+
     }
 }
 

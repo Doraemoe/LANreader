@@ -14,6 +14,7 @@ struct GridFeature: Reducer {
     enum Action: Equatable {
         case load(String, Bool)
         case setThumbnail(ArchiveThumbnail)
+        case unload
     }
 
     @Dependency(\.lanraragiService) var service
@@ -50,6 +51,9 @@ struct GridFeature: Reducer {
             case let .setThumbnail(thumbnail):
                 state.archiveThumbnail = thumbnail
                 return .none
+            case .unload:
+                state.archiveThumbnail = nil
+                return .none
             }
         }
     }
@@ -74,11 +78,11 @@ struct ArchiveGridV2: View {
                     } else {
                         Image(systemName: "photo")
                             .foregroundColor(.primary)
+                            .onAppear {
+                                viewStore.send(.load(viewStore.id, false))
+                            }
                     }
                 }
-            }
-            .onAppear {
-                viewStore.send(.load(viewStore.id, false))
             }
             .frame(maxHeight: .infinity, alignment: .top)
             .clipShape(RoundedRectangle(cornerRadius: 8))

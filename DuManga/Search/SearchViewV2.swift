@@ -13,6 +13,7 @@ struct SearchFeature: Reducer {
         var errorMessage = ""
         var archiveList = ArchiveListFeature.State()
     }
+
     enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
         case generateSuggestion

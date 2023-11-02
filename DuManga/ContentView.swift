@@ -18,9 +18,9 @@ struct ContentView: View {
         WithViewStore(self.store, observe: ViewState.init) { viewStore in
             TabView(selection: viewStore.$tabName) {
                 NavigationStack {
-                    LibraryList()
-                        .navigationTitle("library")
-                        .navigationBarTitleDisplayMode(.inline)
+                    LibraryListV2(store: store.scope(state: \.library, action: {
+                        .library($0)
+                    }))
                 }
                 .tabItem {
                     Image(systemName: "books.vertical")
