@@ -20,7 +20,7 @@ extension Query where Request.DatabaseContext == AppDatabase {
     }
 }
 
-struct ArchiveThumbnailRequest: Queryable {
+struct ArchiveThumbnailRequest: Queryable, Equatable {
     static var defaultValue: ArchiveThumbnail? { nil }
 
     var id: String

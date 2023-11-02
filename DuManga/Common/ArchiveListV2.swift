@@ -4,12 +4,13 @@ import SwiftUI
 
 struct ArchiveListFeature: Reducer {
     struct State: Equatable {
-        var archives = [ArchiveItem]()
+        var archives: IdentifiedArrayOf<GridFeature.State> = []
         var loading: Bool = false
         var total: Int = 0
     }
 
     enum Action: Equatable {
+        case grid(id: GridFeature.State.ID, action: GridFeature.Action)
         case appendArchives(String)
     }
 
@@ -20,7 +21,12 @@ struct ArchiveListFeature: Reducer {
             switch action {
             case .appendArchives:
                 return .none
+            default:
+                return .none
             }
+        }
+        .forEach(\.archives, action: /Action.grid(id:action:)) {
+            GridFeature()
         }
     }
 
@@ -38,13 +44,25 @@ struct ArchiveListV2: View {
             ScrollView {
                 VStack {
                     LazyVGrid(columns: columns) {
-                        ForEach(viewStore.archives) { (item: ArchiveItem) in
-                            ArchiveGrid(archiveItem: item)
-                                .onAppear {
-                                    if item.id == viewStore.archives.last?.id && viewStore.archives.count < viewStore.total {
-                                        viewStore.send(.appendArchives(String(viewStore.archives.count)))
+                        ForEachStore(
+                            self.store.scope(state: \.archives, action: { .grid(id: $0, action: $1)})
+                        ) { gridStore in
+                            WithViewStore(gridStore, observe: \.archive) { gridViewStore in
+                                ArchiveGridV2(store: gridStore)
+                                    .onAppear {
+                                        if gridViewStore.id == viewStore.archives.last?.archive.id &&
+                                            viewStore.archives.count < viewStore.total {
+                                            viewStore.send(.appendArchives(String(viewStore.archives.count)))
+                                        }
                                     }
-                                }
+                                    .contextMenu {
+                                        Button(action: {
+                                            gridViewStore.send(.load(gridViewStore.id, true))
+                                        }, label: {
+                                            Label("archive.reload.thumbnail", systemImage: "arrow.clockwise")
+                                        })
+                                    }
+                            }
                         }
                     }
                     .padding(.horizontal)
@@ -56,33 +74,4 @@ struct ArchiveListV2: View {
         }
 
     }
-
-//    private func sortPicker() -> some View {
-//        Group {
-//            if archives.isEmpty {
-//                EmptyView()
-//            } else {
-//                HStack {
-//                    Picker("settings.archive.list.order", selection: self.$archiveListOrder) {
-//                        Group {
-//                            Text("settings.archive.list.order.name").tag(ArchiveListOrder.name.rawValue)
-//                            Text("settings.archive.list.order.dateAdded").tag(ArchiveListOrder.dateAdded.rawValue)
-//                            Text("settings.archive.list.order.random").tag(ArchiveListOrder.random.rawValue)
-//                        }
-//                    }
-//                    .pickerStyle(.segmented)
-//                    Text("settings.view.hideRead")
-//                    Toggle("", isOn: self.$hideRead)
-//                        .labelsHidden()
-//                }
-//                .padding()
-//            }
-//        }
-//    }
 }
-
-// #Preview {
-//    ArchiveListV2(store: Store(initialState: ArchiveListFeature.State(category: "", filter: ""), reducer: {
-//        ArchiveListFeature()
-//    }))
-// }

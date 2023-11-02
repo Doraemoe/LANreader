@@ -17,7 +17,7 @@ struct TagItem {
     var tag: String
 }
 
-struct ArchiveThumbnail: Identifiable {
+struct ArchiveThumbnail: Identifiable, Equatable {
     var id: String
     var thumbnail: Data
     var lastUpdate: Date

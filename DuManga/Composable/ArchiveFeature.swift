@@ -28,6 +28,7 @@ struct ArchiveFeature: Reducer {
     @Dependency(\.lanraragiService) var lanraragiService
     @Dependency(\.appDatabase) var database
 
+    // swiftlint:disable function_body_length
     func reduce(into state: inout State, action: Action) -> Effect<Action> {
         switch action {
         case let .fetchArchives(fromServer, showLoading):
@@ -92,7 +93,9 @@ struct ArchiveFeature: Reducer {
             return .run { _ in
                 Task.detached(priority: .background) {
                     try? await clock.sleep(for: .seconds(10))
-                    let tagList = archive.tags.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+                    let tagList = archive.tags.split(separator: ",").map {
+                        String($0).trimmingCharacters(in: .whitespaces)
+                    }
                     tagList.forEach { tag in
                         var tagItem = TagItem(tag: tag)
                         try? database.saveTag(tagItem: &tagItem)
@@ -124,4 +127,5 @@ struct ArchiveFeature: Reducer {
             return .none
         }
     }
+    // swiftlint:enable function_body_length
 }

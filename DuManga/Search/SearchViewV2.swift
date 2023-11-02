@@ -8,44 +8,88 @@ struct SearchFeature: Reducer {
 
     struct State: Equatable {
         @BindingState var keyword = ""
+        var confirmedKeyword = ""
+        var suggestedTag = [String]()
         var errorMessage = ""
         var archiveList = ArchiveListFeature.State()
-        //        var path = StackState<Path.State>()
     }
     enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
-        case searchSubmit
+        case generateSuggestion
+        case suggestionTapped(String)
+        case searchSubmit(String)
         case search(String, String, String, String, Bool)
+        case cancelSearch
         case populateArchives([ArchiveItem], Int, Bool)
         case setError(String)
         case archiveList(ArchiveListFeature.Action)
-        //        case path(StackAction<Path.State, Path.Action>)
     }
 
     @Dependency(\.lanraragiService) var service
+    @Dependency(\.appDatabase) var database
+    @Dependency(\.userDefaultService) var userDefault
+
+    enum CancelId { case search }
 
     var body: some ReducerOf<Self> {
+
+        Scope(state: \.archiveList, action: /Action.archiveList) {
+            ArchiveListFeature()
+        }
+
         BindingReducer()
         Reduce { state, action in
             switch action {
-            case .searchSubmit:
-                let keyword = state.keyword
-                let sortby = UserDefaults.standard.string(forKey: SettingsKey.searchSort) ?? "date_added"
-                let order = sortby == "name" ? "asc" : "desc"
+            case .generateSuggestion:
+                let lastToken = state.keyword.split(
+                    separator: " ",
+                    omittingEmptySubsequences: false
+                ).last.map(String.init) ?? ""
+                guard !lastToken.isEmpty else {
+                    state.suggestedTag = .init()
+                    return .none
+                }
+                do {
+                    let result = try database.searchTag(keyword: lastToken)
+                    state.suggestedTag = result.map {
+                        $0.tag
+                    }
+                } catch {
+                    state.suggestedTag = .init()
+                }
+                return .none
+            case let .suggestionTapped(tag):
+                let validKeyword = state.keyword.split(separator: " ").dropLast(1).joined(separator: " ")
+                state.keyword = "\(validKeyword) \(tag)$,"
+                return .none
+            case let .searchSubmit(keyword):
+                guard !state.keyword.isEmpty else {
+                    return .none
+                }
+                state.suggestedTag = []
+                state.confirmedKeyword = keyword
+                let sortby = userDefault.searchSort
+                let order = sortby == SearchSort.name.rawValue ? "asc" : "desc"
+                let loading = state.archiveList.loading
                 return .run { send in
+                    if loading {
+                        await send(.cancelSearch)
+                    }
                     await send(.search(keyword, sortby, "0", order, false))
                 }
             case let .search(keyword, sortby, start, order, append):
-                guard state.archiveList.loading == false else {
-                    return .none
-                }
                 state.archiveList.loading = true
                 if append == false {
                     state.archiveList.archives = .init()
                 }
                 return .run { send in
                     do {
-                        let response = try await service.searchArchive(filter: keyword, start: start, sortby: sortby, order: order).value
+                        let response = try await service.searchArchive(
+                            filter: keyword,
+                            start: start,
+                            sortby: sortby,
+                            order: order
+                        ).value
                         let archives = response.data.map {
                             $0.toArchiveItem()
                         }
@@ -54,14 +98,19 @@ struct SearchFeature: Reducer {
                         logger.error("failed to search archive. keyword=\(keyword) \(error)")
                         await send(.setError(error.localizedDescription))
                     }
-
                 }
+                .cancellable(id: CancelId.search)
+            case .cancelSearch:
+                state.archiveList.loading = false
+                return .cancel(id: CancelId.search)
             case let .populateArchives(archives, total, append):
-                if append {
-                    state.archiveList.archives.append(contentsOf: archives)
-                } else {
-                    state.archiveList.archives = archives
+                let gridFeatureState = archives.map { item in
+                    GridFeature.State(archive: item)
                 }
+                if !append {
+                    state.archiveList.archives = []
+                }
+                state.archiveList.archives.append(contentsOf: gridFeatureState)
                 state.archiveList.total = total
                 state.archiveList.loading = false
                 return .none
@@ -71,44 +120,17 @@ struct SearchFeature: Reducer {
             case .binding:
                 return .none
             case let .archiveList(.appendArchives(start)):
-                let keyword = state.keyword
-                let sortby = UserDefaults.standard.string(forKey: SettingsKey.searchSort) ?? "date_added"
+                let keyword = state.confirmedKeyword
+                let sortby = userDefault.searchSort
                 let order = sortby == SearchSort.name.rawValue ? "asc" : "desc"
                 return .run { send in
                     await send(.search(keyword, sortby, start, order, true))
                 }
+            default:
+                return .none
             }
-            //            case .path:
-            //                return .none
         }
-        //        .forEach(\.path, action: /Action.path) {
-        //            Path()
-        //        }
     }
-
-    //    struct Path: Reducer {
-    //        enum State: Equatable {
-    //            case lanraragiSettings(LANraragiConfigFeature.State = .init())
-    //            case upload(UploadFeature.State = .init())
-    //            case log(LogFeature.State = .init())
-    //        }
-    //        enum Action: Equatable {
-    //            case lanraragiSettings(LANraragiConfigFeature.Action)
-    //            case upload(UploadFeature.Action)
-    //            case log(LogFeature.Action)
-    //        }
-    //        var body: some ReducerOf<Self> {
-    //            Scope(state: /State.lanraragiSettings, action: /Action.lanraragiSettings) {
-    //                LANraragiConfigFeature()
-    //            }
-    //            Scope(state: /State.upload, action: /Action.upload) {
-    //                UploadFeature()
-    //            }
-    //            Scope(state: /State.log, action: /Action.log) {
-    //                LogFeature()
-    //            }
-    //        }
-    //    }
 }
 
 struct SearchViewV2: View {
@@ -118,10 +140,12 @@ struct SearchViewV2: View {
 
     struct ViewState: Equatable {
         @BindingViewState var keyword: String
+        let suggestedTag: [String]
         let errorMessage: String
 
         init(bindingViewStore: BindingViewStore<SearchFeature.State>) {
             self._keyword = bindingViewStore.$keyword
+            self.suggestedTag = bindingViewStore.suggestedTag
             self.errorMessage = bindingViewStore.errorMessage
         }
     }
@@ -134,8 +158,21 @@ struct SearchViewV2: View {
             .searchable(text: viewStore.$keyword, placement: .navigationBarDrawer(displayMode: .always))
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)
+            .searchSuggestions {
+                ForEach(viewStore.suggestedTag, id: \.self) { tag in
+                    HStack {
+                        Text(tag)
+                            .foregroundColor(.accentColor)
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        viewStore.send(.suggestionTapped(tag))
+                    }
+                }
+            }
             .onSubmit(of: .search) {
-                viewStore.send(.searchSubmit)
+                viewStore.send(.searchSubmit(viewStore.keyword))
             }
             .navigationTitle("search")
             .navigationBarTitleDisplayMode(.inline)
@@ -149,9 +186,11 @@ struct SearchViewV2: View {
                 }
             }
             .onChange(of: self.searchSort) {
-                viewStore.send(.searchSubmit)
+                viewStore.send(.searchSubmit(viewStore.keyword))
             }
-
+            .onChange(of: viewStore.keyword) {
+                viewStore.send(.generateSuggestion)
+            }
         }
     }
 }

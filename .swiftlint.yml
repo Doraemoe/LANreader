@@ -2,6 +2,8 @@ disabled_rules:
   - todo
   - statement_position
   - cyclomatic_complexity
+  - multiple_closures_with_trailing_closure
+  - nesting
 
 identifier_name:
   excluded:
