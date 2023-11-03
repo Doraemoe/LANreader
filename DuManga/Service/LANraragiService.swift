@@ -128,7 +128,7 @@ class LANraragiService {
                 .appendingPathComponent(response.suggestedFilename!, conformingTo: .image)
             ?? tempUrl
             return (destinationUrl, [.createIntermediateDirectories, .removePreviousFile])
-        })
+        }).validate()
     }
 
     func prefetchArchivePage(page: String) -> DownloadRequest {

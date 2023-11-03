@@ -17,11 +17,22 @@ struct ContentView: View {
     var body: some View {
         WithViewStore(self.store, observe: ViewState.init) { viewStore in
             TabView(selection: viewStore.$tabName) {
-                NavigationStack {
+                NavigationStackStore(
+                    self.store.scope(state: \.path, action: { .path($0) })
+                ) {
                     LibraryListV2(store: store.scope(state: \.library, action: {
                         .library($0)
                     }))
-                }
+                } destination: { state in
+                    switch state {
+                    case .reader:
+                        CaseLet(
+                          /AppFeature.Path.State.reader,
+                          action: AppFeature.Path.Action.reader,
+                          then: ArchiveReader.init(store:)
+                        )
+                    }
+                  }
                 .tabItem {
                     Image(systemName: "books.vertical")
                     Text("library")

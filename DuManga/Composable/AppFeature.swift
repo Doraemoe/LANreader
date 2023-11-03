@@ -3,6 +3,8 @@ import ComposableArchitecture
 struct AppFeature: Reducer {
 
     struct State: Equatable {
+        var path = StackState<Path.State>()
+
         @BindingState var tabName = "library"
 
         var archive = ArchiveFeature.State()
@@ -14,6 +16,8 @@ struct AppFeature: Reducer {
     }
 
     enum Action: Equatable, BindableAction {
+        case path(StackAction<Path.State, Path.Action>)
+
         case binding(BindingAction<State>)
 
         case archive(ArchiveFeature.Action)
@@ -27,11 +31,15 @@ struct AppFeature: Reducer {
 
     var body: some Reducer<State, Action> {
         BindingReducer()
+
         Reduce { _, action in
             switch action {
             default:
                 return .none
             }
+        }
+        .forEach(\.path, action: /Action.path) {
+              Path()
         }
 
         Scope(state: \.archive, action: /Action.archive) {
@@ -50,7 +58,20 @@ struct AppFeature: Reducer {
         Scope(state: \.settings, action: /Action.settings) {
             SettingsFeature()
         }
+    }
 
+    struct Path: Reducer {
+        enum State: Equatable {
+            case reader(ArchiveReaderFeature.State)
+        }
+        enum Action: Equatable {
+            case reader(ArchiveReaderFeature.Action)
+        }
+        var body: some ReducerOf<Self> {
+            Scope(state: /State.reader, action: /Action.reader) {
+                ArchiveReaderFeature()
+            }
+        }
     }
 }
 

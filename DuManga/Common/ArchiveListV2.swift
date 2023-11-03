@@ -39,25 +39,34 @@ struct ArchiveListV2: View {
         GridItem(.adaptive(minimum: 160), spacing: 20, alignment: .top)
     ]
 
+    struct GridViewState: Equatable {
+        let archive: ArchiveItem
+        init(state: GridFeature.State) {
+          self.archive = state.archive
+        }
+      }
+
     var body: some View {
         WithViewStore(self.store, observe: { $0 }) { viewStore in
             ScrollView {
-                VStack {
-                    LazyVGrid(columns: columns) {
-                        ForEachStore(
-                            self.store.scope(state: \.archives, action: { .grid(id: $0, action: $1)})
-                        ) { gridStore in
-                            WithViewStore(gridStore, observe: \.archive) { gridViewStore in
+                LazyVGrid(columns: columns) {
+                    ForEachStore(
+                        self.store.scope(state: \.archives, action: { .grid(id: $0, action: $1)})
+                    ) { gridStore in
+                        WithViewStore(gridStore, observe: GridViewState.init) { gridViewStore in
+                            NavigationLink(
+                                state: AppFeature.Path.State.reader(ArchiveReaderFeature.State.init(archive: gridViewStore.archive))
+                            ) {
                                 ArchiveGridV2(store: gridStore)
                                     .onAppear {
-                                        if gridViewStore.id == viewStore.archives.last?.archive.id &&
+                                        if gridViewStore.archive.id == viewStore.archives.last?.archive.id &&
                                             viewStore.archives.count < viewStore.total {
                                             viewStore.send(.appendArchives(String(viewStore.archives.count)))
                                         }
                                     }
                                     .contextMenu {
                                         Button(action: {
-                                            gridViewStore.send(.load(gridViewStore.id, true))
+                                            gridViewStore.send(.load(gridViewStore.archive.id, true))
                                         }, label: {
                                             Label("archive.reload.thumbnail", systemImage: "arrow.clockwise")
                                         })
@@ -65,13 +74,12 @@ struct ArchiveListV2: View {
                             }
                         }
                     }
-                    .padding(.horizontal)
-                    if viewStore.loading {
-                        ProgressView("loading")
-                    }
+                }
+                .padding(.horizontal)
+                if viewStore.loading {
+                    ProgressView("loading")
                 }
             }
         }
-
     }
 }

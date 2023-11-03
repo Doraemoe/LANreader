@@ -12,8 +12,8 @@ struct LibraryFeature: Reducer {
 
     enum Action: Equatable {
         case loadLibrary
-        case search(String, String, String)
-        case populateArchives([ArchiveItem], Int)
+        case refreshLibrary
+        case populateArchives([ArchiveItem], Int, Bool)
         case archiveList(ArchiveListFeature.Action)
         case setError(String)
     }
@@ -32,30 +32,18 @@ struct LibraryFeature: Reducer {
             case .loadLibrary:
                 let sortby = userDefault.searchSort
                 let order = sortby == SearchSort.name.rawValue ? "asc" : "desc"
-                return .run { send in
-                    await send(.search(sortby, "0", order))
-                }
-            case let .search(sortby, start, order):
-                state.archiveList.loading = true
-                return .run { send in
-                    do {
-                        let response = try await service.searchArchive(
-                            start: start,
-                            sortby: sortby,
-                            order: order
-                        ).value
-                        let archives = response.data.map {
-                            $0.toArchiveItem()
-                        }
-                        await send(.populateArchives(archives, response.recordsFiltered))
-                    } catch {
-                        logger.error("failed to load library. \(error)")
-                        await send(.setError(error.localizedDescription))
-                    }
-                }
-            case let .populateArchives(archives, total):
+                return self.search(state: &state, sortby: sortby, start: "0", order: order, append: false)
+            case .refreshLibrary:
+                let sortby = userDefault.searchSort
+                let order = sortby == SearchSort.name.rawValue ? "asc" : "desc"
+                return self.search(state: &state, sortby: sortby, start: "0", order: order, append: false)
+            case let .populateArchives(archives, total, append):
                 let gridFeatureState = archives.map { item in
                     GridFeature.State(archive: item)
+                }
+                if !append {
+                    state.archiveList.archives = .init()
+                    state.archiveList.total = 0
                 }
                 state.archiveList.archives.append(contentsOf: gridFeatureState)
                 state.archiveList.total = total
@@ -67,18 +55,37 @@ struct LibraryFeature: Reducer {
             case let .archiveList(.appendArchives(start)):
                 let sortby = userDefault.searchSort
                 let order = sortby == SearchSort.name.rawValue ? "asc" : "desc"
-                return .run { send in
-                    await send(.search(sortby, start, order))
-                }
+                return self.search(state: &state, sortby: sortby, start: start, order: order, append: true)
             default:
                 return .none
             }
         }
     }
 
+    func search(state: inout State, sortby: String, start: String, order: String, append: Bool) -> Effect<Action> {
+        state.archiveList.loading = true
+        return .run { send in
+            do {
+                let response = try await service.searchArchive(
+                    start: start,
+                    sortby: sortby,
+                    order: order
+                ).value
+                let archives = response.data.map {
+                    $0.toArchiveItem()
+                }
+                await send(.populateArchives(archives, response.recordsFiltered, append))
+            } catch {
+                logger.error("failed to load library. \(error)")
+                await send(.setError(error.localizedDescription))
+            }
+        }
+    }
 }
 
 struct LibraryListV2: View {
+    @AppStorage(SettingsKey.searchSort) var searchSort: String = SearchSort.dateAdded.rawValue
+
     let store: StoreOf<LibraryFeature>
 
     struct ViewState: Equatable {
@@ -100,6 +107,12 @@ struct LibraryListV2: View {
                 if viewStore.archives.isEmpty {
                     viewStore.send(.loadLibrary)
                 }
+            }
+            .refreshable {
+                await viewStore.send(.refreshLibrary).finish()
+            }
+            .onChange(of: self.searchSort) {
+                viewStore.send(.loadLibrary)
             }
             .navigationTitle("library")
             .navigationBarTitleDisplayMode(.inline)

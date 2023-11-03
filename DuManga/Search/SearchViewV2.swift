@@ -21,7 +21,7 @@ struct SearchFeature: Reducer {
         case searchSubmit(String)
         case search(String, String, String, String, Bool)
         case cancelSearch
-        case populateArchives([ArchiveItem], Int, Bool)
+        case populateArchives([ArchiveItem], Int)
         case setError(String)
         case archiveList(ArchiveListFeature.Action)
     }
@@ -80,8 +80,9 @@ struct SearchFeature: Reducer {
                 }
             case let .search(keyword, sortby, start, order, append):
                 state.archiveList.loading = true
-                if append == false {
+                if !append {
                     state.archiveList.archives = .init()
+                    state.archiveList.total = 0
                 }
                 return .run { send in
                     do {
@@ -94,7 +95,7 @@ struct SearchFeature: Reducer {
                         let archives = response.data.map {
                             $0.toArchiveItem()
                         }
-                        await send(.populateArchives(archives, response.recordsFiltered, append))
+                        await send(.populateArchives(archives, response.recordsFiltered))
                     } catch {
                         logger.error("failed to search archive. keyword=\(keyword) \(error)")
                         await send(.setError(error.localizedDescription))
@@ -104,12 +105,9 @@ struct SearchFeature: Reducer {
             case .cancelSearch:
                 state.archiveList.loading = false
                 return .cancel(id: CancelId.search)
-            case let .populateArchives(archives, total, append):
+            case let .populateArchives(archives, total):
                 let gridFeatureState = archives.map { item in
                     GridFeature.State(archive: item)
-                }
-                if !append {
-                    state.archiveList.archives = []
                 }
                 state.archiveList.archives.append(contentsOf: gridFeatureState)
                 state.archiveList.total = total

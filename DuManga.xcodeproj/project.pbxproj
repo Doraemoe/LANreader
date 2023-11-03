@@ -108,6 +108,8 @@
 		E9A61FB32A1F243100391FCE /* Query.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A61FB22A1F243100391FCE /* Query.swift */; };
 		E9BE57B22942CFEC00A3AEA0 /* LockScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */; };
 		E9BE57B42942F1AB00A3AEA0 /* LockScreenModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BE57B32942F1AB00A3AEA0 /* LockScreenModel.swift */; };
+		E9BFA2052AF51DB500DDE107 /* ArchiveReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BFA2042AF51DB500DDE107 /* ArchiveReader.swift */; };
+		E9BFA2072AF52C3300DDE107 /* PageImageV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BFA2062AF52C3300DDE107 /* PageImageV2.swift */; };
 		E9C73DC42A1C5F4900EFDD81 /* HistoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C73DC32A1C5F4900EFDD81 /* HistoryList.swift */; };
 		E9C73DC72A1C6F2F00EFDD81 /* HistoryListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C73DC62A1C6F2F00EFDD81 /* HistoryListModel.swift */; };
 		E9CBC0F02A3DD62F00CCD592 /* LogFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */; };
@@ -264,6 +266,8 @@
 		E9A61FB22A1F243100391FCE /* Query.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Query.swift; sourceTree = "<group>"; };
 		E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreen.swift; path = DuMangaTests/Resources/LockScreen.swift; sourceTree = SOURCE_ROOT; };
 		E9BE57B32942F1AB00A3AEA0 /* LockScreenModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreenModel.swift; path = DuMangaTests/Resources/LockScreenModel.swift; sourceTree = SOURCE_ROOT; };
+		E9BFA2042AF51DB500DDE107 /* ArchiveReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveReader.swift; sourceTree = "<group>"; };
+		E9BFA2062AF52C3300DDE107 /* PageImageV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageImageV2.swift; sourceTree = "<group>"; };
 		E9C73DC32A1C5F4900EFDD81 /* HistoryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryList.swift; sourceTree = "<group>"; };
 		E9C73DC62A1C6F2F00EFDD81 /* HistoryListModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryListModel.swift; sourceTree = "<group>"; };
 		E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogFormatter.swift; sourceTree = "<group>"; };
@@ -384,11 +388,13 @@
 				4BD825AB0EEF9DE292B50E98 /* ArchiveDetails.swift */,
 				4BD8253353671DDCADE174C9 /* ArchiveDetailsModel.swift */,
 				6DA71C5217BC4916AB9D5C36 /* PageImage.swift */,
+				E9BFA2062AF52C3300DDE107 /* PageImageV2.swift */,
 				6DA7142EA580864782E99661 /* PageImageModel.swift */,
 				6DA71E19C1691936CF5C7B7B /* ArchivePageV2.swift */,
 				6DA71AA80493DE3160A68590 /* ArchivePageModelV2.swift */,
 				E90576B529F6BF8700C3CE3F /* WrappingHStack.swift */,
 				E90576BB29F7FB2900C3CE3F /* DraggableAndZoomableView.swift */,
+				E9BFA2042AF51DB500DDE107 /* ArchiveReader.swift */,
 			);
 			path = Page;
 			sourceTree = "<group>";
@@ -882,6 +888,7 @@
 				4BD82A2A4437113DBD1DE74A /* ArchiveDetailsModel.swift in Sources */,
 				4BD82EDD2C82F2F36EB547B3 /* PageAction.swift in Sources */,
 				4BD82D07506C7A9AE03DF051 /* PageState.swift in Sources */,
+				E9BFA2072AF52C3300DDE107 /* PageImageV2.swift in Sources */,
 				4BD823E4CA464BE4C1480034 /* PageReducer.swift in Sources */,
 				4BD8291B040E65AF0E4A9F15 /* LibraryList.swift in Sources */,
 				4BD8257136E0195E141BB03F /* CategoryArchiveList.swift in Sources */,
@@ -906,6 +913,7 @@
 				6DA714FD91E5AB45B581FD22 /* SearchViewModel.swift in Sources */,
 				6DA714872ECD217D156570DD /* CategoryList.swift in Sources */,
 				6DA71086EFF70FA7C3D810C0 /* CategoryListModel.swift in Sources */,
+				E9BFA2052AF51DB500DDE107 /* ArchiveReader.swift in Sources */,
 				6DA711FA92BEE61419224BB4 /* LoadingView.swift in Sources */,
 				6DA715D4FC93C844BED80A65 /* ArchiveListModel.swift in Sources */,
 			);

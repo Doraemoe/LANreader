@@ -23,7 +23,7 @@ struct ArchiveThumbnail: Identifiable, Equatable {
     var lastUpdate: Date
 }
 
-struct ArchiveImage: Identifiable {
+struct ArchiveImage: Identifiable, Equatable {
     var id: String
     var image: String
     var lastUpdate: Date
