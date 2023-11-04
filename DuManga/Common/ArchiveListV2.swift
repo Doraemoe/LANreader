@@ -55,7 +55,9 @@ struct ArchiveListV2: View {
                     ) { gridStore in
                         WithViewStore(gridStore, observe: GridViewState.init) { gridViewStore in
                             NavigationLink(
-                                state: AppFeature.Path.State.reader(ArchiveReaderFeature.State.init(archive: gridViewStore.archive))
+                                state: AppFeature.Path.State.reader(
+                                    ArchiveReaderFeature.State.init(archive: gridViewStore.archive)
+                                )
                             ) {
                                 ArchiveGridV2(store: gridStore)
                                     .onAppear {

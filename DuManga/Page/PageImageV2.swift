@@ -9,11 +9,13 @@ struct PageFeature: Reducer {
         var id: String
         var image: ArchiveImage?
         var loading: Bool = false
+        var progress: Double = 0
         var errorMessage = ""
     }
 
     enum Action: Equatable {
         case load(String, Bool)
+        case setProgress(Double)
         case setImage(ArchiveImage?)
         case setError(String)
     }
@@ -41,10 +43,27 @@ struct PageFeature: Reducer {
                 if force || state.image == nil {
                     return .run { send in
                         do {
-                            let imageUrl = try await service.fetchArchivePage(page: id)
+
+                            let task = service.fetchArchivePage(page: id)
+
+                            let progressTask = Task {
+                                var step: Double = 0.0
+                                for await progress in task.downloadProgress() {
+                                    let percentage = progress.fractionCompleted
+                                    if percentage > step {
+                                        await send(.setProgress(percentage))
+                                        step =  percentage + 0.05
+                                    }
+                                }
+                            }
+
+                            let imageUrl = try await task
                                 .serializingDownloadedFileURL()
                                 .value
-                            var  pageImage = ArchiveImage(id: id, image: imageUrl.path, lastUpdate: Date())
+                            progressTask.cancel()
+                            var  pageImage = ArchiveImage(
+                                id: id, image: imageUrl.path(percentEncoded: false), lastUpdate: Date()
+                            )
                             do {
                                 try database.saveArchiveImage(&pageImage)
                             } catch {
@@ -57,6 +76,9 @@ struct PageFeature: Reducer {
                         }
                     }
                 }
+                return .none
+            case let .setProgress(progres):
+                state.progress = progres
                 return .none
             case let .setImage(image):
                 state.loading = false
@@ -81,16 +103,26 @@ struct PageImageV2: View {
                         Image(uiImage: uiImage)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-//                            .frame(width: geometrySize.width)
-//                            .draggableAndZoomable(contentSize: geometrySize)
                     } else {
                         Image(systemName: "rectangle.slash")
                     }
                 } else {
-                    Text("loading")
-                        .onAppear {
-                            viewStore.send(.load(viewStore.id, false))
-                        }
+                    ProgressView(
+                        value: viewStore.progress > 1 ? 1 : viewStore.progress,
+                        total: 1
+                    ) {
+                        Text("loading")
+                    } currentValueLabel: {
+                        viewStore.progress > 1 ?
+                        Text("downsampling") :
+                        Text(String(format: "%.2f%%", viewStore.progress * 100))
+                    }
+                    .progressViewStyle(.linear)
+                    .padding(.horizontal, 20)
+                    .tint(.primary)
+                    .onAppear {
+                        viewStore.send(.load(viewStore.id, false))
+                    }
                 }
             }
         }

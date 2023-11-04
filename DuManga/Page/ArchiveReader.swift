@@ -72,14 +72,14 @@ struct ArchiveReader: View {
             GeometryReader { geometry in
                 ZStack {
                     ScrollView(.horizontal) {
-                        LazyHStack {
+                        LazyHStack(spacing: 0) {
                             ForEachStore(
                                 self.store.scope(state: \.pages, action: { .page(id: $0, action: $1) })
                             ) { pageStore in
                                 PageImageV2(store: pageStore)
                                     .frame(width: geometry.size.width)
+                                    .draggableAndZoomable(contentSize: geometry.size)
                             }
-
                         }
                         .scrollTargetLayout()
                     }
@@ -88,13 +88,14 @@ struct ArchiveReader: View {
                         LoadingView(geometry: geometry)
                     }
                 }
-                .navigationBarTitle(viewStore.archive.name)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar(.hidden, for: .tabBar)
-                .onAppear {
-                    if viewStore.pages.isEmpty {
-                        viewStore.send(.extractArchive)
-                    }
+
+            }
+            .navigationBarTitle(viewStore.archive.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .tabBar)
+            .onAppear {
+                if viewStore.pages.isEmpty {
+                    viewStore.send(.extractArchive)
                 }
             }
         }
