@@ -12,6 +12,7 @@ struct GridFeature: Reducer {
     }
 
     enum Action: Equatable {
+        case subscribeTrigger
         case load(String, Bool)
         case setThumbnail(ArchiveThumbnail)
         case unload
@@ -19,10 +20,18 @@ struct GridFeature: Reducer {
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
+    @Dependency(\.refreshTrigger) var refreshTrigger
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
+            case .subscribeTrigger:
+                let archiveId = state.id
+                return .run { send in
+                    for await value in refreshTrigger.values where value == archiveId {
+                        await send(.load(value, true))
+                    }
+                }
             case let .load(id, force):
                 if !force {
                     do {
@@ -30,8 +39,10 @@ struct GridFeature: Reducer {
                     } catch {
                         logger.error("failed to load thumbnail. id=\(id) \(error)")
                     }
+                } else {
+                    state.archiveThumbnail = nil
                 }
-                if force || state.archiveThumbnail == nil {
+                if state.archiveThumbnail == nil {
                     return .run { send in
                         do {
                             let imageData = try await service.retrieveArchiveThumbnail(id: id).serializingData().value
@@ -91,6 +102,9 @@ struct ArchiveGridV2: View {
                     .stroke(Color.secondary, lineWidth: 2)
                     .opacity(0.9)
             )
+            .onAppear {
+                viewStore.send(.subscribeTrigger)
+            }
         }
     }
 

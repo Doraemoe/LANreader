@@ -1,6 +1,7 @@
 import ComposableArchitecture
 import OrderedCollections
 import SwiftUI
+import Combine
 
 struct ArchiveListFeature: Reducer {
     struct State: Equatable {
@@ -42,7 +43,7 @@ struct ArchiveListV2: View {
     struct GridViewState: Equatable {
         let archive: ArchiveItem
         init(state: GridFeature.State) {
-          self.archive = state.archive
+            self.archive = state.archive
         }
       }
 
@@ -56,7 +57,9 @@ struct ArchiveListV2: View {
                         WithViewStore(gridStore, observe: GridViewState.init) { gridViewStore in
                             NavigationLink(
                                 state: AppFeature.Path.State.reader(
-                                    ArchiveReaderFeature.State.init(archive: gridViewStore.archive)
+                                    ArchiveReaderFeature.State.init(
+                                        archive: gridViewStore.archive
+                                    )
                                 )
                             ) {
                                 ArchiveGridV2(store: gridStore)
@@ -84,4 +87,15 @@ struct ArchiveListV2: View {
             }
         }
     }
+}
+
+private enum RefreshTriggerKey: DependencyKey {
+    static let liveValue = PassthroughSubject<String, Never>()
+}
+
+extension DependencyValues {
+  var refreshTrigger: PassthroughSubject<String, Never> {
+    get { self[RefreshTriggerKey.self] }
+    set { self[RefreshTriggerKey.self] = newValue }
+  }
 }

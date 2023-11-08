@@ -6,7 +6,8 @@ struct PageFeature: Reducer {
     private let logger = Logger(label: "PageFeature")
 
     struct State: Equatable, Identifiable {
-        var id: String
+        var id: Int
+        var pageId: String
         var image: ArchiveImage?
         var loading: Bool = false
         var progress: Double = 0
@@ -39,20 +40,21 @@ struct PageFeature: Reducer {
                         logger.error("failed to load image. id=\(id) \(error)")
                         return .send(.setError(error.localizedDescription))
                     }
+                } else {
+                    state.image = nil
                 }
-                if force || state.image == nil {
+                if state.image == nil {
                     return .run { send in
                         do {
-
                             let task = service.fetchArchivePage(page: id)
 
-                            let progressTask = Task {
+                            let progressTask = Task(priority: .utility) {
                                 var step: Double = 0.0
                                 for await progress in task.downloadProgress() {
                                     let percentage = progress.fractionCompleted
                                     if percentage > step {
                                         await send(.setProgress(percentage))
-                                        step =  percentage + 0.05
+                                        step =  percentage + 0.1
                                     }
                                 }
                             }
@@ -121,7 +123,7 @@ struct PageImageV2: View {
                     .padding(.horizontal, 20)
                     .tint(.primary)
                     .onAppear {
-                        viewStore.send(.load(viewStore.id, false))
+                        viewStore.send(.load(viewStore.pageId, false))
                     }
                 }
             }

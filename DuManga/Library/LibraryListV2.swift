@@ -51,6 +51,7 @@ struct LibraryFeature: Reducer {
                 return .none
             case let .setError(message):
                 state.errorMessage = message
+                state.archiveList.loading = false
                 return .none
             case let .archiveList(.appendArchives(start)):
                 let sortby = userDefault.searchSort
@@ -63,6 +64,9 @@ struct LibraryFeature: Reducer {
     }
 
     func search(state: inout State, sortby: String, start: String, order: String, append: Bool) -> Effect<Action> {
+        guard state.archiveList.loading == false else {
+            return .none
+        }
         state.archiveList.loading = true
         return .run { send in
             do {

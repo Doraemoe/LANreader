@@ -32,16 +32,6 @@ struct AppFeature: Reducer {
     var body: some Reducer<State, Action> {
         BindingReducer()
 
-        Reduce { _, action in
-            switch action {
-            default:
-                return .none
-            }
-        }
-        .forEach(\.path, action: /Action.path) {
-              Path()
-        }
-
         Scope(state: \.archive, action: /Action.archive) {
             ArchiveFeature()
         }
@@ -57,6 +47,16 @@ struct AppFeature: Reducer {
         }
         Scope(state: \.settings, action: /Action.settings) {
             SettingsFeature()
+        }
+
+        Reduce { _, action in
+            switch action {
+            default:
+                return .none
+            }
+        }
+        .forEach(\.path, action: /Action.path) {
+              Path()
         }
     }
 

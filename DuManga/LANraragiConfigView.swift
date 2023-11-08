@@ -19,11 +19,11 @@ struct LANraragiConfigFeature: Reducer {
         case verifyServer(String, String)
         case saveComplate
         case setErrorMessage(String)
-        case reset
     }
 
     @Dependency(\.lanraragiService) var lanraragiService
     @Dependency(\.dismiss) var dismiss
+    @Dependency(\.isPresented) var isPresented
 
     var body: some Reducer<State, Action> {
         BindingReducer()
@@ -45,14 +45,13 @@ struct LANraragiConfigFeature: Reducer {
             case .saveComplate:
                 state.isVerifying = false
                 return .run { _ in
-                    await self.dismiss()
+                    if isPresented {
+                        await self.dismiss()
+                    }
                 }
             case let .setErrorMessage(errorMessage):
                 state.errorMessage = errorMessage
                 state.isVerifying = false
-                return .none
-            case .reset:
-                state.errorMessage = ""
                 return .none
             case .binding:
                 return .none
@@ -97,7 +96,7 @@ struct LANraragiConfigView: View {
                                                     subtitle: viewStore.errorMessage,
                                                     style: .danger)
                     banner.show()
-                    viewStore.send(.reset)
+                    viewStore.send(.setErrorMessage(""))
                 }
             }
         }
