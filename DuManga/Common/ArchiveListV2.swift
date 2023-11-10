@@ -71,7 +71,7 @@ struct ArchiveListV2: View {
                                     }
                                     .contextMenu {
                                         Button(action: {
-                                            gridViewStore.send(.load(gridViewStore.archive.id, true))
+                                            gridViewStore.send(.load(true))
                                         }, label: {
                                             Label("archive.reload.thumbnail", systemImage: "arrow.clockwise")
                                         })

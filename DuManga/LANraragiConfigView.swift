@@ -16,26 +16,25 @@ struct LANraragiConfigFeature: Reducer {
 
     enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
-        case verifyServer(String, String)
+        case verifyServer
         case saveComplate
         case setErrorMessage(String)
     }
 
     @Dependency(\.lanraragiService) var lanraragiService
     @Dependency(\.dismiss) var dismiss
-    @Dependency(\.isPresented) var isPresented
 
     var body: some Reducer<State, Action> {
         BindingReducer()
         Reduce { state, action in
             switch action {
-            case let .verifyServer(url, apiKey):
+            case .verifyServer:
                 state.isVerifying = true
-                return .run { send in
+                return .run { [state] send in
                     do {
-                        _ = try await lanraragiService.verifyClient(url: url, apiKey: apiKey).value
-                        UserDefaults.standard.set(apiKey, forKey: SettingsKey.lanraragiApiKey)
-                        UserDefaults.standard.set(url, forKey: SettingsKey.lanraragiUrl)
+                        _ = try await lanraragiService.verifyClient(url: state.url, apiKey: state.apiKey).value
+                        UserDefaults.standard.set(state.apiKey, forKey: SettingsKey.lanraragiApiKey)
+                        UserDefaults.standard.set(state.url, forKey: SettingsKey.lanraragiUrl)
                         await send(.saveComplate)
                     } catch {
                         logger.error("failed to verify lanraragi server. \(error)")
@@ -45,9 +44,7 @@ struct LANraragiConfigFeature: Reducer {
             case .saveComplate:
                 state.isVerifying = false
                 return .run { _ in
-                    if isPresented {
-                        await self.dismiss()
-                    }
+                    await self.dismiss()
                 }
             case let .setErrorMessage(errorMessage):
                 state.errorMessage = errorMessage
@@ -62,7 +59,11 @@ struct LANraragiConfigFeature: Reducer {
 
 struct LANraragiConfigView: View {
 
-    @FocusState private var focused: Bool
+    enum FocusedField {
+        case url, apiKey
+    }
+
+    @FocusState private var focused: FocusedField?
 
     let store: StoreOf<LANraragiConfigFeature>
 
@@ -75,18 +76,25 @@ struct LANraragiConfigView: View {
                         .keyboardType(.URL)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
-                        .focused($focused)
+                        .focused($focused, equals: .url)
                     SecureField("lanraragi.config.apiKey", text: viewStore.$apiKey)
-                        .focused($focused)
+                        .focused($focused, equals: .apiKey)
                 }
                 Section {
                     Button(action: {
-                        viewStore.send(.verifyServer(viewStore.url, viewStore.apiKey))
+                        viewStore.send(.verifyServer)
                     }, label: {
                         Text("lanraragi.config.submit")
                             .font(.headline)
                     })
                     .disabled(viewStore.isVerifying)
+                }
+            }
+            .onSubmit {
+                if focused == .url {
+                    focused = .apiKey
+                } else {
+                    viewStore.send(.verifyServer)
                 }
             }
             .toolbar(.hidden, for: .tabBar)

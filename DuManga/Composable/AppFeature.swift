@@ -3,6 +3,8 @@ import ComposableArchitecture
 struct AppFeature: Reducer {
 
     struct State: Equatable {
+        @PresentationState var destination: Destination.State?
+
         var path = StackState<Path.State>()
 
         @BindingState var tabName = "library"
@@ -16,6 +18,7 @@ struct AppFeature: Reducer {
     }
 
     enum Action: Equatable, BindableAction {
+        case destination(PresentationAction<Destination.Action>)
         case path(StackAction<Path.State, Path.Action>)
 
         case binding(BindingAction<State>)
@@ -26,6 +29,8 @@ struct AppFeature: Reducer {
         case library(LibraryFeature.Action)
         case search(SearchFeature.Action)
         case settings(SettingsFeature.Action)
+
+        case showLogin
 
     }
 
@@ -49,14 +54,20 @@ struct AppFeature: Reducer {
             SettingsFeature()
         }
 
-        Reduce { _, action in
+        Reduce { state, action in
             switch action {
+            case .showLogin:
+                state.destination = .login(LANraragiConfigFeature.State())
+                return .none
             default:
                 return .none
             }
         }
         .forEach(\.path, action: /Action.path) {
               Path()
+        }
+        .ifLet(\.$destination, action: /Action.destination) {
+          Destination()
         }
     }
 
@@ -72,6 +83,22 @@ struct AppFeature: Reducer {
                 ArchiveReaderFeature()
             }
         }
+    }
+
+    public struct Destination: Reducer {
+      public enum State: Equatable {
+        case login(LANraragiConfigFeature.State)
+      }
+
+        public enum Action: Equatable {
+        case login(LANraragiConfigFeature.Action)
+      }
+
+      public var body: some Reducer<State, Action> {
+        Scope(state: /State.login, action: /Action.login) {
+            LANraragiConfigFeature()
+        }
+      }
     }
 }
 

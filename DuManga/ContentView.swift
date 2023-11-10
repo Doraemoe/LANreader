@@ -5,6 +5,7 @@ import NotificationBannerSwift
 
 struct ContentView: View {
     let store: StoreOf<AppFeature>
+
     @State var contentViewModel = ContentViewModel()
 
     struct ViewState: Equatable {
@@ -65,6 +66,17 @@ struct ContentView: View {
                 }
                 .tag("settings")
             }
+            .fullScreenCover(
+                store: self.store.scope(state: \.$destination, action: { .destination($0) }),
+                state: /AppFeature.Destination.State.login,
+                action: AppFeature.Destination.Action.login) { store in
+                LANraragiConfigView(store: store)
+            }
+                .onAppear {
+                    if UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl)?.isEmpty != false {
+                        viewStore.send(.showLogin)
+                    }
+                }
             .onOpenURL { url in
                 Task {
                     let (success, message) = await contentViewModel.queueUrlDownload(url: url)

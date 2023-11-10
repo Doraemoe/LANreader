@@ -88,6 +88,7 @@ struct LibraryFeature: Reducer {
 }
 
 struct LibraryListV2: View {
+    @AppStorage(SettingsKey.lanraragiUrl) var lanraragiUrl: String = ""
     @AppStorage(SettingsKey.searchSort) var searchSort: String = SearchSort.dateAdded.rawValue
 
     let store: StoreOf<LibraryFeature>
@@ -107,16 +108,22 @@ struct LibraryListV2: View {
             ArchiveListV2(store: store.scope(state: \.archiveList, action: {
                 .archiveList($0)
             }))
-            .onAppear {
-                if viewStore.archives.isEmpty {
-                    viewStore.send(.loadLibrary)
-                }
-            }
             .refreshable {
                 await viewStore.send(.refreshLibrary).finish()
             }
             .onChange(of: self.searchSort) {
                 viewStore.send(.loadLibrary)
+            }
+            .onChange(of: lanraragiUrl, {
+                if lanraragiUrl.isEmpty == false {
+                    viewStore.send(.loadLibrary)
+                }
+            })
+            .onAppear {
+                if lanraragiUrl.isEmpty == false &&
+                    viewStore.archives.isEmpty {
+                    viewStore.send(.loadLibrary)
+                }
             }
             .navigationTitle("library")
             .navigationBarTitleDisplayMode(.inline)

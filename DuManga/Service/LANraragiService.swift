@@ -31,7 +31,6 @@ class LANraragiService {
             create: true
         )
         .appendingPathComponent(LANraragiService.currentSessionDownloadFolder, conformingTo: .folder)
-
         self.snakeCaseEncoder = JSONDecoder()
         self.snakeCaseEncoder.keyDecodingStrategy = .convertFromSnakeCase
     }
@@ -54,7 +53,13 @@ class LANraragiService {
 
     func retrieveArchiveThumbnail(id: String) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
-        return session.download(request)
+        return session.download(request, to: { tempUrl, response in
+            let destinationUrl = self.downloadPath?
+                .appendingPathComponent("thumbnail", conformingTo: .folder)
+                .appendingPathComponent(response.suggestedFilename ?? "\(id).jpeg", conformingTo: .image)
+            ?? tempUrl
+            return (destinationUrl, [.createIntermediateDirectories, .removePreviousFile])
+        }).validate()
     }
 
     func updateArchiveThumbnail(id: String, page: Int) -> DataTask<String> {

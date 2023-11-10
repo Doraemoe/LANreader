@@ -79,14 +79,12 @@ struct ArchiveReaderFeature: Reducer {
                 }
                 return .none
             case let .preload(index):
-                let previousPageId = index - 1 > 0 ? state.pages[index - 1].pageId : ""
-                let nextPageId = index + 1 < state.pages.count ? state.pages[index + 1].pageId : ""
-                return .run(priority: .utility) { send in
-                    if !previousPageId.isEmpty {
-                        await send(.page(id: index - 1, action: .load(previousPageId, false)))
+                return .run(priority: .utility) { [totalPage = state.pages.count] send in
+                    if index - 1 > 0 {
+                        await send(.page(id: index - 1, action: .load(false)))
                     }
-                    if !nextPageId.isEmpty {
-                        await send(.page(id: index + 1, action: .load(nextPageId, false)))
+                    if index + 1 < totalPage {
+                        await send(.page(id: index + 1, action: .load(false)))
                     }
                 }
             case let .setIndex(index):
@@ -219,7 +217,7 @@ struct ArchiveReader: View {
             Grid {
                 GridRow {
                     Button(action: {
-                        viewStore.send(.page(id: viewStore.index ?? 0, action: .load(viewStore.archive.id, true)))
+                        viewStore.send(.page(id: viewStore.index ?? 0, action: .load(true)))
                     }, label: {
                         Image(systemName: "arrow.clockwise")
                     })

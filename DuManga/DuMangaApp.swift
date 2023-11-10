@@ -9,7 +9,6 @@ struct DuMangaApp: App {
     @Environment(\.scenePhase) var scenePhase
     @AppStorage(SettingsKey.blurInterfaceWhenInactive) var blurInterfaceWhenInactive: Bool = false
     @AppStorage(SettingsKey.passcode) var storedPasscode: String = ""
-    @AppStorage(SettingsKey.lanraragiUrl) var lanraragiUrl: String = ""
 
     @State var lock = false
 
@@ -79,22 +78,10 @@ struct DuMangaApp: App {
         self.noAnimationTransaction = transaction
     }
 
-    //    let store = AppStore.shared
-
     var body: some Scene {
         WindowGroup {
-            if lanraragiUrl.isEmpty {
-                LANraragiConfigView(store: Store(initialState: LANraragiConfigFeature.State(), reducer: {
-                    LANraragiConfigFeature()
-                }))
-            } else {
-                ZStack {
-                    ContentView(store: self.store)
-                    // As of iOS 16, use .blur will case nav title overlap with safe area
-                    if blurInterfaceWhenInactive && scenePhase != .active {
-                        Color.primary.colorInvert().ignoresSafeArea()
-                    }
-                }
+            ContentView(store: self.store)
+                .blur(radius: blurInterfaceWhenInactive && scenePhase != .active ? 200 : 0)
                 .environment(\.appDatabase, .shared)
                 .fullScreenCover(isPresented: $lock) {
                     LockScreen(initialState: LockScreenState.normal,
@@ -121,7 +108,6 @@ struct DuMangaApp: App {
                         }
                     }
                 }
-            }
         }
     }
 }

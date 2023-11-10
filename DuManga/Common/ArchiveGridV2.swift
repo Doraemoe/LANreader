@@ -13,7 +13,7 @@ struct GridFeature: Reducer {
 
     enum Action: Equatable {
         case subscribeTrigger
-        case load(String, Bool)
+        case load(Bool)
         case setThumbnail(ArchiveThumbnail)
         case unload
     }
@@ -26,24 +26,23 @@ struct GridFeature: Reducer {
         Reduce { state, action in
             switch action {
             case .subscribeTrigger:
-                let archiveId = state.id
-                return .run { send in
+                return .run { [archiveId = state.id] send in
                     for await value in refreshTrigger.values where value == archiveId {
-                        await send(.load(value, true))
+                        await send(.load(true))
                     }
                 }
-            case let .load(id, force):
+            case let .load(force):
                 if !force {
                     do {
-                        state.archiveThumbnail = try database.readArchiveThumbnail(id)
+                        state.archiveThumbnail = try database.readArchiveThumbnail(state.id)
                     } catch {
-                        logger.error("failed to load thumbnail. id=\(id) \(error)")
+                        logger.error("failed to load thumbnail. id=\(state.id) \(error)")
                     }
                 } else {
                     state.archiveThumbnail = nil
                 }
                 if state.archiveThumbnail == nil {
-                    return .run { send in
+                    return .run { [id = state.id] send in
                         do {
                             let imageData = try await service.retrieveArchiveThumbnail(id: id).serializingData().value
                             var thumbnail = ArchiveThumbnail(id: id, thumbnail: imageData, lastUpdate: Date())
@@ -90,7 +89,8 @@ struct ArchiveGridV2: View {
                         Image(systemName: "photo")
                             .foregroundColor(.primary)
                             .onAppear {
-                                viewStore.send(.load(viewStore.id, false))
+                                viewStore.send(.load(false))
+                                viewStore.send(.subscribeTrigger)
                             }
                     }
                 }
@@ -102,9 +102,6 @@ struct ArchiveGridV2: View {
                     .stroke(Color.secondary, lineWidth: 2)
                     .opacity(0.9)
             )
-            .onAppear {
-                viewStore.send(.subscribeTrigger)
-            }
         }
     }
 

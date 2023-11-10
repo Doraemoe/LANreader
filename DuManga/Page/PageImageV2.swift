@@ -15,7 +15,7 @@ struct PageFeature: Reducer {
     }
 
     enum Action: Equatable {
-        case load(String, Bool)
+        case load(Bool)
         case setProgress(Double)
         case setImage(ArchiveImage?)
         case setError(String)
@@ -27,7 +27,7 @@ struct PageFeature: Reducer {
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case let .load(id, force):
+            case let .load(force):
                 guard !state.loading else {
                     return .none
                 }
@@ -35,16 +35,16 @@ struct PageFeature: Reducer {
 
                 if !force {
                     do {
-                        state.image = try database.readArchiveImage(id)
+                        state.image = try database.readArchiveImage(state.pageId)
                     } catch {
-                        logger.error("failed to load image. id=\(id) \(error)")
+                        logger.error("failed to load image. id=\(state.pageId) \(error)")
                         return .send(.setError(error.localizedDescription))
                     }
                 } else {
                     state.image = nil
                 }
                 if state.image == nil {
-                    return .run { send in
+                    return .run { [id = state.pageId] send in
                         do {
                             let task = service.fetchArchivePage(page: id)
 
@@ -123,7 +123,7 @@ struct PageImageV2: View {
                     .padding(.horizontal, 20)
                     .tint(.primary)
                     .onAppear {
-                        viewStore.send(.load(viewStore.pageId, false))
+                        viewStore.send(.load(false))
                     }
                 }
             }
