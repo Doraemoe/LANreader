@@ -5,8 +5,6 @@ struct AppFeature: Reducer {
     struct State: Equatable {
         @PresentationState var destination: Destination.State?
 
-        var path = StackState<Path.State>()
-
         @BindingState var tabName = "library"
 
         var archive = ArchiveFeature.State()
@@ -19,7 +17,6 @@ struct AppFeature: Reducer {
 
     enum Action: Equatable, BindableAction {
         case destination(PresentationAction<Destination.Action>)
-        case path(StackAction<Path.State, Path.Action>)
 
         case binding(BindingAction<State>)
 
@@ -62,9 +59,6 @@ struct AppFeature: Reducer {
             default:
                 return .none
             }
-        }
-        .forEach(\.path, action: /Action.path) {
-              Path()
         }
         .ifLet(\.$destination, action: /Action.destination) {
           Destination()

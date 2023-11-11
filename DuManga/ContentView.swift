@@ -18,22 +18,9 @@ struct ContentView: View {
     var body: some View {
         WithViewStore(self.store, observe: ViewState.init) { viewStore in
             TabView(selection: viewStore.$tabName) {
-                NavigationStackStore(
-                    self.store.scope(state: \.path, action: { .path($0) })
-                ) {
-                    LibraryListV2(store: store.scope(state: \.library, action: {
-                        .library($0)
-                    }))
-                } destination: { state in
-                    switch state {
-                    case .reader:
-                        CaseLet(
-                          /AppFeature.Path.State.reader,
-                          action: AppFeature.Path.Action.reader,
-                          then: ArchiveReader.init(store:)
-                        )
-                    }
-                  }
+                LibraryListV2(store: store.scope(state: \.library, action: {
+                    .library($0)
+                }))
                 .tabItem {
                     Image(systemName: "books.vertical")
                     Text("library")
@@ -70,33 +57,33 @@ struct ContentView: View {
                 store: self.store.scope(state: \.$destination, action: { .destination($0) }),
                 state: /AppFeature.Destination.State.login,
                 action: AppFeature.Destination.Action.login) { store in
-                LANraragiConfigView(store: store)
-            }
+                    LANraragiConfigView(store: store)
+                }
                 .onAppear {
                     if UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl)?.isEmpty != false {
                         viewStore.send(.showLogin)
                     }
                 }
-            .onOpenURL { url in
-                Task {
-                    let (success, message) = await contentViewModel.queueUrlDownload(url: url)
-                    if success {
-                        let banner = NotificationBanner(
-                            title: NSLocalizedString("success", comment: "success"),
-                            subtitle: message,
-                            style: .success
-                        )
-                        banner.show()
-                    } else {
-                        let banner = NotificationBanner(
-                            title: NSLocalizedString("error", comment: "error"),
-                            subtitle: message,
-                            style: .danger
-                        )
-                        banner.show()
+                .onOpenURL { url in
+                    Task {
+                        let (success, message) = await contentViewModel.queueUrlDownload(url: url)
+                        if success {
+                            let banner = NotificationBanner(
+                                title: NSLocalizedString("success", comment: "success"),
+                                subtitle: message,
+                                style: .success
+                            )
+                            banner.show()
+                        } else {
+                            let banner = NotificationBanner(
+                                title: NSLocalizedString("error", comment: "error"),
+                                subtitle: message,
+                                style: .danger
+                            )
+                            banner.show()
+                        }
                     }
                 }
-            }
         }
     }
 }

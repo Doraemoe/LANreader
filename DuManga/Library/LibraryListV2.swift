@@ -6,11 +6,15 @@ struct LibraryFeature: Reducer {
     private let logger = Logger(label: "LibraryFeature")
 
     struct State: Equatable {
+        var path = StackState<AppFeature.Path.State>()
+
         var archiveList = ArchiveListFeature.State()
         var errorMessage = ""
     }
 
     enum Action: Equatable {
+        case path(StackAction<AppFeature.Path.State, AppFeature.Path.Action>)
+
         case loadLibrary
         case refreshLibrary
         case populateArchives([ArchiveItem], Int, Bool)
@@ -57,9 +61,17 @@ struct LibraryFeature: Reducer {
                 let sortby = userDefault.searchSort
                 let order = sortby == SearchSort.name.rawValue ? "asc" : "desc"
                 return self.search(state: &state, sortby: sortby, start: start, order: order, append: true)
+            case let .path(.element(id: id, action: .reader(.updateProgress))):
+                guard case let .reader(readerState) = state.path[id: id] else { return .none }
+                let progress = (readerState.index ?? 0) + 1
+                state.archiveList.archives[id: readerState.archive.id]?.archive.progress = progress
+                return .none
             default:
                 return .none
             }
+        }
+        .forEach(\.path, action: /Action.path) {
+            AppFeature.Path()
         }
     }
 
@@ -104,30 +116,42 @@ struct LibraryListV2: View {
     }
 
     var body: some View {
-        WithViewStore(self.store, observe: ViewState.init) { viewStore in
-            ArchiveListV2(store: store.scope(state: \.archiveList, action: {
-                .archiveList($0)
-            }))
-            .refreshable {
-                await viewStore.send(.refreshLibrary).finish()
-            }
-            .onChange(of: self.searchSort) {
-                viewStore.send(.loadLibrary)
-            }
-            .onChange(of: lanraragiUrl, {
-                if lanraragiUrl.isEmpty == false {
+        NavigationStackStore(
+            self.store.scope(state: \.path, action: { .path($0) })
+        ) {
+            WithViewStore(self.store, observe: ViewState.init) { viewStore in
+                ArchiveListV2(store: store.scope(state: \.archiveList, action: {
+                    .archiveList($0)
+                }))
+                .refreshable {
+                    await viewStore.send(.refreshLibrary).finish()
+                }
+                .onChange(of: self.searchSort) {
                     viewStore.send(.loadLibrary)
                 }
-            })
-            .onAppear {
-                if lanraragiUrl.isEmpty == false &&
-                    viewStore.archives.isEmpty {
-                    viewStore.send(.loadLibrary)
+                .onChange(of: lanraragiUrl, {
+                    if lanraragiUrl.isEmpty == false {
+                        viewStore.send(.loadLibrary)
+                    }
+                })
+                .onAppear {
+                    if lanraragiUrl.isEmpty == false &&
+                        viewStore.archives.isEmpty {
+                        viewStore.send(.loadLibrary)
+                    }
                 }
+                .navigationTitle("library")
+                .navigationBarTitleDisplayMode(.inline)
             }
-            .navigationTitle("library")
-            .navigationBarTitleDisplayMode(.inline)
+        } destination: { state in
+            switch state {
+            case .reader:
+                CaseLet(
+                    /AppFeature.Path.State.reader,
+                     action: AppFeature.Path.Action.reader,
+                     then: ArchiveReader.init(store:)
+                )
+            }
         }
-
     }
 }

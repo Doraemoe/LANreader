@@ -16,19 +16,26 @@ struct ArchiveReaderFeature: Reducer {
         var settingThumbnail = false
         var errorMessage = ""
         var successMessage = ""
+
+        var reversePages: IdentifiedArrayOf<PageFeature.State> {
+            IdentifiedArray(uniqueElements: pages.reversed())
+        }
     }
 
     enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
         case page(id: PageFeature.State.ID, action: PageFeature.Action)
         case extractArchive
+        case loadProgress
         case finishExtracting([String])
         case toggleControlUi(Bool?)
         case preload(Int)
         case setIndex(Int)
         case setSliderIndex(Double)
-        case setThumbnail(String)
+        case updateProgress
+        case setThumbnail
         case finishThumbnailLoading
+        case tapAction(String)
         case setError(String)
         case setSuccess(String)
     }
@@ -36,6 +43,8 @@ struct ArchiveReaderFeature: Reducer {
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
     @Dependency(\.refreshTrigger) var refreshTrigger
+
+    enum CancelId { case updateProgress }
 
     var body: some ReducerOf<Self> {
         BindingReducer()
@@ -71,6 +80,12 @@ struct ArchiveReaderFeature: Reducer {
                 state.sliderIndex = Double(progress)
                 state.controlUiHidden = true
                 return .none
+            case .loadProgress:
+                let progress = state.archive.progress > 0 ? state.archive.progress - 1 : 0
+                state.index = progress
+                state.sliderIndex = Double(progress)
+                state.controlUiHidden = true
+                return .none
             case let .toggleControlUi(show):
                 if let shouldShow = show {
                     state.controlUiHidden = shouldShow
@@ -93,10 +108,24 @@ struct ArchiveReaderFeature: Reducer {
             case let .setSliderIndex(index):
                 state.sliderIndex = index
                 return .none
-            case let .setThumbnail(id):
+            case .updateProgress:
+                let progress = (state.index ?? 0) + 1
+                state.archive.progress = progress
+                return .run { [state] _ in
+                    do {
+                        _ = try await service.updateArchiveReadProgress(id: state.archive.id, progress: progress).value
+                        if progress == state.archive.pagecount {
+                            _ = try await service.clearNewFlag(id: state.archive.id).value
+                        }
+                    } catch {
+                        logger.error("failed to update archive progress. id=\(state.archive.id) \(error)")
+                    }
+                }
+                .debounce(id: CancelId.updateProgress, for: .seconds(0.5), scheduler: DispatchQueue.main)
+            case .setThumbnail:
                 state.settingThumbnail = true
                 let index = (state.index ?? 0) + 1
-                return .run { send in
+                return .run { [id = state.archive.id] send in
                     do {
                         _ = try await service.updateArchiveThumbnail(id: id, page: index).value
                         let successMessage = NSLocalizedString(
@@ -112,6 +141,27 @@ struct ArchiveReaderFeature: Reducer {
                 }
             case .finishThumbnailLoading:
                 state.settingThumbnail = false
+                return .none
+            case let .tapAction(action):
+                switch action {
+                case PageControl.next.rawValue:
+                    if let pageIndex = state.index {
+                        if pageIndex < state.archive.pagecount - 1 {
+                            state.index! += 1
+                        }
+                    }
+                case PageControl.previous.rawValue:
+                    if let pageIndex = state.index {
+                        if pageIndex > 0 {
+                            state.index! -= 1
+                        }
+                    }
+                case PageControl.navigation.rawValue:
+                    state.controlUiHidden.toggle()
+                default:
+                    // This should not happen
+                    break
+                }
                 return .none
             case let .setSuccess(message):
                 state.successMessage = message
@@ -130,6 +180,9 @@ struct ArchiveReaderFeature: Reducer {
 }
 
 struct ArchiveReader: View {
+    @AppStorage(SettingsKey.tapLeftKey) var tapLeft: String = PageControl.next.rawValue
+    @AppStorage(SettingsKey.tapMiddleKey) var tapMiddle: String = PageControl.navigation.rawValue
+    @AppStorage(SettingsKey.tapRightKey) var tapRight: String = PageControl.previous.rawValue
     @AppStorage(SettingsKey.readDirection) var readDirection: String = ReadDirection.leftRight.rawValue
 
     let store: StoreOf<ArchiveReaderFeature>
@@ -145,7 +198,10 @@ struct ArchiveReader: View {
                     ScrollView(.horizontal) {
                         LazyHStack(spacing: 0) {
                             ForEachStore(
-                                self.store.scope(state: \.pages, action: { .page(id: $0, action: $1) })
+                                self.store.scope(
+                                    state: readDirection == ReadDirection.rightLeft.rawValue ? \.reversePages : \.pages,
+                                    action: { .page(id: $0, action: $1) }
+                                )
                             ) { pageStore in
                                 PageImageV2(store: pageStore)
                                     .frame(width: geometry.size.width)
@@ -154,8 +210,14 @@ struct ArchiveReader: View {
                         }
                         .scrollTargetLayout()
                     }
-                    .onTapGesture {
-                        viewStore.send(.toggleControlUi(nil))
+                    .onTapGesture { location in
+                        if location.x < geometry.size.width / 3 {
+                            viewStore.send(.tapAction(tapLeft))
+                        } else if location.x > geometry.size.width / 3 * 2 {
+                            viewStore.send(.tapAction(tapRight))
+                        } else {
+                            viewStore.send(.tapAction(tapMiddle))
+                        }
                     }
                     .scrollTargetBehavior(.paging)
                     .scrollPosition(id: viewStore.$index)
@@ -175,12 +237,15 @@ struct ArchiveReader: View {
             .onAppear {
                 if viewStore.pages.isEmpty {
                     viewStore.send(.extractArchive)
+                } else {
+                    viewStore.send(.loadProgress)
                 }
             }
             .onChange(of: viewStore.index) { _, newValue in
                 if let index = newValue {
                     viewStore.send(.preload(index))
                     viewStore.send(.setSliderIndex(Double(index)))
+                    viewStore.send(.updateProgress)
                 }
             }
             .onChange(of: viewStore.errorMessage) {
@@ -227,7 +292,7 @@ struct ArchiveReader: View {
                     .bold()
                     Button(action: {
                         Task {
-                            viewStore.send(.setThumbnail(viewStore.archive.id))
+                            viewStore.send(.setThumbnail)
                         }
                     }, label: {
                         Image(systemName: "photo.artframe")

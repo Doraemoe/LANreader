@@ -87,6 +87,7 @@ struct PageFeature: Reducer {
                 state.image = image
                 return .none
             case let .setError(message):
+                state.loading = false
                 state.errorMessage = message
                 return .none
             }
