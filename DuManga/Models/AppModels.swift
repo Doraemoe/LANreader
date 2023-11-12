@@ -56,6 +56,7 @@ struct SettingsKey {
     static let tapRightKey = "settings.read.tap.right"
     static let readDirection = "settings.read.direction"
     static let compressImageThreshold = "settings.read.image.compress.threshold"
+    static let showOriginal = "settings.read.image.showOriginal"
 
     static let archiveListOrder = "settings.archive.list.order"
     static let searchSort = "settings.search.sort"

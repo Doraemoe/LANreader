@@ -61,11 +61,6 @@ struct LibraryFeature: Reducer {
                 let sortby = userDefault.searchSort
                 let order = sortby == SearchSort.name.rawValue ? "asc" : "desc"
                 return self.search(state: &state, sortby: sortby, start: start, order: order, append: true)
-            case let .path(.element(id: id, action: .reader(.updateProgress))):
-                guard case let .reader(readerState) = state.path[id: id] else { return .none }
-                let progress = (readerState.index ?? 0) + 1
-                state.archiveList.archives[id: readerState.archive.id]?.archive.progress = progress
-                return .none
             default:
                 return .none
             }

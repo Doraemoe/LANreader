@@ -8,6 +8,7 @@ struct ReadSettings: View {
     @AppStorage(SettingsKey.tapRightKey) var tapRight: String = PageControl.previous.rawValue
     @AppStorage(SettingsKey.readDirection) var readDirection: String = ReadDirection.leftRight.rawValue
     @AppStorage(SettingsKey.compressImageThreshold) var compressImageThreshold: CompressThreshold = .never
+    @AppStorage(SettingsKey.showOriginal) var showOriginal: Bool = false
 
     var body: some View {
         return List {
@@ -23,18 +24,18 @@ struct ReadSettings: View {
                 }
                         .padding()
             }
-            Picker("settings.read.tap.middle", selection: self.$tapMiddle) {
-                pageControlSelectionView
-            }
-                    .padding()
             if readDirection != ReadDirection.upDown.rawValue {
+                Picker("settings.read.tap.middle", selection: self.$tapMiddle) {
+                    pageControlSelectionView
+                }
+                        .padding()
                 Picker("settings.read.tap.right", selection: self.$tapRight) {
                     pageControlSelectionView
                 }
                         .padding()
             }
-            Picker("settings.read.image.compress", selection: self.$compressImageThreshold) {
-                compressSelectionView
+            Toggle(isOn: self.$showOriginal) {
+                Text("settings.read.image.showOriginal")
             }
             .padding()
         }

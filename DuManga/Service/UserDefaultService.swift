@@ -18,6 +18,10 @@ class UserDefaultService {
         return UserDefaults.standard.string(forKey: SettingsKey.searchSort) ?? "date_added"
     }
 
+    var showOriginal: Bool {
+        return UserDefaults.standard.bool(forKey: SettingsKey.showOriginal) ?? false
+    }
+
     public static var shared: UserDefaultService {
         if _shared == nil {
             _shared = UserDefaultService()

@@ -12,7 +12,6 @@ struct GridFeature: Reducer {
     }
 
     enum Action: Equatable {
-        case subscribeTrigger
         case load(Bool)
         case setThumbnail(ArchiveThumbnail)
         case unload
@@ -25,12 +24,6 @@ struct GridFeature: Reducer {
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case .subscribeTrigger:
-                return .run { [archiveId = state.id] send in
-                    for await value in refreshTrigger.values where value == archiveId {
-                        await send(.load(true))
-                    }
-                }
             case let .load(force):
                 if !force {
                     do {
@@ -90,7 +83,6 @@ struct ArchiveGridV2: View {
                             .foregroundColor(.primary)
                             .onAppear {
                                 viewStore.send(.load(false))
-                                viewStore.send(.subscribeTrigger)
                             }
                     }
                 }

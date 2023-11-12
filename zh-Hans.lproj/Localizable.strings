@@ -39,6 +39,7 @@
 "settings.read.image.compress.two" = "大于2倍屏幕分辨率";
 "settings.read.image.compress.three" = "大于3倍屏幕分辨率";
 "settings.read.image.compress.four" = "大于4倍屏幕分辨率";
+"settings.read.image.showOriginal" = "显示原图";
 
 "settings.view" = "视图设定";
 "settings.archive.list.order" = "排序";

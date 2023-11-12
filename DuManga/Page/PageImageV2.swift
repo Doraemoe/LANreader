@@ -23,12 +23,13 @@ struct PageFeature: Reducer {
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
+    @Dependency(\.userDefaultService) var userDefault
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case let .load(force):
-                guard !state.loading else {
+                guard !state.loading || force else {
                     return .none
                 }
                 state.loading = true
@@ -38,7 +39,6 @@ struct PageFeature: Reducer {
                         state.image = try database.readArchiveImage(state.pageId)
                     } catch {
                         logger.error("failed to load image. id=\(state.pageId) \(error)")
-                        return .send(.setError(error.localizedDescription))
                     }
                 } else {
                     state.image = nil
@@ -63,6 +63,12 @@ struct PageFeature: Reducer {
                                 .serializingDownloadedFileURL()
                                 .value
                             progressTask.cancel()
+
+                            if !userDefault.showOriginal {
+                                await send(.setProgress(2.0))
+                                resizeImage(url: imageUrl, threshold: .two)
+                            }
+
                             var  pageImage = ArchiveImage(
                                 id: id, image: imageUrl.path(percentEncoded: false), lastUpdate: Date()
                             )
@@ -85,6 +91,7 @@ struct PageFeature: Reducer {
             case let .setImage(image):
                 state.loading = false
                 state.image = image
+                state.progress = 0
                 return .none
             case let .setError(message):
                 state.loading = false

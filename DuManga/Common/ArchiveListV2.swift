@@ -12,15 +12,32 @@ struct ArchiveListFeature: Reducer {
 
     enum Action: Equatable {
         case grid(id: GridFeature.State.ID, action: GridFeature.Action)
+        case subscribeThumbnailTrigger
+        case subscribeProgressTrigger
+        case updateArchiveProgress(String, Int)
         case appendArchives(String)
     }
 
     @Dependency(\.lanraragiService) var service
+    @Dependency(\.refreshTrigger) var refreshTrigger
 
     var body: some ReducerOf<Self> {
-        Reduce { _, action in
+        Reduce { state, action in
             switch action {
-            case .appendArchives:
+            case .subscribeThumbnailTrigger:
+                return .run { send in
+                    for await archiveId in refreshTrigger.thumbnail.values {
+                        await send(.grid(id: archiveId, action: .load(true)))
+                    }
+                }
+            case .subscribeProgressTrigger:
+                return .run { send in
+                    for await (archiveId, progress) in refreshTrigger.progress.values {
+                       await send(.updateArchiveProgress(archiveId, progress))
+                    }
+                }
+            case let .updateArchiveProgress(archiveId, progress):
+                state.archives[id: archiveId]?.archive.progress = progress
                 return .none
             default:
                 return .none
@@ -85,16 +102,25 @@ struct ArchiveListV2: View {
                     ProgressView("loading")
                 }
             }
+            .onAppear {
+                viewStore.send(.subscribeThumbnailTrigger)
+                viewStore.send(.subscribeProgressTrigger)
+            }
         }
     }
 }
 
+struct RefreshTrigger {
+    var thumbnail = PassthroughSubject<String, Never>()
+    var progress = PassthroughSubject<(String, Int), Never>()
+}
+
 private enum RefreshTriggerKey: DependencyKey {
-    static let liveValue = PassthroughSubject<String, Never>()
+    static let liveValue = RefreshTrigger()
 }
 
 extension DependencyValues {
-  var refreshTrigger: PassthroughSubject<String, Never> {
+  var refreshTrigger: RefreshTrigger {
     get { self[RefreshTriggerKey.self] }
     set { self[RefreshTriggerKey.self] = newValue }
   }

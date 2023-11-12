@@ -117,6 +117,7 @@ struct ArchiveReaderFeature: Reducer {
                         if progress == state.archive.pagecount {
                             _ = try await service.clearNewFlag(id: state.archive.id).value
                         }
+                        refreshTrigger.progress.send((state.archive.id, progress))
                     } catch {
                         logger.error("failed to update archive progress. id=\(state.archive.id) \(error)")
                     }
@@ -132,7 +133,7 @@ struct ArchiveReaderFeature: Reducer {
                             "archive.thumbnail.set", comment: "set thumbnail success"
                         )
                         await send(.setSuccess(successMessage))
-                        refreshTrigger.send(id)
+                        refreshTrigger.thumbnail.send(id)
                     } catch {
                         logger.error("Failed to set current page as thumbnail. id=\(id) \(error)")
                         await send(.setError(error.localizedDescription))
