@@ -20,6 +20,7 @@ func archiveReducer(state: inout ArchiveState, action: ArchiveAction) {
         state.archiveItems[id] = ArchiveItem(id: archive.id,
                 name: archive.name,
                 normalizedName: archive.normalizedName,
+                extension: "",
                 tags: archive.tags,
                 isNew: archive.isNew,
                 progress: progress,

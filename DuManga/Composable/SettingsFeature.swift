@@ -4,15 +4,24 @@ import Foundation
 struct SettingsFeature: Reducer {
     struct State: Equatable {
         var path = StackState<Path.State>()
+
+        var database = DatabaseSettingsFeature.State()
     }
     enum Action: Equatable {
         case path(StackAction<Path.State, Path.Action>)
+
+        case database(DatabaseSettingsFeature.Action)
     }
 
     var body: some ReducerOf<Self> {
+
+        Scope(state: \.database, action: /Action.database) {
+            DatabaseSettingsFeature()
+        }
+
         Reduce { _, action in
             switch action {
-            case .path:
+            default:
                 return .none
             }
         }

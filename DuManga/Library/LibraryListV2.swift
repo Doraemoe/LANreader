@@ -146,6 +146,12 @@ struct LibraryListV2: View {
                      action: AppFeature.Path.Action.reader,
                      then: ArchiveReader.init(store:)
                 )
+            case .categoryArchiveList:
+                CaseLet(
+                    /AppFeature.Path.State.categoryArchiveList,
+                     action: AppFeature.Path.Action.categoryArchiveList,
+                     then: CategoryArchiveListV2.init(store:)
+                )
             }
         }
     }

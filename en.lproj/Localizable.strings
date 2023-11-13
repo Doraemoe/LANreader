@@ -8,6 +8,7 @@
 "done" = "Done";
 "save" = "Save";
 "success" = "Success";
+"warning" = "Warning";
 "cancel" = "Cancel";
 "error" = "Error";
 "delete" = "Delete";
@@ -111,6 +112,8 @@
 "error.download.queue" = "Failed to queue the download job, please retry.";
 "error.history.title" = "Failed to load history";
 "error.page.empty" = "Server returned empty content for this archive.";
+
+"warning.file.type" = "This archive seems to be in RAR format! RAR archives might not work properly in LANraragi depending on how they were made. If you encounter errors while reading, consider converting your archive to zip.";
 
 "lock.label.new" = "Enter New Passcode";
 "lock.label.verify" = "Confirm Passcode";

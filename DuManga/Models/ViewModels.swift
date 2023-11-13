@@ -7,6 +7,7 @@ struct ArchiveItem: Identifiable, Equatable, Hashable {
     let id: String
     let name: String
     let normalizedName: String
+    let `extension`: String
     let tags: String
     let isNew: Bool
     var progress: Int
@@ -30,6 +31,7 @@ extension ArchiveItem {
                 progress: progress,
                 tags: tags.split(separator: ",").map(String.init),
                 title: name,
+                extension: `extension`,
                 lastUpdate: Date())
     }
 }

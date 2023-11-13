@@ -7,6 +7,8 @@ struct SearchFeature: Reducer {
     private let logger = Logger(label: "SearchFeature")
 
     struct State: Equatable {
+        var path = StackState<AppFeature.Path.State>()
+
         @BindingState var keyword = ""
         var confirmedKeyword = ""
         var suggestedTag = [String]()
@@ -15,6 +17,8 @@ struct SearchFeature: Reducer {
     }
 
     enum Action: Equatable, BindableAction {
+        case path(StackAction<AppFeature.Path.State, AppFeature.Path.Action>)
+
         case binding(BindingAction<State>)
         case generateSuggestion
         case suggestionTapped(String)
@@ -129,6 +133,9 @@ struct SearchFeature: Reducer {
                 return .none
             }
         }
+        .forEach(\.path, action: /Action.path) {
+            AppFeature.Path()
+        }
     }
 }
 
@@ -150,45 +157,64 @@ struct SearchViewV2: View {
     }
 
     var body: some View {
-        WithViewStore(self.store, observe: ViewState.init) { viewStore in
-            ArchiveListV2(store: store.scope(state: \.archiveList, action: {
-                .archiveList($0)
-            }))
-            .searchable(text: viewStore.$keyword, placement: .navigationBarDrawer(displayMode: .always))
-            .autocorrectionDisabled()
-            .textInputAutocapitalization(.never)
-            .searchSuggestions {
-                ForEach(viewStore.suggestedTag, id: \.self) { tag in
-                    HStack {
-                        Text(tag)
-                            .foregroundColor(.accentColor)
-                        Spacer()
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        viewStore.send(.suggestionTapped(tag))
+        NavigationStackStore(
+            self.store.scope(state: \.path, action: { .path($0) })
+        ) {
+            WithViewStore(self.store, observe: ViewState.init) { viewStore in
+                ArchiveListV2(store: store.scope(state: \.archiveList, action: {
+                    .archiveList($0)
+                }))
+                .searchable(text: viewStore.$keyword, placement: .navigationBarDrawer(displayMode: .always))
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .searchSuggestions {
+                    ForEach(viewStore.suggestedTag, id: \.self) { tag in
+                        HStack {
+                            Text(tag)
+                                .foregroundColor(.accentColor)
+                            Spacer()
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            viewStore.send(.suggestionTapped(tag))
+                        }
                     }
                 }
-            }
-            .onSubmit(of: .search) {
-                viewStore.send(.searchSubmit(viewStore.keyword))
-            }
-            .navigationTitle("search")
-            .navigationBarTitleDisplayMode(.inline)
-            .onChange(of: viewStore.errorMessage) {
-                if !viewStore.errorMessage.isEmpty {
-                    let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                                                    subtitle: viewStore.errorMessage,
-                                                    style: .danger)
-                    banner.show()
-                    viewStore.send(.setError(""))
+                .onSubmit(of: .search) {
+                    viewStore.send(.searchSubmit(viewStore.keyword))
+                }
+                .navigationTitle("search")
+                .navigationBarTitleDisplayMode(.inline)
+                .onChange(of: viewStore.errorMessage) {
+                    if !viewStore.errorMessage.isEmpty {
+                        let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
+                                                        subtitle: viewStore.errorMessage,
+                                                        style: .danger)
+                        banner.show()
+                        viewStore.send(.setError(""))
+                    }
+                }
+                .onChange(of: self.searchSort) {
+                    viewStore.send(.searchSubmit(viewStore.keyword))
+                }
+                .onChange(of: viewStore.keyword) {
+                    viewStore.send(.generateSuggestion)
                 }
             }
-            .onChange(of: self.searchSort) {
-                viewStore.send(.searchSubmit(viewStore.keyword))
-            }
-            .onChange(of: viewStore.keyword) {
-                viewStore.send(.generateSuggestion)
+        } destination: {state in
+            switch state {
+            case .reader:
+                CaseLet(
+                    /AppFeature.Path.State.reader,
+                     action: AppFeature.Path.Action.reader,
+                     then: ArchiveReader.init(store:)
+                )
+            case .categoryArchiveList:
+                CaseLet(
+                    /AppFeature.Path.State.categoryArchiveList,
+                     action: AppFeature.Path.Action.categoryArchiveList,
+                     then: CategoryArchiveListV2.init(store:)
+                )
             }
         }
     }

@@ -10,7 +10,7 @@ jobs:
     
     strategy:
         matrix:
-          destination: ['platform=iOS Simulator,OS=17.0,name=iPad Pro (11-inch) (4th generation)']
+          destination: ['platform=iOS Simulator,OS=17.0.1,name=iPad Pro (11-inch) (4th generation)']
     steps:
       - uses: actions/checkout@v2
 

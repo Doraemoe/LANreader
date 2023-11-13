@@ -8,6 +8,7 @@
 "done" = "完成";
 "save" = "保存";
 "success" = "成功";
+"warning" = "警告";
 "cancel" = "取消";
 "error" = "错误";
 "delete" = "删除";
@@ -111,6 +112,8 @@
 "error.download.queue" = "添加下载任务失败，请重试";
 "error.history.title" = "获取历史记录失败";
 "error.page.empty" = "服务器未返回任何页面";
+
+"warning.file.type" = "这个文档似乎是RAR格式的。部分RAR格式与LANraragi存在兼容性问题，如果无法正常阅读，请将其转换为ZIP格式";
 
 "lock.label.new" = "输入新密码";
 "lock.label.verify" = "确认新密码";

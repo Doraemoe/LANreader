@@ -142,6 +142,7 @@ struct ArchiveDetails: View {
                         with: "",
                         options: .regularExpression
                     ),
+                    extension: item.extension,
                     tags: archiveDetailsModel.tags,
                     isNew: item.isNew,
                     progress: item.progress,

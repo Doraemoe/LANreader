@@ -90,7 +90,7 @@ struct ArchiveReaderFeature: Reducer {
                 if let shouldShow = show {
                     state.controlUiHidden = shouldShow
                 } else {
-                    state.controlUiHidden = !state.controlUiHidden
+                    state.controlUiHidden.toggle()
                 }
                 return .none
             case let .preload(index):
@@ -240,6 +240,14 @@ struct ArchiveReader: View {
                     viewStore.send(.extractArchive)
                 } else {
                     viewStore.send(.loadProgress)
+                }
+                if viewStore.archive.extension == "rar" || viewStore.archive.extension == "cbr" {
+                    let banner = NotificationBanner(
+                        title: NSLocalizedString("warning", comment: "warning"),
+                        subtitle: NSLocalizedString("warning.file.type", comment: "rar"),
+                        style: .warning
+                    )
+                    banner.show()
                 }
             }
             .onChange(of: viewStore.index) { _, newValue in

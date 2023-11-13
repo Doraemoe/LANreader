@@ -11,6 +11,7 @@ struct AppFeature: Reducer {
         var trigger = TriggerFeature.State()
 
         var library = LibraryFeature.State()
+        var category = CategoryFeature.State()
         var search = SearchFeature.State()
         var settings = SettingsFeature.State()
     }
@@ -24,6 +25,7 @@ struct AppFeature: Reducer {
         case trigger(TriggerFeature.Action)
 
         case library(LibraryFeature.Action)
+        case category(CategoryFeature.Action)
         case search(SearchFeature.Action)
         case settings(SettingsFeature.Action)
 
@@ -43,6 +45,9 @@ struct AppFeature: Reducer {
 
         Scope(state: \.library, action: /Action.library) {
             LibraryFeature()
+        }
+        Scope(state: \.category, action: /Action.category) {
+            CategoryFeature()
         }
         Scope(state: \.search, action: /Action.search) {
             SearchFeature()
@@ -68,13 +73,18 @@ struct AppFeature: Reducer {
     struct Path: Reducer {
         enum State: Equatable {
             case reader(ArchiveReaderFeature.State)
+            case categoryArchiveList(CategoryArchiveListFeature.State)
         }
         enum Action: Equatable {
             case reader(ArchiveReaderFeature.Action)
+            case categoryArchiveList(CategoryArchiveListFeature.Action)
         }
         var body: some ReducerOf<Self> {
             Scope(state: /State.reader, action: /Action.reader) {
                 ArchiveReaderFeature()
+            }
+            Scope(state: /State.categoryArchiveList, action: /Action.categoryArchiveList) {
+                CategoryArchiveListFeature()
             }
         }
     }

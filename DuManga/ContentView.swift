@@ -26,19 +26,17 @@ struct ContentView: View {
                     Text("library")
                 }
                 .tag("library")
-                NavigationStack {
-                    CategoryList()
-                }
+                CategoryListV2(store: store.scope(state: \.category, action: {
+                    .category($0)
+                }))
                 .tabItem {
                     Image(systemName: "folder")
                     Text("category")
                 }
                 .tag("category")
-                NavigationStack {
-                    SearchViewV2(store: store.scope(state: \.search, action: {
-                        .search($0)
-                    }))
-                }
+                SearchViewV2(store: store.scope(state: \.search, action: {
+                    .search($0)
+                }))
                 .tabItem {
                     Image(systemName: "magnifyingglass")
                     Text("search")

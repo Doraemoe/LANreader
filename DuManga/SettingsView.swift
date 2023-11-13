@@ -20,9 +20,7 @@ struct SettingsView: View {
                     ViewSettings()
                 }
                 Section(header: Text("settings.database")) {
-                    DatabaseSettings(store: Store(initialState: DatabaseSettingsFeature.State(), reducer: {
-                        DatabaseSettingsFeature()
-                    }))
+                    DatabaseSettings(store: self.store.scope(state: \.database, action: { .database($0) }))
                 }
                 Section(header: Text("settings.debug")) {
                     NavigationLink("settings.debug.log", state: SettingsFeature.Path.State.log())
@@ -35,6 +33,8 @@ struct SettingsView: View {
                         .padding()
                 }
             }
+            .navigationBarTitle("settings")
+            .navigationBarTitleDisplayMode(.inline)
         } destination: { state in
             // A view for each case of the Path.State enum
             switch state {
@@ -58,7 +58,5 @@ struct SettingsView: View {
                 )
             }
         }
-        .navigationBarTitle("settings")
-        .navigationBarTitleDisplayMode(.inline)
     }
 }

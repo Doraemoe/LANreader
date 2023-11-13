@@ -4,6 +4,7 @@ import Foundation
 
 struct ArchiveIndexResponse: Decodable, Equatable {
     let arcid: String
+    let `extension`: String
     let isnew: String
     let tags: String?
     let title: String
@@ -93,6 +94,7 @@ extension ArchiveIndexResponse {
                     with: "",
                     options: .regularExpression
                 ),
+                extension: `extension`,
                 tags: tags ?? "",
                 isNew: isnew == "true",
                 progress: progress,
@@ -109,6 +111,7 @@ extension ArchiveIndexResponse {
                 progress: progress,
                 tags: tagArray,
                 title: title,
+                extension: `extension`,
                 lastUpdate: Date())
     }
 }

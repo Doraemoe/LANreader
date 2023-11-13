@@ -25,15 +25,16 @@ struct ArchiveListFeature: Reducer {
         Reduce { state, action in
             switch action {
             case .subscribeThumbnailTrigger:
-                return .run { send in
-                    for await archiveId in refreshTrigger.thumbnail.values {
+                return .run { [archives = state.archives] send in
+                    for await archiveId in refreshTrigger.thumbnail.values
+                    where archives.contains(where: { $0.id == archiveId }) {
                         await send(.grid(id: archiveId, action: .load(true)))
                     }
                 }
             case .subscribeProgressTrigger:
                 return .run { send in
                     for await (archiveId, progress) in refreshTrigger.progress.values {
-                       await send(.updateArchiveProgress(archiveId, progress))
+                        await send(.updateArchiveProgress(archiveId, progress))
                     }
                 }
             case let .updateArchiveProgress(archiveId, progress):
@@ -62,7 +63,7 @@ struct ArchiveListV2: View {
         init(state: GridFeature.State) {
             self.archive = state.archive
         }
-      }
+    }
 
     var body: some View {
         WithViewStore(self.store, observe: { $0 }) { viewStore in
@@ -120,8 +121,8 @@ private enum RefreshTriggerKey: DependencyKey {
 }
 
 extension DependencyValues {
-  var refreshTrigger: RefreshTrigger {
-    get { self[RefreshTriggerKey.self] }
-    set { self[RefreshTriggerKey.self] = newValue }
-  }
+    var refreshTrigger: RefreshTrigger {
+        get { self[RefreshTriggerKey.self] }
+        set { self[RefreshTriggerKey.self] = newValue }
+    }
 }

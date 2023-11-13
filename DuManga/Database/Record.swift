@@ -10,6 +10,7 @@ struct Archive: Identifiable {
     var progress: Int
     var tags: [String]
     var title: String
+    var `extension`: String
     var lastUpdate: Date
 }
 
@@ -62,6 +63,7 @@ extension Archive: Codable, FetchableRecord, MutablePersistableRecord {
         static let progress = Column(CodingKeys.progress)
         static let tags = Column(CodingKeys.tags)
         static let title = Column(CodingKeys.title)
+        static let `extension` = Column(CodingKeys.extension)
         static let lastUpdate = Column(CodingKeys.lastUpdate)
     }
 }
@@ -76,6 +78,7 @@ extension Archive {
                     with: "",
                     options: .regularExpression
                 ),
+                extension: `extension`,
                 tags: tagString,
                 isNew: isNew,
                 progress: progress,
