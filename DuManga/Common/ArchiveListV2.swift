@@ -118,6 +118,7 @@ struct RefreshTrigger {
 
 private enum RefreshTriggerKey: DependencyKey {
     static let liveValue = RefreshTrigger()
+    static let testValue = RefreshTrigger()
 }
 
 extension DependencyValues {

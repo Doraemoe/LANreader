@@ -19,7 +19,7 @@ class UserDefaultService {
     }
 
     var showOriginal: Bool {
-        return UserDefaults.standard.bool(forKey: SettingsKey.showOriginal) ?? false
+        return UserDefaults.standard.bool(forKey: SettingsKey.showOriginal)
     }
 
     public static var shared: UserDefaultService {
@@ -32,6 +32,7 @@ class UserDefaultService {
 
 extension UserDefaultService: DependencyKey {
     static let liveValue = UserDefaultService.shared
+    static let testValue = UserDefaultService.shared
 }
 
 extension DependencyValues {

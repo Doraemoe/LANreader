@@ -196,32 +196,11 @@ struct ArchiveReader: View {
         WithViewStore(self.store, observe: { $0 }) { viewStore in
             GeometryReader { geometry in
                 ZStack {
-                    ScrollView(.horizontal) {
-                        LazyHStack(spacing: 0) {
-                            ForEachStore(
-                                self.store.scope(
-                                    state: readDirection == ReadDirection.rightLeft.rawValue ? \.reversePages : \.pages,
-                                    action: { .page(id: $0, action: $1) }
-                                )
-                            ) { pageStore in
-                                PageImageV2(store: pageStore)
-                                    .frame(width: geometry.size.width)
-                                    .draggableAndZoomable(contentSize: geometry.size)
-                            }
-                        }
-                        .scrollTargetLayout()
+                    if readDirection == ReadDirection.upDown.rawValue {
+                        vReader(viewStore: viewStore, geometry: geometry)
+                    } else {
+                        hReader(viewStore: viewStore, geometry: geometry)
                     }
-                    .onTapGesture { location in
-                        if location.x < geometry.size.width / 3 {
-                            viewStore.send(.tapAction(tapLeft))
-                        } else if location.x > geometry.size.width / 3 * 2 {
-                            viewStore.send(.tapAction(tapRight))
-                        } else {
-                            viewStore.send(.tapAction(tapMiddle))
-                        }
-                    }
-                    .scrollTargetBehavior(.paging)
-                    .scrollPosition(id: viewStore.$index)
                     if !viewStore.controlUiHidden {
                         bottomToolbar(viewStore: viewStore)
                     }
@@ -279,6 +258,59 @@ struct ArchiveReader: View {
                     banner.show()
                     viewStore.send(.setSuccess(""))
                 }
+            }
+        }
+    }
+
+    @MainActor
+    private func vReader(viewStore: ViewStoreOf<ArchiveReaderFeature>, geometry: GeometryProxy) -> some View {
+        ScrollView(.vertical) {
+            LazyVStack(spacing: 0) {
+                ForEachStore(
+                    self.store.scope(
+                        state: \.pages,
+                        action: { .page(id: $0, action: $1) }
+                    )
+                ) { pageStore in
+                    PageImageV2(store: pageStore)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .draggableAndZoomable(contentSize: geometry.size)
+                }
+            }
+            .scrollTargetLayout()
+        }
+        .scrollPosition(id: viewStore.$index)
+        .onTapGesture {
+            viewStore.send(.tapAction(PageControl.navigation.rawValue))
+        }
+    }
+
+    @MainActor
+    private func hReader(viewStore: ViewStoreOf<ArchiveReaderFeature>, geometry: GeometryProxy) -> some View {
+        ScrollView(.horizontal) {
+            LazyHStack(spacing: 0) {
+                ForEachStore(
+                    self.store.scope(
+                        state: readDirection == ReadDirection.rightLeft.rawValue ? \.reversePages : \.pages,
+                        action: { .page(id: $0, action: $1) }
+                    )
+                ) { pageStore in
+                    PageImageV2(store: pageStore)
+                        .frame(width: geometry.size.width)
+                        .draggableAndZoomable(contentSize: geometry.size)
+                }
+            }
+            .scrollTargetLayout()
+        }
+        .scrollTargetBehavior(.paging)
+        .scrollPosition(id: viewStore.$index)
+        .onTapGesture { location in
+            if location.x < geometry.size.width / 3 {
+                viewStore.send(.tapAction(tapLeft))
+            } else if location.x > geometry.size.width / 3 * 2 {
+                viewStore.send(.tapAction(tapRight))
+            } else {
+                viewStore.send(.tapAction(tapMiddle))
             }
         }
     }

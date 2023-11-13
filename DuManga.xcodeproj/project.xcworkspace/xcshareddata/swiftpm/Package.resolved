@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/groue/GRDB.swift",
       "state" : {
-        "revision" : "fd2e552cfba17adcb54e2899029da0bd23aaf95d",
-        "version" : "6.20.2"
+        "revision" : "f1f8e8438ad815086b48660ddf87c788f9abe966",
+        "version" : "6.21.0"
       }
     },
     {
@@ -86,8 +86,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-case-paths",
       "state" : {
-        "revision" : "5da6989aae464f324eef5c5b52bdb7974725ab81",
-        "version" : "1.0.0"
+        "revision" : "40773cbaf8d71ed5357f297b1ba4073f5b24faaa",
+        "version" : "1.1.0"
       }
     },
     {
@@ -122,8 +122,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-concurrency-extras",
       "state" : {
-        "revision" : "6155400cb15b0d99b2c257d57603d61d03a817a8",
-        "version" : "1.0.1"
+        "revision" : "bb5059bde9022d69ac516803f4f227d8ac967f71",
+        "version" : "1.1.0"
       }
     },
     {
@@ -131,8 +131,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-custom-dump",
       "state" : {
-        "revision" : "3efbfba0e4e56c7187cc19137ee16b7c95346b79",
-        "version" : "1.1.0"
+        "revision" : "65fc9e2b62727cacfab9fc60d580c284a4b9308c",
+        "version" : "1.1.1"
       }
     },
     {
@@ -163,12 +163,21 @@
       }
     },
     {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-syntax.git",
+      "state" : {
+        "revision" : "6ad4ea24b01559dde0773e3d091f1b9e36175036",
+        "version" : "509.0.2"
+      }
+    },
+    {
       "identity" : "swiftui-navigation",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swiftui-navigation",
       "state" : {
-        "revision" : "6eb293c49505d86e9e24232cb6af6be7fff93bd5",
-        "version" : "1.0.2"
+        "revision" : "74adfb8e48724c50d0ac148c658ae5fa7dfd6b6d",
+        "version" : "1.0.3"
       }
     },
     {

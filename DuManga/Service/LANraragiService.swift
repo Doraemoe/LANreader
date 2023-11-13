@@ -222,6 +222,7 @@ class AuthInterceptor: RequestInterceptor {
 
 extension LANraragiService: DependencyKey {
     static let liveValue = LANraragiService.shared
+    static let testValue = LANraragiService.shared
 }
 
 extension DependencyValues {
