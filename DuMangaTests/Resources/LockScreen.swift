@@ -175,7 +175,7 @@ struct LockScreen: View {
                 showPinStack(viewStore: viewStore)
             }
             .onChange(of: viewStore.disableBiometricsAuth, initial: true) {
-                if viewStore.disableBiometricsAuth {
+                if viewStore.lockState != .normal || viewStore.disableBiometricsAuth {
                     focusedField = true
                 }
             }
