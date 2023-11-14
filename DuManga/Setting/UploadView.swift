@@ -2,7 +2,7 @@ import ComposableArchitecture
 import SwiftUI
 import Logging
 
-struct UploadFeature: Reducer {
+@Reducer struct UploadFeature {
     private let logger = Logger(label: "UploadFeature")
 
     struct State: Equatable {

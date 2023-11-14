@@ -2,7 +2,7 @@ import ComposableArchitecture
 import SwiftUI
 import Logging
 
-struct GridFeature: Reducer {
+@Reducer struct GridFeature {
     private let logger = Logger(label: "GridFeature")
     struct State: Equatable, Identifiable {
         var archive: ArchiveItem

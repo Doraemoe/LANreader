@@ -1,6 +1,6 @@
 import ComposableArchitecture
 
-struct AppFeature: Reducer {
+@Reducer struct AppFeature {
 
     struct State: Equatable {
         @PresentationState var destination: Destination.State?
@@ -30,29 +30,30 @@ struct AppFeature: Reducer {
         case settings(SettingsFeature.Action)
 
         case showLogin
+        case showLockScreen
 
     }
 
     var body: some Reducer<State, Action> {
         BindingReducer()
 
-        Scope(state: \.archive, action: /Action.archive) {
+        Scope(state: \.archive, action: \.archive) {
             ArchiveFeature()
         }
-        Scope(state: \.trigger, action: /Action.trigger) {
+        Scope(state: \.trigger, action: \.trigger) {
             TriggerFeature()
         }
 
-        Scope(state: \.library, action: /Action.library) {
+        Scope(state: \.library, action: \.library) {
             LibraryFeature()
         }
-        Scope(state: \.category, action: /Action.category) {
+        Scope(state: \.category, action: \.category) {
             CategoryFeature()
         }
-        Scope(state: \.search, action: /Action.search) {
+        Scope(state: \.search, action: \.search) {
             SearchFeature()
         }
-        Scope(state: \.settings, action: /Action.settings) {
+        Scope(state: \.settings, action: \.settings) {
             SettingsFeature()
         }
 
@@ -61,16 +62,21 @@ struct AppFeature: Reducer {
             case .showLogin:
                 state.destination = .login(LANraragiConfigFeature.State())
                 return .none
+            case .showLockScreen:
+                state.destination = .lockScreen(
+                    LockScreenFeature.State(lockState: .normal)
+                )
+                return .none
             default:
                 return .none
             }
         }
-        .ifLet(\.$destination, action: /Action.destination) {
-          Destination()
+        .ifLet(\.$destination, action: \.destination) {
+            Destination()
         }
     }
 
-    struct Path: Reducer {
+    @Reducer struct Path {
         enum State: Equatable {
             case reader(ArchiveReaderFeature.State)
             case categoryArchiveList(CategoryArchiveListFeature.State)
@@ -80,29 +86,34 @@ struct AppFeature: Reducer {
             case categoryArchiveList(CategoryArchiveListFeature.Action)
         }
         var body: some ReducerOf<Self> {
-            Scope(state: /State.reader, action: /Action.reader) {
+            Scope(state: \.reader, action: \.reader) {
                 ArchiveReaderFeature()
             }
-            Scope(state: /State.categoryArchiveList, action: /Action.categoryArchiveList) {
+            Scope(state: \.categoryArchiveList, action: \.categoryArchiveList) {
                 CategoryArchiveListFeature()
             }
         }
     }
 
-    public struct Destination: Reducer {
-      public enum State: Equatable {
-        case login(LANraragiConfigFeature.State)
-      }
+    @Reducer public struct Destination {
+        public enum State: Equatable {
+            case login(LANraragiConfigFeature.State)
+            case lockScreen(LockScreenFeature.State)
+        }
 
         public enum Action: Equatable {
-        case login(LANraragiConfigFeature.Action)
-      }
-
-      public var body: some Reducer<State, Action> {
-        Scope(state: /State.login, action: /Action.login) {
-            LANraragiConfigFeature()
+            case login(LANraragiConfigFeature.Action)
+            case lockScreen(LockScreenFeature.Action)
         }
-      }
+
+        public var body: some Reducer<State, Action> {
+            Scope(state: \.login, action: \.login) {
+                LANraragiConfigFeature()
+            }
+            Scope(state: \.lockScreen, action: \.lockScreen) {
+                LockScreenFeature()
+            }
+        }
     }
 }
 

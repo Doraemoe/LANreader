@@ -4,7 +4,7 @@ import SwiftUI
 import NotificationBannerSwift
 import Logging
 
-struct LANraragiConfigFeature: Reducer {
+@Reducer struct LANraragiConfigFeature {
     private let logger = Logger(label: "LANraragiConfigFeature")
 
     struct State: Equatable {

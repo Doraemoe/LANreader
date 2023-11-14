@@ -3,7 +3,7 @@ import Logging
 import SwiftUI
 import NotificationBannerSwift
 
-struct CategoryFeature: Reducer {
+@Reducer struct CategoryFeature {
     private let logger = Logger(label: "CategoryFeature")
 
     struct State: Equatable {
@@ -49,7 +49,7 @@ struct CategoryFeature: Reducer {
                 return .none
             }
         }
-        .forEach(\.path, action: /Action.path) {
+        .forEach(\.path, action: \.path) {
             AppFeature.Path()
         }
     }

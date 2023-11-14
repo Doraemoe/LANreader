@@ -3,7 +3,7 @@ import OrderedCollections
 import SwiftUI
 import Combine
 
-struct ArchiveListFeature: Reducer {
+@Reducer struct ArchiveListFeature {
     struct State: Equatable {
         var archives: IdentifiedArrayOf<GridFeature.State> = []
         var loading: Bool = false
@@ -11,9 +11,10 @@ struct ArchiveListFeature: Reducer {
     }
 
     enum Action: Equatable {
-        case grid(id: GridFeature.State.ID, action: GridFeature.Action)
+        case grid(IdentifiedActionOf<GridFeature>)
         case subscribeThumbnailTrigger
         case subscribeProgressTrigger
+        case refreshThumbnail(String)
         case updateArchiveProgress(String, Int)
         case appendArchives(String)
     }
@@ -25,10 +26,9 @@ struct ArchiveListFeature: Reducer {
         Reduce { state, action in
             switch action {
             case .subscribeThumbnailTrigger:
-                return .run { [archives = state.archives] send in
-                    for await archiveId in refreshTrigger.thumbnail.values
-                    where archives.contains(where: { $0.id == archiveId }) {
-                        await send(.grid(id: archiveId, action: .load(true)))
+                return .run { send in
+                    for await archiveId in refreshTrigger.thumbnail.values {
+                        await send(.refreshThumbnail(archiveId))
                     }
                 }
             case .subscribeProgressTrigger:
@@ -37,6 +37,12 @@ struct ArchiveListFeature: Reducer {
                         await send(.updateArchiveProgress(archiveId, progress))
                     }
                 }
+            case let .refreshThumbnail(archiveId):
+                if state.archives.contains(where: { $0.id == archiveId }) {
+                    return .send(.grid(.element(id: archiveId, action: .load(true))))
+                } else {
+                    return .none
+                }
             case let .updateArchiveProgress(archiveId, progress):
                 state.archives[id: archiveId]?.archive.progress = progress
                 return .none
@@ -44,7 +50,7 @@ struct ArchiveListFeature: Reducer {
                 return .none
             }
         }
-        .forEach(\.archives, action: /Action.grid(id:action:)) {
+        .forEach(\.archives, action: \.grid) {
             GridFeature()
         }
     }
@@ -70,7 +76,7 @@ struct ArchiveListV2: View {
             ScrollView {
                 LazyVGrid(columns: columns) {
                     ForEachStore(
-                        self.store.scope(state: \.archives, action: { .grid(id: $0, action: $1)})
+                        self.store.scope(state: \.archives, action: { .grid($0)})
                     ) { gridStore in
                         WithViewStore(gridStore, observe: GridViewState.init) { gridViewStore in
                             NavigationLink(

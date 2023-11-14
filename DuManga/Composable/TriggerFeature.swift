@@ -1,7 +1,7 @@
 import ComposableArchitecture
 import Logging
 
-struct TriggerFeature: Reducer {
+@Reducer struct TriggerFeature {
     struct State: Equatable {
         var thumbnailId = ""
         var pageId = ""

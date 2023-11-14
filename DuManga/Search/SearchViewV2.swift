@@ -3,7 +3,7 @@ import SwiftUI
 import NotificationBannerSwift
 import Logging
 
-struct SearchFeature: Reducer {
+@Reducer struct SearchFeature {
     private let logger = Logger(label: "SearchFeature")
 
     struct State: Equatable {
@@ -38,7 +38,7 @@ struct SearchFeature: Reducer {
 
     var body: some ReducerOf<Self> {
 
-        Scope(state: \.archiveList, action: /Action.archiveList) {
+        Scope(state: \.archiveList, action: \.archiveList) {
             ArchiveListFeature()
         }
 
@@ -133,7 +133,7 @@ struct SearchFeature: Reducer {
                 return .none
             }
         }
-        .forEach(\.path, action: /Action.path) {
+        .forEach(\.path, action: \.path) {
             AppFeature.Path()
         }
     }

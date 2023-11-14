@@ -3,7 +3,7 @@ import ComposableArchitecture
 import SwiftUI
 import Logging
 
-struct DatabaseSettingsFeature: Reducer {
+@Reducer struct DatabaseSettingsFeature {
     private let logger = Logger(label: "DatabaseSettingsFeature")
 
     struct State: Equatable {

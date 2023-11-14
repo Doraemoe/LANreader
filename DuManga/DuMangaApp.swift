@@ -8,15 +8,10 @@ import Puppy
 struct DuMangaApp: App {
     @Environment(\.scenePhase) var scenePhase
     @AppStorage(SettingsKey.blurInterfaceWhenInactive) var blurInterfaceWhenInactive: Bool = false
-    @AppStorage(SettingsKey.passcode) var storedPasscode: String = ""
-
-    @State var lock = false
 
     let store = Store(initialState: AppFeature.State()) {
         AppFeature()
     }
-
-    private let noAnimationTransaction: Transaction
 
     init() {
         do {
@@ -72,10 +67,6 @@ struct DuMangaApp: App {
         } catch {
             fatalError("Unresolved error \(error)")
         }
-
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        self.noAnimationTransaction = transaction
     }
 
     var body: some Scene {
@@ -83,31 +74,31 @@ struct DuMangaApp: App {
             ContentView(store: self.store)
                 .blur(radius: blurInterfaceWhenInactive && scenePhase != .active ? 200 : 0)
                 .environment(\.appDatabase, .shared)
-                .fullScreenCover(isPresented: $lock) {
-                    LockScreen(initialState: LockScreenState.normal,
-                               storedPasscode: storedPasscode) { passcode, _, act in
-                        if passcode == storedPasscode {
-                            act(true)
-                            lock = false
-                        } else {
-                            act(false)
-                        }
-                    }
-                }
-                .onAppear {
-                    if !storedPasscode.isEmpty {
-                        withTransaction(self.noAnimationTransaction) {
-                            lock = true
-                        }
-                    }
-                }
-                .onChange(of: scenePhase) {
-                    if !storedPasscode.isEmpty && scenePhase != .active && !lock {
-                        withTransaction(self.noAnimationTransaction) {
-                            lock = true
-                        }
-                    }
-                }
+//                .fullScreenCover(isPresented: $lock) {
+//                    LockScreen(initialState: LockScreenState.normal,
+//                               storedPasscode: storedPasscode) { passcode, _, act in
+//                        if passcode == storedPasscode {
+//                            act(true)
+//                            lock = false
+//                        } else {
+//                            act(false)
+//                        }
+//                    }
+//                }
+//                .onAppear {
+//                    if !storedPasscode.isEmpty {
+//                        withTransaction(self.noAnimationTransaction) {
+//                            lock = true
+//                        }
+//                    }
+//                }
+//                .onChange(of: scenePhase) {
+//                    if !storedPasscode.isEmpty && scenePhase != .active && !lock {
+//                        withTransaction(self.noAnimationTransaction) {
+//                            lock = true
+//                        }
+//                    }
+//                }
         }
     }
 }

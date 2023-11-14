@@ -2,7 +2,7 @@ import ComposableArchitecture
 import Logging
 import SwiftUI
 
-struct CategoryArchiveListFeature: Reducer {
+@Reducer struct CategoryArchiveListFeature {
     private let logger = Logger(label: "CategoryArchiveListFeature")
 
     struct State: Equatable {
@@ -25,7 +25,7 @@ struct CategoryArchiveListFeature: Reducer {
     @Dependency(\.userDefaultService) var userDefault
 
     var body: some ReducerOf<Self> {
-        Scope(state: \.archiveList, action: /Action.archiveList) {
+        Scope(state: \.archiveList, action: \.archiveList) {
             ArchiveListFeature()
         }
 

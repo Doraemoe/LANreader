@@ -114,7 +114,6 @@
 		E9C73DC72A1C6F2F00EFDD81 /* HistoryListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C73DC62A1C6F2F00EFDD81 /* HistoryListModel.swift */; };
 		E9CBC0F02A3DD62F00CCD592 /* LogFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */; };
 		E9D40C9B2A26334E00FC3405 /* TagMiddleware.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9D40C9A2A26334E00FC3405 /* TagMiddleware.swift */; };
-		E9DCE8952AF05EA900C17236 /* SettingsFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9DCE8942AF05EA900C17236 /* SettingsFeature.swift */; };
 		E9DCE8992AF0665900C17236 /* ArchiveListV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9DCE8982AF0665900C17236 /* ArchiveListV2.swift */; };
 		E9DCE89C2AF0672200C17236 /* Collections in Frameworks */ = {isa = PBXBuildFile; productRef = E9DCE89B2AF0672200C17236 /* Collections */; };
 		E9DCE89E2AF0672200C17236 /* DequeModule in Frameworks */ = {isa = PBXBuildFile; productRef = E9DCE89D2AF0672200C17236 /* DequeModule */; };
@@ -272,7 +271,6 @@
 		E9C73DC62A1C6F2F00EFDD81 /* HistoryListModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryListModel.swift; sourceTree = "<group>"; };
 		E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogFormatter.swift; sourceTree = "<group>"; };
 		E9D40C9A2A26334E00FC3405 /* TagMiddleware.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagMiddleware.swift; sourceTree = "<group>"; };
-		E9DCE8942AF05EA900C17236 /* SettingsFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsFeature.swift; sourceTree = "<group>"; };
 		E9DCE8982AF0665900C17236 /* ArchiveListV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveListV2.swift; sourceTree = "<group>"; };
 		E9DCE8A12AF0795600C17236 /* SearchViewV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewV2.swift; sourceTree = "<group>"; };
 		E9E3631E26F471E400C58D01 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
@@ -602,7 +600,6 @@
 				E90369BD2AE72D40001BC558 /* AppFeature.swift */,
 				E90369C12AE72DE0001BC558 /* ArchiveFeature.swift */,
 				E924CF722AE950F4000AB76A /* TriggerFeature.swift */,
-				E9DCE8942AF05EA900C17236 /* SettingsFeature.swift */,
 			);
 			path = Composable;
 			sourceTree = "<group>";
@@ -862,7 +859,6 @@
 				4BD82760E9B084402AFE07F2 /* UserDefaultService.swift in Sources */,
 				4BD821C3FDF1FC3B60AB4823 /* AppModels.swift in Sources */,
 				E9D40C9B2A26334E00FC3405 /* TagMiddleware.swift in Sources */,
-				E9DCE8952AF05EA900C17236 /* SettingsFeature.swift in Sources */,
 				4BD82C152E77BFD137EC03DD /* LANraragiConfigView.swift in Sources */,
 				4BD823AC73ED9E45F8B7E436 /* ReadSettings.swift in Sources */,
 				4BD82F2BEC56B95FB9BC9841 /* SettingsView.swift in Sources */,

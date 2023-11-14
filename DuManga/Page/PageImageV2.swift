@@ -2,7 +2,7 @@ import ComposableArchitecture
 import SwiftUI
 import Logging
 
-struct PageFeature: Reducer {
+@Reducer struct PageFeature {
     private let logger = Logger(label: "PageFeature")
 
     struct State: Equatable, Identifiable {
@@ -24,6 +24,7 @@ struct PageFeature: Reducer {
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
     @Dependency(\.userDefaultService) var userDefault
+    @Dependency(\.imageService) var imageService
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -66,7 +67,7 @@ struct PageFeature: Reducer {
 
                             if !userDefault.showOriginal {
                                 await send(.setProgress(2.0))
-                                resizeImage(url: imageUrl, threshold: .two)
+                                imageService.resizeImage(url: imageUrl)
                             }
 
                             var  pageImage = ArchiveImage(

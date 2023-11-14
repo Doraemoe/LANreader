@@ -4,7 +4,7 @@
 import ComposableArchitecture
 import SwiftUI
 
-struct LogFeature: Reducer {
+@Reducer struct LogFeature {
     struct State: Equatable {
         var log = ""
     }

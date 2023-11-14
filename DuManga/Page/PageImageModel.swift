@@ -53,7 +53,6 @@ class PageImageModel {
                     if compressThreshold != .never {
                         self.progress = 2
                     }
-                    resizeImage(url: url, threshold: compressThreshold)
                     var pageImage = ArchiveImage(id: id, image: url.path, lastUpdate: Date())
                     do {
                         try database.saveArchiveImage(&pageImage)

@@ -39,8 +39,7 @@ class PrefetchService {
                             let thresholdValue = UserDefaults.standard.integer(
                                 forKey: SettingsKey.compressImageThreshold
                             )
-                            let threshold = CompressThreshold(rawValue: thresholdValue) ?? .never
-                            resizeImage(url: url, threshold: threshold)
+                            _ = CompressThreshold(rawValue: thresholdValue) ?? .never
                             var archiveImage = ArchiveImage(id: id, image: url.path, lastUpdate: Date())
                             do {
                                 try database.saveArchiveImage(&archiveImage)

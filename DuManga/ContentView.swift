@@ -4,15 +4,29 @@ import SwiftUI
 import NotificationBannerSwift
 
 struct ContentView: View {
+    @Environment(\.scenePhase) var scenePhase
+    @AppStorage(SettingsKey.passcode) var storedPasscode: String = ""
+
     let store: StoreOf<AppFeature>
 
     @State var contentViewModel = ContentViewModel()
+    private let noAnimationTransaction: Transaction
 
     struct ViewState: Equatable {
         @BindingViewState var tabName: String
+        let destination: AppFeature.Destination.State?
         init(bindingViewStore: BindingViewStore<AppFeature.State>) {
             self._tabName = bindingViewStore.$tabName
+            self.destination = bindingViewStore.destination
         }
+    }
+
+    init(store: StoreOf<AppFeature>) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        self.noAnimationTransaction = transaction
+
+        self.store = store
     }
 
     var body: some View {
@@ -53,35 +67,57 @@ struct ContentView: View {
             }
             .fullScreenCover(
                 store: self.store.scope(state: \.$destination, action: { .destination($0) }),
-                state: /AppFeature.Destination.State.login,
-                action: AppFeature.Destination.Action.login) { store in
-                    LANraragiConfigView(store: store)
+                state: \.login,
+                action: { .login($0) }
+            ) { store in
+                LANraragiConfigView(store: store)
+            }
+            .fullScreenCover(
+                store: self.store.scope(state: \.$destination, action: { .destination($0) }),
+                state: \.lockScreen,
+                action: { .lockScreen($0) }
+            ) { store in
+                LockScreen(store: store)
+            }
+            .onAppear {
+                if UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl)?.isEmpty != false {
+                    viewStore.send(.showLogin)
                 }
-                .onAppear {
-                    if UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl)?.isEmpty != false {
-                        viewStore.send(.showLogin)
+            }
+            .onAppear {
+                if !storedPasscode.isEmpty {
+                    _ = withTransaction(self.noAnimationTransaction) {
+                        viewStore.send(.showLockScreen)
                     }
                 }
-                .onOpenURL { url in
-                    Task {
-                        let (success, message) = await contentViewModel.queueUrlDownload(url: url)
-                        if success {
-                            let banner = NotificationBanner(
-                                title: NSLocalizedString("success", comment: "success"),
-                                subtitle: message,
-                                style: .success
-                            )
-                            banner.show()
-                        } else {
-                            let banner = NotificationBanner(
-                                title: NSLocalizedString("error", comment: "error"),
-                                subtitle: message,
-                                style: .danger
-                            )
-                            banner.show()
-                        }
+            }
+            .onChange(of: scenePhase) {
+                if !storedPasscode.isEmpty && scenePhase != .active && viewStore.destination == nil {
+                    _ = withTransaction(self.noAnimationTransaction) {
+                        viewStore.send(.showLockScreen)
                     }
                 }
+            }
+            .onOpenURL { url in
+                Task {
+                    let (success, message) = await contentViewModel.queueUrlDownload(url: url)
+                    if success {
+                        let banner = NotificationBanner(
+                            title: NSLocalizedString("success", comment: "success"),
+                            subtitle: message,
+                            style: .success
+                        )
+                        banner.show()
+                    } else {
+                        let banner = NotificationBanner(
+                            title: NSLocalizedString("error", comment: "error"),
+                            subtitle: message,
+                            style: .danger
+                        )
+                        banner.show()
+                    }
+                }
+            }
         }
     }
 }

@@ -2,7 +2,7 @@ import ComposableArchitecture
 import Logging
 import SwiftUI
 
-struct LibraryFeature: Reducer {
+@Reducer struct LibraryFeature {
     private let logger = Logger(label: "LibraryFeature")
 
     struct State: Equatable {
@@ -27,7 +27,7 @@ struct LibraryFeature: Reducer {
     @Dependency(\.userDefaultService) var userDefault
 
     var body: some ReducerOf<Self> {
-        Scope(state: \.archiveList, action: /Action.archiveList) {
+        Scope(state: \.archiveList, action: \.archiveList) {
             ArchiveListFeature()
         }
 
@@ -65,7 +65,7 @@ struct LibraryFeature: Reducer {
                 return .none
             }
         }
-        .forEach(\.path, action: /Action.path) {
+        .forEach(\.path, action: \.path) {
             AppFeature.Path()
         }
     }

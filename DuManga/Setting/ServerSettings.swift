@@ -7,13 +7,13 @@ struct ServerSettings: View {
 
     var body: some View {
         List {
-            NavigationLink("settings.host.config", state: SettingsFeature.Path.State.lanraragiSettings() )
+            NavigationLink("settings.host.config", state: SettingsFeature.Path.State.lanraragiSettings(.init()) )
                 .padding()
             Toggle(isOn: self.$alwaysLoadFromServer) {
                 Text("settings.host.alwaysLoad")
             }
             .padding()
-            NavigationLink("settings.host.upload", state: SettingsFeature.Path.State.upload())
+            NavigationLink("settings.host.upload", state: SettingsFeature.Path.State.upload(.init()))
                 .padding()
         }
     }

@@ -3,7 +3,7 @@ import SwiftUI
 import Logging
 import NotificationBannerSwift
 
-struct ArchiveReaderFeature: Reducer {
+@Reducer struct ArchiveReaderFeature {
     private let logger = Logger(label: "ArchiveReaderFeature")
 
     struct State: Equatable {

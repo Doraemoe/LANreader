@@ -2,6 +2,66 @@
 import ComposableArchitecture
 import SwiftUI
 
+@Reducer struct SettingsFeature {
+    struct State: Equatable {
+        var path = StackState<Path.State>()
+
+        var view = ViewSettingsFeature.State()
+        var database = DatabaseSettingsFeature.State()
+    }
+    enum Action: Equatable {
+        case path(StackAction<Path.State, Path.Action>)
+
+        case view(ViewSettingsFeature.Action)
+        case database(DatabaseSettingsFeature.Action)
+    }
+
+    var body: some ReducerOf<Self> {
+
+        Scope(state: \.view, action: \.view) {
+            ViewSettingsFeature()
+        }
+
+        Scope(state: \.database, action: \.database) {
+            DatabaseSettingsFeature()
+        }
+
+        Reduce { _, action in
+            switch action {
+            default:
+                return .none
+            }
+        }
+        .forEach(\.path, action: \.path) {
+            Path()
+        }
+    }
+
+    @Reducer struct Path {
+        enum State: Equatable {
+            case lanraragiSettings(LANraragiConfigFeature.State)
+            case upload(UploadFeature.State)
+            case log(LogFeature.State)
+        }
+        enum Action: Equatable {
+            case lanraragiSettings(LANraragiConfigFeature.Action)
+            case upload(UploadFeature.Action)
+            case log(LogFeature.Action)
+        }
+        var body: some ReducerOf<Self> {
+            Scope(state: \.lanraragiSettings, action: \.lanraragiSettings) {
+                LANraragiConfigFeature()
+            }
+            Scope(state: \.upload, action: \.upload) {
+                UploadFeature()
+            }
+            Scope(state: \.log, action: \.log) {
+                LogFeature()
+            }
+        }
+    }
+}
+
 struct SettingsView: View {
     let store: StoreOf<SettingsFeature>
 
@@ -17,13 +77,13 @@ struct SettingsView: View {
                     ServerSettings()
                 }
                 Section(header: Text("settings.view")) {
-                    ViewSettings()
+                    ViewSettings(store: self.store.scope(state: \.view, action: { .view($0) }))
                 }
                 Section(header: Text("settings.database")) {
                     DatabaseSettings(store: self.store.scope(state: \.database, action: { .database($0) }))
                 }
                 Section(header: Text("settings.debug")) {
-                    NavigationLink("settings.debug.log", state: SettingsFeature.Path.State.log())
+                    NavigationLink("settings.debug.log", state: SettingsFeature.Path.State.log(.init()))
                .padding()
                     // swiftlint:disable force_cast
                     let version = Bundle.main.infoDictionary!["CFBundleShortVersionString"] as! String

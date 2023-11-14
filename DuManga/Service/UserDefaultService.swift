@@ -22,6 +22,14 @@ class UserDefaultService {
         return UserDefaults.standard.bool(forKey: SettingsKey.showOriginal)
     }
 
+    var passcode: String {
+        return UserDefaults.standard.string(forKey: SettingsKey.passcode) ?? ""
+    }
+
+    func savePasscode(passcode: String) {
+        UserDefaults.standard.set(passcode, forKey: SettingsKey.passcode)
+    }
+
     public static var shared: UserDefaultService {
         if _shared == nil {
             _shared = UserDefaultService()

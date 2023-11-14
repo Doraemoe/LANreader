@@ -1,7 +1,7 @@
 import ComposableArchitecture
 import Logging
 
-struct ArchiveFeature: Reducer {
+@Reducer struct ArchiveFeature {
     private let logger = Logger(label: "ArchiveFeature")
     private let excludeTags = ["date_added", "source"]
 
