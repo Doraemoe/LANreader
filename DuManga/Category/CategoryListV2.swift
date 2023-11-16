@@ -7,16 +7,12 @@ import NotificationBannerSwift
     private let logger = Logger(label: "CategoryFeature")
 
     struct State: Equatable {
-        var path = StackState<AppFeature.Path.State>()
-
         var categoryItems: IdentifiedArrayOf<CategoryItem> = []
         var showLoading = false
         var errorMessage = ""
     }
 
     enum Action: Equatable {
-        case path(StackAction<AppFeature.Path.State, AppFeature.Path.Action>)
-
         case loadCategory(Bool)
         case populateCategory([CategoryItem])
         case setErrorMessage(String)
@@ -45,12 +41,10 @@ import NotificationBannerSwift
                 state.categoryItems = IdentifiedArray(uniqueElements: items)
                 state.showLoading = false
                 return .none
-            default:
+            case let .setErrorMessage(message):
+                state.errorMessage = message
                 return .none
             }
-        }
-        .forEach(\.path, action: \.path) {
-            AppFeature.Path()
         }
     }
 }
@@ -59,16 +53,17 @@ struct CategoryListV2: View {
     let store: StoreOf<CategoryFeature>
 
     var body: some View {
-        NavigationStackStore(
-            self.store.scope(state: \.path, action: { .path($0) })
-        ) {
             WithViewStore(self.store, observe: { $0 }) { viewStore in
                 List {
                     ForEach(viewStore.categoryItems) { item in
                         NavigationLink(
                             state: AppFeature.Path.State.categoryArchiveList(
                                 CategoryArchiveListFeature.State.init(
-                                    id: item.id, name: item.name
+                                    id: item.id,
+                                    name: item.name,
+                                    archiveList: ArchiveListFeature.State(
+                                        filter: SearchFilter(category: item.id, filter: nil)
+                                    )
                                 )
                             )
                         ) {
@@ -106,21 +101,6 @@ struct CategoryListV2: View {
                     }
                 }
             }
-        } destination: { state in
-            switch state {
-            case .reader:
-                CaseLet(
-                    /AppFeature.Path.State.reader,
-                     action: AppFeature.Path.Action.reader,
-                     then: ArchiveReader.init(store:)
-                )
-            case .categoryArchiveList:
-                CaseLet(
-                    /AppFeature.Path.State.categoryArchiveList,
-                     action: AppFeature.Path.Action.categoryArchiveList,
-                     then: CategoryArchiveListV2.init(store:)
-                )
-            }
-        }
+
     }
 }

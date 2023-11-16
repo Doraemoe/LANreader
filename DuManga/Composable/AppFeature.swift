@@ -3,6 +3,7 @@ import ComposableArchitecture
 @Reducer struct AppFeature {
 
     struct State: Equatable {
+        var path = StackState<AppFeature.Path.State>()
         @PresentationState var destination: Destination.State?
 
         @BindingState var tabName = "library"
@@ -17,6 +18,8 @@ import ComposableArchitecture
     }
 
     enum Action: Equatable, BindableAction {
+        case path(StackAction<AppFeature.Path.State, AppFeature.Path.Action>)
+
         case destination(PresentationAction<Destination.Action>)
 
         case binding(BindingAction<State>)
@@ -70,6 +73,9 @@ import ComposableArchitecture
             default:
                 return .none
             }
+        }
+        .forEach(\.path, action: \.path) {
+            AppFeature.Path()
         }
         .ifLet(\.$destination, action: \.destination) {
             Destination()

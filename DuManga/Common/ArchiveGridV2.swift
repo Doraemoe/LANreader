@@ -35,7 +35,7 @@ import Logging
                     state.archiveThumbnail = nil
                 }
                 if state.archiveThumbnail == nil {
-                    return .run { [id = state.id] send in
+                    return .run(priority: .utility) { [id = state.id] send in
                         do {
                             let imageData = try await service.retrieveArchiveThumbnail(id: id).serializingData().value
                             var thumbnail = ArchiveThumbnail(id: id, thumbnail: imageData, lastUpdate: Date())

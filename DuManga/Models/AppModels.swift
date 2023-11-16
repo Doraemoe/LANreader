@@ -4,6 +4,11 @@
 
 import Foundation
 
+struct SearchFilter: Equatable {
+    let category: String?
+    let filter: String?
+}
+
 enum PageControl: String, CaseIterable, Identifiable {
     case next
     case previous

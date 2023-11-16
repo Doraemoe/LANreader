@@ -32,25 +32,82 @@ struct ContentView: View {
     var body: some View {
         WithViewStore(self.store, observe: ViewState.init) { viewStore in
             TabView(selection: viewStore.$tabName) {
-                LibraryListV2(store: store.scope(state: \.library, action: {
-                    .library($0)
-                }))
+                NavigationStackStore(
+                    self.store.scope(state: \.path, action: { .path($0) })
+                ) {
+                    LibraryListV2(store: store.scope(state: \.library, action: {
+                        .library($0)
+                    }))
+                } destination: { state in
+                    switch state {
+                    case .reader:
+                        CaseLet(
+                            /AppFeature.Path.State.reader,
+                             action: AppFeature.Path.Action.reader,
+                             then: ArchiveReader.init(store:)
+                        )
+                    case .categoryArchiveList:
+                        CaseLet(
+                            /AppFeature.Path.State.categoryArchiveList,
+                             action: AppFeature.Path.Action.categoryArchiveList,
+                             then: CategoryArchiveListV2.init(store:)
+                        )
+                    }
+                }
                 .tabItem {
                     Image(systemName: "books.vertical")
                     Text("library")
                 }
                 .tag("library")
-                CategoryListV2(store: store.scope(state: \.category, action: {
-                    .category($0)
-                }))
+                NavigationStackStore(
+                    self.store.scope(state: \.path, action: { .path($0) })
+                ) {
+                    CategoryListV2(store: store.scope(state: \.category, action: {
+                        .category($0)
+                    }))
+                } destination: { state in
+                    switch state {
+                    case .reader:
+                        CaseLet(
+                            /AppFeature.Path.State.reader,
+                             action: AppFeature.Path.Action.reader,
+                             then: ArchiveReader.init(store:)
+                        )
+                    case .categoryArchiveList:
+                        CaseLet(
+                            /AppFeature.Path.State.categoryArchiveList,
+                             action: AppFeature.Path.Action.categoryArchiveList,
+                             then: CategoryArchiveListV2.init(store:)
+                        )
+                    }
+                }
                 .tabItem {
                     Image(systemName: "folder")
                     Text("category")
                 }
                 .tag("category")
-                SearchViewV2(store: store.scope(state: \.search, action: {
-                    .search($0)
-                }))
+                NavigationStackStore(
+                    self.store.scope(state: \.path, action: { .path($0) })
+                ) {
+                    SearchViewV2(store: store.scope(state: \.search, action: {
+                        .search($0)
+                    }))
+                } destination: { state in
+                    switch state {
+                    case .reader:
+                        CaseLet(
+                            /AppFeature.Path.State.reader,
+                             action: AppFeature.Path.Action.reader,
+                             then: ArchiveReader.init(store:)
+                        )
+                    case .categoryArchiveList:
+                        CaseLet(
+                            /AppFeature.Path.State.categoryArchiveList,
+                             action: AppFeature.Path.Action.categoryArchiveList,
+                             then: CategoryArchiveListV2.init(store:)
+                        )
+                    }
+                }
                 .tabItem {
                     Image(systemName: "magnifyingglass")
                     Text("search")

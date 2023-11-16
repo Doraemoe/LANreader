@@ -11,6 +11,7 @@ import NotificationBannerSwift
         @BindingState var sliderIndex: Double = 0
         var pages: IdentifiedArrayOf<PageFeature.State> = []
         var archive: ArchiveItem
+        var fromStart = false
         var extracting = false
         var controlUiHidden = false
         var settingThumbnail = false
@@ -76,13 +77,13 @@ import NotificationBannerSwift
                 state.pages.append(contentsOf: pageState)
                 state.extracting = false
                 let progress = state.archive.progress > 0 ? state.archive.progress - 1 : 0
-                state.index = progress
+                state.index = state.fromStart ? 1 : progress
                 state.sliderIndex = Double(progress)
                 state.controlUiHidden = true
                 return .none
             case .loadProgress:
                 let progress = state.archive.progress > 0 ? state.archive.progress - 1 : 0
-                state.index = progress
+                state.index = state.fromStart ? 1 : progress
                 state.sliderIndex = Double(progress)
                 state.controlUiHidden = true
                 return .none
@@ -111,7 +112,7 @@ import NotificationBannerSwift
             case .updateProgress:
                 let progress = (state.index ?? 0) + 1
                 state.archive.progress = progress
-                return .run { [state] _ in
+                return .run(priority: .background) { [state] _ in
                     do {
                         _ = try await service.updateArchiveReadProgress(id: state.archive.id, progress: progress).value
                         if progress == state.archive.pagecount {

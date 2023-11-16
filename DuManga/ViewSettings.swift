@@ -49,6 +49,7 @@ import SwiftUI
 
 struct ViewSettings: View {
     @AppStorage(SettingsKey.searchSort) var searchSort: String = SearchSort.dateAdded.rawValue
+    @AppStorage(SettingsKey.hideRead) var hideRead: Bool = false
     @AppStorage(SettingsKey.blurInterfaceWhenInactive) var blurInterfaceWhenInactive: Bool = false
     @AppStorage(SettingsKey.enablePasscode) var enablePasscode: Bool = false
     @AppStorage(SettingsKey.passcode) var storedPasscode: String = ""
@@ -62,6 +63,10 @@ struct ViewSettings: View {
                     Text("settings.archive.list.order.dateAdded").tag(SearchSort.dateAdded.rawValue)
                     Text("settings.archive.list.order.name").tag(SearchSort.name.rawValue)
                 }
+                .padding()
+                Toggle(isOn: self.$hideRead, label: {
+                    Text("settings.view.hideRead")
+                })
                 .padding()
                 Toggle(isOn: self.$blurInterfaceWhenInactive, label: {
                     Text("settings.view.blur.inactive")
