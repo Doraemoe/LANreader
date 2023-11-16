@@ -2,6 +2,164 @@
 import ComposableArchitecture
 import SwiftUI
 import NotificationBannerSwift
+import Logging
+
+@Reducer struct AppFeature {
+    private let logger = Logger(label: "AppFeature")
+
+    struct State: Equatable {
+        var path = StackState<AppFeature.Path.State>()
+        @PresentationState var destination: Destination.State?
+
+        @BindingState var tabName = "library"
+        var successMessage = ""
+        var errorMessage = ""
+
+        var library = LibraryFeature.State()
+        var category = CategoryFeature.State()
+        var search = SearchFeature.State()
+        var settings = SettingsFeature.State()
+    }
+
+    enum Action: Equatable, BindableAction {
+        case path(StackAction<AppFeature.Path.State, AppFeature.Path.Action>)
+        case destination(PresentationAction<Destination.Action>)
+
+        case binding(BindingAction<State>)
+
+        case library(LibraryFeature.Action)
+        case category(CategoryFeature.Action)
+        case search(SearchFeature.Action)
+        case settings(SettingsFeature.Action)
+
+        case showLogin
+        case showLockScreen
+        case queueUrlDownload(URL)
+        case setErrorMessage(String)
+        case setSuccessMessage(String)
+    }
+
+    @Dependency(\.lanraragiService) var service
+    @Dependency(\.appDatabase) var database
+
+    var body: some Reducer<State, Action> {
+        BindingReducer()
+
+        Scope(state: \.library, action: \.library) {
+            LibraryFeature()
+        }
+        Scope(state: \.category, action: \.category) {
+            CategoryFeature()
+        }
+        Scope(state: \.search, action: \.search) {
+            SearchFeature()
+        }
+        Scope(state: \.settings, action: \.settings) {
+            SettingsFeature()
+        }
+
+        Reduce { state, action in
+            switch action {
+            case .showLogin:
+                state.destination = .login(LANraragiConfigFeature.State())
+                return .none
+            case .showLockScreen:
+                state.destination = .lockScreen(
+                    LockScreenFeature.State(lockState: .normal)
+                )
+                return .none
+            case let .queueUrlDownload(url):
+                return .run { send in
+                    var comp = URLComponents(url: url, resolvingAgainstBaseURL: false)!
+                    comp.scheme = "https"
+                    let urlToDownload = try comp.asURL().absoluteString
+                    let response = try await service.queueUrlDownload(downloadUrl: urlToDownload).value
+                    if response.success != 1 {
+                        await send(.setErrorMessage(NSLocalizedString("error.download.queue", comment: "error")))
+                    } else {
+                        var downloadJob = DownloadJob(
+                            id: response.job,
+                            url: response.url,
+                            title: "",
+                            isActive: true,
+                            isSuccess: false,
+                            isError: false,
+                            message: "",
+                            lastUpdate: Date()
+                        )
+                        try database.saveDownloadJob(&downloadJob)
+                        await send(.setSuccessMessage(NSLocalizedString("download.queue.success", comment: "success")))
+                    }
+                } catch: { error, send in
+                    logger.error("failed to queue url to download. url=\(url) \(error)")
+                    await send(.setErrorMessage(error.localizedDescription))
+                }
+
+            default:
+                return .none
+            }
+        }
+        .forEach(\.path, action: \.path) {
+            AppFeature.Path()
+        }
+        .ifLet(\.$destination, action: \.destination) {
+            Destination()
+        }
+    }
+
+    @Reducer struct Path {
+        enum State: Equatable {
+            case reader(ArchiveReaderFeature.State)
+            case categoryArchiveList(CategoryArchiveListFeature.State)
+        }
+        enum Action: Equatable {
+            case reader(ArchiveReaderFeature.Action)
+            case categoryArchiveList(CategoryArchiveListFeature.Action)
+        }
+        var body: some ReducerOf<Self> {
+            Scope(state: \.reader, action: \.reader) {
+                ArchiveReaderFeature()
+            }
+            Scope(state: \.categoryArchiveList, action: \.categoryArchiveList) {
+                CategoryArchiveListFeature()
+            }
+        }
+    }
+
+    @Reducer public struct Destination {
+        public enum State: Equatable {
+            case login(LANraragiConfigFeature.State)
+            case lockScreen(LockScreenFeature.State)
+        }
+
+        public enum Action: Equatable {
+            case login(LANraragiConfigFeature.Action)
+            case lockScreen(LockScreenFeature.Action)
+        }
+
+        public var body: some Reducer<State, Action> {
+            Scope(state: \.login, action: \.login) {
+                LANraragiConfigFeature()
+            }
+            Scope(state: \.lockScreen, action: \.lockScreen) {
+                LockScreenFeature()
+            }
+        }
+    }
+}
+
+extension AppFeature {
+    private static var _shared: StoreOf<AppFeature>?
+
+    public static var shared: StoreOf<AppFeature> {
+        if _shared == nil {
+            _shared = Store(initialState: AppFeature.State(), reducer: {
+                AppFeature()
+            })
+        }
+        return _shared!
+    }
+}
 
 struct ContentView: View {
     @Environment(\.scenePhase) var scenePhase
@@ -9,17 +167,7 @@ struct ContentView: View {
 
     let store: StoreOf<AppFeature>
 
-    @State var contentViewModel = ContentViewModel()
     private let noAnimationTransaction: Transaction
-
-    struct ViewState: Equatable {
-        @BindingViewState var tabName: String
-        let destination: AppFeature.Destination.State?
-        init(bindingViewStore: BindingViewStore<AppFeature.State>) {
-            self._tabName = bindingViewStore.$tabName
-            self.destination = bindingViewStore.destination
-        }
-    }
 
     init(store: StoreOf<AppFeature>) {
         var transaction = Transaction()
@@ -27,6 +175,19 @@ struct ContentView: View {
         self.noAnimationTransaction = transaction
 
         self.store = store
+    }
+
+    struct ViewState: Equatable {
+        @BindingViewState var tabName: String
+        let destination: AppFeature.Destination.State?
+        let successMessage: String
+        let errorMessage: String
+        init(bindingViewStore: BindingViewStore<AppFeature.State>) {
+            self._tabName = bindingViewStore.$tabName
+            self.destination = bindingViewStore.destination
+            self.successMessage = bindingViewStore.successMessage
+            self.errorMessage = bindingViewStore.errorMessage
+        }
     }
 
     var body: some View {
@@ -156,23 +317,28 @@ struct ContentView: View {
                 }
             }
             .onOpenURL { url in
-                Task {
-                    let (success, message) = await contentViewModel.queueUrlDownload(url: url)
-                    if success {
-                        let banner = NotificationBanner(
-                            title: NSLocalizedString("success", comment: "success"),
-                            subtitle: message,
-                            style: .success
-                        )
-                        banner.show()
-                    } else {
-                        let banner = NotificationBanner(
-                            title: NSLocalizedString("error", comment: "error"),
-                            subtitle: message,
-                            style: .danger
-                        )
-                        banner.show()
-                    }
+                viewStore.send(.queueUrlDownload(url))
+            }
+            .onChange(of: viewStore.errorMessage) {
+                if !viewStore.errorMessage.isEmpty {
+                    let banner = NotificationBanner(
+                        title: NSLocalizedString("error", comment: "error"),
+                        subtitle: viewStore.errorMessage,
+                        style: .danger
+                    )
+                    banner.show()
+                    viewStore.send(.setErrorMessage(""))
+                }
+            }
+            .onChange(of: viewStore.successMessage) {
+                if !viewStore.successMessage.isEmpty {
+                    let banner = NotificationBanner(
+                        title: NSLocalizedString("success", comment: "success"),
+                        subtitle: viewStore.successMessage,
+                        style: .success
+                    )
+                    banner.show()
+                    viewStore.send(.setSuccessMessage(""))
                 }
             }
         }

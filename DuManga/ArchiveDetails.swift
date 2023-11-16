@@ -35,11 +35,11 @@ struct ArchiveDetails: View {
                     .textSelection(.enabled)
                     .padding()
             }
-            ThumbnailImage(id: item.id)
-                .scaledToFit()
-                .padding()
-                .frame(width: 200, height: 250)
-                .queryObservation(.onRender)
+//            ThumbnailImage(id: item.id)
+//                .scaledToFit()
+//                .padding()
+//                .frame(width: 200, height: 250)
+//                .queryObservation(.onRender)
             if editMode == .active {
                 TextField("", text: $archiveDetailsModel.tags, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
@@ -201,7 +201,7 @@ struct ArchiveDetails: View {
             processedTag = tag
         }
         return AnyView(NavigationLink(processedTag) {
-            SearchView(keyword: String(tag.trimmingCharacters(in: .whitespacesAndNewlines)))
+//            SearchView(keyword: String(tag.trimmingCharacters(in: .whitespacesAndNewlines)))
         })
     }
 }

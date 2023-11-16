@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Alamofire
 import SwiftUI
 import Logging
 
@@ -16,6 +17,8 @@ import Logging
 
     enum Action: Equatable {
         case load(Bool)
+        case subscribeToProgress(DownloadRequest)
+        case cancelSubscribeImageProgress
         case setProgress(Double)
         case setImage(ArchiveImage?)
         case setError(String)
@@ -26,9 +29,25 @@ import Logging
     @Dependency(\.userDefaultService) var userDefault
     @Dependency(\.imageService) var imageService
 
+    enum CancelId { case imageProgress }
+
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
+            case let .subscribeToProgress(progress):
+                return .run(priority: .utility) { send in
+                    var step: Double = 0.0
+                    for await progress in progress.downloadProgress() {
+                        let percentage = progress.fractionCompleted
+                        if percentage > step {
+                            await send(.setProgress(percentage))
+                            step =  percentage + 0.1
+                        }
+                    }
+                }
+                .cancellable(id: CancelId.imageProgress)
+            case .cancelSubscribeImageProgress:
+                return .cancel(id: CancelId.imageProgress)
             case let .load(force):
                 guard !state.loading || force else {
                     return .none
@@ -48,22 +67,11 @@ import Logging
                     return .run { [id = state.pageId] send in
                         do {
                             let task = service.fetchArchivePage(page: id)
-
-                            let progressTask = Task(priority: .utility) {
-                                var step: Double = 0.0
-                                for await progress in task.downloadProgress() {
-                                    let percentage = progress.fractionCompleted
-                                    if percentage > step {
-                                        await send(.setProgress(percentage))
-                                        step =  percentage + 0.1
-                                    }
-                                }
-                            }
-
+                            await send(.subscribeToProgress(task))
                             let imageUrl = try await task
                                 .serializingDownloadedFileURL()
                                 .value
-                            progressTask.cancel()
+                            await send(.cancelSubscribeImageProgress)
 
                             if !userDefault.showOriginal {
                                 await send(.setProgress(2.0))

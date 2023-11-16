@@ -78,9 +78,6 @@ class ArchiveSelectionModel {
                 }
             }
 
-        } else if sortOrder == ArchiveListOrder.random.rawValue {
-            var generator = FixedRandomGenerator(seed: randomSeed)
-            archivesToProcess = archivesToProcess.shuffled(using: &generator)
         }
 
         var seenId = Set<String>()

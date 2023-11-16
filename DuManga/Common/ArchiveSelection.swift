@@ -26,32 +26,32 @@ struct ArchiveSelection: View {
         ]
         ScrollView {
             LazyVGrid(columns: columns) {
-                ForEach(archivesToDisplay) { item in
-                    ArchiveGrid(archiveItem: item)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            if selected.contains(item.id) {
-                                selected.remove(item.id)
-                            } else {
-                                selected.insert(item.id)
-                            }
-                        }
-                        .overlay(alignment: .bottomTrailing, content: {
-                            if selected.contains(item.id) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 50)
-                                    .foregroundColor(.accentColor)
-                                    .padding()
-                            } else { Image(systemName: "circle")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 50)
-                                    .foregroundColor(.secondary)
-                                    .padding()
-                            }
-                        })
+                ForEach(archivesToDisplay) { _ in
+//                    ArchiveGrid(archiveItem: item)
+//                        .contentShape(Rectangle())
+//                        .onTapGesture {
+//                            if selected.contains(item.id) {
+//                                selected.remove(item.id)
+//                            } else {
+//                                selected.insert(item.id)
+//                            }
+//                        }
+//                        .overlay(alignment: .bottomTrailing, content: {
+//                            if selected.contains(item.id) {
+//                                Image(systemName: "checkmark.circle.fill")
+//                                    .resizable()
+//                                    .scaledToFit()
+//                                    .frame(width: 50)
+//                                    .foregroundColor(.accentColor)
+//                                    .padding()
+//                            } else { Image(systemName: "circle")
+//                                    .resizable()
+//                                    .scaledToFit()
+//                                    .frame(width: 50)
+//                                    .foregroundColor(.secondary)
+//                                    .padding()
+//                            }
+//                        })
                 }
             }
             .padding()
