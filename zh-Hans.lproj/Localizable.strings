@@ -44,7 +44,7 @@
 
 "settings.view" = "视图设定";
 "settings.archive.list.order" = "排序";
-"settings.archive.list.order.name" = "名字";
+"settings.archive.list.order.name" = "标题";
 "settings.archive.list.order.dateAdded" = "日期";
 "settings.archive.list.order.random" = "随机";
 "settings.archive.list.view" = "使用列表视图";

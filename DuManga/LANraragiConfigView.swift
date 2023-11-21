@@ -22,6 +22,7 @@ import Logging
     }
 
     @Dependency(\.lanraragiService) var lanraragiService
+    @Dependency(\.userDefaultService) var userDefault
     @Dependency(\.dismiss) var dismiss
 
     var body: some Reducer<State, Action> {
@@ -31,15 +32,19 @@ import Logging
             case .verifyServer:
                 state.isVerifying = true
                 return .run { [state] send in
-                    do {
-                        _ = try await lanraragiService.verifyClient(url: state.url, apiKey: state.apiKey).value
-                        UserDefaults.standard.set(state.apiKey, forKey: SettingsKey.lanraragiApiKey)
-                        UserDefaults.standard.set(state.url, forKey: SettingsKey.lanraragiUrl)
-                        await send(.saveComplate)
-                    } catch {
-                        logger.error("failed to verify lanraragi server. \(error)")
-                        await send(.setErrorMessage(error.localizedDescription))
+                    let serverInfo = try await lanraragiService.verifyClient(
+                        url: state.url, apiKey: state.apiKey
+                    ).value
+                    if serverInfo.serverTracksProgress == "1" {
+                        userDefault.setServerProgress(isServerProgress: true)
+                    } else {
+                        userDefault.setServerProgress(isServerProgress: false)
                     }
+                    userDefault.saveLanrargiServer(url: state.url, apiKey: state.apiKey)
+                    await send(.saveComplate)
+                } catch: { error, send in
+                    logger.error("failed to verify lanraragi server. \(error)")
+                    await send(.setErrorMessage(error.localizedDescription))
                 }
             case .saveComplate:
                 state.isVerifying = false
@@ -100,9 +105,11 @@ struct LANraragiConfigView: View {
             .toolbar(.hidden, for: .tabBar)
             .onChange(of: viewStore.errorMessage) {
                 if !viewStore.errorMessage.isEmpty {
-                    let banner = NotificationBanner(title: NSLocalizedString("error", comment: "error"),
-                                                    subtitle: viewStore.errorMessage,
-                                                    style: .danger)
+                    let banner = NotificationBanner(
+                        title: NSLocalizedString("error", comment: "error"),
+                        subtitle: viewStore.errorMessage,
+                        style: .danger
+                    )
                     banner.show()
                     viewStore.send(.setErrorMessage(""))
                 }

@@ -109,6 +109,9 @@ import NotificationBannerSwift
                 }
             case let .updateArchiveProgress(archiveId, progress):
                 state.archives[id: archiveId]?.archive.progress = progress
+                if progress > 1 && state.archives[id: archiveId]?.archive.isNew == true {
+                    state.archives[id: archiveId]?.archive.isNew = false
+                }
                 return .none
             case let .setErrorMessage(message):
                 state.loading = false

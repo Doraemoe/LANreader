@@ -25,7 +25,7 @@ import NotificationBannerSwift
 
     enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
-        case page(id: PageFeature.State.ID, action: PageFeature.Action)
+        case page(IdentifiedActionOf<PageFeature>)
         case extractArchive
         case loadProgress
         case finishExtracting([String])
@@ -34,6 +34,7 @@ import NotificationBannerSwift
         case setIndex(Int)
         case setSliderIndex(Double)
         case updateProgress
+        case setIsNew(Bool)
         case setThumbnail
         case finishThumbnailLoading
         case tapAction(String)
@@ -43,6 +44,7 @@ import NotificationBannerSwift
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
+    @Dependency(\.userDefaultService) var userDefault
     @Dependency(\.refreshTrigger) var refreshTrigger
 
     enum CancelId { case updateProgress }
@@ -55,19 +57,17 @@ import NotificationBannerSwift
                 state.extracting = true
                 let id = state.archive.id
                 return .run { send in
-                    do {
-                        let extractResponse = try await service.extractArchive(id: id).value
-                        if extractResponse.pages.isEmpty {
-                            logger.error("server returned empty pages. id=\(id)")
-                            let errorMessage = NSLocalizedString("error.page.empty", comment: "empty content")
-                            await send(.setError(errorMessage))
-                        }
-                        await send(.finishExtracting(extractResponse.pages))
-                    } catch {
-                        logger.error("failed to extract archive page. id=\(id) \(error)")
-                        await send(.setError(error.localizedDescription))
-                        await send(.finishExtracting([]))
+                    let extractResponse = try await service.extractArchive(id: id).value
+                    if extractResponse.pages.isEmpty {
+                        logger.error("server returned empty pages. id=\(id)")
+                        let errorMessage = NSLocalizedString("error.page.empty", comment: "empty content")
+                        await send(.setError(errorMessage))
                     }
+                    await send(.finishExtracting(extractResponse.pages))
+                } catch: { error, send in
+                    logger.error("failed to extract archive page. id=\(id) \(error)")
+                    await send(.setError(error.localizedDescription))
+                    await send(.finishExtracting([]))
                 }
             case let .finishExtracting(pages):
                 let pageState = pages.enumerated().map { (index, page) in
@@ -97,10 +97,10 @@ import NotificationBannerSwift
             case let .preload(index):
                 return .run(priority: .utility) { [totalPage = state.pages.count] send in
                     if index - 1 > 0 {
-                        await send(.page(id: index - 1, action: .load(false)))
+                        await send(.page(.element(id: index - 1, action: .load(false))))
                     }
                     if index + 1 < totalPage {
-                        await send(.page(id: index + 1, action: .load(false)))
+                        await send(.page(.element(id: index + 1, action: .load(false))))
                     }
                 }
             case let .setIndex(index):
@@ -112,34 +112,37 @@ import NotificationBannerSwift
             case .updateProgress:
                 let progress = (state.index ?? 0) + 1
                 state.archive.progress = progress
-                return .run(priority: .background) { [state] _ in
-                    do {
+                return .run(priority: .background) { [state] send in
+                    if userDefault.serverProgres {
                         _ = try await service.updateArchiveReadProgress(id: state.archive.id, progress: progress).value
-                        if progress == state.archive.pagecount {
-                            _ = try await service.clearNewFlag(id: state.archive.id).value
-                        }
-                        refreshTrigger.progress.send((state.archive.id, progress))
-                    } catch {
-                        logger.error("failed to update archive progress. id=\(state.archive.id) \(error)")
                     }
+                    if progress > 1 && state.archive.isNew {
+                        _ = try await service.clearNewFlag(id: state.archive.id).value
+                        await send(.setIsNew(false))
+                    }
+                    refreshTrigger.progress.send((state.archive.id, progress))
+                } catch: { [state] error, _ in
+                    logger.error("failed to update archive progress. id=\(state.archive.id) \(error)")
                 }
                 .debounce(id: CancelId.updateProgress, for: .seconds(0.5), scheduler: DispatchQueue.main)
+            case let .setIsNew(isNew):
+                state.archive.isNew = isNew
+                return .none
             case .setThumbnail:
                 state.settingThumbnail = true
                 let index = (state.index ?? 0) + 1
                 return .run { [id = state.archive.id] send in
-                    do {
-                        _ = try await service.updateArchiveThumbnail(id: id, page: index).value
-                        let successMessage = NSLocalizedString(
-                            "archive.thumbnail.set", comment: "set thumbnail success"
-                        )
-                        await send(.setSuccess(successMessage))
-                        refreshTrigger.thumbnail.send(id)
-                    } catch {
-                        logger.error("Failed to set current page as thumbnail. id=\(id) \(error)")
-                        await send(.setError(error.localizedDescription))
-                    }
+                    _ = try await service.updateArchiveThumbnail(id: id, page: index).value
+                    let successMessage = NSLocalizedString(
+                        "archive.thumbnail.set", comment: "set thumbnail success"
+                    )
+                    await send(.setSuccess(successMessage))
+                    refreshTrigger.thumbnail.send(id)
+
                     await send(.finishThumbnailLoading)
+                } catch: { [id = state.archive.id] error, send in
+                    logger.error("Failed to set current page as thumbnail. id=\(id) \(error)")
+                    await send(.setError(error.localizedDescription))
                 }
             case .finishThumbnailLoading:
                 state.settingThumbnail = false
@@ -171,11 +174,13 @@ import NotificationBannerSwift
             case let .setError(message):
                 state.errorMessage = message
                 return .none
-            default:
+            case .binding:
+                return .none
+            case .page:
                 return .none
             }
         }
-        .forEach(\.pages, action: /Action.page(id:action:)) {
+        .forEach(\.pages, action: \.page) {
             PageFeature()
         }
     }
@@ -209,7 +214,17 @@ struct ArchiveReader: View {
                         LoadingView(geometry: geometry)
                     }
                 }
-
+            }
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    NavigationLink(
+                        state: AppFeature.Path.State.details(
+                            ArchiveDetailsFeature.State.init(id: viewStore.archive.id)
+                        )
+                    ) {
+                        Image(systemName: "info.circle")
+                    }
+                }
             }
             .toolbar(viewStore.controlUiHidden ? .hidden : .visible, for: .navigationBar)
             .navigationBarTitle(viewStore.archive.name)
@@ -270,7 +285,7 @@ struct ArchiveReader: View {
                 ForEachStore(
                     self.store.scope(
                         state: \.pages,
-                        action: { .page(id: $0, action: $1) }
+                        action: { .page($0) }
                     )
                 ) { pageStore in
                     PageImageV2(store: pageStore)
@@ -293,7 +308,7 @@ struct ArchiveReader: View {
                 ForEachStore(
                     self.store.scope(
                         state: readDirection == ReadDirection.rightLeft.rawValue ? \.reversePages : \.pages,
-                        action: { .page(id: $0, action: $1) }
+                        action: { .page($0) }
                     )
                 ) { pageStore in
                     PageImageV2(store: pageStore)
@@ -324,7 +339,7 @@ struct ArchiveReader: View {
             Grid {
                 GridRow {
                     Button(action: {
-                        viewStore.send(.page(id: viewStore.index ?? 0, action: .load(true)))
+                        viewStore.send(.page(.element(id: viewStore.index ?? 0, action: .load(true))))
                     }, label: {
                         Image(systemName: "arrow.clockwise")
                     })

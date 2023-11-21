@@ -34,7 +34,7 @@ enum ArchiveListOrder: String, CaseIterable, Identifiable {
 }
 
 enum SearchSort: String, CaseIterable, Identifiable {
-    case name = "name"
+    case name = "title"
     case dateAdded = "date_added"
 
     var id: String { self.rawValue }
@@ -55,6 +55,7 @@ enum ArchiveSelectFor: Int, CaseIterable, Identifiable {
 struct SettingsKey {
     static let lanraragiUrl = "settings.lanraragi.url"
     static let lanraragiApiKey = "settings.lanraragi.apiKey"
+    static let serverProgress = "settings.lanraragi.serverProgress"
 
     static let tapLeftKey = "settings.read.tap.left"
     static let tapMiddleKey = "settings.read.tap.middle"

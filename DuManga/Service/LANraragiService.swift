@@ -51,6 +51,12 @@ class LANraragiService {
             .serializingDecodable([ArchiveIndexResponse].self)
     }
 
+    func retrieveArchiveMetadata(id: String) -> DataTask<ArchiveIndexResponse> {
+        session.request("\(url)/api/archives/\(id)/metadata")
+            .validate()
+            .serializingDecodable(ArchiveIndexResponse.self)
+    }
+
     func retrieveArchiveThumbnail(id: String) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
         return session.download(request, to: { tempUrl, response in

@@ -66,6 +66,7 @@ struct ServerInfo: Decodable {
     let motd: String
     let name: String
     let nofunMode: String
+    let serverTracksProgress: String
     let version: String
     let versionName: String
 }

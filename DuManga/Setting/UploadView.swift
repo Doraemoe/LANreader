@@ -152,7 +152,6 @@ struct UploadView: View {
                         Text("settings.host.upload.note")
                             .font(.footnote)
                     }
-
                 }
                 .task {
                     viewStore.send(.checkJobStatus)

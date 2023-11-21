@@ -98,6 +98,7 @@
 		E9C73DC72A1C6F2F00EFDD81 /* HistoryListModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C73DC62A1C6F2F00EFDD81 /* HistoryListModel.swift */; };
 		E9CBC0F02A3DD62F00CCD592 /* LogFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */; };
 		E9D40C9B2A26334E00FC3405 /* TagMiddleware.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9D40C9A2A26334E00FC3405 /* TagMiddleware.swift */; };
+		E9DAEC552B07295D00ADC215 /* ArchiveDetailsV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9DAEC542B07295D00ADC215 /* ArchiveDetailsV2.swift */; };
 		E9DCE8992AF0665900C17236 /* ArchiveListV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9DCE8982AF0665900C17236 /* ArchiveListV2.swift */; };
 		E9DCE89C2AF0672200C17236 /* Collections in Frameworks */ = {isa = PBXBuildFile; productRef = E9DCE89B2AF0672200C17236 /* Collections */; };
 		E9DCE89E2AF0672200C17236 /* DequeModule in Frameworks */ = {isa = PBXBuildFile; productRef = E9DCE89D2AF0672200C17236 /* DequeModule */; };
@@ -239,6 +240,7 @@
 		E9C73DC62A1C6F2F00EFDD81 /* HistoryListModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryListModel.swift; sourceTree = "<group>"; };
 		E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogFormatter.swift; sourceTree = "<group>"; };
 		E9D40C9A2A26334E00FC3405 /* TagMiddleware.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagMiddleware.swift; sourceTree = "<group>"; };
+		E9DAEC542B07295D00ADC215 /* ArchiveDetailsV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveDetailsV2.swift; sourceTree = "<group>"; };
 		E9DCE8982AF0665900C17236 /* ArchiveListV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveListV2.swift; sourceTree = "<group>"; };
 		E9DCE8A12AF0795600C17236 /* SearchViewV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewV2.swift; sourceTree = "<group>"; };
 		E9E3631E26F471E400C58D01 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
@@ -350,6 +352,7 @@
 			isa = PBXGroup;
 			children = (
 				4BD825AB0EEF9DE292B50E98 /* ArchiveDetails.swift */,
+				E9DAEC542B07295D00ADC215 /* ArchiveDetailsV2.swift */,
 				4BD8253353671DDCADE174C9 /* ArchiveDetailsModel.swift */,
 				6DA71C5217BC4916AB9D5C36 /* PageImage.swift */,
 				E9BFA2062AF52C3300DDE107 /* PageImageV2.swift */,
@@ -798,6 +801,7 @@
 				4BD823F7B477CFE0048BB307 /* AppReducer.swift in Sources */,
 				E9BE57B42942F1AB00A3AEA0 /* LockScreenModel.swift in Sources */,
 				E98B8B902A0BA9D1004CBBC0 /* UploadView.swift in Sources */,
+				E9DAEC552B07295D00ADC215 /* ArchiveDetailsV2.swift in Sources */,
 				4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */,
 				4BD82760E9B084402AFE07F2 /* UserDefaultService.swift in Sources */,
 				4BD821C3FDF1FC3B60AB4823 /* AppModels.swift in Sources */,

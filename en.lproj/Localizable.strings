@@ -44,7 +44,7 @@
 
 "settings.view" = "View Settings";
 "settings.archive.list.order" = "Sort by";
-"settings.archive.list.order.name" = "Name";
+"settings.archive.list.order.name" = "Title";
 "settings.archive.list.order.dateAdded" = "Date";
 "settings.archive.list.order.random" = "Random";
 "settings.archive.list.view" = "Use list view";

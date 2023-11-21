@@ -9,7 +9,7 @@ struct ArchiveItem: Identifiable, Equatable, Hashable {
     let normalizedName: String
     let `extension`: String
     let tags: String
-    let isNew: Bool
+    var isNew: Bool
     var progress: Int
     let pagecount: Int
     let dateAdded: Int?

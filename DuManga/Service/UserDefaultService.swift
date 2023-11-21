@@ -30,6 +30,14 @@ class UserDefaultService {
         UserDefaults.standard.set(passcode, forKey: SettingsKey.passcode)
     }
 
+    var serverProgres: Bool {
+        return UserDefaults.standard.bool(forKey: SettingsKey.serverProgress)
+    }
+
+    func setServerProgress(isServerProgress: Bool) {
+        UserDefaults.standard.set(isServerProgress, forKey: SettingsKey.serverProgress)
+    }
+
     public static var shared: UserDefaultService {
         if _shared == nil {
             _shared = UserDefaultService()

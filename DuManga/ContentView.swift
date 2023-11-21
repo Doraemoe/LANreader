@@ -94,7 +94,18 @@ import Logging
                     logger.error("failed to queue url to download. url=\(url) \(error)")
                     await send(.setErrorMessage(error.localizedDescription))
                 }
-
+            case let .path(.element(id: id, action: .details(.deleteSuccess))):
+                guard case .details = state.path[id: id]
+                 else { return .none }
+                let penultimateId = state.path.ids.dropLast().last
+                state.path.pop(from: penultimateId!)
+                return .none
+            case let .setErrorMessage(message):
+                state.errorMessage = message
+                return .none
+            case let .setSuccessMessage(message):
+                state.successMessage = message
+                return .none
             default:
                 return .none
             }
@@ -110,18 +121,28 @@ import Logging
     @Reducer struct Path {
         enum State: Equatable {
             case reader(ArchiveReaderFeature.State)
+            case details(ArchiveDetailsFeature.State)
             case categoryArchiveList(CategoryArchiveListFeature.State)
+            case search(SearchFeature.State)
         }
         enum Action: Equatable {
             case reader(ArchiveReaderFeature.Action)
+            case details(ArchiveDetailsFeature.Action)
             case categoryArchiveList(CategoryArchiveListFeature.Action)
+            case search(SearchFeature.Action)
         }
         var body: some ReducerOf<Self> {
             Scope(state: \.reader, action: \.reader) {
                 ArchiveReaderFeature()
             }
+            Scope(state: \.details, action: \.details) {
+                ArchiveDetailsFeature()
+            }
             Scope(state: \.categoryArchiveList, action: \.categoryArchiveList) {
                 CategoryArchiveListFeature()
+            }
+            Scope(state: \.search, action: \.search) {
+                SearchFeature()
             }
         }
     }
@@ -193,95 +214,10 @@ struct ContentView: View {
     var body: some View {
         WithViewStore(self.store, observe: ViewState.init) { viewStore in
             TabView(selection: viewStore.$tabName) {
-                NavigationStackStore(
-                    self.store.scope(state: \.path, action: { .path($0) })
-                ) {
-                    LibraryListV2(store: store.scope(state: \.library, action: {
-                        .library($0)
-                    }))
-                } destination: { state in
-                    switch state {
-                    case .reader:
-                        CaseLet(
-                            /AppFeature.Path.State.reader,
-                             action: AppFeature.Path.Action.reader,
-                             then: ArchiveReader.init(store:)
-                        )
-                    case .categoryArchiveList:
-                        CaseLet(
-                            /AppFeature.Path.State.categoryArchiveList,
-                             action: AppFeature.Path.Action.categoryArchiveList,
-                             then: CategoryArchiveListV2.init(store:)
-                        )
-                    }
-                }
-                .tabItem {
-                    Image(systemName: "books.vertical")
-                    Text("library")
-                }
-                .tag("library")
-                NavigationStackStore(
-                    self.store.scope(state: \.path, action: { .path($0) })
-                ) {
-                    CategoryListV2(store: store.scope(state: \.category, action: {
-                        .category($0)
-                    }))
-                } destination: { state in
-                    switch state {
-                    case .reader:
-                        CaseLet(
-                            /AppFeature.Path.State.reader,
-                             action: AppFeature.Path.Action.reader,
-                             then: ArchiveReader.init(store:)
-                        )
-                    case .categoryArchiveList:
-                        CaseLet(
-                            /AppFeature.Path.State.categoryArchiveList,
-                             action: AppFeature.Path.Action.categoryArchiveList,
-                             then: CategoryArchiveListV2.init(store:)
-                        )
-                    }
-                }
-                .tabItem {
-                    Image(systemName: "folder")
-                    Text("category")
-                }
-                .tag("category")
-                NavigationStackStore(
-                    self.store.scope(state: \.path, action: { .path($0) })
-                ) {
-                    SearchViewV2(store: store.scope(state: \.search, action: {
-                        .search($0)
-                    }))
-                } destination: { state in
-                    switch state {
-                    case .reader:
-                        CaseLet(
-                            /AppFeature.Path.State.reader,
-                             action: AppFeature.Path.Action.reader,
-                             then: ArchiveReader.init(store:)
-                        )
-                    case .categoryArchiveList:
-                        CaseLet(
-                            /AppFeature.Path.State.categoryArchiveList,
-                             action: AppFeature.Path.Action.categoryArchiveList,
-                             then: CategoryArchiveListV2.init(store:)
-                        )
-                    }
-                }
-                .tabItem {
-                    Image(systemName: "magnifyingglass")
-                    Text("search")
-                }
-                .tag("search")
-                SettingsView(store: store.scope(state: \.settings, action: {
-                    .settings($0)
-                }))
-                .tabItem {
-                    Image(systemName: "gearshape")
-                    Text("settings")
-                }
-                .tag("settings")
+                libraryView
+                categoryView
+                searchView
+                settingsView
             }
             .fullScreenCover(
                 store: self.store.scope(state: \.$destination, action: { .destination($0) }),
@@ -342,5 +278,142 @@ struct ContentView: View {
                 }
             }
         }
+    }
+
+    var libraryView: some View {
+        NavigationStackStore(
+            self.store.scope(state: \.path, action: { .path($0) })
+        ) {
+            LibraryListV2(store: store.scope(state: \.library, action: {
+                .library($0)
+            }))
+        } destination: { (state: AppFeature.Path.State) in
+            switch state {
+            case .reader:
+                CaseLet(
+                    /AppFeature.Path.State.reader,
+                     action: AppFeature.Path.Action.reader,
+                     then: ArchiveReader.init(store:)
+                )
+            case .details:
+                CaseLet(
+                    /AppFeature.Path.State.details,
+                     action: AppFeature.Path.Action.details,
+                     then: ArchiveDetailsV2.init(store:)
+                )
+            case .categoryArchiveList:
+                CaseLet(
+                    /AppFeature.Path.State.categoryArchiveList,
+                     action: AppFeature.Path.Action.categoryArchiveList,
+                     then: CategoryArchiveListV2.init(store:)
+                )
+            case .search:
+                CaseLet(
+                    /AppFeature.Path.State.search,
+                     action: AppFeature.Path.Action.search,
+                     then: SearchViewV2.init(store:)
+                )
+            }
+        }
+        .tabItem {
+            Image(systemName: "books.vertical")
+            Text("library")
+        }
+        .tag("library")
+    }
+
+    var categoryView: some View {
+        NavigationStackStore(
+            self.store.scope(state: \.path, action: { .path($0) })
+        ) {
+            CategoryListV2(store: store.scope(state: \.category, action: {
+                .category($0)
+            }))
+        } destination: { (state: AppFeature.Path.State) in
+            switch state {
+            case .reader:
+                CaseLet(
+                    /AppFeature.Path.State.reader,
+                     action: AppFeature.Path.Action.reader,
+                     then: ArchiveReader.init(store:)
+                )
+            case .details:
+                CaseLet(
+                    /AppFeature.Path.State.details,
+                     action: AppFeature.Path.Action.details,
+                     then: ArchiveDetailsV2.init(store:)
+                )
+            case .categoryArchiveList:
+                CaseLet(
+                    /AppFeature.Path.State.categoryArchiveList,
+                     action: AppFeature.Path.Action.categoryArchiveList,
+                     then: CategoryArchiveListV2.init(store:)
+                )
+            case .search:
+                CaseLet(
+                    /AppFeature.Path.State.search,
+                     action: AppFeature.Path.Action.search,
+                     then: SearchViewV2.init(store:)
+                )
+            }
+        }
+        .tabItem {
+            Image(systemName: "folder")
+            Text("category")
+        }
+        .tag("category")
+    }
+
+    var searchView: some View {
+        NavigationStackStore(
+            self.store.scope(state: \.path, action: { .path($0) })
+        ) {
+            SearchViewV2(store: store.scope(state: \.search, action: {
+                .search($0)
+            }))
+        } destination: { (state: AppFeature.Path.State) in
+            switch state {
+            case .reader:
+                CaseLet(
+                    /AppFeature.Path.State.reader,
+                     action: AppFeature.Path.Action.reader,
+                     then: ArchiveReader.init(store:)
+                )
+            case .details:
+                CaseLet(
+                    /AppFeature.Path.State.details,
+                     action: AppFeature.Path.Action.details,
+                     then: ArchiveDetailsV2.init(store:)
+                )
+            case .categoryArchiveList:
+                CaseLet(
+                    /AppFeature.Path.State.categoryArchiveList,
+                     action: AppFeature.Path.Action.categoryArchiveList,
+                     then: CategoryArchiveListV2.init(store:)
+                )
+            case .search:
+                CaseLet(
+                    /AppFeature.Path.State.search,
+                     action: AppFeature.Path.Action.search,
+                     then: SearchViewV2.init(store:)
+                )
+            }
+        }
+        .tabItem {
+            Image(systemName: "magnifyingglass")
+            Text("search")
+        }
+        .tag("search")
+    }
+
+    var settingsView: some View {
+        SettingsView(store: store.scope(state: \.settings, action: {
+            .settings($0)
+        }))
+        .tabItem {
+            Image(systemName: "gearshape")
+            Text("settings")
+        }
+        .tag("settings")
     }
 }

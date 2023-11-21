@@ -65,9 +65,6 @@ import Logging
                 }
                 state.suggestedTag = []
                 state.archiveList.filter = SearchFilter(category: nil, filter: keyword)
-//                return .run { send in
-//                    send(.archiveList(.setFilter(SearchFilter(category: nil, filter: keyword))))
-//                }
                 return .none
             case .binding:
                 return .none
