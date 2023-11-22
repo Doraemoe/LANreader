@@ -123,11 +123,10 @@ struct PageImageV2: View {
                         Image(uiImage: uiImage)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: geometrySize.width)
                             .draggableAndZoomable(contentSize: geometrySize)
                     } else {
                         Image(systemName: "rectangle.slash")
-                            .frame(width: geometrySize.width, height: geometrySize.height)
+                            .frame(height: geometrySize.height)
                     }
                 } else {
                     ProgressView(
@@ -141,7 +140,7 @@ struct PageImageV2: View {
                         Text(String(format: "%.2f%%", viewStore.progress * 100))
                     }
                     .progressViewStyle(.linear)
-                    .frame(width: geometrySize.width, height: geometrySize.height)
+                    .frame(height: geometrySize.height)
                     .padding(.horizontal, 20)
                     .tint(.primary)
                     .onAppear {

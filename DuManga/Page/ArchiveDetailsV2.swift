@@ -72,7 +72,9 @@ import NotificationBannerSwift
                     archive.name = state.title
                     archive.tags = state.tags
                     _ = try await service.updateArchive(archive: archive).value
-                    await send(.setSuccessMessage(NSLocalizedString("archive.metadata.update.success", comment: "success")))
+                    await send(.setSuccessMessage(
+                        NSLocalizedString("archive.metadata.update.success", comment: "success"))
+                    )
                 } catch: { [id = state.id] error, send in
                     logger.error("failed to update archive. id=\(id) \(error)")
                     await send(.setErrorMessage(error.localizedDescription))
@@ -128,7 +130,9 @@ import NotificationBannerSwift
             case let .addArchiveToCategory(categoryId):
                 return .run { [state] send in
                     if state.categoryItems![id: categoryId]?.archives.contains(state.id) == false {
-                        let response = try await service.addArchiveToCategory(categoryId: categoryId, archiveId: state.id).value
+                        let response = try await service.addArchiveToCategory(
+                            categoryId: categoryId, archiveId: state.id
+                        ).value
                         if response.success == 1 {
                             await send(.setSuccessMessage(
                                 NSLocalizedString("archive.category.add.success", comment: "success"))

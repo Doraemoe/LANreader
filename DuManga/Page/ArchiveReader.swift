@@ -289,6 +289,7 @@ struct ArchiveReader: View {
                     )
                 ) { pageStore in
                     PageImageV2(store: pageStore, geometrySize: geometry.size)
+                        .frame(width: geometry.size.width)
                 }
             }
             .scrollTargetLayout()
@@ -310,6 +311,7 @@ struct ArchiveReader: View {
                     )
                 ) { pageStore in
                     PageImageV2(store: pageStore, geometrySize: geometry.size)
+                        .frame(width: geometry.size.width)
                 }
             }
             .scrollTargetLayout()
