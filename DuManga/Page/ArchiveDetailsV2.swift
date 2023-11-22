@@ -1,6 +1,7 @@
 import ComposableArchitecture
 import SwiftUI
 import Logging
+import NotificationBannerSwift
 
 @Reducer struct ArchiveDetailsFeature {
     private let logger = Logger(label: "ArchiveDetailsFeature")
@@ -12,7 +13,9 @@ import Logging
         @BindingState var title = ""
         @BindingState var tags = ""
         var errorMessage = ""
+        var successMessage = ""
         var archiveMetadata: ArchiveMetadata?
+        var categoryItems: IdentifiedArrayOf<CategoryItem>?
         var loading = false
     }
 
@@ -21,8 +24,15 @@ import Logging
         case alert(PresentationAction<Alert>)
 
         case loadMetadata
+        case updateArchiveMetadata
+        case loadCategory
+        case populateCategory([CategoryItem])
+        case addArchiveToCategory(String)
+        case removeArchiveFromCategory(String)
+        case updateLocalCategoryItems(String, String, Bool)
         case setArchiveMetadata(ArchiveMetadata)
         case setErrorMessage(String)
+        case setSuccessMessage(String)
 
         case deleteButtonTapped
         case deleteSuccess
@@ -33,6 +43,7 @@ import Logging
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
+    @Dependency(\.refreshTrigger) var refreshTrigger
 
     var body: some ReducerOf<Self> {
         BindingReducer()
@@ -47,7 +58,7 @@ import Logging
                     await send(
                         .setArchiveMetadata(
                             ArchiveMetadata(
-                                title: metadata.title, archiveThumbnail: thumbnailData, tags: metadata.tags ?? ""
+                                archive: metadata.toArchiveItem(), archiveThumbnail: thumbnailData
                             )
                         )
                     )
@@ -55,14 +66,21 @@ import Logging
                     logger.error("failed to load archive details. id=\(state.id) \(error)")
                     await send(.setErrorMessage(error.localizedDescription))
                 }
+            case .updateArchiveMetadata:
+                return .run { [state] send in
+                    var archive = state.archiveMetadata!.archive
+                    archive.name = state.title
+                    archive.tags = state.tags
+                    _ = try await service.updateArchive(archive: archive).value
+                    await send(.setSuccessMessage(NSLocalizedString("archive.metadata.update.success", comment: "success")))
+                } catch: { [id = state.id] error, send in
+                    logger.error("failed to update archive. id=\(id) \(error)")
+                    await send(.setErrorMessage(error.localizedDescription))
+                }
             case let .setArchiveMetadata(metadata):
                 state.archiveMetadata = metadata
-                state.title = metadata.title
-                state.tags = metadata.tags
-                state.loading = false
-                return .none
-            case let .setErrorMessage(message):
-                state.errorMessage = message
+                state.title = metadata.archive.name
+                state.tags = metadata.archive.tags
                 state.loading = false
                 return .none
             case .deleteButtonTapped:
@@ -82,19 +100,96 @@ import Logging
                 return .run { [id = state.id] send in
                     let response = try await service.deleteArchive(id: id).value
                     if response.success == 1 {
+                        refreshTrigger.delete.send(id)
                         await send(.deleteSuccess)
                     } else {
                         await send(.setErrorMessage(NSLocalizedString("error.archive.delete", comment: "error")))
                     }
-                } catch: { [id = state.id] error, _ in
+                } catch: { [id = state.id] error, send in
                     logger.error("failed to delete archive, id=\(id) \(error)")
+                    await send(.setErrorMessage(error.localizedDescription))
                 }
+            case .loadCategory:
+                return .run { send in
+                    let categories = try await service.retrieveCategories().value
+                    let items = categories.map { item in
+                        item.toCategoryItem()
+                    }.filter { item in
+                        item.search.isEmpty
+                    }
+                    await send(.populateCategory(items))
+                } catch: { error, send in
+                    logger.error("failed to load category. \(error)")
+                    await send(.setErrorMessage(error.localizedDescription))
+                }
+            case let .populateCategory(items):
+                state.categoryItems = IdentifiedArray(uniqueElements: items)
+                return .none
+            case let .addArchiveToCategory(categoryId):
+                return .run { [state] send in
+                    if state.categoryItems![id: categoryId]?.archives.contains(state.id) == false {
+                        let response = try await service.addArchiveToCategory(categoryId: categoryId, archiveId: state.id).value
+                        if response.success == 1 {
+                            await send(.setSuccessMessage(
+                                NSLocalizedString("archive.category.add.success", comment: "success"))
+                            )
+                            await send(.updateLocalCategoryItems(state.id, categoryId, true))
+                        } else {
+                            await send(.setErrorMessage(
+                                NSLocalizedString("archive.category.add.error", comment: "error"))
+                            )
+                        }
+                    }
+                } catch: { [id = state.id] error, send in
+                    logger.error(
+                        "failed to add archive to category. categoryId=\(categoryId), archiveId=\(id) \(error)"
+                    )
+                    await send(.setErrorMessage(error.localizedDescription))
+                }
+            case let .removeArchiveFromCategory(categoryId):
+                return .run { [state] send in
+                    if state.categoryItems![id: categoryId]?.archives.contains(state.id) == true {
+                        let response = try await service.removeArchiveFromCategory(
+                            categoryId: categoryId, archiveId: state.id
+                        ).value
+                        if response.success == 1 {
+                            await send(.setSuccessMessage(
+                                NSLocalizedString("archive.category.remove.success", comment: "success"))
+                            )
+                            await send(.updateLocalCategoryItems(state.id, categoryId, false))
+                        } else {
+                            await send(.setErrorMessage(
+                                NSLocalizedString("archive.category.remove.error", comment: "error"))
+                            )
+                        }
+                    }
+                } catch: { [id = state.id] error, send in
+                    logger.error(
+                        "failed to remove archive from category. categoryId=\(categoryId), archiveId=\(id) \(error)"
+                    )
+                    await send(.setErrorMessage(error.localizedDescription))
+                }
+            case let .updateLocalCategoryItems(archiveId, categoryId, isAdd):
+                if isAdd {
+                    state.categoryItems![id: categoryId]?.archives.append(archiveId)
+                } else {
+                    state.categoryItems![id: categoryId]?.archives.removeAll { id in
+                        id == archiveId
+                    }
+                }
+                return .none
+            case let .setErrorMessage(message):
+                state.errorMessage = message
+                state.loading = false
+                return .none
+            case let .setSuccessMessage(message):
+                state.successMessage = message
+                return .none
             case .alert:
                 return .none
             case .deleteSuccess:
-                state.loading = false
                 return .none
-            default:
+            case .binding:
                 return .none
             }
         }
@@ -102,9 +197,8 @@ import Logging
     }
 
     struct ArchiveMetadata: Equatable {
-        let title: String
+        let archive: ArchiveItem
         let archiveThumbnail: ArchiveThumbnail?
-        let tags: String
     }
 }
 
@@ -116,20 +210,9 @@ struct ArchiveDetailsV2: View {
 
     var body: some View {
         WithViewStore(self.store, observe: { $0 }) { (viewStore: ViewStoreOf<ArchiveDetailsFeature>) in
-            if viewStore.archiveMetadata != nil {
-                ScrollView {
-                    if viewStore.editMode == .active {
-                        TextField("", text: viewStore.$title, axis: .vertical)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .textFieldStyle(.roundedBorder)
-                            .padding()
-                    } else {
-                        Text(viewStore.archiveMetadata!.title)
-                            .textFieldStyle(.roundedBorder)
-                            .textSelection(.enabled)
-                            .padding()
-                    }
+            ScrollView {
+                if viewStore.archiveMetadata != nil {
+                    titleView(viewStore: viewStore)
                     if let imageData = viewStore.archiveMetadata!.archiveThumbnail?.thumbnail {
                         Image(uiImage: UIImage(data: imageData)!)
                             .resizable()
@@ -140,25 +223,7 @@ struct ArchiveDetailsV2: View {
                         Image(systemName: "photo")
                             .foregroundColor(.primary)
                     }
-                    if viewStore.editMode == .active {
-                        TextField("", text: viewStore.$tags, axis: .vertical)
-                            .textFieldStyle(.roundedBorder)
-                            .textInputAutocapitalization(.never)
-                            .disableAutocorrection(true)
-                            .padding()
-                    } else {
-                        WrappingHStack(
-                            models: viewStore.archiveMetadata!.tags.split(separator: ","),
-                            viewGenerator: { tag in
-                                parseTag(tag: String(tag))
-                                    .padding()
-                                    .controlSize(.mini)
-                                    .foregroundColor(.white)
-                                    .background(.blue)
-                                    .clipShape(Capsule())
-                            })
-                        .padding()
-                    }
+                    tagsView(viewStore: viewStore)
                     if viewStore.editMode != .active {
                         Button(
                             role: .destructive,
@@ -173,33 +238,124 @@ struct ArchiveDetailsV2: View {
                         .clipShape(Capsule())
                         .disabled(viewStore.loading)
                     }
-                }
-                .toolbar {
-                    ToolbarItemGroup(placement: .topBarTrailing) {
-                        Menu {
-                            Text("archive.category.manage")
-                        } label: {
-                            Image(systemName: "folder.badge.gear")
+                } else {
+                    ProgressView("loading")
+                        .onAppear {
+                            viewStore.send(.loadMetadata)
                         }
-                        .disabled(viewStore.loading)
-                        EditButton()
-                            .disabled(viewStore.loading)
-                    }
                 }
-                .environment(\.editMode, viewStore.$editMode)
-                .alert(
-                  store: self.store.scope(
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Menu {
+                        if viewStore.categoryItems != nil {
+                            Text("archive.category.manage")
+                            ForEach(viewStore.categoryItems!) { item in
+                                Button {
+                                    if item.archives.contains(viewStore.id) {
+                                        viewStore.send(.removeArchiveFromCategory(item.id))
+                                    } else {
+                                        viewStore.send(.addArchiveToCategory(item.id))
+                                    }
+                                } label: {
+                                    if item.archives.contains(viewStore.id) {
+                                        Label(item.name, systemImage: "checkmark")
+                                    } else {
+                                        Text(item.name)
+                                    }
+                                }
+                            }
+                        } else {
+                            ProgressView("loading")
+                                .onAppear {
+                                    viewStore.send(.loadCategory)
+                                }
+                        }
+                    } label: {
+                        Image(systemName: "folder.badge.gear")
+                    }
+                    .disabled(viewStore.loading)
+                    EditButton()
+                        .disabled(viewStore.loading)
+                }
+            }
+            .environment(\.editMode, viewStore.$editMode)
+            .alert(
+                store: self.store.scope(
                     state: \.$alert,
                     action: { .alert($0) }
-                  )
                 )
-            } else {
-                ProgressView("loading")
-                    .onAppear {
-                        viewStore.send(.loadMetadata)
-                    }
+            )
+            .onChange(of: viewStore.editMode) { oldMode, newMode in
+                if oldMode == .active && newMode == .inactive {
+                    viewStore.send(.updateArchiveMetadata)
+                }
             }
+            .onChange(of: viewStore.successMessage) {
+                if !viewStore.successMessage.isEmpty {
+                    let banner = NotificationBanner(
+                        title: NSLocalizedString("success", comment: "success"),
+                        subtitle: viewStore.successMessage,
+                        style: .success
+                    )
+                    banner.show()
+                    viewStore.send(.setSuccessMessage(""))
+                }
+            }
+            .onChange(of: viewStore.errorMessage) {
+                if !viewStore.errorMessage.isEmpty {
+                    let banner = NotificationBanner(
+                        title: NSLocalizedString("error", comment: "error"),
+                        subtitle: viewStore.errorMessage,
+                        style: .danger
+                    )
+                    banner.show()
+                    viewStore.send(.setErrorMessage(""))
+                }
+            }
+        }
+    }
 
+    @MainActor
+    private func titleView(viewStore: ViewStoreOf<ArchiveDetailsFeature>) -> some View {
+        Group {
+            if viewStore.editMode == .active {
+                TextField("", text: viewStore.$title, axis: .vertical)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .textFieldStyle(.roundedBorder)
+                    .padding()
+            } else {
+                Text(viewStore.title)
+                    .textFieldStyle(.roundedBorder)
+                    .textSelection(.enabled)
+                    .padding()
+            }
+        }
+    }
+
+    @MainActor
+    private func tagsView(viewStore: ViewStoreOf<ArchiveDetailsFeature>) -> some View {
+        Group {
+            if viewStore.editMode == .active {
+                TextField("", text: viewStore.$tags, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .textInputAutocapitalization(.never)
+                    .disableAutocorrection(true)
+                    .padding()
+            } else {
+                WrappingHStack(
+                    models: viewStore.tags.split(separator: ","),
+                    viewGenerator: { tag in
+                        parseTag(tag: String(tag))
+                            .padding()
+                            .controlSize(.mini)
+                            .foregroundColor(.white)
+                            .background(.blue)
+                            .clipShape(Capsule())
+                    })
+                .padding()
+            }
         }
     }
 
@@ -210,9 +366,11 @@ struct ArchiveDetailsV2: View {
         let tagValue = tagPair.count == 2 ? tagPair[1].trimmingCharacters(in: .whitespacesAndNewlines) : ""
         if tagName == ArchiveDetailsV2.sourceTag {
             let urlString = tagValue.hasPrefix("http") ? tagValue : "https://\(tagValue)"
-            return AnyView(Link(destination: URL(string: urlString)!) {
-                Text(tag)
-            })
+            return AnyView(
+                Link(destination: URL(string: urlString)!) {
+                    Text(tag)
+                }
+            )
         }
         let processedTag: String
         if tagName == ArchiveDetailsV2.dateTag {
@@ -222,17 +380,19 @@ struct ArchiveDetailsV2: View {
             processedTag = tag
         }
         let normalizedTag = String(tag.trimmingCharacters(in: .whitespacesAndNewlines))
-        return AnyView(NavigationLink(
-            state: AppFeature.Path.State.search(
-                SearchFeature.State.init(
-                    keyword: normalizedTag, archiveList: ArchiveListFeature.State(
-                        filter: SearchFilter(category: nil, filter: normalizedTag),
-                        loadOnAppear: true
+        return AnyView(
+            NavigationLink(
+                state: AppFeature.Path.State.search(
+                    SearchFeature.State.init(
+                        keyword: normalizedTag, archiveList: ArchiveListFeature.State(
+                            filter: SearchFilter(category: nil, filter: normalizedTag),
+                            loadOnAppear: true
+                        )
                     )
                 )
-            )
-        ) {
-            Text(processedTag)
-        })
+            ) {
+                Text(processedTag)
+            }
+        )
     }
 }

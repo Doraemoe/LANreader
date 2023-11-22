@@ -92,6 +92,7 @@
 "archive.category.add.error" = "添加文档至类别失败";
 "archive.category.remove.success" = "成功从类别中移除文档";
 "archive.category.remove.error" = "从类别中移除文档失败";
+"archive.metadata.update.success" = "成功更新文档元数据";
 
 "category.edit" = "编辑类别";
 "category.name" = "类别名";

@@ -32,9 +32,11 @@ import NotificationBannerSwift
         case populateArchives([ArchiveItem], Int, Bool)
         case subscribeThumbnailTrigger
         case subscribeProgressTrigger
+        case subscribeDeleteTrigger
         case refreshThumbnail(String)
         case updateArchiveProgress(String, Int)
         case appendArchives(String)
+        case removeArchive(String)
         case setErrorMessage(String)
         case cancelSearch
     }
@@ -58,6 +60,12 @@ import NotificationBannerSwift
                 return .run { send in
                     for await (archiveId, progress) in refreshTrigger.progress.values {
                         await send(.updateArchiveProgress(archiveId, progress))
+                    }
+                }
+            case .subscribeDeleteTrigger:
+                return .run { send in
+                    for await archiveId in refreshTrigger.delete.values {
+                        await send(.removeArchive(archiveId))
                     }
                 }
             case let .setFilter(filter):
@@ -88,6 +96,9 @@ import NotificationBannerSwift
                 return self.search(
                     state: &state, searchFilter: state.filter, sortby: sortby, start: start, order: order, append: true
                 )
+            case let .removeArchive(id):
+                state.archives.remove(id: id)
+                return .none
             case let .populateArchives(archives, total, append):
                 let gridFeatureState = archives.map { item in
                     GridFeature.State(archive: item)
@@ -297,6 +308,7 @@ struct ArchiveListV2: View {
 struct RefreshTrigger {
     var thumbnail = PassthroughSubject<String, Never>()
     var progress = PassthroughSubject<(String, Int), Never>()
+    var delete = PassthroughSubject<String, Never>()
 }
 
 private enum RefreshTriggerKey: DependencyKey {

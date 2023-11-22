@@ -5,10 +5,10 @@ import SwiftUI
 
 struct ArchiveItem: Identifiable, Equatable, Hashable {
     let id: String
-    let name: String
+    var name: String
     let normalizedName: String
     let `extension`: String
-    let tags: String
+    var tags: String
     var isNew: Bool
     var progress: Int
     let pagecount: Int
@@ -18,7 +18,7 @@ struct ArchiveItem: Identifiable, Equatable, Hashable {
 struct CategoryItem: Identifiable, Equatable, Hashable {
     let id: String
     let name: String
-    let archives: [String]
+    var archives: [String]
     let search: String
     let pinned: String
 }

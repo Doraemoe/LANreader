@@ -89,6 +89,7 @@
 "archive.category.add.error" = "Failed to add archive to category";
 "archive.category.remove.success" = "Successfully removed archive from category";
 "archive.category.remove.error" = "Failed to remove archive from category";
+"archive.metadata.update.success" = "Successfully updated archive metadata";
 
 "settings.debug" = "Debug";
 "settings.debug.log" = "Application log";
