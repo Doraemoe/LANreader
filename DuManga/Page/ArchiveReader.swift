@@ -288,9 +288,7 @@ struct ArchiveReader: View {
                         action: { .page($0) }
                     )
                 ) { pageStore in
-                    PageImageV2(store: pageStore)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .draggableAndZoomable(contentSize: geometry.size)
+                    PageImageV2(store: pageStore, geometrySize: geometry.size)
                 }
             }
             .scrollTargetLayout()
@@ -311,9 +309,7 @@ struct ArchiveReader: View {
                         action: { .page($0) }
                     )
                 ) { pageStore in
-                    PageImageV2(store: pageStore)
-                        .frame(width: geometry.size.width)
-                        .draggableAndZoomable(contentSize: geometry.size)
+                    PageImageV2(store: pageStore, geometrySize: geometry.size)
                 }
             }
             .scrollTargetLayout()
