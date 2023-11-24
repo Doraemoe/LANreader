@@ -8,6 +8,10 @@ import NotificationBannerSwift
 @Reducer struct ArchiveListFeature {
     private let logger = Logger(label: "ArchiveListFeature")
     struct State: Equatable {
+        @PresentationState var alert: AlertState<Action.Alert>?
+        var selectMode: EditMode = .inactive
+        var selected: Set<String> = .init()
+        var categoryItems: IdentifiedArrayOf<CategoryItem>?
         var filter: SearchFilter
         var loadOnAppear = true
         var archives: IdentifiedArrayOf<GridFeature.State> = []
@@ -15,6 +19,7 @@ import NotificationBannerSwift
         var showLoading: Bool = false
         var total: Int = 0
         var errorMessage = ""
+        var successMessage = ""
 
         var hideReadArchives: IdentifiedArrayOf<GridFeature.State> {
             let result = archives.filter {
@@ -25,7 +30,12 @@ import NotificationBannerSwift
     }
 
     enum Action: Equatable {
+        case alert(PresentationAction<Alert>)
         case grid(IdentifiedActionOf<GridFeature>)
+        case loadCategory
+        case populateCategory([CategoryItem])
+        case addArchivesToCategory(String)
+        case updateLocalCategory(String, Set<String>)
         case setFilter(SearchFilter)
         case resetArchives
         case load(Bool)
@@ -38,7 +48,16 @@ import NotificationBannerSwift
         case appendArchives(String)
         case removeArchive(String)
         case setErrorMessage(String)
+        case setSuccessMessage(String)
         case cancelSearch
+        case addSelect(String)
+        case removeSelect(String)
+
+        case deleteButtonTapped
+        case deleteSuccess(Set<String>)
+        enum Alert {
+            case confirmDelete
+        }
     }
 
     @Dependency(\.lanraragiService) var service
@@ -129,6 +148,9 @@ import NotificationBannerSwift
                 state.showLoading = false
                 state.errorMessage = message
                 return .none
+            case let .setSuccessMessage(message):
+                state.successMessage = message
+                return .none
             case .grid:
                 return .none
             case .cancelSearch:
@@ -138,11 +160,130 @@ import NotificationBannerSwift
                     return .cancel(id: CancelId.search)
                 }
                 return .none
+            case let .addSelect(id):
+                state.selected.insert(id)
+                return .none
+            case let .removeSelect(id):
+                state.selected.remove(id)
+                return .none
+            case .alert(.dismiss):
+                return .none
+            case .alert(.presented(.confirmDelete)):
+                state.loading = true
+                return .run { [state] send in
+                    var successIds: Set<String> = .init()
+                    var errorIds: Set<String> = .init()
+
+                    for archiveId in state.selected {
+                        do {
+                            let response = try await service.deleteArchive(id: archiveId).value
+                            if response.success == 1 {
+                                successIds.insert(archiveId)
+                            } else {
+                                errorIds.insert(archiveId)
+                            }
+                        } catch {
+                            logger.error("failed to delete archive id=\(archiveId) \(error)")
+                            errorIds.insert(archiveId)
+                        }
+                    }
+
+                    if !errorIds.isEmpty {
+                        await send(.setErrorMessage(
+                            NSLocalizedString("archive.selected.delete.error", comment: "error")
+                        ))
+                    } else {
+                        await send(.setSuccessMessage(
+                            NSLocalizedString("archive.selected.delete.success", comment: "success")
+                        ))
+                    }
+                    await send(.deleteSuccess(successIds))
+                }
+            case .deleteButtonTapped:
+                state.alert = AlertState {
+                    TextState("archive.selected.delete")
+                } actions: {
+                    ButtonState(role: .destructive, action: .confirmDelete) {
+                        TextState("delete")
+                    }
+                    ButtonState(role: .cancel) {
+                        TextState("cancel")
+                    }
+                }
+                return .none
+            case let .deleteSuccess(archiveIds):
+                archiveIds.forEach { id in
+                    state.selected.remove(id)
+                    state.archives.remove(id: id)
+                }
+                state.loading = false
+                return .none
+            case .loadCategory:
+                return .run { send in
+                    let categories = try await service.retrieveCategories().value
+                    let items = categories.map { item in
+                        item.toCategoryItem()
+                    }.filter { item in
+                        item.search.isEmpty
+                    }
+                    await send(.populateCategory(items))
+                } catch: { error, send in
+                    logger.error("failed to load category. \(error)")
+                    await send(.setErrorMessage(error.localizedDescription))
+                }
+            case let .populateCategory(items):
+                state.categoryItems = IdentifiedArray(uniqueElements: items)
+                return .none
+            case let .addArchivesToCategory(categoryId):
+                state.loading = true
+                return .run { [state] send in
+                    var successIds: Set<String> = .init()
+                    var errorIds: Set<String> = .init()
+                    let currentCategory = state.categoryItems![id: categoryId]!
+
+                    for archiveId in state.selected {
+                        if currentCategory.archives.contains(archiveId) {
+                            successIds.insert(archiveId)
+                        } else {
+                            do {
+                                let response = try await service.addArchiveToCategory(categoryId: categoryId, archiveId: archiveId).value
+                                if response.success == 1 {
+                                    successIds.insert(archiveId)
+                                } else {
+                                    errorIds.insert(archiveId)
+                                }
+                            } catch {
+                                logger.error(
+                                    "failed to add archive to category categoryId=\(categoryId), archiveId=\(archiveId) \(error)"
+                                )
+                                errorIds.insert(archiveId)
+                            }
+                        }
+                    }
+                    if !errorIds.isEmpty {
+                        await send(.setErrorMessage(
+                            NSLocalizedString("archive.selected.category.add.error", comment: "error")
+                        ))
+                    } else {
+                        await send(.setSuccessMessage(
+                            NSLocalizedString("archive.selected.category.add.success", comment: "success")
+                        ))
+                    }
+                    await send(.updateLocalCategory(categoryId, successIds))
+                }
+            case let .updateLocalCategory(categoryId, archiveIds):
+                state.categoryItems![id: categoryId]?.archives.append(contentsOf: archiveIds)
+                archiveIds.forEach { id in
+                    state.selected.remove(id)
+                }
+                state.loading = false
+                return .none
             }
         }
         .forEach(\.archives, action: \.grid) {
             GridFeature()
         }
+        .ifLet(\.$alert, action: \.alert)
     }
 
     // swiftlint:disable function_parameter_count
@@ -185,19 +326,27 @@ struct ArchiveListV2: View {
     ]
 
     struct ArchiveListViewState: Equatable {
+        let selectMode: EditMode
+        let selected: Set<String>
+        let categoryItems: IdentifiedArrayOf<CategoryItem>?
         let filter: SearchFilter
         let archives: IdentifiedArrayOf<GridFeature.State>
         let total: Int
         let showLoading: Bool
         let loadOnAppear: Bool
         let errorMessage: String
+        let successMessage: String
         init(state: ArchiveListFeature.State) {
+            self.selectMode = state.selectMode
+            self.selected = state.selected
+            self.categoryItems = state.categoryItems
             self.filter = state.filter
             self.archives = state.archives
             self.total = state.total
             self.showLoading = state.showLoading
             self.loadOnAppear = state.loadOnAppear
             self.errorMessage = state.errorMessage
+            self.successMessage = state.successMessage
         }
     }
 
@@ -216,24 +365,7 @@ struct ArchiveListV2: View {
                         self.store.scope(state: hideRead ? \.hideReadArchives : \.archives, action: { .grid($0) })
                     ) { gridStore in
                         WithViewStore(gridStore, observe: GridViewState.init) { gridViewStore in
-                            NavigationLink(
-                                state: AppFeature.Path.State.reader(
-                                    ArchiveReaderFeature.State.init(
-                                        archive: gridViewStore.archive
-                                    )
-                                )
-                            ) {
-                                ArchiveGridV2(store: gridStore)
-                                    .onAppear {
-                                        if gridViewStore.archive.id == viewStore.archives.last?.archive.id &&
-                                            viewStore.archives.count < viewStore.total {
-                                            viewStore.send(.appendArchives(String(viewStore.archives.count)))
-                                        }
-                                    }
-                                    .contextMenu {
-                                        contextMenu(gridViewStore: gridViewStore)
-                                    }
-                            }
+                            grid(viewStore: viewStore, gridStore: gridStore, gridViewStore: gridViewStore)
                         }
                     }
                 }
@@ -242,9 +374,15 @@ struct ArchiveListV2: View {
                     ProgressView("loading")
                 }
             }
+            .toolbar(viewStore.selectMode == .active ? .hidden : .visible, for: .tabBar)
+            .toolbar(viewStore.selectMode == .active ? .visible : .hidden, for: .bottomBar)
+            .toolbar {
+                bottomToolbar(viewStore: viewStore)
+            }
             .onAppear {
                 viewStore.send(.subscribeThumbnailTrigger)
                 viewStore.send(.subscribeProgressTrigger)
+                viewStore.send(.subscribeDeleteTrigger)
                 if lanraragiUrl.isEmpty == false &&
                     viewStore.archives.isEmpty && viewStore.loadOnAppear {
                     viewStore.send(.load(true))
@@ -281,6 +419,17 @@ struct ArchiveListV2: View {
                     viewStore.send(.setErrorMessage(""))
                 }
             }
+            .onChange(of: viewStore.successMessage) {
+                if !viewStore.successMessage.isEmpty {
+                    let banner = NotificationBanner(
+                        title: NSLocalizedString("success", comment: "success"),
+                        subtitle: viewStore.successMessage,
+                        style: .success
+                    )
+                    banner.show()
+                    viewStore.send(.setSuccessMessage(""))
+                }
+            }
         }
     }
 
@@ -301,6 +450,113 @@ struct ArchiveListV2: View {
             }, label: {
                 Label("archive.reload.thumbnail", systemImage: "arrow.clockwise")
             })
+        }
+    }
+
+    private func bottomToolbar(
+        viewStore: ViewStore<ArchiveListV2.ArchiveListViewState, ArchiveListFeature.Action>
+    ) -> ToolbarItemGroup<some View> {
+        ToolbarItemGroup(placement: .bottomBar) {
+            Menu {
+                if viewStore.categoryItems != nil {
+                    Text("archive.selected.category.add")
+                    ForEach(viewStore.categoryItems!) { item in
+                        Button {
+                            viewStore.send(.addArchivesToCategory(item.id))
+                        } label: {
+                            Text(item.name)
+                        }
+                    }
+                } else {
+                    ProgressView("loading")
+                        .onAppear {
+                            viewStore.send(.loadCategory)
+                        }
+                }
+            } label: {
+                Image(systemName: "folder.badge.plus")
+            }
+            .disabled(viewStore.selected.isEmpty)
+
+            Spacer()
+
+            Text(
+                String.localizedStringWithFormat(
+                    NSLocalizedString("archive.selected", comment: "count"),
+                    viewStore.selected.count
+                )
+            )
+
+            Spacer()
+
+            Button(role: .destructive) {
+                viewStore.send(.deleteButtonTapped)
+            } label: {
+                Image(systemName: "trash")
+            }
+            .disabled(viewStore.selected.isEmpty)
+            .alert(
+                store: self.store.scope(
+                    state: \.$alert,
+                    action: { .alert($0) }
+                )
+            )
+        }
+    }
+
+    private func grid(
+        viewStore: ViewStore<ArchiveListV2.ArchiveListViewState, ArchiveListFeature.Action>,
+        gridStore: StoreOf<GridFeature>,
+        gridViewStore: ViewStore<ArchiveListV2.GridViewState, GridFeature.Action>
+    ) -> some View {
+        ZStack {
+            if viewStore.selectMode == .active {
+                ArchiveGridV2(store: gridStore)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if viewStore.selected.contains(gridViewStore.archive.id) {
+                            viewStore.send(.removeSelect(gridViewStore.archive.id))
+                        } else {
+                            viewStore.send(.addSelect(gridViewStore.archive.id))
+                        }
+                    }
+                    .overlay(alignment: .bottomTrailing, content: {
+                        if viewStore.selected.contains(gridViewStore.archive.id) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 50)
+                                .foregroundStyle(.white, .blue)
+                                .padding()
+                        } else {
+                            Image(systemName: "circle")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 50)
+                                .foregroundColor(.secondary)
+                                .padding()
+                        }
+                    })
+            } else {
+                NavigationLink(
+                    state: AppFeature.Path.State.reader(
+                        ArchiveReaderFeature.State.init(
+                            archive: gridViewStore.archive
+                        )
+                    )
+                ) {
+                    ArchiveGridV2(store: gridStore)
+                        .onAppear {
+                            if gridViewStore.archive.id == viewStore.archives.last?.archive.id &&
+                                viewStore.archives.count < viewStore.total {
+                                viewStore.send(.appendArchives(String(viewStore.archives.count)))
+                            }
+                        }
+                        .contextMenu {
+                            contextMenu(gridViewStore: gridViewStore)
+                        }
+                }
+            }
         }
     }
 }

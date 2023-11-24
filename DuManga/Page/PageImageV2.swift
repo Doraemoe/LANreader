@@ -117,7 +117,8 @@ struct PageImageV2: View {
 
     var body: some View {
         WithViewStore(self.store, observe: {$0}) { viewStore in
-            Group {
+            // If not wrapped in ZStack, TabView will render ALL pages when initial load
+            ZStack {
                 if let imageUrl = viewStore.image?.image {
                     if let uiImage = UIImage(contentsOfFile: imageUrl) {
                         Image(uiImage: uiImage)
@@ -149,6 +150,5 @@ struct PageImageV2: View {
                 }
             }
         }
-
     }
 }

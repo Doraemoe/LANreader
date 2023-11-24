@@ -73,7 +73,7 @@ struct ArchiveGridV2: View {
                     .foregroundColor(.primary)
                     .padding(4)
                     .font(.caption)
-                Group {
+                ZStack {
                     if let imageData = viewStore.archiveThumbnail?.thumbnail {
                         Image(uiImage: UIImage(data: imageData)!)
                             .resizable()

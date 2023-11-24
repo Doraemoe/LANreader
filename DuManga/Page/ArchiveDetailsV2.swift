@@ -322,7 +322,7 @@ struct ArchiveDetailsV2: View {
 
     @MainActor
     private func titleView(viewStore: ViewStoreOf<ArchiveDetailsFeature>) -> some View {
-        Group {
+        ZStack {
             if viewStore.editMode == .active {
                 TextField("", text: viewStore.$title, axis: .vertical)
                     .textInputAutocapitalization(.never)
@@ -340,7 +340,7 @@ struct ArchiveDetailsV2: View {
 
     @MainActor
     private func tagsView(viewStore: ViewStoreOf<ArchiveDetailsFeature>) -> some View {
-        Group {
+        ZStack {
             if viewStore.editMode == .active {
                 TextField("", text: viewStore.$tags, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
