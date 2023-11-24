@@ -55,8 +55,11 @@ import NotificationBannerSwift
 
         case deleteButtonTapped
         case deleteSuccess(Set<String>)
+        case removeFromCategoryButtonTapped
+        case removeFromCategorySuccess(Set<String>)
         enum Alert {
             case confirmDelete
+            case confirmRemoveFromCategory
         }
     }
 
@@ -168,6 +171,50 @@ import NotificationBannerSwift
                 return .none
             case .alert(.dismiss):
                 return .none
+            case .alert(.presented(.confirmRemoveFromCategory)):
+                state.loading = true
+                return .run { [state] send in
+                    var successIds: Set<String> = .init()
+                    var errorIds: Set<String> = .init()
+
+                    for archiveId in state.selected {
+                        do {
+                            let response = try await service.removeArchiveFromCategory(
+                                categoryId: state.filter.category!, archiveId: archiveId
+                            ).value
+                            if response.success == 1 {
+                                successIds.insert(archiveId)
+                            } else {
+                                errorIds.insert(archiveId)
+                            }
+                        } catch {
+                            logger.error(
+                                "failed to remove archive from category." +
+                                "categoryId=\(state.filter.category ?? ""), archiveId=\(archiveId) \(error)"
+                            )
+                            errorIds.insert(archiveId)
+                        }
+
+                    }
+
+                    if !errorIds.isEmpty {
+                        await send(.setErrorMessage(
+                            NSLocalizedString("archive.selected.category.remove.error", comment: "error")
+                        ))
+                    } else {
+                        await send(.setSuccessMessage(
+                            NSLocalizedString("archive.selected.category.remove.success", comment: "success")
+                        ))
+                    }
+                    await send(.removeFromCategorySuccess(successIds))
+                }
+            case let .removeFromCategorySuccess(archiveIds):
+                archiveIds.forEach { id in
+                    state.selected.remove(id)
+                    state.archives.remove(id: id)
+                }
+                state.loading = false
+                return .none
             case .alert(.presented(.confirmDelete)):
                 state.loading = true
                 return .run { [state] send in
@@ -211,6 +258,18 @@ import NotificationBannerSwift
                     }
                 }
                 return .none
+            case .removeFromCategoryButtonTapped:
+                state.alert = AlertState {
+                    TextState("archive.selected.category.remove")
+                } actions: {
+                    ButtonState(role: .destructive, action: .confirmRemoveFromCategory) {
+                        TextState("remove")
+                    }
+                    ButtonState(role: .cancel) {
+                        TextState("cancel")
+                    }
+                }
+                return .none
             case let .deleteSuccess(archiveIds):
                 archiveIds.forEach { id in
                     state.selected.remove(id)
@@ -246,7 +305,9 @@ import NotificationBannerSwift
                             successIds.insert(archiveId)
                         } else {
                             do {
-                                let response = try await service.addArchiveToCategory(categoryId: categoryId, archiveId: archiveId).value
+                                let response = try await service.addArchiveToCategory(
+                                    categoryId: categoryId, archiveId: archiveId
+                                ).value
                                 if response.success == 1 {
                                     successIds.insert(archiveId)
                                 } else {
@@ -254,7 +315,8 @@ import NotificationBannerSwift
                                 }
                             } catch {
                                 logger.error(
-                                    "failed to add archive to category categoryId=\(categoryId), archiveId=\(archiveId) \(error)"
+                                    "failed to add archive to category." +
+                                    " categoryId=\(categoryId), archiveId=\(archiveId) \(error)"
                                 )
                                 errorIds.insert(archiveId)
                             }
@@ -374,7 +436,6 @@ struct ArchiveListV2: View {
                     ProgressView("loading")
                 }
             }
-            .toolbar(viewStore.selectMode == .active ? .hidden : .visible, for: .tabBar)
             .toolbar(viewStore.selectMode == .active ? .visible : .hidden, for: .bottomBar)
             .toolbar {
                 bottomToolbar(viewStore: viewStore)
@@ -453,31 +514,46 @@ struct ArchiveListV2: View {
         }
     }
 
+    // swiftlint:disable function_body_length
     private func bottomToolbar(
         viewStore: ViewStore<ArchiveListV2.ArchiveListViewState, ArchiveListFeature.Action>
     ) -> ToolbarItemGroup<some View> {
         ToolbarItemGroup(placement: .bottomBar) {
-            Menu {
-                if viewStore.categoryItems != nil {
-                    Text("archive.selected.category.add")
-                    ForEach(viewStore.categoryItems!) { item in
-                        Button {
-                            viewStore.send(.addArchivesToCategory(item.id))
-                        } label: {
-                            Text(item.name)
+            if viewStore.filter.category == nil {
+                Menu {
+                    if viewStore.categoryItems != nil {
+                        Text("archive.selected.category.add")
+                        ForEach(viewStore.categoryItems!) { item in
+                            Button {
+                                viewStore.send(.addArchivesToCategory(item.id))
+                            } label: {
+                                Text(item.name)
+                            }
                         }
+                    } else {
+                        ProgressView("loading")
+                            .onAppear {
+                                viewStore.send(.loadCategory)
+                            }
                     }
-                } else {
-                    ProgressView("loading")
-                        .onAppear {
-                            viewStore.send(.loadCategory)
-                        }
+                } label: {
+                    Image(systemName: "folder.badge.plus")
                 }
-            } label: {
-                Image(systemName: "folder.badge.plus")
+                .disabled(viewStore.selected.isEmpty)
+            } else {
+                Button(role: .destructive) {
+                    viewStore.send(.removeFromCategoryButtonTapped)
+                } label: {
+                    Image(systemName: "folder.badge.minus")
+                }
+                .disabled(viewStore.selected.isEmpty)
+                .alert(
+                    store: self.store.scope(
+                        state: \.$alert,
+                        action: { .alert($0) }
+                    )
+                )
             }
-            .disabled(viewStore.selected.isEmpty)
-
             Spacer()
 
             Text(
@@ -503,6 +579,7 @@ struct ArchiveListV2: View {
             )
         }
     }
+    // swiftlint:enable function_body_length
 
     private func grid(
         viewStore: ViewStore<ArchiveListV2.ArchiveListViewState, ArchiveListFeature.Action>,

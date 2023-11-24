@@ -64,6 +64,7 @@ struct LibraryListV2: View {
             .navigationTitle("library")
             .navigationBarTitleDisplayMode(.inline)
             .environment(\.editMode, viewStore.$selectMode)
+            .toolbar(viewStore.selectMode == .active ? .hidden : .visible, for: .tabBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(viewStore.selectMode == .active ? "done" : "select") {
