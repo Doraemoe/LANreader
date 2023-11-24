@@ -189,8 +189,10 @@ import NotificationBannerSwift
                             }
                         } catch {
                             logger.error(
-                                "failed to remove archive from category." +
-                                "categoryId=\(state.filter.category ?? ""), archiveId=\(archiveId) \(error)"
+                                """
+                                failed to remove archive from category.
+                                categoryId=\(state.filter.category ?? ""), archiveId=\(archiveId) \(error)
+                                """
                             )
                             errorIds.insert(archiveId)
                         }
@@ -315,8 +317,10 @@ import NotificationBannerSwift
                                 }
                             } catch {
                                 logger.error(
-                                    "failed to add archive to category." +
-                                    " categoryId=\(categoryId), archiveId=\(archiveId) \(error)"
+                                    """
+                                    failed to add archive to category.
+                                    categoryId=\(categoryId), archiveId=\(archiveId) \(error)
+                                    """
                                 )
                                 errorIds.insert(archiveId)
                             }
