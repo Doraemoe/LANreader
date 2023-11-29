@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/groue/GRDB.swift",
       "state" : {
-        "revision" : "f1f8e8438ad815086b48660ddf87c788f9abe966",
-        "version" : "6.21.0"
+        "revision" : "06ac26a213cd5b64b4a1ded776f01f0fc0f2add0",
+        "version" : "6.22.0"
       }
     },
     {
@@ -113,8 +113,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-composable-architecture",
       "state" : {
-        "revision" : "eddc1869b37ce42e3b34e72b1e1355d049e73970",
-        "version" : "1.4.2"
+        "revision" : "3f80eb9ed07c16a9f42ac4f23d4dafaa0494568c",
+        "version" : "1.5.0"
       }
     },
     {
@@ -131,8 +131,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-custom-dump",
       "state" : {
-        "revision" : "65fc9e2b62727cacfab9fc60d580c284a4b9308c",
-        "version" : "1.1.1"
+        "revision" : "aedcf6f4cd486ccef5b312ccac85d4b3f6e58605",
+        "version" : "1.1.2"
       }
     },
     {

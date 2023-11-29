@@ -285,7 +285,7 @@ struct ArchiveReader: View {
                 ForEachStore(
                     self.store.scope(
                         state: \.pages,
-                        action: { .page($0) }
+                        action: \.page
                     )
                 ) { pageStore in
                     PageImageV2(store: pageStore, geometrySize: geometry.size)
@@ -307,7 +307,7 @@ struct ArchiveReader: View {
                 ForEachStore(
                     self.store.scope(
                         state: readDirection == ReadDirection.rightLeft.rawValue ? \.reversePages : \.pages,
-                        action: { .page($0) }
+                        action: \.page
                     )
                 ) { pageStore in
                     PageImageV2(store: pageStore, geometrySize: geometry.size)

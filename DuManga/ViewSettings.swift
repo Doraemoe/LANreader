@@ -95,9 +95,7 @@ struct ViewSettings: View {
                 }
             }
             .fullScreenCover(
-                store: self.store.scope(state: \.$destination, action: { .destination($0) }),
-                state: \.lockScreen,
-                action: { .lockScreen($0) }
+                store: self.store.scope(state: \.$destination.lockScreen, action: \.destination.lockScreen)
             ) { store in
                 LockScreen(store: store)
             }

@@ -220,16 +220,12 @@ struct ContentView: View {
                 settingsView
             }
             .fullScreenCover(
-                store: self.store.scope(state: \.$destination, action: { .destination($0) }),
-                state: \.login,
-                action: { .login($0) }
+                store: self.store.scope(state: \.$destination.login, action: \.destination.login)
             ) { store in
                 LANraragiConfigView(store: store)
             }
             .fullScreenCover(
-                store: self.store.scope(state: \.$destination, action: { .destination($0) }),
-                state: \.lockScreen,
-                action: { .lockScreen($0) }
+                store: self.store.scope(state: \.$destination.lockScreen, action: \.destination.lockScreen)
             ) { store in
                 LockScreen(store: store)
             }
@@ -282,11 +278,9 @@ struct ContentView: View {
 
     var libraryView: some View {
         NavigationStackStore(
-            self.store.scope(state: \.path, action: { .path($0) })
+            self.store.scope(state: \.path, action: \.path)
         ) {
-            LibraryListV2(store: store.scope(state: \.library, action: {
-                .library($0)
-            }))
+            LibraryListV2(store: store.scope(state: \.library, action: \.library))
         } destination: { (state: AppFeature.Path.State) in
             switch state {
             case .reader:
@@ -324,11 +318,9 @@ struct ContentView: View {
 
     var categoryView: some View {
         NavigationStackStore(
-            self.store.scope(state: \.path, action: { .path($0) })
+            self.store.scope(state: \.path, action: \.path)
         ) {
-            CategoryListV2(store: store.scope(state: \.category, action: {
-                .category($0)
-            }))
+            CategoryListV2(store: store.scope(state: \.category, action: \.category))
         } destination: { (state: AppFeature.Path.State) in
             switch state {
             case .reader:
@@ -366,11 +358,9 @@ struct ContentView: View {
 
     var searchView: some View {
         NavigationStackStore(
-            self.store.scope(state: \.path, action: { .path($0) })
+            self.store.scope(state: \.path, action: \.path)
         ) {
-            SearchViewV2(store: store.scope(state: \.search, action: {
-                .search($0)
-            }))
+            SearchViewV2(store: store.scope(state: \.search, action: \.search))
         } destination: { (state: AppFeature.Path.State) in
             switch state {
             case .reader:
@@ -407,9 +397,7 @@ struct ContentView: View {
     }
 
     var settingsView: some View {
-        SettingsView(store: store.scope(state: \.settings, action: {
-            .settings($0)
-        }))
+        SettingsView(store: store.scope(state: \.settings, action: \.settings))
         .tabItem {
             Image(systemName: "gearshape")
             Text("settings")

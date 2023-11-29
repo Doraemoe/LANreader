@@ -90,9 +90,7 @@ struct SearchViewV2: View {
 
     var body: some View {
         WithViewStore(self.store, observe: ViewState.init) { viewStore in
-            ArchiveListV2(store: store.scope(state: \.archiveList, action: {
-                .archiveList($0)
-            }))
+            ArchiveListV2(store: store.scope(state: \.archiveList, action: \.archiveList))
             .searchable(text: viewStore.$keyword, placement: .navigationBarDrawer(displayMode: .always))
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)

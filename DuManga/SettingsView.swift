@@ -67,7 +67,7 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStackStore(
-            self.store.scope(state: \.path, action: { .path($0) })
+            self.store.scope(state: \.path, action: \.path)
         ) {
             Form {
                 Section(header: Text("settings.read")) {
@@ -77,10 +77,10 @@ struct SettingsView: View {
                     ServerSettings()
                 }
                 Section(header: Text("settings.view")) {
-                    ViewSettings(store: self.store.scope(state: \.view, action: { .view($0) }))
+                    ViewSettings(store: self.store.scope(state: \.view, action: \.view))
                 }
                 Section(header: Text("settings.database")) {
-                    DatabaseSettings(store: self.store.scope(state: \.database, action: { .database($0) }))
+                    DatabaseSettings(store: self.store.scope(state: \.database, action: \.database))
                 }
                 Section(header: Text("settings.debug")) {
                     NavigationLink("settings.debug.log", state: SettingsFeature.Path.State.log(.init()))

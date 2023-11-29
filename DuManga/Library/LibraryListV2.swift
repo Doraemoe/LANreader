@@ -58,9 +58,7 @@ struct LibraryListV2: View {
 
     var body: some View {
         WithViewStore(self.store, observe: ViewState.init) { viewStore in
-            ArchiveListV2(store: store.scope(state: \.archiveList, action: {
-                .archiveList($0)
-            }))
+            ArchiveListV2(store: store.scope(state: \.archiveList, action: \.archiveList))
             .navigationTitle("library")
             .navigationBarTitleDisplayMode(.inline)
             .environment(\.editMode, viewStore.$selectMode)

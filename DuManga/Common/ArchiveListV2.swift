@@ -428,7 +428,7 @@ struct ArchiveListV2: View {
             ScrollView {
                 LazyVGrid(columns: columns) {
                     ForEachStore(
-                        self.store.scope(state: hideRead ? \.hideReadArchives : \.archives, action: { .grid($0) })
+                        self.store.scope(state: hideRead ? \.hideReadArchives : \.archives, action: \.grid)
                     ) { gridStore in
                         WithViewStore(gridStore, observe: GridViewState.init) { gridViewStore in
                             grid(viewStore: viewStore, gridStore: gridStore, gridViewStore: gridViewStore)
@@ -554,7 +554,7 @@ struct ArchiveListV2: View {
                 .alert(
                     store: self.store.scope(
                         state: \.$alert,
-                        action: { .alert($0) }
+                        action: \.alert
                     )
                 )
             }
@@ -578,7 +578,7 @@ struct ArchiveListV2: View {
             .alert(
                 store: self.store.scope(
                     state: \.$alert,
-                    action: { .alert($0) }
+                    action: \.alert
                 )
             )
         }
