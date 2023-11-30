@@ -2,27 +2,33 @@
 [<img src="https://img.shields.io/github/release/doraemoe/dureader.svg?display_name=tag">](https://github.com/Doraemoe/DuReader/releases/latest)
 [![Continuous Integration](https://github.com/Doraemoe/DuReader/actions/workflows/ci.yml/badge.svg)](https://github.com/Doraemoe/DuReader/actions/workflows/ci.yml)
 
-# DuReader
+# LANreader
 
-DuReader is an iOS manga reader for [LANraragi](https://github.com/Difegue/LANraragi)
+LANreader is an iOS manga reader for [LANraragi](https://github.com/Difegue/LANraragi)
 
 ## Interface
 
 ### Library View
 
-![Screenshot 2023-06-06 at 11 12 12 pm](https://github.com/Doraemoe/DuReader/assets/1129569/1b91353e-06c5-4d76-892c-8781f7722d89)
+![Screenshot 2023-11-30 at 9 49 43 pm](https://github.com/Doraemoe/DuReader/assets/1129569/ed2a0ac4-0e8f-44ad-8343-5c2fc12b046d)
+
 
 ### Archive Page View
 
-![Screenshot 2023-06-06 at 11 12 38 pm](https://github.com/Doraemoe/DuReader/assets/1129569/a1232b58-8a90-4f77-8b6b-e1343bebf93d)
+![Screenshot 2023-11-30 at 9 50 10 pm](https://github.com/Doraemoe/DuReader/assets/1129569/28157674-21d4-4bc2-a7fd-2f03d4866975)
+
 
 ### Archive Details View
 
-![Screenshot 2023-06-06 at 11 12 57 pm](https://github.com/Doraemoe/DuReader/assets/1129569/342674e7-bd6b-4db7-b1ab-56e746422286)
+![Screenshot 2023-11-30 at 9 50 24 pm](https://github.com/Doraemoe/DuReader/assets/1129569/fef75731-b144-41e4-8ba8-736026c2e814)
+
+### Category Page
+
+![Screenshot 2023-11-30 at 9 53 23 pm](https://github.com/Doraemoe/DuReader/assets/1129569/014ecbc2-100a-4bd1-8e52-89fed05bc289)
 
 ### Settings Page
 
-![Screenshot 2023-06-06 at 11 13 50 pm](https://github.com/Doraemoe/DuReader/assets/1129569/27b1708d-f6ee-4a0f-b146-5466f95fc582)
+![Screenshot 2023-11-30 at 9 52 38 pm](https://github.com/Doraemoe/DuReader/assets/1129569/c6373d29-355d-44f6-8a88-571ca4f04bc8)
 
 ### Save URL
 
