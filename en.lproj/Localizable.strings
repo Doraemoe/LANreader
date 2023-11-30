@@ -8,6 +8,7 @@
 "done" = "Done";
 "save" = "Save";
 "success" = "Success";
+"warning" = "Warning";
 "cancel" = "Cancel";
 "error" = "Error";
 "delete" = "Delete";
@@ -39,10 +40,11 @@
 "settings.read.image.compress.two" = "When resolution > 2x screen";
 "settings.read.image.compress.three" = "When resolution > 3x screen";
 "settings.read.image.compress.four" = "When resolution > 4x screen";
+"settings.read.image.showOriginal" = "Show original image";
 
 "settings.view" = "View Settings";
 "settings.archive.list.order" = "Sort by";
-"settings.archive.list.order.name" = "Name";
+"settings.archive.list.order.name" = "Title";
 "settings.archive.list.order.dateAdded" = "Date";
 "settings.archive.list.order.random" = "Random";
 "settings.archive.list.view" = "Use list view";
@@ -87,6 +89,7 @@
 "archive.category.add.error" = "Failed to add archive to category";
 "archive.category.remove.success" = "Successfully removed archive from category";
 "archive.category.remove.error" = "Failed to remove archive from category";
+"archive.metadata.update.success" = "Successfully updated archive metadata";
 
 "settings.debug" = "Debug";
 "settings.debug.log" = "Application log";
@@ -110,6 +113,8 @@
 "error.download.queue" = "Failed to queue the download job, please retry.";
 "error.history.title" = "Failed to load history";
 "error.page.empty" = "Server returned empty content for this archive.";
+
+"warning.file.type" = "This archive seems to be in RAR format! RAR archives might not work properly in LANraragi depending on how they were made. If you encounter errors while reading, consider converting your archive to zip.";
 
 "lock.label.new" = "Enter New Passcode";
 "lock.label.verify" = "Confirm Passcode";

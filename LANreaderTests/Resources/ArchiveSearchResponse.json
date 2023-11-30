@@ -1,0 +1,16 @@
+{
+    "data": [
+        {
+            "arcid": "abcd1234",
+            "extension": "zip",
+            "isnew": "false",
+            "tags": "artist:abc, language:def, parody:ghi, category:jkl",
+            "title": "title",
+            "pagecount": 12,
+            "progress": 2
+        }
+    ],
+    "draw": 0,
+    "recordsFiltered": 1,
+    "recordsTotal": 1234
+}

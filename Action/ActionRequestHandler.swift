@@ -18,7 +18,7 @@ final class ActionRequestHandler: NSObject, NSExtensionRequestHandling, Sendable
       do {
         let url = try await url(from: context)
         await MainActor.run {
-          let deeplink = url.duMangaAppDeepLink
+          let deeplink = url.lanReaderAppDeepLink
           let output = output(wrapping: deeplink)
           context.completeRequest(returningItems: output)
         }
@@ -33,9 +33,9 @@ final class ActionRequestHandler: NSObject, NSExtensionRequestHandling, Sendable
 
 extension URL {
 
-  var duMangaAppDeepLink: URL {
+  var lanReaderAppDeepLink: URL {
     var components = URLComponents(url: self, resolvingAgainstBaseURL: false)!
-    components.scheme = "dumanga"
+    components.scheme = "lanreader"
     return components.url!
   }
 }
