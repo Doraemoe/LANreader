@@ -9,6 +9,7 @@ struct ReadSettings: View {
     @AppStorage(SettingsKey.readDirection) var readDirection: String = ReadDirection.leftRight.rawValue
     @AppStorage(SettingsKey.compressImageThreshold) var compressImageThreshold: CompressThreshold = .never
     @AppStorage(SettingsKey.showOriginal) var showOriginal: Bool = false
+    @AppStorage(SettingsKey.fallbackReader) var fallbackReader: Bool = false
 
     var body: some View {
         return List {
@@ -33,6 +34,10 @@ struct ReadSettings: View {
                     pageControlSelectionView
                 }
                         .padding()
+                Toggle(isOn: self.$fallbackReader) {
+                    Text("settings.read.fallback")
+                }
+                .padding()
             }
             Toggle(isOn: self.$showOriginal) {
                 Text("settings.read.image.showOriginal")

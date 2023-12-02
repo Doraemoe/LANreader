@@ -36,6 +36,20 @@ enum ArchiveListOrder: String, CaseIterable, Identifiable {
 enum SearchSort: String, CaseIterable, Identifiable {
     case name = "title"
     case dateAdded = "date_added"
+    case artist = "artist"
+    case group = "group"
+    case event = "event"
+    case series = "series"
+    case character = "character"
+    case parody = "parody"
+    case custom = "custom"
+
+    var id: String { self.rawValue }
+}
+
+enum SearchSortOrder: String, CaseIterable, Identifiable {
+    case asc
+    case desc
 
     var id: String { self.rawValue }
 }
@@ -63,9 +77,12 @@ struct SettingsKey {
     static let readDirection = "settings.read.direction"
     static let compressImageThreshold = "settings.read.image.compress.threshold"
     static let showOriginal = "settings.read.image.showOriginal"
+    static let fallbackReader = "settings.read.fallback"
 
     static let archiveListOrder = "settings.archive.list.order"
     static let searchSort = "settings.search.sort"
+    static let searchSortManual = "settings.search.sort.manual"
+    static let searchSortOrder = "settings.search.sort.order"
     static let useListView = "settings.view.use.list"
     static let blurInterfaceWhenInactive = "settings.view.blur.inactive"
     static let enablePasscode = "settings.view.passcode.enable"

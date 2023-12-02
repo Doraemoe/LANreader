@@ -27,6 +27,8 @@
 "lanraragi.config.submit" = "Submit";
 
 "settings.read" = "Read Settings";
+"settings.read.fallback" = "Use fallback reader";
+"settings.read.fallback.explain" = "Use fallback reader if current reader have any issue";
 "settings.read.tap.left" = "Tap on left side of the screen";
 "settings.read.tap.middle" = "Tap on middle of the screen";
 "settings.read.tap.right" = "Tap on right side of the screen";
@@ -46,7 +48,19 @@
 "settings.archive.list.order" = "Sort by";
 "settings.archive.list.order.name" = "Title";
 "settings.archive.list.order.dateAdded" = "Date";
+"settings.archive.list.order.artist" = "Artist";
+"settings.archive.list.order.group" = "Group";
+"settings.archive.list.order.event" = "Event";
+"settings.archive.list.order.series" = "Series";
+"settings.archive.list.order.character" = "Character";
+"settings.archive.list.order.parody" = "Parody";
+"settings.archive.list.order.custom" = "Custom";
+"settings.archive.list.order.custom.title" = "Custom sort namespace";
+"settings.archive.list.order.custom.explain" = "Sort namespace could be any tag key";
 "settings.archive.list.order.random" = "Random";
+"settings.archive.list.order.sort" = "Sort order";
+"settings.archive.list.order.sort.asc" = "Ascending";
+"settings.archive.list.order.sort.desc" = "Descending";
 "settings.archive.list.view" = "Use list view";
 "settings.view.blur.inactive" = "Blur interface when app is not active";
 "settings.view.passcode" = "Require passcode to unlock app";

@@ -18,6 +18,14 @@ class UserDefaultService {
         return UserDefaults.standard.string(forKey: SettingsKey.searchSort) ?? "date_added"
     }
 
+    func setSearchSort(searchSort: String) {
+        UserDefaults.standard.set(searchSort, forKey: SettingsKey.searchSort)
+    }
+
+    var searchSortOrder: String {
+        return UserDefaults.standard.string(forKey: SettingsKey.searchSortOrder) ?? "asc"
+    }
+
     var showOriginal: Bool {
         return UserDefaults.standard.bool(forKey: SettingsKey.showOriginal)
     }
@@ -36,6 +44,10 @@ class UserDefaultService {
 
     func setServerProgress(isServerProgress: Bool) {
         UserDefaults.standard.set(isServerProgress, forKey: SettingsKey.serverProgress)
+    }
+
+    var hideRead: Bool {
+        UserDefaults.standard.bool(forKey: SettingsKey.hideRead)
     }
 
     public static var shared: UserDefaultService {

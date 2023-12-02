@@ -43,10 +43,24 @@
 "settings.read.image.showOriginal" = "显示原图";
 
 "settings.view" = "视图设定";
-"settings.archive.list.order" = "排序";
+"settings.read.fallback" = "使用老式阅读器";
+"settings.read.fallback.explain" = "如当前阅读器有问题，请尝试使用老式阅读器";
+"settings.archive.list.order" = "排序方式";
 "settings.archive.list.order.name" = "标题";
 "settings.archive.list.order.dateAdded" = "日期";
+"settings.archive.list.order.artist" = "艺术家";
+"settings.archive.list.order.group" = "社团";
+"settings.archive.list.order.event" = "展会";
+"settings.archive.list.order.series" = "系列";
+"settings.archive.list.order.character" = "角色";
+"settings.archive.list.order.parody" = "同人";
+"settings.archive.list.order.custom" = "自定义";
+"settings.archive.list.order.custom.title" = "自定义排序";
+"settings.archive.list.order.custom.explain" = "自定义排序可以是任意标签名";
 "settings.archive.list.order.random" = "随机";
+"settings.archive.list.order.sort" = "排序";
+"settings.archive.list.order.sort.asc" = "升序";
+"settings.archive.list.order.sort.desc" = "降序";
 "settings.archive.list.view" = "使用列表视图";
 "settings.view.blur.inactive" = "后台运行时模糊界面显示";
 "settings.view.passcode" = "使用密码锁定此App";

@@ -21,6 +21,10 @@ import NotificationBannerSwift
         var reversePages: IdentifiedArrayOf<PageFeature.State> {
             IdentifiedArray(uniqueElements: pages.reversed())
         }
+
+        var fallbackIndex: Int {
+            index ?? 0
+        }
     }
 
     enum Action: Equatable, BindableAction {
@@ -191,6 +195,7 @@ struct ArchiveReader: View {
     @AppStorage(SettingsKey.tapMiddleKey) var tapMiddle: String = PageControl.navigation.rawValue
     @AppStorage(SettingsKey.tapRightKey) var tapRight: String = PageControl.previous.rawValue
     @AppStorage(SettingsKey.readDirection) var readDirection: String = ReadDirection.leftRight.rawValue
+    @AppStorage(SettingsKey.fallbackReader) var fallbackReader: Bool = false
 
     let store: StoreOf<ArchiveReaderFeature>
 
@@ -198,12 +203,46 @@ struct ArchiveReader: View {
         self.store = store
     }
 
+    struct ViewState: Equatable {
+        @BindingViewState var index: Int?
+        @BindingViewState var sliderIndex: Double
+        let archiveId: String
+        let archiveName: String
+        let errorMessage: String
+        let successMessage: String
+        let controlUiHidden: Bool
+        let fallbackIndex: Int
+        let pageCount: Int
+        let extracting: Bool
+        let archiveExtension: String
+        let isPageEmpty: Bool
+        let settingThumbnail: Bool
+
+        init(bindingViewStore: BindingViewStore<ArchiveReaderFeature.State>) {
+            self._index = bindingViewStore.$index
+            self._sliderIndex = bindingViewStore.$sliderIndex
+            self.archiveId = bindingViewStore.archive.id
+            self.archiveName = bindingViewStore.archive.name
+            self.errorMessage = bindingViewStore.errorMessage
+            self.successMessage = bindingViewStore.successMessage
+            self.controlUiHidden = bindingViewStore.controlUiHidden
+            self.fallbackIndex = bindingViewStore.fallbackIndex
+            self.pageCount = bindingViewStore.pages.count
+            self.extracting = bindingViewStore.extracting
+            self.archiveExtension = bindingViewStore.archive.extension
+            self.isPageEmpty = bindingViewStore.pages.isEmpty
+            self.settingThumbnail = bindingViewStore.settingThumbnail
+        }
+    }
+
     var body: some View {
-        WithViewStore(self.store, observe: { $0 }) { viewStore in
+        WithViewStore(self.store, observe: ViewState.init) { viewStore in
             GeometryReader { geometry in
                 ZStack {
                     if readDirection == ReadDirection.upDown.rawValue {
                         vReader(viewStore: viewStore, geometry: geometry)
+                    } else if fallbackReader {
+                        hReaderFallback(viewStore: viewStore, geometry: geometry)
                     } else {
                         hReader(viewStore: viewStore, geometry: geometry)
                     }
@@ -219,7 +258,7 @@ struct ArchiveReader: View {
                 ToolbarItem(placement: .primaryAction) {
                     NavigationLink(
                         state: AppFeature.Path.State.details(
-                            ArchiveDetailsFeature.State.init(id: viewStore.archive.id)
+                            ArchiveDetailsFeature.State.init(id: viewStore.archiveId)
                         )
                     ) {
                         Image(systemName: "info.circle")
@@ -227,16 +266,16 @@ struct ArchiveReader: View {
                 }
             }
             .toolbar(viewStore.controlUiHidden ? .hidden : .visible, for: .navigationBar)
-            .navigationBarTitle(viewStore.archive.name)
+            .navigationBarTitle(viewStore.archiveName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .tabBar)
             .onAppear {
-                if viewStore.pages.isEmpty {
+                if viewStore.isPageEmpty {
                     viewStore.send(.extractArchive)
                 } else {
                     viewStore.send(.loadProgress)
                 }
-                if viewStore.archive.extension == "rar" || viewStore.archive.extension == "cbr" {
+                if viewStore.archiveExtension == "rar" || viewStore.archiveExtension == "cbr" {
                     let banner = NotificationBanner(
                         title: NSLocalizedString("warning", comment: "warning"),
                         subtitle: NSLocalizedString("warning.file.type", comment: "rar"),
@@ -279,7 +318,10 @@ struct ArchiveReader: View {
     }
 
     @MainActor
-    private func vReader(viewStore: ViewStoreOf<ArchiveReaderFeature>, geometry: GeometryProxy) -> some View {
+    private func vReader(
+        viewStore: ViewStore<ArchiveReader.ViewState, ArchiveReaderFeature.Action>,
+        geometry: GeometryProxy
+    ) -> some View {
         ScrollView(.vertical) {
             LazyVStack(spacing: 0) {
                 ForEachStore(
@@ -301,7 +343,10 @@ struct ArchiveReader: View {
     }
 
     @MainActor
-    private func hReader(viewStore: ViewStoreOf<ArchiveReaderFeature>, geometry: GeometryProxy) -> some View {
+    private func hReader(
+        viewStore: ViewStore<ArchiveReader.ViewState, ArchiveReaderFeature.Action>,
+        geometry: GeometryProxy
+    ) -> some View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: 0) {
                 ForEachStore(
@@ -330,7 +375,40 @@ struct ArchiveReader: View {
     }
 
     @MainActor
-    private func bottomToolbar(viewStore: ViewStoreOf<ArchiveReaderFeature>) -> some View {
+    private func hReaderFallback(
+        viewStore: ViewStore<ArchiveReader.ViewState, ArchiveReaderFeature.Action>,
+        geometry: GeometryProxy
+    ) -> some View {
+        TabView(selection: viewStore.binding(get: \.fallbackIndex, send: { .setIndex($0) })) {
+            ForEachStore(
+                self.store.scope(
+                    state: readDirection == ReadDirection.rightLeft.rawValue ? \.reversePages : \.pages,
+                    action: \.page
+                )
+            ) { pageStore in
+                WithViewStore(pageStore, observe: \.id) { pageViewStore in
+                    PageImageV2(store: pageStore, geometrySize: geometry.size)
+                        .frame(width: geometry.size.width)
+                        .tag(pageViewStore.state)
+                }
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .onTapGesture { location in
+            if location.x < geometry.size.width / 3 {
+                viewStore.send(.tapAction(tapLeft))
+            } else if location.x > geometry.size.width / 3 * 2 {
+                viewStore.send(.tapAction(tapRight))
+            } else {
+                viewStore.send(.tapAction(tapMiddle))
+            }
+        }
+    }
+
+    @MainActor
+    private func bottomToolbar(
+        viewStore: ViewStore<ArchiveReader.ViewState, ArchiveReaderFeature.Action>
+    ) -> some View {
         let flip = readDirection == ReadDirection.rightLeft.rawValue ? -1 : 1
         return VStack {
             Spacer()
@@ -343,7 +421,7 @@ struct ArchiveReader: View {
                     })
                     Text(String(format: "%d/%d",
                                 viewStore.sliderIndex.int + 1,
-                                viewStore.pages.count))
+                                viewStore.pageCount))
                     .bold()
                     Button(action: {
                         Task {
@@ -357,7 +435,7 @@ struct ArchiveReader: View {
                 GridRow {
                     Slider(
                         value: viewStore.$sliderIndex,
-                        in: 0...Double(viewStore.pages.count < 1 ? 1 : viewStore.pages.count - 1),
+                        in: 0...Double(viewStore.pageCount < 1 ? 1 : viewStore.pageCount - 1),
                         step: 1
                     ) { onSlider in
                         if !onSlider {

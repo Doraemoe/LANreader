@@ -21,11 +21,15 @@ import NotificationBannerSwift
         var errorMessage = ""
         var successMessage = ""
 
-        var hideReadArchives: IdentifiedArrayOf<GridFeature.State> {
-            let result = archives.filter {
-                $0.archive.pagecount != $0.archive.progress
+        var archivesToDisplay: IdentifiedArrayOf<GridFeature.State> {
+            if UserDefaults.standard.bool(forKey: SettingsKey.hideRead) {
+                let result = archives.filter {
+                    $0.archive.pagecount != $0.archive.progress
+                }
+                return IdentifiedArray(uniqueElements: result)
+            } else {
+                return archives
             }
-            return IdentifiedArray(uniqueElements: result)
         }
     }
 
@@ -103,7 +107,7 @@ import NotificationBannerSwift
                 state.loading = true
                 state.showLoading = showLoading
                 let sortby = userDefault.searchSort
-                let order = sortby == SearchSort.name.rawValue ? "asc" : "desc"
+                let order = userDefault.searchSortOrder
                 return self.search(
                     state: &state, searchFilter: state.filter, sortby: sortby, start: "0", order: order, append: false
                 )
@@ -114,7 +118,7 @@ import NotificationBannerSwift
                 state.loading = true
                 state.showLoading = true
                 let sortby = userDefault.searchSort
-                let order = sortby == SearchSort.name.rawValue ? "asc" : "desc"
+                let order = userDefault.searchSortOrder
                 return self.search(
                     state: &state, searchFilter: state.filter, sortby: sortby, start: start, order: order, append: true
                 )
@@ -384,6 +388,7 @@ struct ArchiveListV2: View {
     @AppStorage(SettingsKey.hideRead) var hideRead: Bool = false
     @AppStorage(SettingsKey.lanraragiUrl) var lanraragiUrl: String = ""
     @AppStorage(SettingsKey.searchSort) var searchSort: String = SearchSort.dateAdded.rawValue
+    @AppStorage(SettingsKey.searchSortOrder) var searchSortOrder: String = SearchSortOrder.asc.rawValue
 
     let store: StoreOf<ArchiveListFeature>
 
@@ -396,7 +401,9 @@ struct ArchiveListV2: View {
         let selected: Set<String>
         let categoryItems: IdentifiedArrayOf<CategoryItem>?
         let filter: SearchFilter
-        let archives: IdentifiedArrayOf<GridFeature.State>
+        let isArchiveEmpty: Bool
+        let archiveCount: Int
+        let lastArchive: GridFeature.State?
         let total: Int
         let showLoading: Bool
         let loadOnAppear: Bool
@@ -407,7 +414,9 @@ struct ArchiveListV2: View {
             self.selected = state.selected
             self.categoryItems = state.categoryItems
             self.filter = state.filter
-            self.archives = state.archives
+            self.isArchiveEmpty = state.archives.isEmpty
+            self.archiveCount = state.archives.count
+            self.lastArchive = state.archivesToDisplay.last
             self.total = state.total
             self.showLoading = state.showLoading
             self.loadOnAppear = state.loadOnAppear
@@ -428,7 +437,7 @@ struct ArchiveListV2: View {
             ScrollView {
                 LazyVGrid(columns: columns) {
                     ForEachStore(
-                        self.store.scope(state: hideRead ? \.hideReadArchives : \.archives, action: \.grid)
+                        self.store.scope(state: \.archivesToDisplay, action: \.grid)
                     ) { gridStore in
                         WithViewStore(gridStore, observe: GridViewState.init) { gridViewStore in
                             grid(viewStore: viewStore, gridStore: gridStore, gridViewStore: gridViewStore)
@@ -449,7 +458,7 @@ struct ArchiveListV2: View {
                 viewStore.send(.subscribeProgressTrigger)
                 viewStore.send(.subscribeDeleteTrigger)
                 if lanraragiUrl.isEmpty == false &&
-                    viewStore.archives.isEmpty && viewStore.loadOnAppear {
+                    viewStore.isArchiveEmpty && viewStore.loadOnAppear {
                     viewStore.send(.load(true))
                 }
             }
@@ -461,6 +470,11 @@ struct ArchiveListV2: View {
                 viewStore.send(.resetArchives)
                 viewStore.send(.load(true))
             }
+            .onChange(of: self.searchSortOrder, {
+                viewStore.send(.cancelSearch)
+                viewStore.send(.resetArchives)
+                viewStore.send(.load(true))
+            })
             .onChange(of: viewStore.filter) {
                 viewStore.send(.cancelSearch)
                 viewStore.send(.resetArchives)
@@ -630,9 +644,9 @@ struct ArchiveListV2: View {
                 ) {
                     ArchiveGridV2(store: gridStore)
                         .onAppear {
-                            if gridViewStore.archive.id == viewStore.archives.last?.archive.id &&
-                                viewStore.archives.count < viewStore.total {
-                                viewStore.send(.appendArchives(String(viewStore.archives.count)))
+                            if gridViewStore.archive.id == viewStore.lastArchive?.archive.id &&
+                                viewStore.archiveCount < viewStore.total {
+                                viewStore.send(.appendArchives(String(viewStore.archiveCount)))
                             }
                         }
                         .contextMenu {
