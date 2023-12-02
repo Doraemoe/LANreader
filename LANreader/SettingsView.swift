@@ -70,13 +70,19 @@ struct SettingsView: View {
             self.store.scope(state: \.path, action: \.path)
         ) {
             Form {
-                Section(header: Text("settings.read")) {
+                Section(
+                    header: Text("settings.read"),
+                    footer: Text("settings.read.fallback.explain")
+                ) {
                     ReadSettings()
                 }
                 Section(header: Text("settings.host")) {
                     ServerSettings()
                 }
-                Section(header: Text("settings.view")) {
+                Section(
+                    header: Text("settings.view"),
+                    footer: Text("settings.archive.list.order.custom.explain")
+                ) {
                     ViewSettings(store: self.store.scope(state: \.view, action: \.view))
                 }
                 Section(header: Text("settings.database")) {
