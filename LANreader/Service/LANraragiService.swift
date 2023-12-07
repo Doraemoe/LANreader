@@ -208,6 +208,12 @@ class LANraragiService {
                 .serializingDecodable(JobStatus.self)
     }
 
+    func databaseBackup() async -> DataTask<DatabaseBackup> {
+        session.request("\(url)/api/database/backup", method: .get)
+            .validate(statusCode: 200...200)
+            .serializingDecodable(DatabaseBackup.self)
+    }
+
     public static var shared: LANraragiService {
         if _shared == nil {
             _shared = LANraragiService()

@@ -43,8 +43,8 @@
 "settings.read.image.showOriginal" = "显示原图";
 
 "settings.view" = "视图设定";
-"settings.read.fallback" = "使用老式阅读器";
-"settings.read.fallback.explain" = "如当前阅读器有问题，请尝试使用老式阅读器";
+"settings.read.fallback" = "使用备选阅读器";
+"settings.read.fallback.explain" = "如当前阅读器有性能问题，请尝试使用备选阅读器";
 "settings.archive.list.order" = "排序方式";
 "settings.archive.list.order.name" = "标题";
 "settings.archive.list.order.dateAdded" = "日期";

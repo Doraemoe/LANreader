@@ -50,6 +50,18 @@ class UserDefaultService {
         UserDefaults.standard.bool(forKey: SettingsKey.hideRead)
     }
 
+    var lastTagRefresh: Double {
+        UserDefaults.standard.double(forKey: SettingsKey.lastTagRefresh)
+    }
+
+    func setLastTagRefresh(timeOverride: TimeInterval? = nil) {
+        if let override = timeOverride {
+            UserDefaults.standard.set(override, forKey: SettingsKey.lastTagRefresh)
+        } else {
+            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: SettingsKey.lastTagRefresh)
+        }
+    }
+
     public static var shared: UserDefaultService {
         if _shared == nil {
             _shared = UserDefaultService()

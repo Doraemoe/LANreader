@@ -68,6 +68,7 @@ import NotificationBannerSwift
     }
 
     @Dependency(\.lanraragiService) var service
+    @Dependency(\.appDatabase) var database
     @Dependency(\.refreshTrigger) var refreshTrigger
     @Dependency(\.userDefaultService) var userDefault
 
@@ -108,6 +109,7 @@ import NotificationBannerSwift
                 state.showLoading = showLoading
                 let sortby = userDefault.searchSort
                 let order = userDefault.searchSortOrder
+                self.populateTags()
                 return self.search(
                     state: &state, searchFilter: state.filter, sortby: sortby, start: "0", order: order, append: false
                 )
@@ -354,6 +356,38 @@ import NotificationBannerSwift
             GridFeature()
         }
         .ifLet(\.$alert, action: \.alert)
+    }
+
+    func populateTags() {
+        let currentTime = Date().timeIntervalSince1970
+        let lastUpdateTime = userDefault.lastTagRefresh
+        let excludeTags = ["date_added", "source"]
+        // refresh only after 1 day
+        if currentTime - lastUpdateTime > 86400 {
+            userDefault.setLastTagRefresh()
+            Task.detached(priority: .utility) {
+                do {
+                    let response = try await service.databaseBackup().value
+                    _ = try database.deleteAllTag()
+                    response.archives.forEach { archive in
+                        archive.tags?.split(separator: ",")
+                            .map { tag in
+                                tag.trimmingCharacters(in: .whitespacesAndNewlines)
+                            }
+                            .forEach { normalizedTag in
+                                let tagKey = String(normalizedTag.split(separator: ":").first ?? "")
+                                if !excludeTags.contains(tagKey) {
+                                    var tagItem = TagItem(tag: normalizedTag)
+                                    try? database.saveTag(tagItem: &tagItem)
+                                }
+                            }
+                    }
+                } catch {
+                    logger.error("failed to refresh tags. \(error)")
+                    userDefault.setLastTagRefresh(timeOverride: lastUpdateTime)
+                }
+            }
+        }
     }
 
     // swiftlint:disable function_parameter_count
