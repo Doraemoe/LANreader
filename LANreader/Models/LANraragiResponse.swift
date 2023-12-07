@@ -34,6 +34,10 @@ struct ArchiveSearchResponse: Decodable {
     let recordsTotal: Int
 }
 
+struct ArchiveRandomResponse: Decodable {
+    let data: [ArchiveIndexResponse]
+}
+
 struct GenericSuccessResponse: Decodable {
     let success: Int
 }
