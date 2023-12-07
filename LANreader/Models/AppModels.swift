@@ -90,6 +90,8 @@ struct SettingsKey {
     static let hideRead = "settings.view.hideRead"
 
     static let alwaysLoadFromServer = "settings.host.alwaysLoad"
+
+    static let lastTagRefresh = "lastTagRefresh"
 }
 
 struct ErrorCode: Equatable {

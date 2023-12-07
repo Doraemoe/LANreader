@@ -71,6 +71,18 @@ struct ServerInfo: Decodable {
     let versionName: String
 }
 
+struct DatabaseBackup: Decodable {
+    let archives: [DatabaseBackupArchive]
+
+    struct DatabaseBackupArchive: Decodable {
+        let arcid: String
+        let filename: String?
+        let tags: String?
+        let thumbhash: String?
+        let title: String?
+    }
+}
+
 extension JobStatus {
     func toDownloadJob(url: String) -> DownloadJob {
         DownloadJob(

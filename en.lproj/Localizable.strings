@@ -28,7 +28,7 @@
 
 "settings.read" = "Read Settings";
 "settings.read.fallback" = "Use fallback reader";
-"settings.read.fallback.explain" = "Use fallback reader if current reader have any issue";
+"settings.read.fallback.explain" = "Use fallback reader if current reader has performance issue";
 "settings.read.tap.left" = "Tap on left side of the screen";
 "settings.read.tap.middle" = "Tap on middle of the screen";
 "settings.read.tap.right" = "Tap on right side of the screen";
