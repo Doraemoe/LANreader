@@ -70,6 +70,18 @@ struct LibraryListV2: View {
                     }
                 }
             }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink(
+                        state: AppFeature.Path.State.random(
+                            RandomFeature.State()
+                        )
+                    ) {
+                        Label("shuffle", systemImage: "shuffle")
+                            .labelStyle(.iconOnly)
+                    }
+                }
+            }
         }
     }
 }

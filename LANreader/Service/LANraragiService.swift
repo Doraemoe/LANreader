@@ -96,6 +96,13 @@ class LANraragiService {
             .serializingDecodable(ArchiveSearchResponse.self)
     }
 
+    func randomArchives() async -> DataTask<ArchiveRandomResponse> {
+        let query = ["count": 100]
+        return session.request("\(url)/api/search/random", method: .get, parameters: query)
+            .validate(statusCode: 200...200)
+            .serializingDecodable(ArchiveRandomResponse.self)
+    }
+
     func retrieveCategories() async -> DataTask<[ArchiveCategoriesResponse]> {
         session.request("\(url)/api/categories")
             .validate()

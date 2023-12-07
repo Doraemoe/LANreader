@@ -124,12 +124,14 @@ import Logging
             case details(ArchiveDetailsFeature.State)
             case categoryArchiveList(CategoryArchiveListFeature.State)
             case search(SearchFeature.State)
+            case random(RandomFeature.State)
         }
         enum Action: Equatable {
             case reader(ArchiveReaderFeature.Action)
             case details(ArchiveDetailsFeature.Action)
             case categoryArchiveList(CategoryArchiveListFeature.Action)
             case search(SearchFeature.Action)
+            case random(RandomFeature.Action)
         }
         var body: some ReducerOf<Self> {
             Scope(state: \.reader, action: \.reader) {
@@ -143,6 +145,9 @@ import Logging
             }
             Scope(state: \.search, action: \.search) {
                 SearchFeature()
+            }
+            Scope(state: \.random, action: \.random) {
+                RandomFeature()
             }
         }
     }
@@ -307,6 +312,12 @@ struct ContentView: View {
                      action: AppFeature.Path.Action.search,
                      then: SearchViewV2.init(store:)
                 )
+            case .random:
+                CaseLet(
+                    /AppFeature.Path.State.random,
+                     action: AppFeature.Path.Action.random,
+                     then: RandomView.init(store:)
+                )
             }
         }
         .tabItem {
@@ -347,6 +358,12 @@ struct ContentView: View {
                      action: AppFeature.Path.Action.search,
                      then: SearchViewV2.init(store:)
                 )
+            case .random:
+                CaseLet(
+                    /AppFeature.Path.State.random,
+                     action: AppFeature.Path.Action.random,
+                     then: RandomView.init(store:)
+                )
             }
         }
         .tabItem {
@@ -386,6 +403,12 @@ struct ContentView: View {
                     /AppFeature.Path.State.search,
                      action: AppFeature.Path.Action.search,
                      then: SearchViewV2.init(store:)
+                )
+            case .random:
+                CaseLet(
+                    /AppFeature.Path.State.random,
+                     action: AppFeature.Path.Action.random,
+                     then: RandomView.init(store:)
                 )
             }
         }
