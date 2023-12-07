@@ -75,7 +75,7 @@ import Logging
                     let urlToDownload = try comp.asURL().absoluteString
                     let response = try await service.queueUrlDownload(downloadUrl: urlToDownload).value
                     if response.success != 1 {
-                        await send(.setErrorMessage(NSLocalizedString("error.download.queue", comment: "error")))
+                        await send(.setErrorMessage(String(localized: "error.download.queue")))
                     } else {
                         var downloadJob = DownloadJob(
                             id: response.job,
@@ -88,7 +88,7 @@ import Logging
                             lastUpdate: Date()
                         )
                         try database.saveDownloadJob(&downloadJob)
-                        await send(.setSuccessMessage(NSLocalizedString("download.queue.success", comment: "success")))
+                        await send(.setSuccessMessage(String(localized: "download.queue.success")))
                     }
                 } catch: { error, send in
                     logger.error("failed to queue url to download. url=\(url) \(error)")
@@ -254,7 +254,7 @@ struct ContentView: View {
             .onChange(of: viewStore.errorMessage) {
                 if !viewStore.errorMessage.isEmpty {
                     let banner = NotificationBanner(
-                        title: NSLocalizedString("error", comment: "error"),
+                        title: String(localized: "error"),
                         subtitle: viewStore.errorMessage,
                         style: .danger
                     )
@@ -265,7 +265,7 @@ struct ContentView: View {
             .onChange(of: viewStore.successMessage) {
                 if !viewStore.successMessage.isEmpty {
                     let banner = NotificationBanner(
-                        title: NSLocalizedString("success", comment: "success"),
+                        title: String(localized: "success"),
                         subtitle: viewStore.successMessage,
                         style: .success
                     )

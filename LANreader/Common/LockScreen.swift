@@ -66,9 +66,7 @@ import LocalAuthentication
                             state.newPin = ""
                             state.pin = ""
                             state.lockState = .new
-                            state.errorMessage = NSLocalizedString(
-                                "error.passcode.verify", comment: "passcode verify error"
-                            )
+                            state.errorMessage = String(localized: "error.passcode.verify")
                         }
                     case .normal:
                         let storedPasscode = userDefault.passcode
@@ -78,9 +76,7 @@ import LocalAuthentication
                             }
                         } else {
                             state.pin = ""
-                            state.errorMessage = NSLocalizedString(
-                                "error.passcode.mismatch", comment: "passcode remove error"
-                            )
+                            state.errorMessage = String(localized: "error.passcode.mismatch")
                         }
                     case .remove:
                         let storedPasscode = userDefault.passcode
@@ -91,9 +87,7 @@ import LocalAuthentication
                             }
                         } else {
                             state.pin = ""
-                            state.errorMessage = NSLocalizedString(
-                                "error.passcode.mismatch", comment: "passcode remove error"
-                            )
+                            state.errorMessage = String(localized: "error.passcode.mismatch")
                         }
                     }
                 }
@@ -113,7 +107,7 @@ import LocalAuthentication
                     var error: NSError?
 
                     if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
-                        let reason = NSLocalizedString("lock.biometric.message", comment: "unlock")
+                        let reason = String(localized: "lock.biometric.message")
 
                         do {
                             let isSuccess = try await context.evaluatePolicy(
@@ -165,10 +159,7 @@ struct LockScreen: View {
     var body: some View {
         WithViewStore(self.store, observe: { $0 }) { viewStore in
             VStack(spacing: 40) {
-                Text(NSLocalizedString(
-                    "lock.label.\(viewStore.lockState.rawValue)",
-                    comment: "Force use NSLocalizedString")
-                )
+                Text(String(localized: "lock.label.\(viewStore.lockState.rawValue)"))
                 .font(.title)
                 ZStack {
                     pinDots(viewStore: viewStore)
@@ -193,7 +184,7 @@ struct LockScreen: View {
             .onChange(of: viewStore.errorMessage) {
                 if !viewStore.errorMessage.isEmpty {
                     let banner = NotificationBanner(
-                        title: NSLocalizedString("error", comment: "error"),
+                        title: String(localized: "error"),
                         subtitle: viewStore.errorMessage,
                         style: .danger
                     )
@@ -220,7 +211,7 @@ struct LockScreen: View {
         TextField("", text: viewStore.$pin, onCommit: {
             viewStore.send(.submitPin)
         })
-        .accentColor(.clear)
+        .tint(.clear)
         .foregroundColor(.clear)
         .keyboardType(.numberPad)
         .disabled(viewStore.authenticating)

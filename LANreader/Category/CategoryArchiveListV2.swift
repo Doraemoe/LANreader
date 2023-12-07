@@ -19,9 +19,6 @@ import SwiftUI
         case toggleSelectMode
     }
 
-    @Dependency(\.lanraragiService) var service
-    @Dependency(\.userDefaultService) var userDefault
-
     var body: some ReducerOf<Self> {
         BindingReducer()
 
