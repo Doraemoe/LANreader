@@ -64,7 +64,7 @@ import NotificationBannerSwift
                     let extractResponse = try await service.extractArchive(id: id).value
                     if extractResponse.pages.isEmpty {
                         logger.error("server returned empty pages. id=\(id)")
-                        let errorMessage = NSLocalizedString("error.page.empty", comment: "empty content")
+                        let errorMessage = String(localized: "error.page.empty")
                         await send(.setError(errorMessage))
                     }
                     await send(.finishExtracting(extractResponse.pages))
@@ -137,9 +137,7 @@ import NotificationBannerSwift
                 let index = (state.index ?? 0) + 1
                 return .run { [id = state.archive.id] send in
                     _ = try await service.updateArchiveThumbnail(id: id, page: index).value
-                    let successMessage = NSLocalizedString(
-                        "archive.thumbnail.set", comment: "set thumbnail success"
-                    )
+                    let successMessage = String(localized: "archive.thumbnail.set")
                     await send(.setSuccess(successMessage))
                     refreshTrigger.thumbnail.send(id)
 
@@ -277,8 +275,8 @@ struct ArchiveReader: View {
                 }
                 if viewStore.archiveExtension == "rar" || viewStore.archiveExtension == "cbr" {
                     let banner = NotificationBanner(
-                        title: NSLocalizedString("warning", comment: "warning"),
-                        subtitle: NSLocalizedString("warning.file.type", comment: "rar"),
+                        title: String(localized: "warning"),
+                        subtitle: String(localized: "warning.file.type"),
                         style: .warning
                     )
                     banner.show()
@@ -294,7 +292,7 @@ struct ArchiveReader: View {
             .onChange(of: viewStore.errorMessage) {
                 if !viewStore.errorMessage.isEmpty {
                     let banner = NotificationBanner(
-                        title: NSLocalizedString("error", comment: "error"),
+                        title: String(localized: "error"),
                         subtitle: viewStore.errorMessage,
                         style: .danger
                     )
@@ -306,7 +304,7 @@ struct ArchiveReader: View {
             .onChange(of: viewStore.successMessage) {
                 if !viewStore.successMessage.isEmpty {
                     let banner = NotificationBanner(
-                        title: NSLocalizedString("success", comment: "success"),
+                        title: String(localized: "success"),
                         subtitle: viewStore.successMessage,
                         style: .success
                     )

@@ -73,7 +73,7 @@ import NotificationBannerSwift
                     archive.tags = state.tags
                     _ = try await service.updateArchive(archive: archive).value
                     await send(.setSuccessMessage(
-                        NSLocalizedString("archive.metadata.update.success", comment: "success"))
+                        String(localized: "archive.metadata.update.success"))
                     )
                 } catch: { [id = state.id] error, send in
                     logger.error("failed to update archive. id=\(id) \(error)")
@@ -105,7 +105,7 @@ import NotificationBannerSwift
                         refreshTrigger.delete.send(id)
                         await send(.deleteSuccess)
                     } else {
-                        await send(.setErrorMessage(NSLocalizedString("error.archive.delete", comment: "error")))
+                        await send(.setErrorMessage(String(localized: "error.archive.delete")))
                     }
                 } catch: { [id = state.id] error, send in
                     logger.error("failed to delete archive, id=\(id) \(error)")
@@ -135,12 +135,12 @@ import NotificationBannerSwift
                         ).value
                         if response.success == 1 {
                             await send(.setSuccessMessage(
-                                NSLocalizedString("archive.category.add.success", comment: "success"))
+                                String(localized: "archive.category.add.success"))
                             )
                             await send(.updateLocalCategoryItems(state.id, categoryId, true))
                         } else {
                             await send(.setErrorMessage(
-                                NSLocalizedString("archive.category.add.error", comment: "error"))
+                                String(localized: "archive.category.add.error"))
                             )
                         }
                     }
@@ -158,12 +158,12 @@ import NotificationBannerSwift
                         ).value
                         if response.success == 1 {
                             await send(.setSuccessMessage(
-                                NSLocalizedString("archive.category.remove.success", comment: "success"))
+                                String(localized: "archive.category.remove.success"))
                             )
                             await send(.updateLocalCategoryItems(state.id, categoryId, false))
                         } else {
                             await send(.setErrorMessage(
-                                NSLocalizedString("archive.category.remove.error", comment: "error"))
+                                String(localized: "archive.category.remove.error"))
                             )
                         }
                     }
@@ -298,7 +298,7 @@ struct ArchiveDetailsV2: View {
             .onChange(of: viewStore.successMessage) {
                 if !viewStore.successMessage.isEmpty {
                     let banner = NotificationBanner(
-                        title: NSLocalizedString("success", comment: "success"),
+                        title: String(localized: "success"),
                         subtitle: viewStore.successMessage,
                         style: .success
                     )
@@ -309,7 +309,7 @@ struct ArchiveDetailsV2: View {
             .onChange(of: viewStore.errorMessage) {
                 if !viewStore.errorMessage.isEmpty {
                     let banner = NotificationBanner(
-                        title: NSLocalizedString("error", comment: "error"),
+                        title: String(localized: "error"),
                         subtitle: viewStore.errorMessage,
                         style: .danger
                     )

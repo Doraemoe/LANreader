@@ -106,7 +106,7 @@ struct LANraragiConfigView: View {
             .onChange(of: viewStore.errorMessage) {
                 if !viewStore.errorMessage.isEmpty {
                     let banner = NotificationBanner(
-                        title: NSLocalizedString("error", comment: "error"),
+                        title: String(localized: "error"),
                         subtitle: viewStore.errorMessage,
                         style: .danger
                     )

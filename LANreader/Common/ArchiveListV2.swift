@@ -205,11 +205,11 @@ import NotificationBannerSwift
 
                     if !errorIds.isEmpty {
                         await send(.setErrorMessage(
-                            NSLocalizedString("archive.selected.category.remove.error", comment: "error")
+                            String(localized: "archive.selected.category.remove.error")
                         ))
                     } else {
                         await send(.setSuccessMessage(
-                            NSLocalizedString("archive.selected.category.remove.success", comment: "success")
+                            String(localized: "archive.selected.category.remove.success")
                         ))
                     }
                     await send(.removeFromCategorySuccess(successIds))
@@ -243,11 +243,11 @@ import NotificationBannerSwift
 
                     if !errorIds.isEmpty {
                         await send(.setErrorMessage(
-                            NSLocalizedString("archive.selected.delete.error", comment: "error")
+                            String(localized: "archive.selected.delete.error")
                         ))
                     } else {
                         await send(.setSuccessMessage(
-                            NSLocalizedString("archive.selected.delete.success", comment: "success")
+                            String(localized: "archive.selected.delete.success")
                         ))
                     }
                     await send(.deleteSuccess(successIds))
@@ -332,11 +332,11 @@ import NotificationBannerSwift
                     }
                     if !errorIds.isEmpty {
                         await send(.setErrorMessage(
-                            NSLocalizedString("archive.selected.category.add.error", comment: "error")
+                            String(localized: "archive.selected.category.add.error")
                         ))
                     } else {
                         await send(.setSuccessMessage(
-                            NSLocalizedString("archive.selected.category.add.success", comment: "success")
+                            String(localized: "archive.selected.category.add.success")
                         ))
                     }
                     await send(.updateLocalCategory(categoryId, successIds))
@@ -490,7 +490,7 @@ struct ArchiveListV2: View {
             .onChange(of: viewStore.errorMessage) {
                 if !viewStore.errorMessage.isEmpty {
                     let banner = NotificationBanner(
-                        title: NSLocalizedString("error", comment: "error"),
+                        title: String(localized: "error"),
                         subtitle: viewStore.errorMessage,
                         style: .danger
                     )
@@ -501,7 +501,7 @@ struct ArchiveListV2: View {
             .onChange(of: viewStore.successMessage) {
                 if !viewStore.successMessage.isEmpty {
                     let banner = NotificationBanner(
-                        title: NSLocalizedString("success", comment: "success"),
+                        title: String(localized: "success"),
                         subtitle: viewStore.successMessage,
                         style: .success
                     )
@@ -578,7 +578,7 @@ struct ArchiveListV2: View {
 
             Text(
                 String.localizedStringWithFormat(
-                    NSLocalizedString("archive.selected", comment: "count"),
+                    String(localized: "archive.selected"),
                     viewStore.selected.count
                 )
             )

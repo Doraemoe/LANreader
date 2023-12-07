@@ -102,6 +102,17 @@ class LANraragiService {
             .serializingDecodable([ArchiveCategoriesResponse].self)
     }
 
+    func addCategory(name: String, search: String) async -> DataTask<GenericSuccessResponse> {
+        var query = [String: String]()
+        query["name"] = name
+        if !search.isEmpty {
+            query["search"] = search
+        }
+        return session.request("\(url)/api/categories", method: .put, parameters: query)
+            .validate(statusCode: 200...200)
+            .serializingDecodable(GenericSuccessResponse.self)
+    }
+
     func updateDynamicCategory(item: CategoryItem) async -> DataTask<String> {
         var query = [String: String]()
         query["name"] = item.name

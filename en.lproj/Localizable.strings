@@ -112,6 +112,11 @@
 "category.name" = "Category name";
 "category.search" = "Search keyword";
 "category.static.edit" = "Please use select function in library and category view to edit static category";
+"category.new.name" = "Category name";
+"category.new.isDynamic" = "Dynamic category";
+"category.new.predicate" = "Predicate";
+"category.new.add" = "Add";
+"category.new.add.failed" = "Failed to add category";
 
 "error.host" = "Cannot connect to server, please check your settings";
 "error.list" = "Cannot load library, please try again or check your server settings";

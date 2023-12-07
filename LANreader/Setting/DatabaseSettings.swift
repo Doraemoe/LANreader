@@ -26,7 +26,7 @@ import Logging
                 bcf.allowedUnits = [.useMB]
                 state.size = bcf.string(fromByteCount: Int64(dbSize))
             } catch {
-                state.size = NSLocalizedString("settings.database.error", comment: "read db error")
+                state.size = String(localized: "settings.database.error")
             }
             return .none
         case .clearDatabase:
