@@ -141,7 +141,9 @@ struct CategoryListV2: View {
                     viewStore.send(.setErrorMessage(""))
                 }
             }
-            .animation(nil, value: viewStore.editMode)
+            .transaction { transaction in
+                transaction.animation = nil
+            }
         }
     }
 
@@ -159,11 +161,13 @@ struct CategoryListV2: View {
                         id: item.id,
                         name: item.name,
                         archiveList: ArchiveListFeature.State(
-                            filter: SearchFilter(category: item.id, filter: nil)
+                            filter: SearchFilter(category: item.id, filter: nil),
+                            currentTab: .category
                         )
                     )
                 )
             )
+            .opacity(0)
         }
     }
 }

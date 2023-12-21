@@ -20,6 +20,7 @@ import NotificationBannerSwift
         var total: Int = 0
         var errorMessage = ""
         var successMessage = ""
+        var currentTab: TabName
 
         var archivesToDisplay: IdentifiedArrayOf<GridFeature.State> {
             if UserDefaults.standard.bool(forKey: SettingsKey.hideRead) {
@@ -443,6 +444,8 @@ struct ArchiveListV2: View {
         let loadOnAppear: Bool
         let errorMessage: String
         let successMessage: String
+        let currentTab: TabName
+
         init(state: ArchiveListFeature.State) {
             self.selectMode = state.selectMode
             self.selected = state.selected
@@ -456,6 +459,7 @@ struct ArchiveListV2: View {
             self.loadOnAppear = state.loadOnAppear
             self.errorMessage = state.errorMessage
             self.successMessage = state.successMessage
+            self.currentTab = state.currentTab
         }
     }
 
@@ -497,7 +501,9 @@ struct ArchiveListV2: View {
                 }
             }
             .refreshable {
-                await viewStore.send(.load(false)).finish()
+                if viewStore.currentTab != .search || viewStore.filter.filter?.isEmpty == false {
+                    await viewStore.send(.load(false)).finish()
+                }
             }
             .onChange(of: self.searchSort) {
                 viewStore.send(.cancelSearch)

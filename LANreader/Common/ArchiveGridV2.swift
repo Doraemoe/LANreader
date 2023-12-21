@@ -81,6 +81,7 @@ struct ArchiveGridV2: View {
                     } else {
                         Image(systemName: "photo")
                             .foregroundColor(.primary)
+                            .frame(height: 240)
                             .onAppear {
                                 viewStore.send(.load(false))
                             }

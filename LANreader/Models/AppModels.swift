@@ -9,6 +9,14 @@ struct SearchFilter: Equatable {
     let filter: String?
 }
 
+enum TabName: String, CaseIterable, Identifiable {
+    case library
+    case category
+    case search
+    case settings
+    var id: String { self.rawValue }
+}
+
 enum PageControl: String, CaseIterable, Identifiable {
     case next
     case previous

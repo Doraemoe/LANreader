@@ -158,8 +158,10 @@ struct LockScreen: View {
 
     var body: some View {
         WithViewStore(self.store, observe: { $0 }) { viewStore in
+            let label = "lock.label.\(viewStore.lockState.rawValue)"
             VStack(spacing: 40) {
-                Text(String(localized: "lock.label.\(viewStore.lockState.rawValue)"))
+                Text(LocalizedStringKey(label))
+                    .font(.title)
                 .font(.title)
                 ZStack {
                     pinDots(viewStore: viewStore)
