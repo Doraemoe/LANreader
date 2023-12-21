@@ -10,7 +10,9 @@ import Logging
         @BindingState var keyword = ""
         var suggestedTag = [String]()
         var archiveList = ArchiveListFeature.State(
-            filter: SearchFilter(category: nil, filter: nil), loadOnAppear: false
+            filter: SearchFilter(category: nil, filter: nil),
+            loadOnAppear: false,
+            currentTab: .search
         )
     }
 

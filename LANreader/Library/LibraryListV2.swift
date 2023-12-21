@@ -6,7 +6,10 @@ import SwiftUI
     private let logger = Logger(label: "LibraryFeature")
 
     struct State: Equatable {
-        @BindingState var archiveList = ArchiveListFeature.State(filter: SearchFilter(category: nil, filter: nil))
+        @BindingState var archiveList = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: nil),
+            currentTab: .library
+        )
     }
 
     enum Action: Equatable, BindableAction {
@@ -71,14 +74,16 @@ struct LibraryListV2: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    NavigationLink(
-                        state: AppFeature.Path.State.random(
-                            RandomFeature.State()
-                        )
-                    ) {
-                        Label("shuffle", systemImage: "shuffle")
-                            .labelStyle(.iconOnly)
+                if viewStore.selectMode != .active {
+                    ToolbarItem(placement: .topBarLeading) {
+                        NavigationLink(
+                            state: AppFeature.Path.State.random(
+                                RandomFeature.State()
+                            )
+                        ) {
+                            Label("shuffle", systemImage: "shuffle")
+                                .labelStyle(.iconOnly)
+                        }
                     }
                 }
             }

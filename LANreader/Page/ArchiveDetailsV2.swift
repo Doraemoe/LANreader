@@ -390,12 +390,14 @@ struct ArchiveDetailsV2: View {
                     SearchFeature.State.init(
                         keyword: normalizedTag, archiveList: ArchiveListFeature.State(
                             filter: SearchFilter(category: nil, filter: normalizedTag),
-                            loadOnAppear: true
+                            loadOnAppear: true,
+                            currentTab: .search
                         )
                     )
                 )
             ) {
                 Text(processedTag)
+                    .lineLimit(1)
             }
         )
     }

@@ -63,15 +63,15 @@ struct NewCategory: View {
                 TextField("category.new.name", text: viewStore.$name)
                     .textFieldStyle(.roundedBorder)
                     .padding()
-                Toggle(isOn: viewStore.$dynamic) {
-                    Text("category.new.isDynamic")
-                }
-                .padding()
                 if viewStore.dynamic {
                     TextField("category.new.predicate", text: viewStore.$filter)
                         .textFieldStyle(.roundedBorder)
                         .padding()
                 }
+                Toggle(isOn: viewStore.$dynamic) {
+                    Text("category.new.isDynamic")
+                }
+                .padding()
                 Button {
                     viewStore.send(.addCategoryTapped)
                 } label: {
