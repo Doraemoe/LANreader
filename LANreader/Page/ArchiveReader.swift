@@ -433,7 +433,7 @@ struct ArchiveReader: View {
                 GridRow {
                     Slider(
                         value: viewStore.$sliderIndex,
-                        in: 0...Double(viewStore.pageCount < 1 ? 1 : viewStore.pageCount - 1),
+                        in: 0...Double(viewStore.pageCount <= 1 ? 1 : viewStore.pageCount - 1),
                         step: 1
                     ) { onSlider in
                         if !onSlider {
