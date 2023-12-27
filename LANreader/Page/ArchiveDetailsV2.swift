@@ -373,6 +373,7 @@ struct ArchiveDetailsV2: View {
             return AnyView(
                 Link(destination: URL(string: urlString)!) {
                     Text(tag)
+                        .lineLimit(1)
                 }
             )
         }
