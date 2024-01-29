@@ -4,8 +4,9 @@ import NotificationBannerSwift
 import LocalAuthentication
 
 @Reducer struct LockScreenFeature {
+    @ObservableState
     struct State: Equatable {
-        @BindingState var pin = ""
+        var pin = ""
         var lockState = LockScreenState.normal
         var authenticating = false
         var disableBiometricsAuth = false
@@ -154,54 +155,52 @@ struct LockScreen: View {
     @Environment(\.scenePhase) var scenePhase
     @FocusState private var focusedField: Bool
 
-    let store: StoreOf<LockScreenFeature>
+    @Bindable var store: StoreOf<LockScreenFeature>
 
     var body: some View {
-        WithViewStore(self.store, observe: { $0 }) { viewStore in
-            let label = "lock.label.\(viewStore.lockState.rawValue)"
-            VStack(spacing: 40) {
-                Text(LocalizedStringKey(label))
-                    .font(.title)
+        let label = "lock.label.\(store.lockState.rawValue)"
+        VStack(spacing: 40) {
+            Text(LocalizedStringKey(label))
                 .font(.title)
-                ZStack {
-                    pinDots(viewStore: viewStore)
-                    backgroundField(viewStore: viewStore)
-                        .focused($focusedField)
-                }
-                showPinStack(viewStore: viewStore)
+                .font(.title)
+            ZStack {
+                pinDots(store: store)
+                backgroundField(store: store)
+                    .focused($focusedField)
             }
-            .onChange(of: viewStore.disableBiometricsAuth, initial: true) {
-                if viewStore.lockState != .normal || viewStore.disableBiometricsAuth {
-                    focusedField = true
-                }
+            showPinStack(store: store)
+        }
+        .onChange(of: store.disableBiometricsAuth, initial: true) {
+            if store.lockState != .normal || store.disableBiometricsAuth {
+                focusedField = true
             }
-            .onChange(of: scenePhase, initial: true) {
-                if scenePhase == .active
-                    && viewStore.lockState == .normal
-                    && !viewStore.authenticating
-                    && !viewStore.disableBiometricsAuth {
-                    viewStore.send(.authenticate)
-                }
+        }
+        .onChange(of: scenePhase, initial: true) {
+            if scenePhase == .active
+                && store.lockState == .normal
+                && !store.authenticating
+                && !store.disableBiometricsAuth {
+                store.send(.authenticate)
             }
-            .onChange(of: viewStore.errorMessage) {
-                if !viewStore.errorMessage.isEmpty {
-                    let banner = NotificationBanner(
-                        title: String(localized: "error"),
-                        subtitle: viewStore.errorMessage,
-                        style: .danger
-                    )
-                    banner.show()
-                    viewStore.send(.setErrorMessage(""))
-                }
+        }
+        .onChange(of: store.errorMessage) {
+            if !store.errorMessage.isEmpty {
+                let banner = NotificationBanner(
+                    title: String(localized: "error"),
+                    subtitle: store.errorMessage,
+                    style: .danger
+                )
+                banner.show()
+                store.send(.setErrorMessage(""))
             }
         }
     }
 
-    private func pinDots(viewStore: ViewStoreOf<LockScreenFeature>) -> some View {
+    private func pinDots(store: StoreOf<LockScreenFeature>) -> some View {
         HStack {
             Spacer()
             ForEach(0..<6) { index in
-                Image(systemName: self.getImageName(viewStore: viewStore, at: index))
+                Image(systemName: self.getImageName(store: store, at: index))
                     .font(.system(size: 30, weight: .thin, design: .default))
                 Spacer()
             }
@@ -209,51 +208,51 @@ struct LockScreen: View {
     }
 
     @MainActor
-    private func backgroundField(viewStore: ViewStoreOf<LockScreenFeature>) -> some View {
-        TextField("", text: viewStore.$pin, onCommit: {
-            viewStore.send(.submitPin)
+    private func backgroundField(store: StoreOf<LockScreenFeature>) -> some View {
+        TextField("", text: $store.pin, onCommit: {
+            store.send(.submitPin)
         })
         .tint(.clear)
         .foregroundColor(.clear)
         .keyboardType(.numberPad)
-        .disabled(viewStore.authenticating)
-        .onChange(of: viewStore.pin) { oldPin, newPin in
+        .disabled(store.authenticating)
+        .onChange(of: store.pin) { oldPin, newPin in
             if newPin.last?.isWholeNumber == false {
-                viewStore.send(.setPin(oldPin))
+                store.send(.setPin(oldPin))
             } else {
-                viewStore.send(.submitPin)
+                store.send(.submitPin)
             }
         }
     }
 
-    private func showPinStack(viewStore: ViewStoreOf<LockScreenFeature>) -> some View {
+    private func showPinStack(store: StoreOf<LockScreenFeature>) -> some View {
         HStack {
             Spacer()
-            if !viewStore.pin.isEmpty {
-                showPinButton(viewStore: viewStore)
+            if !store.pin.isEmpty {
+                showPinButton(store: store)
             }
         }
         .frame(height: 20)
         .padding([.trailing])
     }
 
-    private func showPinButton(viewStore: ViewStoreOf<LockScreenFeature>) -> some View {
+    private func showPinButton(store: StoreOf<LockScreenFeature>) -> some View {
         Button(action: {
-            viewStore.send(.setShowPin(nil))
+            store.send(.setShowPin(nil))
         }, label: {
-            viewStore.showPin ?
+            store.showPin ?
             Image(systemName: "eye.slash.fill").foregroundColor(.primary) :
             Image(systemName: "eye.fill").foregroundColor(.primary)
         })
     }
 
-    private func getImageName(viewStore: ViewStoreOf<LockScreenFeature>, at index: Int) -> String {
-        if index >= viewStore.pin.count {
+    private func getImageName(store: StoreOf<LockScreenFeature>, at index: Int) -> String {
+        if index >= store.pin.count {
             return "circle"
         }
 
-        if viewStore.showPin {
-            return viewStore.pin.digits[index].numberString + ".circle"
+        if store.showPin {
+            return store.pin.digits[index].numberString + ".circle"
         }
 
         return "circle.fill"

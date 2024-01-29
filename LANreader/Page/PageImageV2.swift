@@ -6,6 +6,7 @@ import Logging
 @Reducer struct PageFeature {
     private let logger = Logger(label: "PageFeature")
 
+    @ObservableState
     struct State: Equatable, Identifiable {
         var id: Int
         var pageId: String
@@ -116,37 +117,35 @@ struct PageImageV2: View {
     let geometrySize: CGSize
 
     var body: some View {
-        WithViewStore(self.store, observe: {$0}) { viewStore in
-            // If not wrapped in ZStack, TabView will render ALL pages when initial load
-            ZStack {
-                if let imageUrl = viewStore.image?.image {
-                    if let uiImage = UIImage(contentsOfFile: imageUrl) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .draggableAndZoomable(contentSize: geometrySize)
-                    } else {
-                        Image(systemName: "rectangle.slash")
-                            .frame(height: geometrySize.height)
-                    }
+        // If not wrapped in ZStack, TabView will render ALL pages when initial load
+        ZStack {
+            if let imageUrl = store.image?.image {
+                if let uiImage = UIImage(contentsOfFile: imageUrl) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .draggableAndZoomable(contentSize: geometrySize)
                 } else {
-                    ProgressView(
-                        value: viewStore.progress > 1 ? 1 : viewStore.progress,
-                        total: 1
-                    ) {
-                        Text("loading")
-                    } currentValueLabel: {
-                        viewStore.progress > 1 ?
-                        Text("downsampling") :
-                        Text(String(format: "%.2f%%", viewStore.progress * 100))
-                    }
-                    .progressViewStyle(.linear)
-                    .frame(height: geometrySize.height)
-                    .padding(.horizontal, 20)
-                    .tint(.primary)
-                    .onAppear {
-                        viewStore.send(.load(false))
-                    }
+                    Image(systemName: "rectangle.slash")
+                        .frame(height: geometrySize.height)
+                }
+            } else {
+                ProgressView(
+                    value: store.progress > 1 ? 1 : store.progress,
+                    total: 1
+                ) {
+                    Text("loading")
+                } currentValueLabel: {
+                    store.progress > 1 ?
+                    Text("downsampling") :
+                    Text(String(format: "%.2f%%", store.progress * 100))
+                }
+                .progressViewStyle(.linear)
+                .frame(height: geometrySize.height)
+                .padding(.horizontal, 20)
+                .tint(.primary)
+                .onAppear {
+                    store.send(.load(false))
                 }
             }
         }

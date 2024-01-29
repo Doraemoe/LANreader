@@ -6,12 +6,13 @@ import NotificationBannerSwift
 @Reducer struct ArchiveDetailsFeature {
     private let logger = Logger(label: "ArchiveDetailsFeature")
 
+    @ObservableState
     struct State: Equatable {
-        @PresentationState var alert: AlertState<Action.Alert>?
+        @Presents var alert: AlertState<Action.Alert>?
         var id: String
-        @BindingState var editMode: EditMode = .inactive
-        @BindingState var title = ""
-        @BindingState var tags = ""
+        var editMode: EditMode = .inactive
+        var title = ""
+        var tags = ""
         var errorMessage = ""
         var successMessage = ""
         var archiveMetadata: ArchiveMetadata?
@@ -210,127 +211,122 @@ struct ArchiveDetailsV2: View {
     private static let sourceTag = "source"
     private static let dateTag = "date_added"
 
-    let store: StoreOf<ArchiveDetailsFeature>
+    @Bindable var store: StoreOf<ArchiveDetailsFeature>
 
     var body: some View {
-        WithViewStore(self.store, observe: { $0 }) { (viewStore: ViewStoreOf<ArchiveDetailsFeature>) in
-            ScrollView {
-                if viewStore.archiveMetadata != nil {
-                    titleView(viewStore: viewStore)
-                    if let imageData = viewStore.archiveMetadata!.archiveThumbnail?.thumbnail {
-                        Image(uiImage: UIImage(data: imageData)!)
-                            .resizable()
-                            .scaledToFit()
-                            .padding()
-                            .frame(width: 200, height: 250)
-                    } else {
-                        Image(systemName: "photo")
-                            .foregroundColor(.primary)
-                    }
-                    tagsView(viewStore: viewStore)
-                    if viewStore.editMode != .active {
-                        Button(
-                            role: .destructive,
-                            action: { viewStore.send(.deleteButtonTapped) },
-                            label: {
-                                Text("archive.delete")
-                            }
-                        )
+        ScrollView {
+            if store.archiveMetadata != nil {
+                titleView(store: store)
+                if let imageData = store.archiveMetadata!.archiveThumbnail?.thumbnail {
+                    Image(uiImage: UIImage(data: imageData)!)
+                        .resizable()
+                        .scaledToFit()
                         .padding()
-                        .background(.red)
-                        .foregroundColor(.white)
-                        .clipShape(Capsule())
-                        .disabled(viewStore.loading)
-                    }
+                        .frame(width: 200, height: 250)
                 } else {
-                    ProgressView("loading")
-                        .onAppear {
-                            viewStore.send(.loadMetadata)
-                        }
+                    Image(systemName: "photo")
+                        .foregroundColor(.primary)
                 }
+                tagsView(store: store)
+                if store.editMode != .active {
+                    Button(
+                        role: .destructive,
+                        action: { store.send(.deleteButtonTapped) },
+                        label: {
+                            Text("archive.delete")
+                        }
+                    )
+                    .padding()
+                    .background(.red)
+                    .foregroundColor(.white)
+                    .clipShape(Capsule())
+                    .disabled(store.loading)
+                }
+            } else {
+                ProgressView("loading")
+                    .onAppear {
+                        store.send(.loadMetadata)
+                    }
             }
-            .toolbar {
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Menu {
-                        if viewStore.categoryItems != nil {
-                            Text("archive.category.manage")
-                            ForEach(viewStore.categoryItems!) { item in
-                                Button {
-                                    if item.archives.contains(viewStore.id) {
-                                        viewStore.send(.removeArchiveFromCategory(item.id))
-                                    } else {
-                                        viewStore.send(.addArchiveToCategory(item.id))
-                                    }
-                                } label: {
-                                    if item.archives.contains(viewStore.id) {
-                                        Label(item.name, systemImage: "checkmark")
-                                    } else {
-                                        Text(item.name)
-                                    }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Menu {
+                    if store.categoryItems != nil {
+                        Text("archive.category.manage")
+                        ForEach(store.categoryItems!) { item in
+                            Button {
+                                if item.archives.contains(store.id) {
+                                    store.send(.removeArchiveFromCategory(item.id))
+                                } else {
+                                    store.send(.addArchiveToCategory(item.id))
+                                }
+                            } label: {
+                                if item.archives.contains(store.id) {
+                                    Label(item.name, systemImage: "checkmark")
+                                } else {
+                                    Text(item.name)
                                 }
                             }
-                        } else {
-                            ProgressView("loading")
-                                .onAppear {
-                                    viewStore.send(.loadCategory)
-                                }
                         }
-                    } label: {
-                        Image(systemName: "folder.badge.gear")
+                    } else {
+                        ProgressView("loading")
+                            .onAppear {
+                                store.send(.loadCategory)
+                            }
                     }
-                    .disabled(viewStore.loading)
-                    EditButton()
-                        .disabled(viewStore.loading)
+                } label: {
+                    Image(systemName: "folder.badge.gear")
                 }
+                .disabled(store.loading)
+                EditButton()
+                    .disabled(store.loading)
             }
-            .environment(\.editMode, viewStore.$editMode)
-            .alert(
-                store: self.store.scope(
-                    state: \.$alert,
-                    action: \.alert
+        }
+        .environment(\.editMode, $store.editMode)
+        .alert(
+            $store.scope(state: \.alert, action: \.alert)
+        )
+        .onChange(of: store.editMode) { oldMode, newMode in
+            if oldMode == .active && newMode == .inactive {
+                store.send(.updateArchiveMetadata)
+            }
+        }
+        .onChange(of: store.successMessage) {
+            if !store.successMessage.isEmpty {
+                let banner = NotificationBanner(
+                    title: String(localized: "success"),
+                    subtitle: store.successMessage,
+                    style: .success
                 )
-            )
-            .onChange(of: viewStore.editMode) { oldMode, newMode in
-                if oldMode == .active && newMode == .inactive {
-                    viewStore.send(.updateArchiveMetadata)
-                }
+                banner.show()
+                store.send(.setSuccessMessage(""))
             }
-            .onChange(of: viewStore.successMessage) {
-                if !viewStore.successMessage.isEmpty {
-                    let banner = NotificationBanner(
-                        title: String(localized: "success"),
-                        subtitle: viewStore.successMessage,
-                        style: .success
-                    )
-                    banner.show()
-                    viewStore.send(.setSuccessMessage(""))
-                }
-            }
-            .onChange(of: viewStore.errorMessage) {
-                if !viewStore.errorMessage.isEmpty {
-                    let banner = NotificationBanner(
-                        title: String(localized: "error"),
-                        subtitle: viewStore.errorMessage,
-                        style: .danger
-                    )
-                    banner.show()
-                    viewStore.send(.setErrorMessage(""))
-                }
+        }
+        .onChange(of: store.errorMessage) {
+            if !store.errorMessage.isEmpty {
+                let banner = NotificationBanner(
+                    title: String(localized: "error"),
+                    subtitle: store.errorMessage,
+                    style: .danger
+                )
+                banner.show()
+                store.send(.setErrorMessage(""))
             }
         }
     }
 
     @MainActor
-    private func titleView(viewStore: ViewStoreOf<ArchiveDetailsFeature>) -> some View {
+    private func titleView(store: StoreOf<ArchiveDetailsFeature>) -> some View {
         ZStack {
-            if viewStore.editMode == .active {
-                TextField("", text: viewStore.$title, axis: .vertical)
+            if store.editMode == .active {
+                TextField("", text: $store.title, axis: .vertical)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .textFieldStyle(.roundedBorder)
                     .padding()
             } else {
-                Text(viewStore.title)
+                Text(store.title)
                     .textFieldStyle(.roundedBorder)
                     .textSelection(.enabled)
                     .padding()
@@ -339,17 +335,17 @@ struct ArchiveDetailsV2: View {
     }
 
     @MainActor
-    private func tagsView(viewStore: ViewStoreOf<ArchiveDetailsFeature>) -> some View {
+    private func tagsView(store: StoreOf<ArchiveDetailsFeature>) -> some View {
         ZStack {
-            if viewStore.editMode == .active {
-                TextField("", text: viewStore.$tags, axis: .vertical)
+            if store.editMode == .active {
+                TextField("", text: $store.tags, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                     .textInputAutocapitalization(.never)
                     .disableAutocorrection(true)
                     .padding()
             } else {
                 WrappingHStack(
-                    models: viewStore.tags.split(separator: ","),
+                    models: store.tags.split(separator: ","),
                     viewGenerator: { tag in
                         parseTag(tag: String(tag))
                             .padding()

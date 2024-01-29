@@ -6,8 +6,9 @@ import Logging
 @Reducer struct SearchFeature {
     private let logger = Logger(label: "SearchFeature")
 
+    @ObservableState
     struct State: Equatable {
-        @BindingState var keyword = ""
+        var keyword = ""
         var suggestedTag = [String]()
         var archiveList = ArchiveListFeature.State(
             filter: SearchFilter(category: nil, filter: nil),
@@ -78,26 +79,15 @@ import Logging
 }
 
 struct SearchViewV2: View {
-    let store: StoreOf<SearchFeature>
-
-    struct ViewState: Equatable {
-        @BindingViewState var keyword: String
-        let suggestedTag: [String]
-
-        init(bindingViewStore: BindingViewStore<SearchFeature.State>) {
-            self._keyword = bindingViewStore.$keyword
-            self.suggestedTag = bindingViewStore.suggestedTag
-        }
-    }
+    @Bindable var store: StoreOf<SearchFeature>
 
     var body: some View {
-        WithViewStore(self.store, observe: ViewState.init) { viewStore in
             ArchiveListV2(store: store.scope(state: \.archiveList, action: \.archiveList))
-            .searchable(text: viewStore.$keyword, placement: .navigationBarDrawer(displayMode: .always))
+            .searchable(text: $store.keyword, placement: .navigationBarDrawer(displayMode: .always))
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)
             .searchSuggestions {
-                ForEach(viewStore.suggestedTag, id: \.self) { tag in
+                ForEach(store.suggestedTag, id: \.self) { tag in
                     HStack {
                         Text(tag)
                             .foregroundColor(.accentColor)
@@ -105,18 +95,17 @@ struct SearchViewV2: View {
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        viewStore.send(.suggestionTapped(tag))
+                        store.send(.suggestionTapped(tag))
                     }
                 }
             }
             .onSubmit(of: .search) {
-                viewStore.send(.searchSubmit(viewStore.keyword))
+                store.send(.searchSubmit(store.keyword))
             }
             .navigationTitle("search")
             .navigationBarTitleDisplayMode(.inline)
-            .onChange(of: viewStore.keyword) {
-                viewStore.send(.generateSuggestion)
+            .onChange(of: store.keyword) {
+                store.send(.generateSuggestion)
             }
-        }
     }
 }

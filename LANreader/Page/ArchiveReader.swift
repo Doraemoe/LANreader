@@ -6,9 +6,10 @@ import NotificationBannerSwift
 @Reducer struct ArchiveReaderFeature {
     private let logger = Logger(label: "ArchiveReaderFeature")
 
+    @ObservableState
     struct State: Equatable {
-        @BindingState var index: Int?
-        @BindingState var sliderIndex: Double = 0
+        var index: Int?
+        var sliderIndex: Double = 0
         var pages: IdentifiedArrayOf<PageFeature.State> = []
         var archive: ArchiveItem
         var fromStart = false
@@ -17,10 +18,6 @@ import NotificationBannerSwift
         var settingThumbnail = false
         var errorMessage = ""
         var successMessage = ""
-
-        var reversePages: IdentifiedArrayOf<PageFeature.State> {
-            IdentifiedArray(uniqueElements: pages.reversed())
-        }
 
         var fallbackIndex: Int {
             index ?? 0
@@ -140,7 +137,6 @@ import NotificationBannerSwift
                     let successMessage = String(localized: "archive.thumbnail.set")
                     await send(.setSuccess(successMessage))
                     refreshTrigger.thumbnail.send(id)
-
                     await send(.finishThumbnailLoading)
                 } catch: { [id = state.archive.id] error, send in
                     logger.error("Failed to set current page as thumbnail. id=\(id) \(error)")
@@ -195,138 +191,109 @@ struct ArchiveReader: View {
     @AppStorage(SettingsKey.readDirection) var readDirection: String = ReadDirection.leftRight.rawValue
     @AppStorage(SettingsKey.fallbackReader) var fallbackReader: Bool = false
 
-    let store: StoreOf<ArchiveReaderFeature>
+    @Bindable var store: StoreOf<ArchiveReaderFeature>
 
     init(store: StoreOf<ArchiveReaderFeature>) {
         self.store = store
     }
 
-    struct ViewState: Equatable {
-        @BindingViewState var index: Int?
-        @BindingViewState var sliderIndex: Double
-        let archiveId: String
-        let archiveName: String
-        let errorMessage: String
-        let successMessage: String
-        let controlUiHidden: Bool
-        let fallbackIndex: Int
-        let pageCount: Int
-        let extracting: Bool
-        let archiveExtension: String
-        let isPageEmpty: Bool
-        let settingThumbnail: Bool
-
-        init(bindingViewStore: BindingViewStore<ArchiveReaderFeature.State>) {
-            self._index = bindingViewStore.$index
-            self._sliderIndex = bindingViewStore.$sliderIndex
-            self.archiveId = bindingViewStore.archive.id
-            self.archiveName = bindingViewStore.archive.name
-            self.errorMessage = bindingViewStore.errorMessage
-            self.successMessage = bindingViewStore.successMessage
-            self.controlUiHidden = bindingViewStore.controlUiHidden
-            self.fallbackIndex = bindingViewStore.fallbackIndex
-            self.pageCount = bindingViewStore.pages.count
-            self.extracting = bindingViewStore.extracting
-            self.archiveExtension = bindingViewStore.archive.extension
-            self.isPageEmpty = bindingViewStore.pages.isEmpty
-            self.settingThumbnail = bindingViewStore.settingThumbnail
-        }
-    }
-
     var body: some View {
-        WithViewStore(self.store, observe: ViewState.init) { viewStore in
-            GeometryReader { geometry in
-                ZStack {
-                    if readDirection == ReadDirection.upDown.rawValue {
-                        vReader(viewStore: viewStore, geometry: geometry)
-                    } else if fallbackReader {
-                        hReaderFallback(viewStore: viewStore, geometry: geometry)
-                    } else {
-                        hReader(viewStore: viewStore, geometry: geometry)
-                    }
-                    if !viewStore.controlUiHidden {
-                        bottomToolbar(viewStore: viewStore)
-                    }
-                    if viewStore.extracting {
-                        LoadingView(geometry: geometry)
-                    }
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    NavigationLink(
-                        state: AppFeature.Path.State.details(
-                            ArchiveDetailsFeature.State.init(id: viewStore.archiveId)
-                        )
-                    ) {
-                        Image(systemName: "info.circle")
-                    }
-                }
-            }
-            .toolbar(viewStore.controlUiHidden ? .hidden : .visible, for: .navigationBar)
-            .navigationBarTitle(viewStore.archiveName)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(.hidden, for: .tabBar)
-            .onAppear {
-                if viewStore.isPageEmpty {
-                    viewStore.send(.extractArchive)
+        let flip = readDirection == ReadDirection.rightLeft.rawValue
+        GeometryReader { geometry in
+            ZStack {
+                if readDirection == ReadDirection.upDown.rawValue {
+                    vReader(store: store, geometry: geometry)
+                } else if fallbackReader {
+                    hReaderFallback(store: store, geometry: geometry)
+                        .environment(\.layoutDirection, flip ? .rightToLeft : .leftToRight)
                 } else {
-                    viewStore.send(.loadProgress)
+                    hReader(store: store, geometry: geometry)
+                        .environment(\.layoutDirection, flip ? .rightToLeft : .leftToRight)
                 }
-                if viewStore.archiveExtension == "rar" || viewStore.archiveExtension == "cbr" {
-                    let banner = NotificationBanner(
-                        title: String(localized: "warning"),
-                        subtitle: String(localized: "warning.file.type"),
-                        style: .warning
-                    )
-                    banner.show()
+                if !store.controlUiHidden {
+                    bottomToolbar(store: store)
+                        .environment(\.layoutDirection, flip ? .rightToLeft : .leftToRight)
                 }
-            }
-            .onChange(of: viewStore.index) { _, newValue in
-                if let index = newValue {
-                    viewStore.send(.preload(index))
-                    viewStore.send(.setSliderIndex(Double(index)))
-                    viewStore.send(.updateProgress)
+                if store.extracting {
+                    LoadingView(geometry: geometry)
                 }
             }
-            .onChange(of: viewStore.errorMessage) {
-                if !viewStore.errorMessage.isEmpty {
-                    let banner = NotificationBanner(
-                        title: String(localized: "error"),
-                        subtitle: viewStore.errorMessage,
-                        style: .danger
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                NavigationLink(
+                    state: AppFeature.Path.State.details(
+                        ArchiveDetailsFeature.State.init(id: store.archive.id)
                     )
-                    banner.show()
-                    viewStore.send(.toggleControlUi(false))
-                    viewStore.send(.setError(""))
+                ) {
+                    Image(systemName: "info.circle")
                 }
             }
-            .onChange(of: viewStore.successMessage) {
-                if !viewStore.successMessage.isEmpty {
-                    let banner = NotificationBanner(
-                        title: String(localized: "success"),
-                        subtitle: viewStore.successMessage,
-                        style: .success
-                    )
-                    banner.show()
-                    viewStore.send(.setSuccess(""))
-                }
+        }
+        .toolbar(store.controlUiHidden ? .hidden : .visible, for: .navigationBar)
+        .navigationBarTitle(store.archive.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
+        .onAppear {
+            if store.pages.isEmpty {
+                store.send(.extractArchive)
+            } else {
+                store.send(.loadProgress)
+            }
+            if store.archive.extension == "rar" || store.archive.extension == "cbr" {
+                let banner = NotificationBanner(
+                    title: String(localized: "warning"),
+                    subtitle: String(localized: "warning.file.type"),
+                    style: .warning
+                )
+                banner.show()
+            }
+        }
+        .onChange(of: store.index) { _, newValue in
+            if let index = newValue {
+                store.send(.preload(index))
+                store.send(.setSliderIndex(Double(index)))
+                store.send(.updateProgress)
+            }
+        }
+        .onChange(of: store.errorMessage) {
+            if !store.errorMessage.isEmpty {
+                let banner = NotificationBanner(
+                    title: String(localized: "error"),
+                    subtitle: store.errorMessage,
+                    style: .danger
+                )
+                banner.show()
+                store.send(.toggleControlUi(false))
+                store.send(.setError(""))
+            }
+        }
+        .onChange(of: store.successMessage) {
+            if !store.successMessage.isEmpty {
+                let banner = NotificationBanner(
+                    title: String(localized: "success"),
+                    subtitle: store.successMessage,
+                    style: .success
+                )
+                banner.show()
+                store.send(.setSuccess(""))
             }
         }
     }
 
     @MainActor
     private func vReader(
-        viewStore: ViewStore<ArchiveReader.ViewState, ArchiveReaderFeature.Action>,
+        store: StoreOf<ArchiveReaderFeature>,
         geometry: GeometryProxy
     ) -> some View {
         ScrollView(.vertical) {
             LazyVStack(spacing: 0) {
-                ForEachStore(
-                    self.store.scope(
+                ForEach(
+                    store.scope(
                         state: \.pages,
                         action: \.page
-                    )
+                    ),
+                    id: \.state.id
                 ) { pageStore in
                     PageImageV2(store: pageStore, geometrySize: geometry.size)
                         .frame(width: geometry.size.width)
@@ -334,24 +301,25 @@ struct ArchiveReader: View {
             }
             .scrollTargetLayout()
         }
-        .scrollPosition(id: viewStore.$index)
+        .scrollPosition(id: $store.index)
         .onTapGesture {
-            viewStore.send(.tapAction(PageControl.navigation.rawValue))
+            store.send(.tapAction(PageControl.navigation.rawValue))
         }
     }
 
     @MainActor
     private func hReader(
-        viewStore: ViewStore<ArchiveReader.ViewState, ArchiveReaderFeature.Action>,
+        store: StoreOf<ArchiveReaderFeature>,
         geometry: GeometryProxy
     ) -> some View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: 0) {
-                ForEachStore(
-                    self.store.scope(
-                        state: readDirection == ReadDirection.rightLeft.rawValue ? \.reversePages : \.pages,
+                ForEach(
+                    store.scope(
+                        state: \.pages,
                         action: \.page
-                    )
+                    ),
+                    id: \.state.id
                 ) { pageStore in
                     PageImageV2(store: pageStore, geometrySize: geometry.size)
                         .frame(width: geometry.size.width)
@@ -360,87 +328,84 @@ struct ArchiveReader: View {
             .scrollTargetLayout()
         }
         .scrollTargetBehavior(.paging)
-        .scrollPosition(id: viewStore.$index)
+        .scrollPosition(id: $store.index)
         .onTapGesture { location in
             if location.x < geometry.size.width / 3 {
-                viewStore.send(.tapAction(tapLeft))
+                store.send(.tapAction(tapLeft))
             } else if location.x > geometry.size.width / 3 * 2 {
-                viewStore.send(.tapAction(tapRight))
+                store.send(.tapAction(tapRight))
             } else {
-                viewStore.send(.tapAction(tapMiddle))
+                store.send(.tapAction(tapMiddle))
             }
         }
     }
 
     @MainActor
     private func hReaderFallback(
-        viewStore: ViewStore<ArchiveReader.ViewState, ArchiveReaderFeature.Action>,
+        store: StoreOf<ArchiveReaderFeature>,
         geometry: GeometryProxy
     ) -> some View {
-        TabView(selection: viewStore.binding(get: \.fallbackIndex, send: { .setIndex($0) })) {
-            ForEachStore(
-                self.store.scope(
-                    state: readDirection == ReadDirection.rightLeft.rawValue ? \.reversePages : \.pages,
+        TabView(selection: $store.fallbackIndex.sending(\.setIndex)) {
+            ForEach(
+                store.scope(
+                    state: \.pages,
                     action: \.page
-                )
+                ),
+                id: \.state.id
             ) { pageStore in
-                WithViewStore(pageStore, observe: \.id) { pageViewStore in
-                    PageImageV2(store: pageStore, geometrySize: geometry.size)
-                        .frame(width: geometry.size.width)
-                        .tag(pageViewStore.state)
-                }
+                PageImageV2(store: pageStore, geometrySize: geometry.size)
+                    .frame(width: geometry.size.width)
+                    .tag(pageStore.state.id)
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
         .onTapGesture { location in
             if location.x < geometry.size.width / 3 {
-                viewStore.send(.tapAction(tapLeft))
+                store.send(.tapAction(tapLeft))
             } else if location.x > geometry.size.width / 3 * 2 {
-                viewStore.send(.tapAction(tapRight))
+                store.send(.tapAction(tapRight))
             } else {
-                viewStore.send(.tapAction(tapMiddle))
+                store.send(.tapAction(tapMiddle))
             }
         }
     }
 
     @MainActor
     private func bottomToolbar(
-        viewStore: ViewStore<ArchiveReader.ViewState, ArchiveReaderFeature.Action>
+        store: StoreOf<ArchiveReaderFeature>
     ) -> some View {
-        let flip = readDirection == ReadDirection.rightLeft.rawValue ? -1 : 1
         return VStack {
             Spacer()
             Grid {
                 GridRow {
                     Button(action: {
-                        viewStore.send(.page(.element(id: viewStore.index ?? 0, action: .load(true))))
+                        store.send(.page(.element(id: store.index ?? 0, action: .load(true))))
                     }, label: {
                         Image(systemName: "arrow.clockwise")
                     })
                     Text(String(format: "%d/%d",
-                                viewStore.sliderIndex.int + 1,
-                                viewStore.pageCount))
+                                store.sliderIndex.int + 1,
+                                store.pages.count))
                     .bold()
                     Button(action: {
                         Task {
-                            viewStore.send(.setThumbnail)
+                            store.send(.setThumbnail)
                         }
                     }, label: {
                         Image(systemName: "photo.artframe")
                     })
-                    .disabled(viewStore.settingThumbnail)
+                    .disabled(store.settingThumbnail)
                 }
                 GridRow {
                     Slider(
-                        value: viewStore.$sliderIndex,
-                        in: 0...Double(viewStore.pageCount <= 1 ? 1 : viewStore.pageCount - 1),
+                        value: $store.sliderIndex,
+                        in: 0...Double(store.pages.count <= 1 ? 1 : store.pages.count - 1),
                         step: 1
                     ) { onSlider in
                         if !onSlider {
-                            viewStore.send(.setIndex(viewStore.sliderIndex.int))
+                            store.send(.setIndex(store.sliderIndex.int))
                         }
                     }
-                    .scaleEffect(CGSize(width: flip, height: 1), anchor: .center)
                     .padding(.horizontal)
                     .gridCellColumns(3)
                 }

@@ -6,10 +6,11 @@ import NotificationBannerSwift
 @Reducer struct NewCategoryFeature {
     private let logger = Logger(label: "NewCategoryFeature")
 
+    @ObservableState
     struct State: Equatable {
-        @BindingState var name = ""
-        @BindingState var dynamic = false
-        @BindingState var filter = ""
+        var name = ""
+        var dynamic = false
+        var filter = ""
         var errorMessage = ""
     }
 
@@ -55,41 +56,39 @@ import NotificationBannerSwift
 }
 
 struct NewCategory: View {
-    let store: StoreOf<NewCategoryFeature>
+    @Bindable var store: StoreOf<NewCategoryFeature>
 
     var body: some View {
-        WithViewStore(self.store, observe: { $0 }) { viewStore in
-            Group {
-                TextField("category.new.name", text: viewStore.$name)
+        Group {
+            TextField("category.new.name", text: $store.name)
+                .textFieldStyle(.roundedBorder)
+                .padding()
+            if store.dynamic {
+                TextField("category.new.predicate", text: $store.filter)
                     .textFieldStyle(.roundedBorder)
                     .padding()
-                if viewStore.dynamic {
-                    TextField("category.new.predicate", text: viewStore.$filter)
-                        .textFieldStyle(.roundedBorder)
-                        .padding()
-                }
-                Toggle(isOn: viewStore.$dynamic) {
-                    Text("category.new.isDynamic")
-                }
-                .padding()
-                Button {
-                    viewStore.send(.addCategoryTapped)
-                } label: {
-                    Text("category.new.add")
-                }
-                .padding()
-                .disabled(viewStore.name.isEmpty || (viewStore.dynamic && viewStore.filter.isEmpty))
             }
-            .onChange(of: viewStore.errorMessage) {
-                if !viewStore.errorMessage.isEmpty {
-                    let banner = NotificationBanner(
-                        title: String(localized: "error"),
-                        subtitle: viewStore.errorMessage,
-                        style: .danger
-                    )
-                    banner.show()
-                    viewStore.send(.setErrorMessage(""))
-                }
+            Toggle(isOn: $store.dynamic) {
+                Text("category.new.isDynamic")
+            }
+            .padding()
+            Button {
+                store.send(.addCategoryTapped)
+            } label: {
+                Text("category.new.add")
+            }
+            .padding()
+            .disabled(store.name.isEmpty || (store.dynamic && store.filter.isEmpty))
+        }
+        .onChange(of: store.errorMessage) {
+            if !store.errorMessage.isEmpty {
+                let banner = NotificationBanner(
+                    title: String(localized: "error"),
+                    subtitle: store.errorMessage,
+                    style: .danger
+                )
+                banner.show()
+                store.send(.setErrorMessage(""))
             }
         }
     }

@@ -7,9 +7,10 @@ import Logging
 @Reducer struct LANraragiConfigFeature {
     private let logger = Logger(label: "LANraragiConfigFeature")
 
+    @ObservableState
     struct State: Equatable {
-        @BindingState var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
-        @BindingState var apiKey = UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey) ?? ""
+        var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
+        var apiKey = UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey) ?? ""
         var isVerifying = false
         var errorMessage = ""
     }
@@ -70,49 +71,47 @@ struct LANraragiConfigView: View {
 
     @FocusState private var focused: FocusedField?
 
-    let store: StoreOf<LANraragiConfigFeature>
+    @Bindable var store: StoreOf<LANraragiConfigFeature>
 
     var body: some View {
-        WithViewStore(self.store, observe: { $0 }) { viewStore in
-            Form {
-                Section(footer: Text("lanraragi.config.url.explain")) {
-                    TextField("lanraragi.config.url", text: viewStore.$url)
-                        .textContentType(.URL)
-                        .keyboardType(.URL)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .focused($focused, equals: .url)
-                    SecureField("lanraragi.config.apiKey", text: viewStore.$apiKey)
-                        .focused($focused, equals: .apiKey)
-                }
-                Section {
-                    Button(action: {
-                        viewStore.send(.verifyServer)
-                    }, label: {
-                        Text("lanraragi.config.submit")
-                            .font(.headline)
-                    })
-                    .disabled(viewStore.isVerifying)
-                }
+        Form {
+            Section(footer: Text("lanraragi.config.url.explain")) {
+                TextField("lanraragi.config.url", text: $store.url)
+                    .textContentType(.URL)
+                    .keyboardType(.URL)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .focused($focused, equals: .url)
+                SecureField("lanraragi.config.apiKey", text: $store.apiKey)
+                    .focused($focused, equals: .apiKey)
             }
-            .onSubmit {
-                if focused == .url {
-                    focused = .apiKey
-                } else {
-                    viewStore.send(.verifyServer)
-                }
+            Section {
+                Button(action: {
+                    store.send(.verifyServer)
+                }, label: {
+                    Text("lanraragi.config.submit")
+                        .font(.headline)
+                })
+                .disabled(store.isVerifying)
             }
-            .toolbar(.hidden, for: .tabBar)
-            .onChange(of: viewStore.errorMessage) {
-                if !viewStore.errorMessage.isEmpty {
-                    let banner = NotificationBanner(
-                        title: String(localized: "error"),
-                        subtitle: viewStore.errorMessage,
-                        style: .danger
-                    )
-                    banner.show()
-                    viewStore.send(.setErrorMessage(""))
-                }
+        }
+        .onSubmit {
+            if focused == .url {
+                focused = .apiKey
+            } else {
+                store.send(.verifyServer)
+            }
+        }
+        .toolbar(.hidden, for: .tabBar)
+        .onChange(of: store.errorMessage) {
+            if !store.errorMessage.isEmpty {
+                let banner = NotificationBanner(
+                    title: String(localized: "error"),
+                    subtitle: store.errorMessage,
+                    style: .danger
+                )
+                banner.show()
+                store.send(.setErrorMessage(""))
             }
         }
     }

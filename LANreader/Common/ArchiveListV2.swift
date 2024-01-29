@@ -7,8 +7,10 @@ import NotificationBannerSwift
 
 @Reducer struct ArchiveListFeature {
     private let logger = Logger(label: "ArchiveListFeature")
+
+    @ObservableState
     struct State: Equatable {
-        @PresentationState var alert: AlertState<Action.Alert>?
+        @Presents var alert: AlertState<Action.Alert>?
         var selectMode: EditMode = .inactive
         var selected: Set<String> = .init()
         var categoryItems: IdentifiedArrayOf<CategoryItem>?
@@ -425,139 +427,107 @@ struct ArchiveListV2: View {
     @AppStorage(SettingsKey.searchSort) var searchSort: String = SearchSort.dateAdded.rawValue
     @AppStorage(SettingsKey.searchSortOrder) var searchSortOrder: String = SearchSortOrder.asc.rawValue
 
-    let store: StoreOf<ArchiveListFeature>
+    @Bindable var store: StoreOf<ArchiveListFeature>
 
     let columns = [
         GridItem(.adaptive(minimum: 160), spacing: 20, alignment: .top)
     ]
 
-    struct ArchiveListViewState: Equatable {
-        let selectMode: EditMode
-        let selected: Set<String>
-        let categoryItems: IdentifiedArrayOf<CategoryItem>?
-        let filter: SearchFilter
-        let isArchiveEmpty: Bool
-        let archiveCount: Int
-        let lastArchive: GridFeature.State?
-        let total: Int
-        let showLoading: Bool
-        let loadOnAppear: Bool
-        let errorMessage: String
-        let successMessage: String
-        let currentTab: TabName
-
-        init(state: ArchiveListFeature.State) {
-            self.selectMode = state.selectMode
-            self.selected = state.selected
-            self.categoryItems = state.categoryItems
-            self.filter = state.filter
-            self.isArchiveEmpty = state.archives.isEmpty
-            self.archiveCount = state.archives.count
-            self.lastArchive = state.archivesToDisplay.last
-            self.total = state.total
-            self.showLoading = state.showLoading
-            self.loadOnAppear = state.loadOnAppear
-            self.errorMessage = state.errorMessage
-            self.successMessage = state.successMessage
-            self.currentTab = state.currentTab
-        }
-    }
-
-    struct GridViewState: Equatable {
-        let archive: ArchiveItem
-        init(state: GridFeature.State) {
-            self.archive = state.archive
-        }
-    }
-
     var body: some View {
-        WithViewStore(self.store, observe: ArchiveListViewState.init) { viewStore in
-            ScrollView {
-                LazyVGrid(columns: columns) {
-                    ForEachStore(
-                        self.store.scope(state: \.archivesToDisplay, action: \.grid)
-                    ) { gridStore in
-                        WithViewStore(gridStore, observe: GridViewState.init) { gridViewStore in
-                            grid(viewStore: viewStore, gridStore: gridStore, gridViewStore: gridViewStore)
+        ScrollView {
+            LazyVGrid(columns: columns) {
+                ForEach(
+                    store.scope(state: \.archives, action: \.grid).filter { (item: StoreOf<GridFeature>) in
+                        if UserDefaults.standard.bool(forKey: SettingsKey.hideRead) {
+                            if item.archive.pagecount != item.archive.progress {
+                                return true
+                            } else {
+                                return false
+                            }
+                        } else {
+                            return true
                         }
-                    }
-                }
-                .padding(.horizontal)
-                if viewStore.showLoading {
-                    ProgressView("loading")
-                }
-            }
-            .toolbar(viewStore.selectMode == .active ? .visible : .hidden, for: .bottomBar)
-            .toolbar {
-                bottomToolbar(viewStore: viewStore)
-            }
-            .onAppear {
-                viewStore.send(.subscribeThumbnailTrigger)
-                viewStore.send(.subscribeProgressTrigger)
-                viewStore.send(.subscribeDeleteTrigger)
-                if lanraragiUrl.isEmpty == false &&
-                    viewStore.isArchiveEmpty && viewStore.loadOnAppear {
-                    viewStore.send(.load(true))
+                    },
+                    id: \.state.id
+                ) { gridStore in
+                    grid(store: store, gridStore: gridStore)
                 }
             }
-            .refreshable {
-                if viewStore.currentTab != .search || viewStore.filter.filter?.isEmpty == false {
-                    await viewStore.send(.load(false)).finish()
-                }
+            .padding(.horizontal)
+            if store.showLoading {
+                ProgressView("loading")
             }
-            .onChange(of: self.searchSort) {
-                viewStore.send(.cancelSearch)
-                viewStore.send(.resetArchives)
-                viewStore.send(.load(true))
+        }
+        .toolbar(store.selectMode == .active ? .visible : .hidden, for: .bottomBar)
+        .toolbar {
+            bottomToolbar(store: store)
+        }
+        .onAppear {
+            store.send(.subscribeThumbnailTrigger)
+            store.send(.subscribeProgressTrigger)
+            store.send(.subscribeDeleteTrigger)
+            if lanraragiUrl.isEmpty == false &&
+                store.archives.isEmpty && store.loadOnAppear {
+                store.send(.load(true))
             }
-            .onChange(of: self.searchSortOrder, {
-                viewStore.send(.cancelSearch)
-                viewStore.send(.resetArchives)
-                viewStore.send(.load(true))
-            })
-            .onChange(of: viewStore.filter) {
-                viewStore.send(.cancelSearch)
-                viewStore.send(.resetArchives)
-                viewStore.send(.load(true))
+        }
+        .refreshable {
+            if store.currentTab != .search || store.filter.filter?.isEmpty == false {
+                await store.send(.load(false)).finish()
             }
-            .onChange(of: lanraragiUrl, {
-                if lanraragiUrl.isEmpty == false {
-                    viewStore.send(.cancelSearch)
-                    viewStore.send(.resetArchives)
-                    viewStore.send(.load(true))
-                }
-            })
-            .onChange(of: viewStore.errorMessage) {
-                if !viewStore.errorMessage.isEmpty {
-                    let banner = NotificationBanner(
-                        title: String(localized: "error"),
-                        subtitle: viewStore.errorMessage,
-                        style: .danger
-                    )
-                    banner.show()
-                    viewStore.send(.setErrorMessage(""))
-                }
+        }
+        .onChange(of: self.searchSort) {
+            store.send(.cancelSearch)
+            store.send(.resetArchives)
+            store.send(.load(true))
+        }
+        .onChange(of: self.searchSortOrder, {
+            store.send(.cancelSearch)
+            store.send(.resetArchives)
+            store.send(.load(true))
+        })
+        .onChange(of: store.filter) {
+            store.send(.cancelSearch)
+            store.send(.resetArchives)
+            store.send(.load(true))
+        }
+        .onChange(of: lanraragiUrl, {
+            if lanraragiUrl.isEmpty == false {
+                store.send(.cancelSearch)
+                store.send(.resetArchives)
+                store.send(.load(true))
             }
-            .onChange(of: viewStore.successMessage) {
-                if !viewStore.successMessage.isEmpty {
-                    let banner = NotificationBanner(
-                        title: String(localized: "success"),
-                        subtitle: viewStore.successMessage,
-                        style: .success
-                    )
-                    banner.show()
-                    viewStore.send(.setSuccessMessage(""))
-                }
+        })
+        .onChange(of: store.errorMessage) {
+            if !store.errorMessage.isEmpty {
+                let banner = NotificationBanner(
+                    title: String(localized: "error"),
+                    subtitle: store.errorMessage,
+                    style: .danger
+                )
+                banner.show()
+                store.send(.setErrorMessage(""))
+            }
+        }
+        .onChange(of: store.successMessage) {
+            if !store.successMessage.isEmpty {
+                let banner = NotificationBanner(
+                    title: String(localized: "success"),
+                    subtitle: store.successMessage,
+                    style: .success
+                )
+                banner.show()
+                store.send(.setSuccessMessage(""))
             }
         }
     }
 
-    private func contextMenu(gridViewStore: ViewStore<ArchiveListV2.GridViewState, GridFeature.Action>) -> some View {
+    private func contextMenu(gridStore: StoreOf<GridFeature>) -> some View {
         Group {
             NavigationLink(
                 state: AppFeature.Path.State.reader(
                     ArchiveReaderFeature.State.init(
-                        archive: gridViewStore.archive,
+                        archive: gridStore.archive,
                         fromStart: true
                     )
                 )
@@ -565,7 +535,7 @@ struct ArchiveListV2: View {
                 Label("archive.read.fromStart", systemImage: "arrow.left.to.line.compact")
             }
             Button(action: {
-                gridViewStore.send(.load(true))
+                gridStore.send(.load(true))
             }, label: {
                 Label("archive.reload.thumbnail", systemImage: "arrow.clockwise")
             })
@@ -574,16 +544,16 @@ struct ArchiveListV2: View {
 
     // swiftlint:disable function_body_length
     private func bottomToolbar(
-        viewStore: ViewStore<ArchiveListV2.ArchiveListViewState, ArchiveListFeature.Action>
+        store: StoreOf<ArchiveListFeature>
     ) -> ToolbarItemGroup<some View> {
         ToolbarItemGroup(placement: .bottomBar) {
-            if viewStore.filter.category == nil {
+            if store.filter.category == nil {
                 Menu {
-                    if viewStore.categoryItems != nil {
+                    if store.categoryItems != nil {
                         Text("archive.selected.category.add")
-                        ForEach(viewStore.categoryItems!) { item in
+                        ForEach(store.categoryItems!) { item in
                             Button {
-                                viewStore.send(.addArchivesToCategory(item.id))
+                                store.send(.addArchivesToCategory(item.id))
                             } label: {
                                 Text(item.name)
                             }
@@ -592,26 +562,23 @@ struct ArchiveListV2: View {
                         ProgressView("loading")
                             .onAppear {
                                 if lanraragiUrl.isEmpty == false {
-                                    viewStore.send(.loadCategory)
+                                    store.send(.loadCategory)
                                 }
                             }
                     }
                 } label: {
                     Image(systemName: "folder.badge.plus")
                 }
-                .disabled(viewStore.selected.isEmpty)
+                .disabled(store.selected.isEmpty)
             } else {
                 Button(role: .destructive) {
-                    viewStore.send(.removeFromCategoryButtonTapped)
+                    store.send(.removeFromCategoryButtonTapped)
                 } label: {
                     Image(systemName: "folder.badge.minus")
                 }
-                .disabled(viewStore.selected.isEmpty)
+                .disabled(store.selected.isEmpty)
                 .alert(
-                    store: self.store.scope(
-                        state: \.$alert,
-                        action: \.alert
-                    )
+                    $store.scope(state: \.alert, action: \.alert)
                 )
             }
             Spacer()
@@ -619,46 +586,42 @@ struct ArchiveListV2: View {
             Text(
                 String.localizedStringWithFormat(
                     String(localized: "archive.selected"),
-                    viewStore.selected.count
+                    store.selected.count
                 )
             )
 
             Spacer()
 
             Button(role: .destructive) {
-                viewStore.send(.deleteButtonTapped)
+                store.send(.deleteButtonTapped)
             } label: {
                 Image(systemName: "trash")
             }
-            .disabled(viewStore.selected.isEmpty)
+            .disabled(store.selected.isEmpty)
             .alert(
-                store: self.store.scope(
-                    state: \.$alert,
-                    action: \.alert
-                )
+                $store.scope(state: \.alert, action: \.alert)
             )
         }
     }
     // swiftlint:enable function_body_length
 
     private func grid(
-        viewStore: ViewStore<ArchiveListV2.ArchiveListViewState, ArchiveListFeature.Action>,
-        gridStore: StoreOf<GridFeature>,
-        gridViewStore: ViewStore<ArchiveListV2.GridViewState, GridFeature.Action>
+        store: StoreOf<ArchiveListFeature>,
+        gridStore: StoreOf<GridFeature>
     ) -> some View {
         ZStack {
-            if viewStore.selectMode == .active {
+            if store.selectMode == .active {
                 ArchiveGridV2(store: gridStore)
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        if viewStore.selected.contains(gridViewStore.archive.id) {
-                            viewStore.send(.removeSelect(gridViewStore.archive.id))
+                        if store.selected.contains(gridStore.archive.id) {
+                            store.send(.removeSelect(gridStore.archive.id))
                         } else {
-                            viewStore.send(.addSelect(gridViewStore.archive.id))
+                            store.send(.addSelect(gridStore.archive.id))
                         }
                     }
                     .overlay(alignment: .bottomTrailing, content: {
-                        if viewStore.selected.contains(gridViewStore.archive.id) {
+                        if store.selected.contains(gridStore.archive.id) {
                             Image(systemName: "checkmark.circle.fill")
                                 .resizable()
                                 .scaledToFit()
@@ -678,19 +641,19 @@ struct ArchiveListV2: View {
                 NavigationLink(
                     state: AppFeature.Path.State.reader(
                         ArchiveReaderFeature.State.init(
-                            archive: gridViewStore.archive
+                            archive: gridStore.archive
                         )
                     )
                 ) {
                     ArchiveGridV2(store: gridStore)
                         .onAppear {
-                            if gridViewStore.archive.id == viewStore.lastArchive?.archive.id &&
-                                viewStore.archiveCount < viewStore.total {
-                                viewStore.send(.appendArchives(String(viewStore.archiveCount)))
+                            if gridStore.archive.id == store.archivesToDisplay.last?.archive.id &&
+                                store.archives.count < store.total {
+                                store.send(.appendArchives(String(store.archives.count)))
                             }
                         }
                         .contextMenu {
-                            contextMenu(gridViewStore: gridViewStore)
+                            contextMenu(gridStore: gridStore)
                         }
                 }
             }

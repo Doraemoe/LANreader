@@ -5,11 +5,12 @@ import SwiftUI
 @Reducer struct CategoryArchiveListFeature {
     private let logger = Logger(label: "CategoryArchiveListFeature")
 
+    @ObservableState
     struct State: Equatable {
         var id: String
         var name: String
 
-        @BindingState var archiveList: ArchiveListFeature.State
+        var archiveList: ArchiveListFeature.State
     }
 
     enum Action: Equatable, BindableAction {
@@ -45,32 +46,20 @@ import SwiftUI
 }
 
 struct CategoryArchiveListV2: View {
-    let store: StoreOf<CategoryArchiveListFeature>
-
-    struct ViewState: Equatable {
-        @BindingViewState var selectMode: EditMode
-        let name: String
-
-        init(state: BindingViewStore<CategoryArchiveListFeature.State>) {
-            self._selectMode = state.$archiveList.selectMode
-            self.name = state.name
-        }
-    }
+    @Bindable var store: StoreOf<CategoryArchiveListFeature>
 
     var body: some View {
-        WithViewStore(self.store, observe: ViewState.init) { viewStore in
-            ArchiveListV2(store: store.scope(state: \.archiveList, action: \.archiveList))
-                .toolbar(.hidden, for: .tabBar)
-                .navigationBarTitleDisplayMode(.inline)
-                .navigationTitle(viewStore.name)
-                .environment(\.editMode, viewStore.$selectMode)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(viewStore.selectMode == .active ? "done" : "select") {
-                            viewStore.send(.toggleSelectMode)
-                        }
+        ArchiveListV2(store: store.scope(state: \.archiveList, action: \.archiveList))
+            .toolbar(.hidden, for: .tabBar)
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(store.name)
+            .environment(\.editMode, $store.archiveList.selectMode)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(store.archiveList.selectMode == .active ? "done" : "select") {
+                        store.send(.toggleSelectMode)
                     }
                 }
-        }
+            }
     }
 }

@@ -6,10 +6,11 @@ import NotificationBannerSwift
 @Reducer struct CategoryFeature {
     private let logger = Logger(label: "CategoryFeature")
 
+    @ObservableState
     struct State: Equatable {
-        @PresentationState var destination: Destination.State?
+        @Presents var destination: Destination.State?
 
-        @BindingState var editMode: EditMode = .inactive
+        var editMode: EditMode = .inactive
         var categoryItems: IdentifiedArrayOf<CategoryItem> = []
         var showLoading = false
         var errorMessage = ""
@@ -72,6 +73,7 @@ import NotificationBannerSwift
     }
 
     @Reducer public struct Destination {
+        @ObservableState
         public enum State: Equatable {
             case add(NewCategoryFeature.State)
         }
@@ -89,70 +91,70 @@ import NotificationBannerSwift
 }
 
 struct CategoryListV2: View {
-    let store: StoreOf<CategoryFeature>
+    @Bindable var store: StoreOf<CategoryFeature>
 
     var body: some View {
-        WithViewStore(self.store, observe: { $0 }) { viewStore in
-            if viewStore.showLoading {
-                HStack {
-                    Spacer()
-                    ProgressView("loading")
-                    Spacer()
-                }
+        if store.showLoading {
+            HStack {
+                Spacer()
+                ProgressView("loading")
+                Spacer()
             }
-            List {
-                ForEach(viewStore.categoryItems) { item in
-                    categoryItem(viewStore: viewStore, item: item)
-                }
+        }
+        List {
+            ForEach(store.categoryItems) { item in
+                categoryItem(store: store, item: item)
             }
-//            .toolbar {
-//                ToolbarItemGroup(placement: .topBarTrailing) {
-//                    if viewStore.editMode == .active {
-//                        Button("", systemImage: "plus.circle") {
-//                            viewStore.send(.showAddCategory)
-//                        }
-//                        .popover(store: store.scope(state: \.$destination.add, action: \.destination.add)) { store in
-//                            NewCategory(store: store)
-//                        }
+        }
+//        .toolbar {
+//            ToolbarItemGroup(placement: .topBarTrailing) {
+//                if store.editMode == .active {
+//                    Button("", systemImage: "plus.circle") {
+//                        store.send(.showAddCategory)
 //                    }
-//                    EditButton()
+//                    .popover(
+//                        item: $store.scope(state: \.destination?.add, action: \.destination.add)
+//                    ) { store in
+//                        NewCategory(store: store)
+//                    }
 //                }
+//                EditButton()
 //            }
-//            .toolbar(viewStore.editMode == .active ? .hidden : .visible, for: .tabBar)
-            .environment(\.editMode, viewStore.$editMode)
-            .navigationTitle("category")
-            .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                if viewStore.categoryItems.isEmpty {
-                    viewStore.send(.loadCategory(true))
-                }
+//        }
+//        .toolbar(store.editMode == .active ? .hidden : .visible, for: .tabBar)
+        .environment(\.editMode, $store.editMode)
+        .navigationTitle("category")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            if store.categoryItems.isEmpty {
+                store.send(.loadCategory(true))
             }
-            .refreshable {
-                viewStore.send(.loadCategory(false))
+        }
+        .refreshable {
+            store.send(.loadCategory(false))
+        }
+        .onChange(of: store.errorMessage) {
+            if !store.errorMessage.isEmpty {
+                let banner = NotificationBanner(
+                    title: String(localized: "error"),
+                    subtitle: store.errorMessage,
+                    style: .danger
+                )
+                banner.show()
+                store.send(.setErrorMessage(""))
             }
-            .onChange(of: viewStore.errorMessage) {
-                if !viewStore.errorMessage.isEmpty {
-                    let banner = NotificationBanner(
-                        title: String(localized: "error"),
-                        subtitle: viewStore.errorMessage,
-                        style: .danger
-                    )
-                    banner.show()
-                    viewStore.send(.setErrorMessage(""))
-                }
-            }
-            .transaction { transaction in
-                transaction.animation = nil
-            }
+        }
+        .transaction { transaction in
+            transaction.animation = nil
         }
     }
 
-    private func categoryItem(viewStore: ViewStoreOf<CategoryFeature>, item: CategoryItem) -> some View {
+    private func categoryItem(store: StoreOf<CategoryFeature>, item: CategoryItem) -> some View {
         HStack {
             Text(item.name)
                 .font(.title)
             Spacer()
-            Image(systemName: viewStore.editMode == .active ? "square.and.pencil" : "chevron.right")
+            Image(systemName: store.editMode == .active ? "square.and.pencil" : "chevron.right")
         }
         .background {
             NavigationLink(

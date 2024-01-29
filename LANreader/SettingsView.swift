@@ -3,6 +3,7 @@ import ComposableArchitecture
 import SwiftUI
 
 @Reducer struct SettingsFeature {
+    @ObservableState
     struct State: Equatable {
         var path = StackState<Path.State>()
 
@@ -38,6 +39,7 @@ import SwiftUI
     }
 
     @Reducer struct Path {
+        @ObservableState
         enum State: Equatable {
             case lanraragiSettings(LANraragiConfigFeature.State)
             case upload(UploadFeature.State)
@@ -63,11 +65,11 @@ import SwiftUI
 }
 
 struct SettingsView: View {
-    let store: StoreOf<SettingsFeature>
+    @Bindable var store: StoreOf<SettingsFeature>
 
     var body: some View {
-        NavigationStackStore(
-            self.store.scope(state: \.path, action: \.path)
+        NavigationStack(
+            path: $store.scope(state: \.path, action: \.path)
         ) {
             Form {
                 Section(
@@ -101,27 +103,20 @@ struct SettingsView: View {
             }
             .navigationBarTitle("settings")
             .navigationBarTitleDisplayMode(.inline)
-        } destination: { state in
-            // A view for each case of the Path.State enum
-            switch state {
+        } destination: { store in
+            switch store.state {
             case .lanraragiSettings:
-                CaseLet(
-                    /SettingsFeature.Path.State.lanraragiSettings,
-                     action: SettingsFeature.Path.Action.lanraragiSettings,
-                     then: LANraragiConfigView.init(store:)
-                )
+                if let store = store.scope(state: \.lanraragiSettings, action: \.lanraragiSettings) {
+                    LANraragiConfigView(store: store)
+                }
             case .upload:
-                CaseLet(
-                    /SettingsFeature.Path.State.upload,
-                     action: SettingsFeature.Path.Action.upload,
-                     then: UploadView.init(store:)
-                )
+                if let store = store.scope(state: \.upload, action: \.upload) {
+                    UploadView(store: store)
+                }
             case .log:
-                CaseLet(
-                    /SettingsFeature.Path.State.log,
-                     action: SettingsFeature.Path.Action.log,
-                     then: LogView.init(store:)
-                )
+                if let store = store.scope(state: \.log, action: \.log) {
+                    LogView(store: store)
+                }
             }
         }
     }
