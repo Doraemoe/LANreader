@@ -5,8 +5,9 @@ import SwiftUI
 @Reducer struct LibraryFeature {
     private let logger = Logger(label: "LibraryFeature")
 
+    @ObservableState
     struct State: Equatable {
-        @BindingState var archiveList = ArchiveListFeature.State(
+        var archiveList = ArchiveListFeature.State(
             filter: SearchFilter(category: nil, filter: nil),
             currentTab: .library
         )
@@ -49,32 +50,23 @@ import SwiftUI
 }
 
 struct LibraryListV2: View {
-    let store: StoreOf<LibraryFeature>
-
-    struct ViewState: Equatable {
-        @BindingViewState var selectMode: EditMode
-
-        init(state: BindingViewStore<LibraryFeature.State>) {
-            self._selectMode = state.$archiveList.selectMode
-        }
-    }
+    @Bindable var store: StoreOf<LibraryFeature>
 
     var body: some View {
-        WithViewStore(self.store, observe: ViewState.init) { viewStore in
-            ArchiveListV2(store: store.scope(state: \.archiveList, action: \.archiveList))
+        ArchiveListV2(store: store.scope(state: \.archiveList, action: \.archiveList))
             .navigationTitle("library")
             .navigationBarTitleDisplayMode(.inline)
-            .environment(\.editMode, viewStore.$selectMode)
-            .toolbar(viewStore.selectMode == .active ? .hidden : .visible, for: .tabBar)
+            .environment(\.editMode, $store.archiveList.selectMode)
+            .toolbar(store.archiveList.selectMode == .active ? .hidden : .visible, for: .tabBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(viewStore.selectMode == .active ? "done" : "select") {
-                        viewStore.send(.toggleSelectMode)
+                    Button(store.archiveList.selectMode == .active ? "done" : "select") {
+                        store.send(.toggleSelectMode)
                     }
                 }
             }
             .toolbar {
-                if viewStore.selectMode != .active {
+                if store.archiveList.selectMode != .active {
                     ToolbarItem(placement: .topBarLeading) {
                         NavigationLink(
                             state: AppFeature.Path.State.random(
@@ -87,6 +79,5 @@ struct LibraryListV2: View {
                     }
                 }
             }
-        }
     }
 }

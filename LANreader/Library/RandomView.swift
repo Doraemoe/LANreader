@@ -6,22 +6,12 @@ import NotificationBannerSwift
 @Reducer struct RandomFeature {
     private let logger = Logger(label: "RandomFeature")
 
+    @ObservableState
     struct State: Equatable {
         var archives: IdentifiedArrayOf<GridFeature.State> = []
         var loading: Bool = false
         var showLoading: Bool = false
         var errorMessage = ""
-
-        var archivesToDisplay: IdentifiedArrayOf<GridFeature.State> {
-            if UserDefaults.standard.bool(forKey: SettingsKey.hideRead) {
-                let result = archives.filter {
-                    $0.archive.pagecount != $0.archive.progress
-                }
-                return IdentifiedArray(uniqueElements: result)
-            } else {
-                return archives
-            }
-        }
     }
 
     enum Action: Equatable {
@@ -82,61 +72,61 @@ struct RandomView: View {
         GridItem(.adaptive(minimum: 160), spacing: 20, alignment: .top)
     ]
 
-    struct GridViewState: Equatable {
-        let archive: ArchiveItem
-        init(state: GridFeature.State) {
-            self.archive = state.archive
-        }
-    }
-
     var body: some View {
-        WithViewStore(self.store, observe: { $0 }) { viewStore in
-            ScrollView {
-                LazyVGrid(columns: columns) {
-                    ForEachStore(
-                        self.store.scope(state: \.archivesToDisplay, action: \.grid)
-                    ) { gridStore in
-                        WithViewStore(gridStore, observe: GridViewState.init) { gridViewStore in
-                            grid(viewStore: viewStore, gridStore: gridStore, gridViewStore: gridViewStore)
+        ScrollView {
+            LazyVGrid(columns: columns) {
+                ForEach(
+                    store.scope(state: \.archives, action: \.grid).filter { (item: StoreOf<GridFeature>) in
+                        if UserDefaults.standard.bool(forKey: SettingsKey.hideRead) {
+                            if item.archive.pagecount != item.archive.progress {
+                                return true
+                            } else {
+                                return false
+                            }
+                        } else {
+                            return true
                         }
-                    }
-                }
-                .padding(.horizontal)
-                if viewStore.showLoading {
-                    ProgressView("loading")
-                }
-            }
-            .onAppear {
-                if viewStore.archives.isEmpty {
-                    viewStore.send(.load(true))
+                    },
+                    id: \.state.id
+                ) { gridStore in
+                    grid(gridStore: gridStore)
                 }
             }
-            .refreshable {
-                await viewStore.send(.load(false)).finish()
+            .padding(.horizontal)
+            if store.showLoading {
+                ProgressView("loading")
             }
-            .onChange(of: viewStore.errorMessage) {
-                if !viewStore.errorMessage.isEmpty {
-                    let banner = NotificationBanner(
-                        title: String(localized: "error"),
-                        subtitle: viewStore.errorMessage,
-                        style: .danger
-                    )
-                    banner.show()
-                    viewStore.send(.setErrorMessage(""))
-                }
-            }
-            .toolbar(.hidden, for: .tabBar)
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationTitle("random")
         }
+        .onAppear {
+            if store.archives.isEmpty {
+                store.send(.load(true))
+            }
+        }
+        .refreshable {
+            await store.send(.load(false)).finish()
+        }
+        .onChange(of: store.errorMessage) {
+            if !store.errorMessage.isEmpty {
+                let banner = NotificationBanner(
+                    title: String(localized: "error"),
+                    subtitle: store.errorMessage,
+                    style: .danger
+                )
+                banner.show()
+                store.send(.setErrorMessage(""))
+            }
+        }
+        .toolbar(.hidden, for: .tabBar)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("random")
     }
 
-    private func contextMenu(gridViewStore: ViewStore<RandomView.GridViewState, GridFeature.Action>) -> some View {
+    private func contextMenu(gridStore: StoreOf<GridFeature>) -> some View {
         Group {
             NavigationLink(
                 state: AppFeature.Path.State.reader(
                     ArchiveReaderFeature.State.init(
-                        archive: gridViewStore.archive,
+                        archive: gridStore.archive,
                         fromStart: true
                     )
                 )
@@ -144,7 +134,7 @@ struct RandomView: View {
                 Label("archive.read.fromStart", systemImage: "arrow.left.to.line.compact")
             }
             Button(action: {
-                gridViewStore.send(.load(true))
+                gridStore.send(.load(true))
             }, label: {
                 Label("archive.reload.thumbnail", systemImage: "arrow.clockwise")
             })
@@ -152,20 +142,18 @@ struct RandomView: View {
     }
 
     private func grid(
-        viewStore: ViewStoreOf<RandomFeature>,
-        gridStore: StoreOf<GridFeature>,
-        gridViewStore: ViewStore<RandomView.GridViewState, GridFeature.Action>
+        gridStore: StoreOf<GridFeature>
     ) -> some View {
         NavigationLink(
             state: AppFeature.Path.State.reader(
                 ArchiveReaderFeature.State.init(
-                    archive: gridViewStore.archive
+                    archive: gridStore.archive
                 )
             )
         ) {
             ArchiveGridV2(store: gridStore)
                 .contextMenu {
-                    contextMenu(gridViewStore: gridViewStore)
+                    contextMenu(gridStore: gridStore)
                 }
         }
     }

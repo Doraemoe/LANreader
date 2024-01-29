@@ -6,6 +6,7 @@ import Logging
 @Reducer struct DatabaseSettingsFeature {
     private let logger = Logger(label: "DatabaseSettingsFeature")
 
+    @ObservableState
     struct State: Equatable {
         var size = ""
     }
@@ -48,23 +49,21 @@ struct DatabaseSettings: View {
     let store: StoreOf<DatabaseSettingsFeature>
 
     var body: some View {
-        WithViewStore(self.store, observe: { $0 }) { viewStore in
-            return List {
-                Button(role: .destructive, action: {
-                    viewStore.send(.clearDatabase)
-                }, label: {
-                    HStack {
-                        Text("settings.database.clear")
-                        Spacer()
-                        Text(viewStore.size)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                })
-            }
-            .onAppear {
-                viewStore.send(.setDatabaseSize)
-            }
+        return List {
+            Button(role: .destructive, action: {
+                store.send(.clearDatabase)
+            }, label: {
+                HStack {
+                    Text("settings.database.clear")
+                    Spacer()
+                    Text(store.size)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+            })
+        }
+        .onAppear {
+            store.send(.setDatabaseSize)
         }
     }
 }

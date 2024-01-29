@@ -5,6 +5,7 @@ import ComposableArchitecture
 import SwiftUI
 
 @Reducer struct LogFeature {
+    @ObservableState
     struct State: Equatable {
         var log = ""
     }
@@ -29,9 +30,8 @@ struct LogView: View {
     let store: StoreOf<LogFeature>
 
     var body: some View {
-        WithViewStore(self.store, observe: { $0 }) { viewStore in
             ScrollView {
-                Text(viewStore.log)
+                Text(store.log)
                     .textSelection(.enabled)
             }
             .onAppear(perform: {
@@ -45,12 +45,11 @@ struct LogView: View {
                         )
                         .appendingPathComponent("app.log")
                     let log = try String(contentsOf: logFileURL, encoding: .utf8)
-                    viewStore.send(.setLog(log))
+                    store.send(.setLog(log))
                 } catch {
-                    viewStore.send(.setLog("error reading log"))
+                    store.send(.setLog("error reading log"))
                 }
             })
             .toolbar(.hidden, for: .tabBar)
-        }
     }
 }

@@ -5,8 +5,9 @@ import Logging
 @Reducer struct UploadFeature {
     private let logger = Logger(label: "UploadFeature")
 
+    @ObservableState
     struct State: Equatable {
-        @BindingState var urls = ""
+        var urls = ""
         var jobDetails: [Int: DownloadJob] = .init()
     }
 
@@ -103,61 +104,59 @@ import Logging
 }
 
 struct UploadView: View {
-    let store: StoreOf<UploadFeature>
+    @Bindable var store: StoreOf<UploadFeature>
 
     var body: some View {
-        WithViewStore(self.store, observe: { $0 }) { viewStore in
-            GeometryReader { geometry in
-                VStack {
-                    Text("settings.host.upload.label")
-                    TextEditor(text: viewStore.$urls)
-                        .border(.secondary, width: 2)
-                        .disableAutocorrection(true)
-                        .padding()
-                        .frame(maxHeight: geometry.size.height * 0.2)
-                    Button(action: {
-                        viewStore.send(.queueDownload(viewStore.urls))
-                    }, label: {
-                        Text("settings.host.upload.action")
-                            .font(.title)
-                    })
-                    .buttonStyle(.borderedProminent)
-                    List {
-                        ForEach(viewStore.jobDetails.keys.sorted(), id: \.self) { key in
-                            let detail = viewStore.jobDetails[key]!
-                            Section {
-                                Label(title: {
-                                    VStack {
-                                        Text(extractTitle(item: detail))
-                                        Text(detail.message)
-                                    }
-                                }, icon: {
-                                    if detail.isActive {
-                                        ProgressView()
-                                    } else if detail.isSuccess {
-                                        Image(systemName: "circle.fill")
-                                            .foregroundColor(.green)
-                                    } else if detail.isError {
-                                        Image(systemName: "circle.fill")
-                                            .foregroundColor(.red)
-                                    } else {
-                                        Image(systemName: "questionmark")
-                                            .foregroundColor(.yellow)
-                                    }
-                                })
-                            } header: {
-                                Text("Job ID: \(key)")
-                            }
+        GeometryReader { geometry in
+            VStack {
+                Text("settings.host.upload.label")
+                TextEditor(text: $store.urls)
+                    .border(.secondary, width: 2)
+                    .disableAutocorrection(true)
+                    .padding()
+                    .frame(maxHeight: geometry.size.height * 0.2)
+                Button(action: {
+                    store.send(.queueDownload(store.urls))
+                }, label: {
+                    Text("settings.host.upload.action")
+                        .font(.title)
+                })
+                .buttonStyle(.borderedProminent)
+                List {
+                    ForEach(store.jobDetails.keys.sorted(), id: \.self) { key in
+                        let detail = store.jobDetails[key]!
+                        Section {
+                            Label(title: {
+                                VStack {
+                                    Text(extractTitle(item: detail))
+                                    Text(detail.message)
+                                }
+                            }, icon: {
+                                if detail.isActive {
+                                    ProgressView()
+                                } else if detail.isSuccess {
+                                    Image(systemName: "circle.fill")
+                                        .foregroundColor(.green)
+                                } else if detail.isError {
+                                    Image(systemName: "circle.fill")
+                                        .foregroundColor(.red)
+                                } else {
+                                    Image(systemName: "questionmark")
+                                        .foregroundColor(.yellow)
+                                }
+                            })
+                        } header: {
+                            Text("Job ID: \(key)")
                         }
-                        Text("settings.host.upload.note")
-                            .font(.footnote)
                     }
+                    Text("settings.host.upload.note")
+                        .font(.footnote)
                 }
-                .task {
-                    viewStore.send(.checkJobStatus)
-                }
-                .toolbar(.hidden, for: .tabBar)
             }
+            .task {
+                store.send(.checkJobStatus)
+            }
+            .toolbar(.hidden, for: .tabBar)
         }
     }
 

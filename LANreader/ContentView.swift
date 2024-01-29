@@ -7,11 +7,12 @@ import Logging
 @Reducer struct AppFeature {
     private let logger = Logger(label: "AppFeature")
 
+    @ObservableState
     struct State: Equatable {
         var path = StackState<AppFeature.Path.State>()
-        @PresentationState var destination: Destination.State?
+        @Presents var destination: Destination.State?
 
-        @BindingState var tabName = "library"
+        var tabName = "library"
         var successMessage = ""
         var errorMessage = ""
 
@@ -96,7 +97,7 @@ import Logging
                 }
             case let .path(.element(id: id, action: .details(.deleteSuccess))):
                 guard case .details = state.path[id: id]
-                 else { return .none }
+                else { return .none }
                 let penultimateId = state.path.ids.dropLast().last
                 state.path.pop(from: penultimateId!)
                 return .none
@@ -119,6 +120,7 @@ import Logging
     }
 
     @Reducer struct Path {
+        @ObservableState
         enum State: Equatable {
             case reader(ArchiveReaderFeature.State)
             case details(ArchiveDetailsFeature.State)
@@ -153,6 +155,7 @@ import Logging
     }
 
     @Reducer public struct Destination {
+        @ObservableState
         public enum State: Equatable {
             case login(LANraragiConfigFeature.State)
             case lockScreen(LockScreenFeature.State)
@@ -174,24 +177,11 @@ import Logging
     }
 }
 
-extension AppFeature {
-    private static var _shared: StoreOf<AppFeature>?
-
-    public static var shared: StoreOf<AppFeature> {
-        if _shared == nil {
-            _shared = Store(initialState: AppFeature.State(), reducer: {
-                AppFeature()
-            })
-        }
-        return _shared!
-    }
-}
-
 struct ContentView: View {
     @Environment(\.scenePhase) var scenePhase
     @AppStorage(SettingsKey.passcode) var storedPasscode: String = ""
 
-    let store: StoreOf<AppFeature>
+    @Bindable var store: StoreOf<AppFeature>
 
     private let noAnimationTransaction: Transaction
 
@@ -203,121 +193,96 @@ struct ContentView: View {
         self.store = store
     }
 
-    struct ViewState: Equatable {
-        @BindingViewState var tabName: String
-        let destination: AppFeature.Destination.State?
-        let successMessage: String
-        let errorMessage: String
-        init(bindingViewStore: BindingViewStore<AppFeature.State>) {
-            self._tabName = bindingViewStore.$tabName
-            self.destination = bindingViewStore.destination
-            self.successMessage = bindingViewStore.successMessage
-            self.errorMessage = bindingViewStore.errorMessage
-        }
-    }
-
     var body: some View {
-        WithViewStore(self.store, observe: ViewState.init) { viewStore in
-            TabView(selection: viewStore.$tabName) {
-                libraryView
-                categoryView
-                searchView
-                settingsView
+        TabView(selection: $store.tabName) {
+            libraryView
+            categoryView
+            searchView
+            settingsView
+        }
+        .fullScreenCover(
+            item: $store.scope(state: \.destination?.login, action: \.destination.login)
+        ) { store in
+            LANraragiConfigView(store: store)
+        }
+        .fullScreenCover(
+            item: $store.scope(state: \.destination?.lockScreen, action: \.destination.lockScreen)
+        ) { store in
+            LockScreen(store: store)
+        }
+        .onAppear {
+            if UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl)?.isEmpty != false {
+                store.send(.showLogin)
             }
-            .fullScreenCover(
-                store: self.store.scope(state: \.$destination.login, action: \.destination.login)
-            ) { store in
-                LANraragiConfigView(store: store)
-            }
-            .fullScreenCover(
-                store: self.store.scope(state: \.$destination.lockScreen, action: \.destination.lockScreen)
-            ) { store in
-                LockScreen(store: store)
-            }
-            .onAppear {
-                if UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl)?.isEmpty != false {
-                    viewStore.send(.showLogin)
+        }
+        .onAppear {
+            if !storedPasscode.isEmpty {
+                _ = withTransaction(self.noAnimationTransaction) {
+                    store.send(.showLockScreen)
                 }
             }
-            .onAppear {
-                if !storedPasscode.isEmpty {
-                    _ = withTransaction(self.noAnimationTransaction) {
-                        viewStore.send(.showLockScreen)
-                    }
+        }
+        .onChange(of: scenePhase) {
+            if !storedPasscode.isEmpty && scenePhase != .active && store.destination == nil {
+                _ = withTransaction(self.noAnimationTransaction) {
+                    store.send(.showLockScreen)
                 }
             }
-            .onChange(of: scenePhase) {
-                if !storedPasscode.isEmpty && scenePhase != .active && viewStore.destination == nil {
-                    _ = withTransaction(self.noAnimationTransaction) {
-                        viewStore.send(.showLockScreen)
-                    }
-                }
+        }
+        .onOpenURL { url in
+            store.send(.queueUrlDownload(url))
+        }
+        .onChange(of: store.errorMessage) {
+            if !store.errorMessage.isEmpty {
+                let banner = NotificationBanner(
+                    title: String(localized: "error"),
+                    subtitle: store.errorMessage,
+                    style: .danger
+                )
+                banner.show()
+                store.send(.setErrorMessage(""))
             }
-            .onOpenURL { url in
-                viewStore.send(.queueUrlDownload(url))
-            }
-            .onChange(of: viewStore.errorMessage) {
-                if !viewStore.errorMessage.isEmpty {
-                    let banner = NotificationBanner(
-                        title: String(localized: "error"),
-                        subtitle: viewStore.errorMessage,
-                        style: .danger
-                    )
-                    banner.show()
-                    viewStore.send(.setErrorMessage(""))
-                }
-            }
-            .onChange(of: viewStore.successMessage) {
-                if !viewStore.successMessage.isEmpty {
-                    let banner = NotificationBanner(
-                        title: String(localized: "success"),
-                        subtitle: viewStore.successMessage,
-                        style: .success
-                    )
-                    banner.show()
-                    viewStore.send(.setSuccessMessage(""))
-                }
+        }
+        .onChange(of: store.successMessage) {
+            if !store.successMessage.isEmpty {
+                let banner = NotificationBanner(
+                    title: String(localized: "success"),
+                    subtitle: store.successMessage,
+                    style: .success
+                )
+                banner.show()
+                store.send(.setSuccessMessage(""))
             }
         }
     }
 
     var libraryView: some View {
-        NavigationStackStore(
-            self.store.scope(state: \.path, action: \.path)
+        NavigationStack(
+            path: $store.scope(state: \.path, action: \.path)
         ) {
             LibraryListV2(store: store.scope(state: \.library, action: \.library))
-        } destination: { (state: AppFeature.Path.State) in
-            switch state {
+        } destination: { store in
+            switch store.state {
             case .reader:
-                CaseLet(
-                    /AppFeature.Path.State.reader,
-                     action: AppFeature.Path.Action.reader,
-                     then: ArchiveReader.init(store:)
-                )
+                if let store = store.scope(state: \.reader, action: \.reader) {
+                    ArchiveReader(store: store)
+                }
             case .details:
-                CaseLet(
-                    /AppFeature.Path.State.details,
-                     action: AppFeature.Path.Action.details,
-                     then: ArchiveDetailsV2.init(store:)
-                )
+                if let store = store.scope(state: \.details, action: \.details) {
+                    ArchiveDetailsV2(store: store)
+                }
             case .categoryArchiveList:
-                CaseLet(
-                    /AppFeature.Path.State.categoryArchiveList,
-                     action: AppFeature.Path.Action.categoryArchiveList,
-                     then: CategoryArchiveListV2.init(store:)
-                )
+                if let store = store.scope(state: \.categoryArchiveList, action: \.categoryArchiveList) {
+                    CategoryArchiveListV2(store: store)
+                }
             case .search:
-                CaseLet(
-                    /AppFeature.Path.State.search,
-                     action: AppFeature.Path.Action.search,
-                     then: SearchViewV2.init(store:)
-                )
+                if let store = store.scope(state: \.search, action: \.search) {
+                    SearchViewV2(store: store)
+                }
             case .random:
-                CaseLet(
-                    /AppFeature.Path.State.random,
-                     action: AppFeature.Path.Action.random,
-                     then: RandomView.init(store:)
-                )
+                if let store = store.scope(state: \.random, action: \.random) {
+                    RandomView(store: store)
+                }
             }
         }
         .tabItem {
@@ -328,42 +293,32 @@ struct ContentView: View {
     }
 
     var categoryView: some View {
-        NavigationStackStore(
-            self.store.scope(state: \.path, action: \.path)
+        NavigationStack(
+            path: $store.scope(state: \.path, action: \.path)
         ) {
             CategoryListV2(store: store.scope(state: \.category, action: \.category))
-        } destination: { (state: AppFeature.Path.State) in
-            switch state {
+        } destination: { store in
+            switch store.state {
             case .reader:
-                CaseLet(
-                    /AppFeature.Path.State.reader,
-                     action: AppFeature.Path.Action.reader,
-                     then: ArchiveReader.init(store:)
-                )
+                if let store = store.scope(state: \.reader, action: \.reader) {
+                    ArchiveReader(store: store)
+                }
             case .details:
-                CaseLet(
-                    /AppFeature.Path.State.details,
-                     action: AppFeature.Path.Action.details,
-                     then: ArchiveDetailsV2.init(store:)
-                )
+                if let store = store.scope(state: \.details, action: \.details) {
+                    ArchiveDetailsV2(store: store)
+                }
             case .categoryArchiveList:
-                CaseLet(
-                    /AppFeature.Path.State.categoryArchiveList,
-                     action: AppFeature.Path.Action.categoryArchiveList,
-                     then: CategoryArchiveListV2.init(store:)
-                )
+                if let store = store.scope(state: \.categoryArchiveList, action: \.categoryArchiveList) {
+                    CategoryArchiveListV2(store: store)
+                }
             case .search:
-                CaseLet(
-                    /AppFeature.Path.State.search,
-                     action: AppFeature.Path.Action.search,
-                     then: SearchViewV2.init(store:)
-                )
+                if let store = store.scope(state: \.search, action: \.search) {
+                    SearchViewV2(store: store)
+                }
             case .random:
-                CaseLet(
-                    /AppFeature.Path.State.random,
-                     action: AppFeature.Path.Action.random,
-                     then: RandomView.init(store:)
-                )
+                if let store = store.scope(state: \.random, action: \.random) {
+                    RandomView(store: store)
+                }
             }
         }
         .tabItem {
@@ -374,42 +329,32 @@ struct ContentView: View {
     }
 
     var searchView: some View {
-        NavigationStackStore(
-            self.store.scope(state: \.path, action: \.path)
+        NavigationStack(
+            path: $store.scope(state: \.path, action: \.path)
         ) {
             SearchViewV2(store: store.scope(state: \.search, action: \.search))
-        } destination: { (state: AppFeature.Path.State) in
-            switch state {
+        } destination: { store in
+            switch store.state {
             case .reader:
-                CaseLet(
-                    /AppFeature.Path.State.reader,
-                     action: AppFeature.Path.Action.reader,
-                     then: ArchiveReader.init(store:)
-                )
+                if let store = store.scope(state: \.reader, action: \.reader) {
+                    ArchiveReader(store: store)
+                }
             case .details:
-                CaseLet(
-                    /AppFeature.Path.State.details,
-                     action: AppFeature.Path.Action.details,
-                     then: ArchiveDetailsV2.init(store:)
-                )
+                if let store = store.scope(state: \.details, action: \.details) {
+                    ArchiveDetailsV2(store: store)
+                }
             case .categoryArchiveList:
-                CaseLet(
-                    /AppFeature.Path.State.categoryArchiveList,
-                     action: AppFeature.Path.Action.categoryArchiveList,
-                     then: CategoryArchiveListV2.init(store:)
-                )
+                if let store = store.scope(state: \.categoryArchiveList, action: \.categoryArchiveList) {
+                    CategoryArchiveListV2(store: store)
+                }
             case .search:
-                CaseLet(
-                    /AppFeature.Path.State.search,
-                     action: AppFeature.Path.Action.search,
-                     then: SearchViewV2.init(store:)
-                )
+                if let store = store.scope(state: \.search, action: \.search) {
+                    SearchViewV2(store: store)
+                }
             case .random:
-                CaseLet(
-                    /AppFeature.Path.State.random,
-                     action: AppFeature.Path.Action.random,
-                     then: RandomView.init(store:)
-                )
+                if let store = store.scope(state: \.random, action: \.random) {
+                    RandomView(store: store)
+                }
             }
         }
         .tabItem {
@@ -421,10 +366,10 @@ struct ContentView: View {
 
     var settingsView: some View {
         SettingsView(store: store.scope(state: \.settings, action: \.settings))
-        .tabItem {
-            Image(systemName: "gearshape")
-            Text("settings")
-        }
-        .tag("settings")
+            .tabItem {
+                Image(systemName: "gearshape")
+                Text("settings")
+            }
+            .tag("settings")
     }
 }

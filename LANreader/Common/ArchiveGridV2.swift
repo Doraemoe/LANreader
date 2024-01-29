@@ -4,6 +4,7 @@ import Logging
 
 @Reducer struct GridFeature {
     private let logger = Logger(label: "GridFeature")
+    @ObservableState
     struct State: Equatable, Identifiable {
         var archive: ArchiveItem
         var archiveThumbnail: ArchiveThumbnail?
@@ -66,36 +67,34 @@ struct ArchiveGridV2: View {
     let store: StoreOf<GridFeature>
 
     var body: some View {
-        WithViewStore(self.store, observe: { $0 }) { viewStore in
-            VStack(alignment: HorizontalAlignment.center, spacing: 2) {
-                Text(buildTitle(archive: viewStore.archive))
-                    .lineLimit(2)
-                    .foregroundColor(.primary)
-                    .padding(4)
-                    .font(.caption)
-                ZStack {
-                    if let imageData = viewStore.archiveThumbnail?.thumbnail {
-                        Image(uiImage: UIImage(data: imageData)!)
-                            .resizable()
-                            .scaledToFit()
-                    } else {
-                        Image(systemName: "photo")
-                            .foregroundColor(.primary)
-                            .frame(height: 240)
-                            .onAppear {
-                                viewStore.send(.load(false))
-                            }
-                    }
+        VStack(alignment: HorizontalAlignment.center, spacing: 2) {
+            Text(buildTitle(archive: store.archive))
+                .lineLimit(2)
+                .foregroundColor(.primary)
+                .padding(4)
+                .font(.caption)
+            ZStack {
+                if let imageData = store.archiveThumbnail?.thumbnail {
+                    Image(uiImage: UIImage(data: imageData)!)
+                        .resizable()
+                        .scaledToFit()
+                } else {
+                    Image(systemName: "photo")
+                        .foregroundColor(.primary)
+                        .frame(height: 240)
+                        .onAppear {
+                            store.send(.load(false))
+                        }
                 }
             }
-            .frame(maxHeight: .infinity, alignment: .top)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.secondary, lineWidth: 2)
-                    .opacity(0.9)
-            )
         }
+        .frame(maxHeight: .infinity, alignment: .top)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.secondary, lineWidth: 2)
+                .opacity(0.9)
+        )
     }
 
     func buildTitle(archive: ArchiveItem) -> String {
