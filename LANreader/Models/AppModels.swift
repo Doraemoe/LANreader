@@ -89,7 +89,7 @@ struct SettingsKey {
 
     static let archiveListOrder = "settings.archive.list.order"
     static let searchSort = "settings.search.sort"
-    static let searchSortManual = "settings.search.sort.manual"
+    static let searchSortCustom = "settings.search.sort.custom"
     static let searchSortOrder = "settings.search.sort.order"
     static let useListView = "settings.view.use.list"
     static let blurInterfaceWhenInactive = "settings.view.blur.inactive"
