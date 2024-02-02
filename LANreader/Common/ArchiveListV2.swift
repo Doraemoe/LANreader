@@ -425,6 +425,7 @@ struct ArchiveListV2: View {
     @AppStorage(SettingsKey.hideRead) var hideRead: Bool = false
     @AppStorage(SettingsKey.lanraragiUrl) var lanraragiUrl: String = ""
     @AppStorage(SettingsKey.searchSort) var searchSort: String = SearchSort.dateAdded.rawValue
+    @AppStorage(SettingsKey.searchSortCustom) var searchSortCustom: String = ""
     @AppStorage(SettingsKey.searchSortOrder) var searchSortOrder: String = SearchSortOrder.asc.rawValue
 
     @Bindable var store: StoreOf<ArchiveListFeature>
@@ -438,7 +439,7 @@ struct ArchiveListV2: View {
             LazyVGrid(columns: columns) {
                 ForEach(
                     store.scope(state: \.archives, action: \.grid).filter { (item: StoreOf<GridFeature>) in
-                        if UserDefaults.standard.bool(forKey: SettingsKey.hideRead) {
+                        if hideRead {
                             if item.archive.pagecount != item.archive.progress {
                                 return true
                             } else {
@@ -461,6 +462,9 @@ struct ArchiveListV2: View {
         .toolbar(store.selectMode == .active ? .visible : .hidden, for: .bottomBar)
         .toolbar {
             bottomToolbar(store: store)
+        }
+        .toolbar {
+            topBarTrailing(store: store)
         }
         .onAppear {
             store.send(.subscribeThumbnailTrigger)
@@ -539,6 +543,48 @@ struct ArchiveListV2: View {
             }, label: {
                 Label("archive.reload.thumbnail", systemImage: "arrow.clockwise")
             })
+        }
+    }
+
+    private func topBarTrailing(
+        store: StoreOf<ArchiveListFeature>
+    ) -> ToolbarItemGroup<some View> {
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            Menu {
+                ForEach(SearchSort.allCases) { sort in
+                    let label = "settings.archive.list.order.\(sort)"
+                    Button {
+                        if searchSort == sort.rawValue ||
+                            (searchSort == searchSortCustom && sort == SearchSort.custom) {
+                            if searchSortOrder == "asc" {
+                                searchSortOrder = "desc"
+                            } else {
+                                searchSortOrder = "asc"
+                            }
+                        } else {
+                            if sort == SearchSort.custom {
+                                searchSort = searchSortCustom
+                            } else {
+                                searchSort = sort.rawValue
+                            }
+
+                        }
+                    } label: {
+                        if searchSort == sort.rawValue ||
+                            (searchSort == searchSortCustom && sort == SearchSort.custom) {
+                            Label(
+                                title: { Text(LocalizedStringKey(label)) },
+                                icon: { Image(systemName: "checkmark") }
+                            )
+                        } else {
+                            Text(LocalizedStringKey(label))
+                        }
+                    }
+                }
+            } label: {
+                Image(systemName: "arrow.up.arrow.down.circle")
+                    .tint(searchSortOrder == "asc" ? .primary : .accentColor)
+            }
         }
     }
 

@@ -22,6 +22,10 @@ class UserDefaultService {
         UserDefaults.standard.set(searchSort, forKey: SettingsKey.searchSort)
     }
 
+    func setSearchSortCustom(customSort: String) {
+        UserDefaults.standard.set(customSort, forKey: SettingsKey.searchSortCustom)
+    }
+
     var searchSortOrder: String {
         return UserDefaults.standard.string(forKey: SettingsKey.searchSortOrder) ?? "asc"
     }
