@@ -10,7 +10,7 @@ LANreader is an iOS manga reader for [LANraragi](https://github.com/Difegue/LANr
 
 ### Library View
 
-![Screenshot 2023-11-30 at 9 49 43 pm](https://github.com/Doraemoe/DuReader/assets/1129569/ed2a0ac4-0e8f-44ad-8343-5c2fc12b046d)
+![Screenshot 2024-02-07 at 1 11 31 pm](https://github.com/Doraemoe/LANreader/assets/1129569/3b5f7e23-d9c9-42bd-9a21-c88bb3e0174f)
 
 
 ### Archive Page View
@@ -28,7 +28,7 @@ LANreader is an iOS manga reader for [LANraragi](https://github.com/Difegue/LANr
 
 ### Settings Page
 
-![Screenshot 2023-11-30 at 9 52 38 pm](https://github.com/Doraemoe/DuReader/assets/1129569/c6373d29-355d-44f6-8a88-571ca4f04bc8)
+![Screenshot 2024-02-07 at 1 11 35 pm](https://github.com/Doraemoe/LANreader/assets/1129569/58ee26d2-5d2a-488a-a2f8-f105379e5139)
 
 ### Save URL
 
