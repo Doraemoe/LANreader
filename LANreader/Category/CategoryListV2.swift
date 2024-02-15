@@ -16,7 +16,7 @@ import NotificationBannerSwift
         var errorMessage = ""
     }
 
-    enum Action: Equatable, BindableAction {
+    enum Action: BindableAction {
         case destination(PresentationAction<Destination.Action>)
 
         case binding(BindingAction<State>)
@@ -67,26 +67,12 @@ import NotificationBannerSwift
                 return .none
             }
         }
-        .ifLet(\.$destination, action: \.destination) {
-            Destination()
-        }
+        .ifLet(\.$destination, action: \.destination)
     }
 
-    @Reducer public struct Destination {
-        @ObservableState
-        public enum State: Equatable {
-            case add(NewCategoryFeature.State)
-        }
-
-        public enum Action: Equatable {
-            case add(NewCategoryFeature.Action)
-        }
-
-        public var body: some Reducer<State, Action> {
-            Scope(state: \.add, action: \.add) {
-                NewCategoryFeature()
-            }
-        }
+    @Reducer(state: .equatable)
+    enum Destination {
+        case add(NewCategoryFeature)
     }
 }
 

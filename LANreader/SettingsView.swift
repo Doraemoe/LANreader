@@ -10,7 +10,7 @@ import SwiftUI
         var view = ViewSettingsFeature.State()
         var database = DatabaseSettingsFeature.State()
     }
-    enum Action: Equatable {
+    enum Action {
         case path(StackAction<Path.State, Path.Action>)
 
         case view(ViewSettingsFeature.Action)
@@ -33,34 +33,14 @@ import SwiftUI
                 return .none
             }
         }
-        .forEach(\.path, action: \.path) {
-            Path()
-        }
+        .forEach(\.path, action: \.path)
     }
 
-    @Reducer struct Path {
-        @ObservableState
-        enum State: Equatable {
-            case lanraragiSettings(LANraragiConfigFeature.State)
-            case upload(UploadFeature.State)
-            case log(LogFeature.State)
-        }
-        enum Action: Equatable {
-            case lanraragiSettings(LANraragiConfigFeature.Action)
-            case upload(UploadFeature.Action)
-            case log(LogFeature.Action)
-        }
-        var body: some ReducerOf<Self> {
-            Scope(state: \.lanraragiSettings, action: \.lanraragiSettings) {
-                LANraragiConfigFeature()
-            }
-            Scope(state: \.upload, action: \.upload) {
-                UploadFeature()
-            }
-            Scope(state: \.log, action: \.log) {
-                LogFeature()
-            }
-        }
+    @Reducer(state: .equatable)
+    enum Path {
+        case lanraragiSettings(LANraragiConfigFeature)
+        case upload(UploadFeature)
+        case log(LogFeature)
     }
 }
 
@@ -104,19 +84,13 @@ struct SettingsView: View {
             .navigationBarTitle("settings")
             .navigationBarTitleDisplayMode(.inline)
         } destination: { store in
-            switch store.state {
-            case .lanraragiSettings:
-                if let store = store.scope(state: \.lanraragiSettings, action: \.lanraragiSettings) {
-                    LANraragiConfigView(store: store)
-                }
-            case .upload:
-                if let store = store.scope(state: \.upload, action: \.upload) {
-                    UploadView(store: store)
-                }
-            case .log:
-                if let store = store.scope(state: \.log, action: \.log) {
-                    LogView(store: store)
-                }
+            switch store.case {
+            case let .lanraragiSettings(store):
+                LANraragiConfigView(store: store)
+            case let .upload(store):
+                UploadView(store: store)
+            case let .log(store):
+                LogView(store: store)
             }
         }
     }
