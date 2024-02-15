@@ -22,7 +22,7 @@ import Logging
         var settings = SettingsFeature.State()
     }
 
-    enum Action: Equatable, BindableAction {
+    enum Action: BindableAction {
         case path(StackAction<AppFeature.Path.State, AppFeature.Path.Action>)
         case destination(PresentationAction<Destination.Action>)
 
@@ -111,69 +111,23 @@ import Logging
                 return .none
             }
         }
-        .forEach(\.path, action: \.path) {
-            AppFeature.Path()
-        }
-        .ifLet(\.$destination, action: \.destination) {
-            Destination()
-        }
+        .forEach(\.path, action: \.path)
+        .ifLet(\.$destination, action: \.destination)
     }
 
-    @Reducer struct Path {
-        @ObservableState
-        enum State: Equatable {
-            case reader(ArchiveReaderFeature.State)
-            case details(ArchiveDetailsFeature.State)
-            case categoryArchiveList(CategoryArchiveListFeature.State)
-            case search(SearchFeature.State)
-            case random(RandomFeature.State)
-        }
-        enum Action: Equatable {
-            case reader(ArchiveReaderFeature.Action)
-            case details(ArchiveDetailsFeature.Action)
-            case categoryArchiveList(CategoryArchiveListFeature.Action)
-            case search(SearchFeature.Action)
-            case random(RandomFeature.Action)
-        }
-        var body: some ReducerOf<Self> {
-            Scope(state: \.reader, action: \.reader) {
-                ArchiveReaderFeature()
-            }
-            Scope(state: \.details, action: \.details) {
-                ArchiveDetailsFeature()
-            }
-            Scope(state: \.categoryArchiveList, action: \.categoryArchiveList) {
-                CategoryArchiveListFeature()
-            }
-            Scope(state: \.search, action: \.search) {
-                SearchFeature()
-            }
-            Scope(state: \.random, action: \.random) {
-                RandomFeature()
-            }
-        }
+    @Reducer(state: .equatable)
+    enum Path {
+        case reader(ArchiveReaderFeature)
+        case details(ArchiveDetailsFeature)
+        case categoryArchiveList(CategoryArchiveListFeature)
+        case search(SearchFeature)
+        case random(RandomFeature)
     }
 
-    @Reducer public struct Destination {
-        @ObservableState
-        public enum State: Equatable {
-            case login(LANraragiConfigFeature.State)
-            case lockScreen(LockScreenFeature.State)
-        }
-
-        public enum Action: Equatable {
-            case login(LANraragiConfigFeature.Action)
-            case lockScreen(LockScreenFeature.Action)
-        }
-
-        public var body: some Reducer<State, Action> {
-            Scope(state: \.login, action: \.login) {
-                LANraragiConfigFeature()
-            }
-            Scope(state: \.lockScreen, action: \.lockScreen) {
-                LockScreenFeature()
-            }
-        }
+    @Reducer(state: .equatable)
+    enum Destination {
+        case login(LANraragiConfigFeature)
+        case lockScreen(LockScreenFeature)
     }
 }
 
@@ -262,27 +216,17 @@ struct ContentView: View {
         ) {
             LibraryListV2(store: store.scope(state: \.library, action: \.library))
         } destination: { store in
-            switch store.state {
-            case .reader:
-                if let store = store.scope(state: \.reader, action: \.reader) {
-                    ArchiveReader(store: store)
-                }
-            case .details:
-                if let store = store.scope(state: \.details, action: \.details) {
-                    ArchiveDetailsV2(store: store)
-                }
-            case .categoryArchiveList:
-                if let store = store.scope(state: \.categoryArchiveList, action: \.categoryArchiveList) {
-                    CategoryArchiveListV2(store: store)
-                }
-            case .search:
-                if let store = store.scope(state: \.search, action: \.search) {
-                    SearchViewV2(store: store)
-                }
-            case .random:
-                if let store = store.scope(state: \.random, action: \.random) {
-                    RandomView(store: store)
-                }
+            switch store.case {
+            case let .reader(store):
+                ArchiveReader(store: store)
+            case let .details(store):
+                ArchiveDetailsV2(store: store)
+            case let .categoryArchiveList(store):
+                CategoryArchiveListV2(store: store)
+            case let .search(store):
+                SearchViewV2(store: store)
+            case let .random(store):
+                RandomView(store: store)
             }
         }
         .tabItem {
@@ -298,27 +242,17 @@ struct ContentView: View {
         ) {
             CategoryListV2(store: store.scope(state: \.category, action: \.category))
         } destination: { store in
-            switch store.state {
-            case .reader:
-                if let store = store.scope(state: \.reader, action: \.reader) {
-                    ArchiveReader(store: store)
-                }
-            case .details:
-                if let store = store.scope(state: \.details, action: \.details) {
-                    ArchiveDetailsV2(store: store)
-                }
-            case .categoryArchiveList:
-                if let store = store.scope(state: \.categoryArchiveList, action: \.categoryArchiveList) {
-                    CategoryArchiveListV2(store: store)
-                }
-            case .search:
-                if let store = store.scope(state: \.search, action: \.search) {
-                    SearchViewV2(store: store)
-                }
-            case .random:
-                if let store = store.scope(state: \.random, action: \.random) {
-                    RandomView(store: store)
-                }
+            switch store.case {
+            case let .reader(store):
+                ArchiveReader(store: store)
+            case let .details(store):
+                ArchiveDetailsV2(store: store)
+            case let .categoryArchiveList(store):
+                CategoryArchiveListV2(store: store)
+            case let .search(store):
+                SearchViewV2(store: store)
+            case let .random(store):
+                RandomView(store: store)
             }
         }
         .tabItem {
@@ -334,27 +268,17 @@ struct ContentView: View {
         ) {
             SearchViewV2(store: store.scope(state: \.search, action: \.search))
         } destination: { store in
-            switch store.state {
-            case .reader:
-                if let store = store.scope(state: \.reader, action: \.reader) {
-                    ArchiveReader(store: store)
-                }
-            case .details:
-                if let store = store.scope(state: \.details, action: \.details) {
-                    ArchiveDetailsV2(store: store)
-                }
-            case .categoryArchiveList:
-                if let store = store.scope(state: \.categoryArchiveList, action: \.categoryArchiveList) {
-                    CategoryArchiveListV2(store: store)
-                }
-            case .search:
-                if let store = store.scope(state: \.search, action: \.search) {
-                    SearchViewV2(store: store)
-                }
-            case .random:
-                if let store = store.scope(state: \.random, action: \.random) {
-                    RandomView(store: store)
-                }
+            switch store.case {
+            case let .reader(store):
+                ArchiveReader(store: store)
+            case let .details(store):
+                ArchiveDetailsV2(store: store)
+            case let .categoryArchiveList(store):
+                CategoryArchiveListV2(store: store)
+            case let .search(store):
+                SearchViewV2(store: store)
+            case let .random(store):
+                RandomView(store: store)
             }
         }
         .tabItem {

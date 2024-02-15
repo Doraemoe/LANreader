@@ -8,7 +8,7 @@ import SwiftUI
         @Presents var destination: Destination.State?
     }
 
-    enum Action: Equatable {
+    enum Action {
         case destination(PresentationAction<Destination.Action>)
 
         case showLockScreen(Bool)
@@ -28,25 +28,12 @@ import SwiftUI
                 return .none
             }
         }
-        .ifLet(\.$destination, action: \.destination) {
-            Destination()
-        }
+        .ifLet(\.$destination, action: \.destination)
     }
 
-    @Reducer public struct Destination {
-        public enum State: Equatable {
-            case lockScreen(LockScreenFeature.State)
-        }
-
-        public enum Action: Equatable {
-            case lockScreen(LockScreenFeature.Action)
-        }
-
-        public var body: some Reducer<State, Action> {
-            Scope(state: \.lockScreen, action: \.lockScreen) {
-                LockScreenFeature()
-            }
-        }
+    @Reducer(state: .equatable)
+    enum Destination {
+        case lockScreen(LockScreenFeature)
     }
 }
 
