@@ -6,19 +6,22 @@ on:
 
 jobs:
   verify:
-    runs-on: macOS-13
+    runs-on: macOS-14
     
     strategy:
         matrix:
           destination: ['platform=iOS Simulator,OS=17.2,name=iPad Pro (11-inch) (4th generation)']
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+
+      - name: install
+        run: brew install swiftlint
 
       - name: lint
         run: swiftlint --strict
 
       - name: Select Xcode version
-        run: sudo xcode-select -switch /Applications/Xcode_15.1.app
+        run: sudo xcode-select -switch /Applications/Xcode_15.2.app
       
       - name: Build and test
         run: xcodebuild clean test -project LANreader.xcodeproj -scheme LANreader -destination "${destination}" -skipMacroValidation

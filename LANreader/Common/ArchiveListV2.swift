@@ -574,7 +574,11 @@ struct ArchiveListV2: View {
                             (searchSort == searchSortCustom && sort == SearchSort.custom) {
                             Label(
                                 title: { Text(LocalizedStringKey(label)) },
-                                icon: { Image(systemName: "checkmark") }
+                                icon: {
+                                    searchSortOrder == "asc" ?
+                                    Image(systemName: "arrow.up") :
+                                    Image(systemName: "arrow.down")
+                                }
                             )
                         } else {
                             Text(LocalizedStringKey(label))
@@ -583,7 +587,6 @@ struct ArchiveListV2: View {
                 }
             } label: {
                 Image(systemName: "arrow.up.arrow.down.circle")
-                    .tint(searchSortOrder == "asc" ? .primary : .accentColor)
             }
         }
     }
