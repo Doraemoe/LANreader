@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/groue/GRDB.swift",
       "state" : {
-        "revision" : "e069e2732e3ee2b67bf89c1bda1937da0eaee7ef",
-        "version" : "6.24.2"
+        "revision" : "bd9aea303d9dab3a4941ee838a0e4ff51c9448df",
+        "version" : "6.25.0"
       }
     },
     {
@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/cbpowell/MarqueeLabel",
       "state" : {
-        "revision" : "ae3cf7c647dd7f67f1946658285f5f0ce2476caf",
-        "version" : "4.4.0"
+        "revision" : "877e810534cda9afabb8143ae319b7c3341b121b",
+        "version" : "4.5.0"
       }
     },
     {
@@ -68,8 +68,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SnapKit/SnapKit",
       "state" : {
-        "revision" : "e74fe2a978d1216c3602b129447c7301573cc2d8",
-        "version" : "5.7.0"
+        "revision" : "2842e6e84e82eb9a8dac0100ca90d9444b0307f4",
+        "version" : "5.7.1"
       }
     },
     {
@@ -104,8 +104,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-composable-architecture",
       "state" : {
-        "revision" : "cf967a28a8605629559533320d604168d733fc9c",
-        "version" : "1.8.0"
+        "revision" : "856f9b8d82f6851b7f61ec4c5ce9e4c18ebbdb45",
+        "version" : "1.8.2"
       }
     },
     {
@@ -122,8 +122,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-custom-dump",
       "state" : {
-        "revision" : "6ea3b1b6a4957806d72030a32360d4bcb155a0d2",
-        "version" : "1.2.0"
+        "revision" : "3ce83179e5f0c83ad54c305779c6b438e82aaf1d",
+        "version" : "1.2.1"
       }
     },
     {

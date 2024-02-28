@@ -45,7 +45,7 @@ LANreader is an iOS manga reader for [LANraragi](https://github.com/Difegue/LANr
 
 - Clone this project
 - Open it in Xcode
-- Follow [this guide](https://developer.apple.com/documentation/xcode/running_your_app_in_the_simulator_or_on_a_device)
+- Follow [this guide](https://developer.apple.com/documentation/xcode/running-your-app-in-simulator-or-on-a-device)
 
 ## Donation
 
