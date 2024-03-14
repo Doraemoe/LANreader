@@ -20,7 +20,7 @@ struct ArchiveCategoriesResponse: Decodable {
     let archives: [String]
     let id: String
     // swiftlint:disable identifier_name
-    let last_used: String
+    let last_used: String?
     // swiftlint:enable identifier_name
     let name: String
     let pinned: String
