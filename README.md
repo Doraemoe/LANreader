@@ -49,7 +49,7 @@ LANreader is an iOS manga reader for [LANraragi](https://github.com/Difegue/LANr
 
 ## Donation
 
-BTC: bc1q0364ah7u88kkgh0w9l2223e5kdrffesp9t8y0r
+BTC: bc1qjzpavhkj3rrd2tc2cdnvyhwms6wpvdze064r6w
 
 ## License
 

@@ -585,6 +585,18 @@ struct ArchiveListV2: View {
                         }
                     }
                 }
+                Divider()
+                Button {
+                    hideRead.toggle()
+                } label: {
+                    if hideRead {
+                        Label("settings.view.hideRead", systemImage: "checkmark")
+                    } else {
+                        Text("settings.view.hideRead")
+                    }
+
+                }
+
             } label: {
                 Image(systemName: "arrow.up.arrow.down.circle")
             }
