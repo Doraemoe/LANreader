@@ -7,7 +7,6 @@ import Puppy
 @main
 struct LANreaderApp: App {
     @Environment(\.scenePhase) var scenePhase
-    @AppStorage(SettingsKey.blurInterfaceWhenInactive) var blurInterfaceWhenInactive: Bool = false
 
     let store = Store(initialState: AppFeature.State()) {
         AppFeature()
@@ -72,7 +71,7 @@ struct LANreaderApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(store: self.store)
-                .blur(radius: blurInterfaceWhenInactive && scenePhase != .active ? 200 : 0)
+                .blur(radius: store.blurInterfaceWhenInactive && scenePhase != .active ? 200 : 0)
         }
     }
 }

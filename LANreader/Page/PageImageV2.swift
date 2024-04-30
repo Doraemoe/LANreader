@@ -8,6 +8,8 @@ import Logging
 
     @ObservableState
     struct State: Equatable, Identifiable {
+        @SharedReader(.appStorage(SettingsKey.showOriginal)) var showOriginal = false
+
         var id: Int
         var pageId: String
         var image: ArchiveImage?
@@ -27,7 +29,6 @@ import Logging
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
-    @Dependency(\.userDefaultService) var userDefault
     @Dependency(\.imageService) var imageService
 
     enum CancelId { case imageProgress }
@@ -65,27 +66,27 @@ import Logging
                     state.image = nil
                 }
                 if state.image == nil {
-                    return .run { [id = state.pageId] send in
+                    return .run { [state] send in
                         do {
-                            let task = service.fetchArchivePage(page: id)
+                            let task = service.fetchArchivePage(page: state.pageId)
                             await send(.subscribeToProgress(task))
                             let imageUrl = try await task
                                 .serializingDownloadedFileURL()
                                 .value
                             await send(.cancelSubscribeImageProgress)
 
-                            if !userDefault.showOriginal {
+                            if !state.showOriginal {
                                 await send(.setProgress(2.0))
                                 imageService.resizeImage(url: imageUrl)
                             }
 
                             var  pageImage = ArchiveImage(
-                                id: id, image: imageUrl.path(percentEncoded: false), lastUpdate: Date()
+                                id: state.pageId, image: imageUrl.path(percentEncoded: false), lastUpdate: Date()
                             )
                             do {
                                 try database.saveArchiveImage(&pageImage)
                             } catch {
-                                logger.error("failed to save page to db. pageId=\(id) \(error)")
+                                logger.error("failed to save page to db. pageId=\(state.pageId) \(error)")
                             }
                             await send(.setImage(pageImage))
                         } catch {

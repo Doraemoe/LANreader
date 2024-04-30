@@ -6,19 +6,30 @@ import SwiftUI
     @ObservableState
     struct State: Equatable {
         @Presents var destination: Destination.State?
+
+        @Shared(.appStorage(SettingsKey.searchSortCustom)) var searchSortCustom = ""
+        @Shared(.appStorage(SettingsKey.blurInterfaceWhenInactive)) var blurInterfaceWhenInactive = false
+        @Shared(.appStorage(SettingsKey.enablePasscode)) var enablePasscode = false
+        @Shared(.appStorage(SettingsKey.passcode)) var storedPasscode = ""
     }
 
-    enum Action {
+    enum Action: BindableAction {
+        case binding(BindingAction<State>)
+
         case destination(PresentationAction<Destination.Action>)
 
+        case setEnablePasscode(Bool)
         case showLockScreen(Bool)
     }
 
-    @Dependency(\.userDefaultService) var userDefault
-
     var body: some Reducer<State, Action> {
+        BindingReducer()
+
         Reduce { state, action in
             switch action {
+            case let .setEnablePasscode(isEnable):
+                state.enablePasscode = isEnable
+                return .none
             case let .showLockScreen(isEnable):
                 state.destination = .lockScreen(
                     LockScreenFeature.State(lockState: isEnable ? .new : .remove)
@@ -38,17 +49,12 @@ import SwiftUI
 }
 
 struct ViewSettings: View {
-    @AppStorage(SettingsKey.searchSortCustom) var searchSortCustom: String = ""
-    @AppStorage(SettingsKey.blurInterfaceWhenInactive) var blurInterfaceWhenInactive: Bool = false
-    @AppStorage(SettingsKey.enablePasscode) var enablePasscode: Bool = false
-    @AppStorage(SettingsKey.passcode) var storedPasscode: String = ""
-
     @Bindable var store: StoreOf<ViewSettingsFeature>
 
     var body: some View {
-        List {
+        VStack {
             LabeledContent {
-                TextField("settings.archive.list.order.custom.title", text: $searchSortCustom)
+                TextField("settings.archive.list.order.custom.title", text: $store.searchSortCustom)
                     .multilineTextAlignment(.trailing)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -56,27 +62,27 @@ struct ViewSettings: View {
                 Text("settings.archive.list.order.custom.title")
             }
             .padding()
-            Toggle(isOn: self.$blurInterfaceWhenInactive, label: {
+            Toggle(isOn: self.$store.blurInterfaceWhenInactive, label: {
                 Text("settings.view.blur.inactive")
             })
             .padding()
-            Toggle(isOn: self.$enablePasscode, label: {
+            Toggle(isOn: self.$store.enablePasscode, label: {
                 Text("settings.view.passcode")
             })
             .padding()
         }
         .onAppear {
             // Correct invalid passcode status
-            if enablePasscode && storedPasscode.isEmpty {
-                enablePasscode = false
-            } else if !enablePasscode && !storedPasscode.isEmpty {
-                enablePasscode = true
+            if store.enablePasscode && store.storedPasscode.isEmpty {
+                store.send(.setEnablePasscode(false))
+            } else if !store.enablePasscode && !store.storedPasscode.isEmpty {
+                store.send(.setEnablePasscode(true))
             }
         }
-        .onChange(of: enablePasscode) { oldPasscode, newEnable in
-            if oldPasscode && storedPasscode.isEmpty {
+        .onChange(of: store.enablePasscode) { oldPasscode, newEnable in
+            if oldPasscode && store.storedPasscode.isEmpty {
                 // heppens when correct invalid passcode status
-            } else if !oldPasscode && !storedPasscode.isEmpty {
+            } else if !oldPasscode && !store.storedPasscode.isEmpty {
                 // heppens when correct invalid passcode status
             } else if store.destination == nil {
                 store.send(.showLockScreen(newEnable))

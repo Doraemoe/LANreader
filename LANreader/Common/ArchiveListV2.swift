@@ -11,6 +11,14 @@ import NotificationBannerSwift
     @ObservableState
     struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
+
+        @SharedReader(.appStorage(SettingsKey.lanraragiUrl)) var lanraragiUrl = ""
+        @SharedReader(.appStorage(SettingsKey.searchSortCustom)) var searchSortCustom = ""
+        @Shared(.appStorage(SettingsKey.hideRead)) var hideRead = false
+        @Shared(.appStorage(SettingsKey.searchSort)) var searchSort = SearchSort.dateAdded.rawValue
+        @Shared(.appStorage(SettingsKey.searchSortOrder)) var searchSortOrder = SearchSortOrder.asc.rawValue
+        @Shared(.appStorage(SettingsKey.lastTagRefresh)) var lastTagRefresh = 0.0
+
         var selectMode: EditMode = .inactive
         var selected: Set<String> = .init()
         var categoryItems: IdentifiedArrayOf<CategoryItem>?
@@ -25,7 +33,7 @@ import NotificationBannerSwift
         var currentTab: TabName
 
         var archivesToDisplay: IdentifiedArrayOf<GridFeature.State> {
-            if UserDefaults.standard.bool(forKey: SettingsKey.hideRead) {
+            if hideRead {
                 let result = archives.filter {
                     $0.archive.pagecount != $0.archive.progress
                 }
@@ -60,6 +68,10 @@ import NotificationBannerSwift
         case addSelect(String)
         case removeSelect(String)
 
+        case setSearchSortOrder(String)
+        case setSearchSort(String)
+        case toggleHideRead
+
         case deleteButtonTapped
         case deleteSuccess(Set<String>)
         case removeFromCategoryButtonTapped
@@ -73,7 +85,6 @@ import NotificationBannerSwift
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
     @Dependency(\.refreshTrigger) var refreshTrigger
-    @Dependency(\.userDefaultService) var userDefault
 
     enum CancelId { case search }
 
@@ -110,9 +121,9 @@ import NotificationBannerSwift
                 }
                 state.loading = true
                 state.showLoading = showLoading
-                let sortby = userDefault.searchSort
-                let order = userDefault.searchSortOrder
-                self.populateTags()
+                let sortby = state.searchSort
+                let order = state.searchSortOrder
+                self.populateTags(state: &state)
                 return self.search(
                     state: &state, searchFilter: state.filter, sortby: sortby, start: "0", order: order, append: false
                 )
@@ -122,8 +133,8 @@ import NotificationBannerSwift
                 }
                 state.loading = true
                 state.showLoading = true
-                let sortby = userDefault.searchSort
-                let order = userDefault.searchSortOrder
+                let sortby = state.searchSort
+                let order = state.searchSortOrder
                 return self.search(
                     state: &state, searchFilter: state.filter, sortby: sortby, start: start, order: order, append: true
                 )
@@ -257,6 +268,15 @@ import NotificationBannerSwift
                     }
                     await send(.deleteSuccess(successIds))
                 }
+            case let .setSearchSortOrder(order):
+                state.searchSortOrder = order
+                return .none
+            case let .setSearchSort(sort):
+                state.searchSort = sort
+                return .none
+            case .toggleHideRead:
+                state.hideRead.toggle()
+                return .none
             case .deleteButtonTapped:
                 state.alert = AlertState {
                     TextState("archive.selected.delete")
@@ -361,13 +381,13 @@ import NotificationBannerSwift
         .ifLet(\.$alert, action: \.alert)
     }
 
-    func populateTags() {
+    func populateTags(state: inout State) {
         let currentTime = Date().timeIntervalSince1970
-        let lastUpdateTime = userDefault.lastTagRefresh
+        let lastUpdateTime = state.lastTagRefresh
         let excludeTags = ["date_added", "source"]
         // refresh only after 1 day
         if currentTime - lastUpdateTime > 86400 {
-            userDefault.setLastTagRefresh()
+            state.lastTagRefresh = Date().timeIntervalSince1970
             Task.detached(priority: .utility) {
                 do {
                     let response = try await service.databaseBackup().value
@@ -387,7 +407,7 @@ import NotificationBannerSwift
                     }
                 } catch {
                     logger.error("failed to refresh tags. \(error)")
-                    userDefault.setLastTagRefresh(timeOverride: lastUpdateTime)
+                    UserDefaults.standard.set(lastUpdateTime, forKey: SettingsKey.lastTagRefresh)
                 }
             }
         }
@@ -422,12 +442,6 @@ import NotificationBannerSwift
 }
 
 struct ArchiveListV2: View {
-    @AppStorage(SettingsKey.hideRead) var hideRead: Bool = false
-    @AppStorage(SettingsKey.lanraragiUrl) var lanraragiUrl: String = ""
-    @AppStorage(SettingsKey.searchSort) var searchSort: String = SearchSort.dateAdded.rawValue
-    @AppStorage(SettingsKey.searchSortCustom) var searchSortCustom: String = ""
-    @AppStorage(SettingsKey.searchSortOrder) var searchSortOrder: String = SearchSortOrder.asc.rawValue
-
     @Bindable var store: StoreOf<ArchiveListFeature>
 
     let columns = [
@@ -439,7 +453,7 @@ struct ArchiveListV2: View {
             LazyVGrid(columns: columns) {
                 ForEach(
                     store.scope(state: \.archives, action: \.grid).filter { (item: StoreOf<GridFeature>) in
-                        if hideRead {
+                        if store.hideRead {
                             if item.archive.pagecount != item.archive.progress {
                                 return true
                             } else {
@@ -461,16 +475,16 @@ struct ArchiveListV2: View {
         }
         .toolbar(store.selectMode == .active ? .visible : .hidden, for: .bottomBar)
         .toolbar {
-            bottomToolbar(store: store)
+            bottomToolbar()
         }
         .toolbar {
-            topBarTrailing(store: store)
+            topBarTrailing()
         }
         .onAppear {
             store.send(.subscribeThumbnailTrigger)
             store.send(.subscribeProgressTrigger)
             store.send(.subscribeDeleteTrigger)
-            if lanraragiUrl.isEmpty == false &&
+            if store.lanraragiUrl.isEmpty == false &&
                 store.archives.isEmpty && store.loadOnAppear {
                 store.send(.load(true))
             }
@@ -480,12 +494,12 @@ struct ArchiveListV2: View {
                 await store.send(.load(false)).finish()
             }
         }
-        .onChange(of: self.searchSort) {
+        .onChange(of: self.store.searchSort) {
             store.send(.cancelSearch)
             store.send(.resetArchives)
             store.send(.load(true))
         }
-        .onChange(of: self.searchSortOrder, {
+        .onChange(of: self.store.searchSortOrder, {
             store.send(.cancelSearch)
             store.send(.resetArchives)
             store.send(.load(true))
@@ -495,8 +509,8 @@ struct ArchiveListV2: View {
             store.send(.resetArchives)
             store.send(.load(true))
         }
-        .onChange(of: lanraragiUrl, {
-            if lanraragiUrl.isEmpty == false {
+        .onChange(of: store.lanraragiUrl, {
+            if store.lanraragiUrl.isEmpty == false {
                 store.send(.cancelSearch)
                 store.send(.resetArchives)
                 store.send(.load(true))
@@ -546,36 +560,34 @@ struct ArchiveListV2: View {
         }
     }
 
-    private func topBarTrailing(
-        store: StoreOf<ArchiveListFeature>
-    ) -> ToolbarItemGroup<some View> {
+    private func topBarTrailing() -> ToolbarItemGroup<some View> {
         ToolbarItemGroup(placement: .topBarTrailing) {
             Menu {
                 ForEach(SearchSort.allCases) { sort in
                     let label = "settings.archive.list.order.\(sort)"
                     Button {
-                        if searchSort == sort.rawValue ||
-                            (searchSort == searchSortCustom && sort == SearchSort.custom) {
-                            if searchSortOrder == "asc" {
-                                searchSortOrder = "desc"
+                        if store.searchSort == sort.rawValue ||
+                            (store.searchSort == store.searchSortCustom && sort == SearchSort.custom) {
+                            if store.searchSortOrder == "asc" {
+                                store.send(.setSearchSortOrder("desc"))
                             } else {
-                                searchSortOrder = "asc"
+                                store.send(.setSearchSortOrder("asc"))
                             }
                         } else {
                             if sort == SearchSort.custom {
-                                searchSort = searchSortCustom
+                                store.send(.setSearchSort(store.searchSortCustom))
                             } else {
-                                searchSort = sort.rawValue
+                                store.send(.setSearchSort(sort.rawValue))
                             }
 
                         }
                     } label: {
-                        if searchSort == sort.rawValue ||
-                            (searchSort == searchSortCustom && sort == SearchSort.custom) {
+                        if store.searchSort == sort.rawValue ||
+                            (store.searchSort == store.searchSortCustom && sort == SearchSort.custom) {
                             Label(
                                 title: { Text(LocalizedStringKey(label)) },
                                 icon: {
-                                    searchSortOrder == "asc" ?
+                                    store.searchSortOrder == "asc" ?
                                     Image(systemName: "arrow.up") :
                                     Image(systemName: "arrow.down")
                                 }
@@ -587,9 +599,9 @@ struct ArchiveListV2: View {
                 }
                 Divider()
                 Button {
-                    hideRead.toggle()
+                    store.send(.toggleHideRead)
                 } label: {
-                    if hideRead {
+                    if store.hideRead {
                         Label("settings.view.hideRead", systemImage: "checkmark")
                     } else {
                         Text("settings.view.hideRead")
@@ -604,9 +616,7 @@ struct ArchiveListV2: View {
     }
 
     // swiftlint:disable function_body_length
-    private func bottomToolbar(
-        store: StoreOf<ArchiveListFeature>
-    ) -> ToolbarItemGroup<some View> {
+    private func bottomToolbar() -> ToolbarItemGroup<some View> {
         ToolbarItemGroup(placement: .bottomBar) {
             if store.filter.category == nil {
                 Menu {
@@ -622,7 +632,7 @@ struct ArchiveListV2: View {
                     } else {
                         ProgressView("loading")
                             .onAppear {
-                                if lanraragiUrl.isEmpty == false {
+                                if store.lanraragiUrl.isEmpty == false {
                                     store.send(.loadCategory)
                                 }
                             }

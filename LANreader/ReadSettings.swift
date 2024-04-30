@@ -1,44 +1,65 @@
 // Created 29/8/20
+import ComposableArchitecture
 import SwiftUI
 
+@Reducer struct ReadSettingsFeature {
+    @ObservableState
+    struct State: Equatable {
+        @Shared(.appStorage(SettingsKey.tapLeftKey)) var tapLeft = PageControl.next.rawValue
+        @Shared(.appStorage(SettingsKey.tapMiddleKey)) var tapMiddle = PageControl.navigation.rawValue
+        @Shared(.appStorage(SettingsKey.tapRightKey)) var tapRight = PageControl.previous.rawValue
+        @Shared(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
+        @Shared(.appStorage(SettingsKey.showOriginal)) var showOriginal = false
+        @Shared(.appStorage(SettingsKey.fallbackReader)) var fallbackReader = false
+    }
+    enum Action: BindableAction {
+        case binding(BindingAction<State>)
+    }
+
+    var body: some ReducerOf<Self> {
+        BindingReducer()
+
+        Reduce { _, action in
+            switch action {
+            default:
+                return .none
+            }
+        }
+    }
+}
+
 struct ReadSettings: View {
-    @AppStorage(SettingsKey.tapLeftKey) var tapLeft: String = PageControl.next.rawValue
-    @AppStorage(SettingsKey.tapMiddleKey) var tapMiddle: String = PageControl.navigation.rawValue
-    @AppStorage(SettingsKey.tapRightKey) var tapRight: String = PageControl.previous.rawValue
-    @AppStorage(SettingsKey.readDirection) var readDirection: String = ReadDirection.leftRight.rawValue
-    @AppStorage(SettingsKey.compressImageThreshold) var compressImageThreshold: CompressThreshold = .never
-    @AppStorage(SettingsKey.showOriginal) var showOriginal: Bool = false
-    @AppStorage(SettingsKey.fallbackReader) var fallbackReader: Bool = false
+    @Bindable var store: StoreOf<ReadSettingsFeature>
 
     var body: some View {
-        return List {
-            Picker("settings.read.direction", selection: self.$readDirection) {
+        return VStack {
+            Picker("settings.read.direction", selection: self.$store.readDirection) {
                 Text("settings.read.direction.leftRight").tag(ReadDirection.leftRight.rawValue)
                 Text("settings.read.direction.rightLeft").tag(ReadDirection.rightLeft.rawValue)
                 Text("settings.read.direction.upDown").tag(ReadDirection.upDown.rawValue)
             }
                     .padding()
-            if readDirection != ReadDirection.upDown.rawValue {
-                Picker("settings.read.tap.left", selection: self.$tapLeft) {
+            if store.readDirection != ReadDirection.upDown.rawValue {
+                Picker("settings.read.tap.left", selection: self.$store.tapLeft) {
                     pageControlSelectionView
                 }
                         .padding()
             }
-            if readDirection != ReadDirection.upDown.rawValue {
-                Picker("settings.read.tap.middle", selection: self.$tapMiddle) {
+            if store.readDirection != ReadDirection.upDown.rawValue {
+                Picker("settings.read.tap.middle", selection: self.$store.tapMiddle) {
                     pageControlSelectionView
                 }
                         .padding()
-                Picker("settings.read.tap.right", selection: self.$tapRight) {
+                Picker("settings.read.tap.right", selection: self.$store.tapRight) {
                     pageControlSelectionView
                 }
                         .padding()
-                Toggle(isOn: self.$fallbackReader) {
+                Toggle(isOn: self.$store.fallbackReader) {
                     Text("settings.read.fallback")
                 }
                 .padding()
             }
-            Toggle(isOn: self.$showOriginal) {
+            Toggle(isOn: self.$store.showOriginal) {
                 Text("settings.read.image.showOriginal")
             }
             .padding()

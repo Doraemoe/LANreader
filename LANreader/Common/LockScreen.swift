@@ -6,6 +6,8 @@ import LocalAuthentication
 @Reducer struct LockScreenFeature {
     @ObservableState
     struct State: Equatable {
+        @Shared(.appStorage(SettingsKey.passcode)) var passcode = ""
+
         var pin = ""
         var lockState = LockScreenState.normal
         var authenticating = false
@@ -24,9 +26,10 @@ import LocalAuthentication
         case authenticate
         case authenticateResult(Bool)
         case setErrorMessage(String)
+
+        case savePasscode(String)
     }
 
-    @Dependency(\.userDefaultService) var userDefault
     @Dependency(\.dismiss) var dismiss
 
     var body: some Reducer<State, Action> {
@@ -59,8 +62,8 @@ import LocalAuthentication
                         state.lockState = .verify
                     case .verify:
                         if state.pin == state.newPin {
-                            userDefault.savePasscode(passcode: state.pin)
-                            return .run { _ in
+                            return .run { [state] send in
+                                await send(.savePasscode(state.pin))
                                 await self.dismiss()
                             }
                         } else {
@@ -70,7 +73,7 @@ import LocalAuthentication
                             state.errorMessage = String(localized: "error.passcode.verify")
                         }
                     case .normal:
-                        let storedPasscode = userDefault.passcode
+                        let storedPasscode = state.passcode
                         if storedPasscode == state.pin {
                             return .run { _ in
                                 await self.dismiss()
@@ -80,10 +83,10 @@ import LocalAuthentication
                             state.errorMessage = String(localized: "error.passcode.mismatch")
                         }
                     case .remove:
-                        let storedPasscode = userDefault.passcode
+                        let storedPasscode = state.passcode
                         if storedPasscode == state.pin {
-                            userDefault.savePasscode(passcode: "")
-                            return .run { _ in
+                            return .run { send in
+                                await send(.savePasscode(""))
                                 await self.dismiss()
                             }
                         } else {
@@ -136,6 +139,9 @@ import LocalAuthentication
                 } else {
                     state.disableBiometricsAuth = true
                 }
+                return .none
+            case let .savePasscode(passcode):
+                state.passcode = passcode
                 return .none
             default:
                 return .none

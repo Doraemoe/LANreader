@@ -8,6 +8,13 @@ import NotificationBannerSwift
 
     @ObservableState
     struct State: Equatable {
+        @SharedReader(.appStorage(SettingsKey.tapLeftKey)) var tapLeft = PageControl.next.rawValue
+        @SharedReader(.appStorage(SettingsKey.tapMiddleKey)) var tapMiddle = PageControl.navigation.rawValue
+        @SharedReader(.appStorage(SettingsKey.tapRightKey)) var tapRight = PageControl.previous.rawValue
+        @SharedReader(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
+        @SharedReader(.appStorage(SettingsKey.fallbackReader)) var fallbackReader = false
+        @SharedReader(.appStorage(SettingsKey.serverProgress)) var serverProgress = false
+
         var index: Int?
         var sliderIndex: Double = 0
         var pages: IdentifiedArrayOf<PageFeature.State> = []
@@ -45,7 +52,6 @@ import NotificationBannerSwift
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
-    @Dependency(\.userDefaultService) var userDefault
     @Dependency(\.refreshTrigger) var refreshTrigger
 
     enum CancelId { case updateProgress }
@@ -114,7 +120,7 @@ import NotificationBannerSwift
                 let progress = (state.index ?? 0) + 1
                 state.archive.progress = progress
                 return .run(priority: .background) { [state] send in
-                    if userDefault.serverProgres {
+                    if state.serverProgress {
                         _ = try await service.updateArchiveReadProgress(id: state.archive.id, progress: progress).value
                     }
                     if progress > 1 && state.archive.isNew {
@@ -185,25 +191,15 @@ import NotificationBannerSwift
 }
 
 struct ArchiveReader: View {
-    @AppStorage(SettingsKey.tapLeftKey) var tapLeft: String = PageControl.next.rawValue
-    @AppStorage(SettingsKey.tapMiddleKey) var tapMiddle: String = PageControl.navigation.rawValue
-    @AppStorage(SettingsKey.tapRightKey) var tapRight: String = PageControl.previous.rawValue
-    @AppStorage(SettingsKey.readDirection) var readDirection: String = ReadDirection.leftRight.rawValue
-    @AppStorage(SettingsKey.fallbackReader) var fallbackReader: Bool = false
-
     @Bindable var store: StoreOf<ArchiveReaderFeature>
 
-    init(store: StoreOf<ArchiveReaderFeature>) {
-        self.store = store
-    }
-
     var body: some View {
-        let flip = readDirection == ReadDirection.rightLeft.rawValue
+        let flip = store.readDirection == ReadDirection.rightLeft.rawValue
         GeometryReader { geometry in
             ZStack {
-                if readDirection == ReadDirection.upDown.rawValue {
+                if store.readDirection == ReadDirection.upDown.rawValue {
                     vReader(store: store, geometry: geometry)
-                } else if fallbackReader {
+                } else if store.fallbackReader {
                     hReaderFallback(store: store, geometry: geometry)
                         .environment(\.layoutDirection, flip ? .rightToLeft : .leftToRight)
                 } else {
@@ -331,11 +327,11 @@ struct ArchiveReader: View {
         .scrollPosition(id: $store.index)
         .onTapGesture { location in
             if location.x < geometry.size.width / 3 {
-                store.send(.tapAction(tapLeft))
+                store.send(.tapAction(store.tapLeft))
             } else if location.x > geometry.size.width / 3 * 2 {
-                store.send(.tapAction(tapRight))
+                store.send(.tapAction(store.tapRight))
             } else {
-                store.send(.tapAction(tapMiddle))
+                store.send(.tapAction(store.tapMiddle))
             }
         }
     }
@@ -361,11 +357,11 @@ struct ArchiveReader: View {
         .tabViewStyle(.page(indexDisplayMode: .never))
         .onTapGesture { location in
             if location.x < geometry.size.width / 3 {
-                store.send(.tapAction(tapLeft))
+                store.send(.tapAction(store.tapLeft))
             } else if location.x > geometry.size.width / 3 * 2 {
-                store.send(.tapAction(tapRight))
+                store.send(.tapAction(store.tapRight))
             } else {
-                store.send(.tapAction(tapMiddle))
+                store.send(.tapAction(store.tapMiddle))
             }
         }
     }

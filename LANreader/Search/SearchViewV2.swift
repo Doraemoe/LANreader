@@ -27,7 +27,6 @@ import Logging
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
-    @Dependency(\.userDefaultService) var userDefault
 
     enum CancelId { case search }
 
