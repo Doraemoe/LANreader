@@ -7,17 +7,22 @@ import SwiftUI
     struct State: Equatable {
         var path = StackState<Path.State>()
 
+        var read = ReadSettingsFeature.State()
         var view = ViewSettingsFeature.State()
         var database = DatabaseSettingsFeature.State()
     }
     enum Action {
         case path(StackAction<Path.State, Path.Action>)
 
+        case read(ReadSettingsFeature.Action)
         case view(ViewSettingsFeature.Action)
         case database(DatabaseSettingsFeature.Action)
     }
 
     var body: some ReducerOf<Self> {
+        Scope(state: \.read, action: \.read) {
+            ReadSettingsFeature()
+        }
 
         Scope(state: \.view, action: \.view) {
             ViewSettingsFeature()
@@ -56,7 +61,7 @@ struct SettingsView: View {
                     header: Text("settings.read"),
                     footer: Text("settings.read.fallback.explain")
                 ) {
-                    ReadSettings()
+                    ReadSettings(store: self.store.scope(state: \.read, action: \.read))
                 }
                 Section(header: Text("settings.host")) {
                     ServerSettings()

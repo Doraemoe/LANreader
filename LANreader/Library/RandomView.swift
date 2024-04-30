@@ -9,6 +9,9 @@ import NotificationBannerSwift
     @ObservableState
     struct State: Equatable {
         var archives: IdentifiedArrayOf<GridFeature.State> = []
+
+        @SharedReader(.appStorage(SettingsKey.hideRead)) var hideRead = false
+
         var loading: Bool = false
         var showLoading: Bool = false
         var errorMessage = ""
@@ -77,7 +80,7 @@ struct RandomView: View {
             LazyVGrid(columns: columns) {
                 ForEach(
                     store.scope(state: \.archives, action: \.grid).filter { (item: StoreOf<GridFeature>) in
-                        if UserDefaults.standard.bool(forKey: SettingsKey.hideRead) {
+                        if store.hideRead {
                             if item.archive.pagecount != item.archive.progress {
                                 return true
                             } else {

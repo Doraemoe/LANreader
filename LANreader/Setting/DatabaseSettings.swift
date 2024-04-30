@@ -49,7 +49,7 @@ struct DatabaseSettings: View {
     let store: StoreOf<DatabaseSettingsFeature>
 
     var body: some View {
-        return List {
+        return VStack {
             Button(role: .destructive, action: {
                 store.send(.clearDatabase)
             }, label: {

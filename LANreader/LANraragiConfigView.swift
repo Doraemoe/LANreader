@@ -9,8 +9,10 @@ import Logging
 
     @ObservableState
     struct State: Equatable {
-        var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
-        var apiKey = UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey) ?? ""
+        @Shared(.appStorage(SettingsKey.serverProgress)) var serverProgress = false
+        @Shared(.appStorage(SettingsKey.lanraragiUrl)) var url = ""
+        @Shared(.appStorage(SettingsKey.lanraragiApiKey)) var apiKey = ""
+
         var isVerifying = false
         var errorMessage = ""
     }
@@ -20,10 +22,13 @@ import Logging
         case verifyServer
         case saveComplate
         case setErrorMessage(String)
+
+        case setServerProgress(Bool)
+        case setLanraragiUrl(String)
+        case setLanraragiApiKey(String)
     }
 
     @Dependency(\.lanraragiService) var lanraragiService
-    @Dependency(\.userDefaultService) var userDefault
     @Dependency(\.dismiss) var dismiss
 
     var body: some Reducer<State, Action> {
@@ -37,11 +42,12 @@ import Logging
                         url: state.url, apiKey: state.apiKey
                     ).value
                     if serverInfo.serverTracksProgress == "1" {
-                        userDefault.setServerProgress(isServerProgress: true)
+                        await send(.setServerProgress(true))
                     } else {
-                        userDefault.setServerProgress(isServerProgress: false)
+                        await send(.setServerProgress(false))
                     }
-                    userDefault.saveLanrargiServer(url: state.url, apiKey: state.apiKey)
+                    await send(.setLanraragiUrl(state.url))
+                    await send(.setLanraragiApiKey(state.apiKey))
                     await send(.saveComplate)
                 } catch: { error, send in
                     logger.error("failed to verify lanraragi server. \(error)")
@@ -57,6 +63,15 @@ import Logging
                 state.isVerifying = false
                 return .none
             case .binding:
+                return .none
+            case let .setServerProgress(isServerProgress):
+                state.serverProgress = isServerProgress
+                return .none
+            case let .setLanraragiUrl(url):
+                state.url = url
+                return .none
+            case let .setLanraragiApiKey(key):
+                state.apiKey = key
                 return .none
             }
         }

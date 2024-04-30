@@ -22,7 +22,6 @@ import SwiftUI
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
-    @Dependency(\.userDefaultService) var userDefault
 
     var body: some ReducerOf<Self> {
         BindingReducer()

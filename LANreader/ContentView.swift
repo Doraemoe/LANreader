@@ -12,6 +12,10 @@ import Logging
         var path = StackState<AppFeature.Path.State>()
         @Presents var destination: Destination.State?
 
+        @SharedReader(.appStorage(SettingsKey.lanraragiUrl)) var lanraragiUrl = ""
+        @SharedReader(.appStorage(SettingsKey.passcode)) var storedPasscode = ""
+        @SharedReader(.appStorage(SettingsKey.blurInterfaceWhenInactive)) var blurInterfaceWhenInactive = false
+
         var tabName = "library"
         var successMessage = ""
         var errorMessage = ""
@@ -133,7 +137,6 @@ import Logging
 
 struct ContentView: View {
     @Environment(\.scenePhase) var scenePhase
-    @AppStorage(SettingsKey.passcode) var storedPasscode: String = ""
 
     @Bindable var store: StoreOf<AppFeature>
 
@@ -165,19 +168,19 @@ struct ContentView: View {
             LockScreen(store: store)
         }
         .onAppear {
-            if UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl)?.isEmpty != false {
+            if store.lanraragiUrl.isEmpty != false {
                 store.send(.showLogin)
             }
         }
         .onAppear {
-            if !storedPasscode.isEmpty {
+            if !store.storedPasscode.isEmpty {
                 _ = withTransaction(self.noAnimationTransaction) {
                     store.send(.showLockScreen)
                 }
             }
         }
         .onChange(of: scenePhase) {
-            if !storedPasscode.isEmpty && scenePhase != .active && store.destination == nil {
+            if !store.storedPasscode.isEmpty && scenePhase != .active && store.destination == nil {
                 _ = withTransaction(self.noAnimationTransaction) {
                     store.send(.showLockScreen)
                 }
