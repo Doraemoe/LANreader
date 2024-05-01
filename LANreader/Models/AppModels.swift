@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import ComposableArchitecture
 
 struct SearchFilter: Equatable {
     let category: String?
@@ -132,4 +133,10 @@ extension Double {
         get { Int(self) }
         set { self = Double(newValue) }
     }
+}
+
+extension PersistenceReaderKey where Self == InMemoryKey<IdentifiedArrayOf<CategoryItem>> {
+  static var category: Self {
+    inMemory("category")
+  }
 }

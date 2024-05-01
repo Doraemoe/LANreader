@@ -16,7 +16,7 @@ import NotificationBannerSwift
         var errorMessage = ""
         var successMessage = ""
         var archiveMetadata: ArchiveMetadata?
-        var categoryItems: IdentifiedArrayOf<CategoryItem>?
+        @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
         var loading = false
     }
 
@@ -117,8 +117,6 @@ import NotificationBannerSwift
                     let categories = try await service.retrieveCategories().value
                     let items = categories.map { item in
                         item.toCategoryItem()
-                    }.filter { item in
-                        item.search.isEmpty
                     }
                     await send(.populateCategory(items))
                 } catch: { error, send in
@@ -130,7 +128,7 @@ import NotificationBannerSwift
                 return .none
             case let .addArchiveToCategory(categoryId):
                 return .run { [state] send in
-                    if state.categoryItems![id: categoryId]?.archives.contains(state.id) == false {
+                    if state.categoryItems[id: categoryId]?.archives.contains(state.id) == false {
                         let response = try await service.addArchiveToCategory(
                             categoryId: categoryId, archiveId: state.id
                         ).value
@@ -153,7 +151,7 @@ import NotificationBannerSwift
                 }
             case let .removeArchiveFromCategory(categoryId):
                 return .run { [state] send in
-                    if state.categoryItems![id: categoryId]?.archives.contains(state.id) == true {
+                    if state.categoryItems[id: categoryId]?.archives.contains(state.id) == true {
                         let response = try await service.removeArchiveFromCategory(
                             categoryId: categoryId, archiveId: state.id
                         ).value
@@ -176,9 +174,9 @@ import NotificationBannerSwift
                 }
             case let .updateLocalCategoryItems(archiveId, categoryId, isAdd):
                 if isAdd {
-                    state.categoryItems![id: categoryId]?.archives.append(archiveId)
+                    state.categoryItems[id: categoryId]?.archives.append(archiveId)
                 } else {
-                    state.categoryItems![id: categoryId]?.archives.removeAll { id in
+                    state.categoryItems[id: categoryId]?.archives.removeAll { id in
                         id == archiveId
                     }
                 }
@@ -252,9 +250,12 @@ struct ArchiveDetailsV2: View {
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Menu {
-                    if store.categoryItems != nil {
+                    if !store.categoryItems.isEmpty {
+                        let staticCategory = store.categoryItems.filter { item in
+                            item.search.isEmpty
+                        }
                         Text("archive.category.manage")
-                        ForEach(store.categoryItems!) { item in
+                        ForEach(staticCategory) { item in
                             Button {
                                 if item.archives.contains(store.id) {
                                     store.send(.removeArchiveFromCategory(item.id))

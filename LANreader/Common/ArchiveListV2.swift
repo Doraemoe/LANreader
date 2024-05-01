@@ -21,7 +21,7 @@ import NotificationBannerSwift
 
         var selectMode: EditMode = .inactive
         var selected: Set<String> = .init()
-        var categoryItems: IdentifiedArrayOf<CategoryItem>?
+        @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
         var filter: SearchFilter
         var loadOnAppear = true
         var archives: IdentifiedArrayOf<GridFeature.State> = []
@@ -313,8 +313,6 @@ import NotificationBannerSwift
                     let categories = try await service.retrieveCategories().value
                     let items = categories.map { item in
                         item.toCategoryItem()
-                    }.filter { item in
-                        item.search.isEmpty
                     }
                     await send(.populateCategory(items))
                 } catch: { error, send in
@@ -329,7 +327,7 @@ import NotificationBannerSwift
                 return .run { [state] send in
                     var successIds: Set<String> = .init()
                     var errorIds: Set<String> = .init()
-                    let currentCategory = state.categoryItems![id: categoryId]!
+                    let currentCategory = state.categoryItems[id: categoryId]!
 
                     for archiveId in state.selected {
                         if currentCategory.archives.contains(archiveId) {
@@ -367,7 +365,7 @@ import NotificationBannerSwift
                     await send(.updateLocalCategory(categoryId, successIds))
                 }
             case let .updateLocalCategory(categoryId, archiveIds):
-                state.categoryItems![id: categoryId]?.archives.append(contentsOf: archiveIds)
+                state.categoryItems[id: categoryId]?.archives.append(contentsOf: archiveIds)
                 archiveIds.forEach { id in
                     state.selected.remove(id)
                 }
@@ -620,9 +618,12 @@ struct ArchiveListV2: View {
         ToolbarItemGroup(placement: .bottomBar) {
             if store.filter.category == nil {
                 Menu {
-                    if store.categoryItems != nil {
+                    if !store.categoryItems.isEmpty {
+                        let staticCategory = store.categoryItems.filter { item in
+                            item.search.isEmpty
+                        }
                         Text("archive.selected.category.add")
-                        ForEach(store.categoryItems!) { item in
+                        ForEach(staticCategory) { item in
                             Button {
                                 store.send(.addArchivesToCategory(item.id))
                             } label: {

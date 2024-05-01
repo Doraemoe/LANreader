@@ -10,8 +10,9 @@ import NotificationBannerSwift
     struct State: Equatable {
         @Presents var destination: Destination.State?
 
+        @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
+
         var editMode: EditMode = .inactive
-        var categoryItems: IdentifiedArrayOf<CategoryItem> = []
         var showLoading = false
         var errorMessage = ""
     }
