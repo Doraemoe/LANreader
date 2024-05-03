@@ -8,7 +8,22 @@ import Logging
 import Dependencies
 
 class LANraragiService {
-    public static let currentSessionDownloadFolder = "current session"
+    public static let downloadPath = try? FileManager.default.url(
+        for: .documentDirectory,
+        in: .userDomainMask,
+        appropriateFor: nil,
+        create: true
+    )
+    .appendingPathComponent("current session", conformingTo: .folder)
+
+    public static let thumbnailPath = try? FileManager.default.url(
+        for: .documentDirectory,
+        in: .userDomainMask,
+        appropriateFor: .picturesDirectory,
+        create: true
+    )
+    .appendingPathComponent("thumbnail", conformingTo: .folder)
+
     private static let logger = Logger(label: "LANraragiService")
 
     private static var _shared: LANraragiService?
@@ -19,18 +34,9 @@ class LANraragiService {
     private var prefetchSession: Session
     private let snakeCaseEncoder: JSONDecoder
 
-    private let downloadPath: URL?
-
     private init() {
         self.session = Session(interceptor: authInterceptor)
         self.prefetchSession = Session(interceptor: authInterceptor)
-        self.downloadPath = try? FileManager.default.url(
-            for: .documentDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: true
-        )
-        .appendingPathComponent(LANraragiService.currentSessionDownloadFolder, conformingTo: .folder)
         self.snakeCaseEncoder = JSONDecoder()
         self.snakeCaseEncoder.keyDecodingStrategy = .convertFromSnakeCase
     }
@@ -60,7 +66,7 @@ class LANraragiService {
     func retrieveArchiveThumbnail(id: String) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
         return session.download(request, to: { tempUrl, response in
-            let destinationUrl = self.downloadPath?
+            let destinationUrl = LANraragiService.downloadPath?
                 .appendingPathComponent("thumbnail", conformingTo: .folder)
                 .appendingPathComponent(response.suggestedFilename ?? "\(id).jpeg", conformingTo: .image)
             ?? tempUrl
@@ -152,7 +158,7 @@ class LANraragiService {
         let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
         return session.download(request, to: { tempUrl, response in
             let id = String(page.split(separator: "/")[2])
-            let destinationUrl = self.downloadPath?
+            let destinationUrl = LANraragiService.downloadPath?
                 .appendingPathComponent(id, conformingTo: .folder)
                 .appendingPathComponent(response.suggestedFilename!, conformingTo: .image)
             ?? tempUrl
@@ -164,7 +170,7 @@ class LANraragiService {
         let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
         return prefetchSession.download(request, to: { tempUrl, response in
             let id = String(page.split(separator: "/")[2])
-            let destinationUrl = self.downloadPath?
+            let destinationUrl = LANraragiService.downloadPath?
                 .appendingPathComponent(id, conformingTo: .folder)
                 .appendingPathComponent(response.suggestedFilename!, conformingTo: .image)
             ?? tempUrl

@@ -14,11 +14,12 @@ import NotificationBannerSwift
         @SharedReader(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
         @SharedReader(.appStorage(SettingsKey.fallbackReader)) var fallbackReader = false
         @SharedReader(.appStorage(SettingsKey.serverProgress)) var serverProgress = false
+        @Shared var archive: ArchiveItem
+        @Shared var archiveThumbnail: Data?
 
         var index: Int?
         var sliderIndex: Double = 0
         var pages: IdentifiedArrayOf<PageFeature.State> = []
-        var archive: ArchiveItem
         var fromStart = false
         var extracting = false
         var controlUiHidden = false
@@ -28,6 +29,18 @@ import NotificationBannerSwift
 
         var fallbackIndex: Int {
             index ?? 0
+        }
+
+        init(archive: Shared<ArchiveItem>, fromStart: Bool = false) {
+            self._archive = archive
+            self._archiveThumbnail = Shared(
+                wrappedValue: nil,
+                    .fileStorage(
+                        LANraragiService.thumbnailPath!
+                            .appendingPathComponent(archive.id, conformingTo: .image)
+                    )
+            )
+            self.fromStart = fromStart
         }
     }
 
@@ -44,6 +57,7 @@ import NotificationBannerSwift
         case updateProgress
         case setIsNew(Bool)
         case setThumbnail
+        case setThumbnailData(Data)
         case finishThumbnailLoading
         case tapAction(String)
         case setError(String)
@@ -52,7 +66,6 @@ import NotificationBannerSwift
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
-    @Dependency(\.refreshTrigger) var refreshTrigger
 
     enum CancelId { case updateProgress }
 
@@ -127,7 +140,6 @@ import NotificationBannerSwift
                         _ = try await service.clearNewFlag(id: state.archive.id).value
                         await send(.setIsNew(false))
                     }
-                    refreshTrigger.progress.send((state.archive.id, progress))
                 } catch: { [state] error, _ in
                     logger.error("failed to update archive progress. id=\(state.archive.id) \(error)")
                 }
@@ -140,14 +152,18 @@ import NotificationBannerSwift
                 let index = (state.index ?? 0) + 1
                 return .run { [id = state.archive.id] send in
                     _ = try await service.updateArchiveThumbnail(id: id, page: index).value
+                    let imageData = try await service.retrieveArchiveThumbnail(id: id).serializingData().value
+                    await send(.setThumbnailData(imageData))
                     let successMessage = String(localized: "archive.thumbnail.set")
                     await send(.setSuccess(successMessage))
-                    refreshTrigger.thumbnail.send(id)
                     await send(.finishThumbnailLoading)
                 } catch: { [id = state.archive.id] error, send in
                     logger.error("Failed to set current page as thumbnail. id=\(id) \(error)")
                     await send(.setError(error.localizedDescription))
                 }
+            case let .setThumbnailData(thumbnail):
+                state.archiveThumbnail = thumbnail
+                return .none
             case .finishThumbnailLoading:
                 state.settingThumbnail = false
                 return .none
@@ -219,7 +235,7 @@ struct ArchiveReader: View {
             ToolbarItem(placement: .primaryAction) {
                 NavigationLink(
                     state: AppFeature.Path.State.details(
-                        ArchiveDetailsFeature.State.init(id: store.archive.id)
+                        ArchiveDetailsFeature.State.init(archive: store.$archive)
                     )
                 ) {
                     Image(systemName: "info.circle")

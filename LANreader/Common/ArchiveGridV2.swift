@@ -4,48 +4,48 @@ import Logging
 
 @Reducer struct GridFeature {
     private let logger = Logger(label: "GridFeature")
+    private let thumbnailPath = LANraragiService.thumbnailPath!
+
     @ObservableState
     struct State: Equatable, Identifiable {
-        var archive: ArchiveItem
-        var archiveThumbnail: ArchiveThumbnail?
+        @Shared var archive: ArchiveItem
+        @Shared var archiveThumbnail: Data?
 
         var id: String { self.archive.id }
+
+        init(archive: Shared<ArchiveItem>, archiveThumbnail: Data? = nil) {
+            self._archive = archive
+            self._archiveThumbnail = Shared(
+                wrappedValue: archiveThumbnail,
+                    .fileStorage(
+                        LANraragiService.thumbnailPath!
+                            .appendingPathComponent(archive.id, conformingTo: .image)
+                    )
+            )
+        }
     }
 
     enum Action: Equatable {
         case load(Bool)
-        case setThumbnail(ArchiveThumbnail)
+        case setThumbnail(Data)
         case unload
     }
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
-    @Dependency(\.refreshTrigger) var refreshTrigger
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case let .load(force):
-                if !force {
-                    do {
-                        state.archiveThumbnail = try database.readArchiveThumbnail(state.id)
-                    } catch {
-                        logger.error("failed to load thumbnail. id=\(state.id) \(error)")
-                    }
-                } else {
+                if force {
                     state.archiveThumbnail = nil
                 }
                 if state.archiveThumbnail == nil {
                     return .run(priority: .utility) { [id = state.id] send in
                         do {
                             let imageData = try await service.retrieveArchiveThumbnail(id: id).serializingData().value
-                            var thumbnail = ArchiveThumbnail(id: id, thumbnail: imageData, lastUpdate: Date())
-                            do {
-                                try database.saveArchiveThumbnail(&thumbnail)
-                            } catch {
-                                logger.warning("failed to save thumbnail to db. id=\(id) \(error)")
-                            }
-                            await send(.setThumbnail(thumbnail))
+                            await send(.setThumbnail(imageData))
                         } catch {
                             logger.error("failed to fetch thumbnail. \(error)")
                         }
@@ -74,7 +74,7 @@ struct ArchiveGridV2: View {
                 .padding(4)
                 .font(.caption)
             ZStack {
-                if let imageData = store.archiveThumbnail?.thumbnail {
+                if let imageData = store.archiveThumbnail {
                     Image(uiImage: UIImage(data: imageData)!)
                         .resizable()
                         .scaledToFit()
