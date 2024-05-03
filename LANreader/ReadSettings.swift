@@ -32,38 +32,36 @@ struct ReadSettings: View {
     @Bindable var store: StoreOf<ReadSettingsFeature>
 
     var body: some View {
-        return VStack {
-            Picker("settings.read.direction", selection: self.$store.readDirection) {
-                Text("settings.read.direction.leftRight").tag(ReadDirection.leftRight.rawValue)
-                Text("settings.read.direction.rightLeft").tag(ReadDirection.rightLeft.rawValue)
-                Text("settings.read.direction.upDown").tag(ReadDirection.upDown.rawValue)
-            }
-                    .padding()
-            if store.readDirection != ReadDirection.upDown.rawValue {
-                Picker("settings.read.tap.left", selection: self.$store.tapLeft) {
-                    pageControlSelectionView
-                }
-                        .padding()
-            }
-            if store.readDirection != ReadDirection.upDown.rawValue {
-                Picker("settings.read.tap.middle", selection: self.$store.tapMiddle) {
-                    pageControlSelectionView
-                }
-                        .padding()
-                Picker("settings.read.tap.right", selection: self.$store.tapRight) {
-                    pageControlSelectionView
-                }
-                        .padding()
-                Toggle(isOn: self.$store.fallbackReader) {
-                    Text("settings.read.fallback")
-                }
-                .padding()
-            }
-            Toggle(isOn: self.$store.showOriginal) {
-                Text("settings.read.image.showOriginal")
+        Picker("settings.read.direction", selection: self.$store.readDirection) {
+            Text("settings.read.direction.leftRight").tag(ReadDirection.leftRight.rawValue)
+            Text("settings.read.direction.rightLeft").tag(ReadDirection.rightLeft.rawValue)
+            Text("settings.read.direction.upDown").tag(ReadDirection.upDown.rawValue)
+        }
+        .padding()
+        if store.readDirection != ReadDirection.upDown.rawValue {
+            Picker("settings.read.tap.left", selection: self.$store.tapLeft) {
+                pageControlSelectionView
             }
             .padding()
         }
+        if store.readDirection != ReadDirection.upDown.rawValue {
+            Picker("settings.read.tap.middle", selection: self.$store.tapMiddle) {
+                pageControlSelectionView
+            }
+            .padding()
+            Picker("settings.read.tap.right", selection: self.$store.tapRight) {
+                pageControlSelectionView
+            }
+            .padding()
+            Toggle(isOn: self.$store.fallbackReader) {
+                Text("settings.read.fallback")
+            }
+            .padding()
+        }
+        Toggle(isOn: self.$store.showOriginal) {
+            Text("settings.read.image.showOriginal")
+        }
+        .padding()
     }
 
     var pageControlSelectionView: some View = Group {
