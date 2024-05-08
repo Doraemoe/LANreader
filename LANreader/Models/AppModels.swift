@@ -140,3 +140,9 @@ extension PersistenceReaderKey where Self == InMemoryKey<IdentifiedArrayOf<Categ
     inMemory("category")
   }
 }
+
+extension PersistenceReaderKey where Self == InMemoryKey<IdentifiedArrayOf<ArchiveItem>> {
+  static var archive: Self {
+    inMemory("archive")
+  }
+}

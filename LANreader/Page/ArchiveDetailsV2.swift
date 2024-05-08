@@ -9,29 +9,42 @@ import NotificationBannerSwift
     @ObservableState
     struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
-        var id: String
+
+        @Shared(.archive) var archiveItems: IdentifiedArrayOf<ArchiveItem> = []
+        @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
+        @Shared var archive: ArchiveItem
+        @Shared var archiveThumbnail: Data?
+
         var editMode: EditMode = .inactive
         var title = ""
         var tags = ""
         var errorMessage = ""
         var successMessage = ""
-        var archiveMetadata: ArchiveMetadata?
-        @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
         var loading = false
+
+        init(archive: Shared<ArchiveItem>) {
+            self._archive = archive
+            self._archiveThumbnail = Shared(
+                wrappedValue: nil,
+                    .fileStorage(
+                        LANraragiService.thumbnailPath!
+                            .appendingPathComponent(archive.id, conformingTo: .image)
+                    )
+            )
+        }
     }
 
     enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
         case alert(PresentationAction<Alert>)
 
-        case loadMetadata
+        case loadLocalFields
         case updateArchiveMetadata
         case loadCategory
         case populateCategory([CategoryItem])
         case addArchiveToCategory(String)
         case removeArchiveFromCategory(String)
         case updateLocalCategoryItems(String, String, Bool)
-        case setArchiveMetadata(ArchiveMetadata)
         case setErrorMessage(String)
         case setSuccessMessage(String)
 
@@ -44,47 +57,30 @@ import NotificationBannerSwift
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
-    @Dependency(\.refreshTrigger) var refreshTrigger
 
     var body: some ReducerOf<Self> {
         BindingReducer()
 
         Reduce { state, action in
             switch action {
-            case .loadMetadata:
-                state.loading = true
-                return .run { [state] send in
-                    let metadata = try await service.retrieveArchiveMetadata(id: state.id).value
-                    let thumbnailData = try database.readArchiveThumbnail(state.id)
-                    await send(
-                        .setArchiveMetadata(
-                            ArchiveMetadata(
-                                archive: metadata.toArchiveItem(), archiveThumbnail: thumbnailData
-                            )
-                        )
-                    )
-                } catch: { [state] error, send in
-                    logger.error("failed to load archive details. id=\(state.id) \(error)")
-                    await send(.setErrorMessage(error.localizedDescription))
-                }
             case .updateArchiveMetadata:
                 return .run { [state] send in
-                    var archive = state.archiveMetadata!.archive
+                    var archive = state.archive
                     archive.name = state.title
                     archive.tags = state.tags
                     _ = try await service.updateArchive(archive: archive).value
+                    state.archive.name = state.title
+                    state.archive.tags = state.tags
                     await send(.setSuccessMessage(
                         String(localized: "archive.metadata.update.success"))
                     )
-                } catch: { [id = state.id] error, send in
+                } catch: { [id = state.archive.id] error, send in
                     logger.error("failed to update archive. id=\(id) \(error)")
                     await send(.setErrorMessage(error.localizedDescription))
                 }
-            case let .setArchiveMetadata(metadata):
-                state.archiveMetadata = metadata
-                state.title = metadata.archive.name
-                state.tags = metadata.archive.tags
-                state.loading = false
+            case .loadLocalFields:
+                state.title = state.archive.name
+                state.tags = state.archive.tags
                 return .none
             case .deleteButtonTapped:
                 state.alert = AlertState {
@@ -100,15 +96,14 @@ import NotificationBannerSwift
                 return .none
             case .alert(.presented(.confirmDelete)):
                 state.loading = true
-                return .run { [id = state.id] send in
+                return .run { [id = state.archive.id] send in
                     let response = try await service.deleteArchive(id: id).value
                     if response.success == 1 {
-                        refreshTrigger.delete.send(id)
                         await send(.deleteSuccess)
                     } else {
                         await send(.setErrorMessage(String(localized: "error.archive.delete")))
                     }
-                } catch: { [id = state.id] error, send in
+                } catch: { [id = state.archive.id] error, send in
                     logger.error("failed to delete archive, id=\(id) \(error)")
                     await send(.setErrorMessage(error.localizedDescription))
                 }
@@ -128,22 +123,22 @@ import NotificationBannerSwift
                 return .none
             case let .addArchiveToCategory(categoryId):
                 return .run { [state] send in
-                    if state.categoryItems[id: categoryId]?.archives.contains(state.id) == false {
+                    if state.categoryItems[id: categoryId]?.archives.contains(state.archive.id) == false {
                         let response = try await service.addArchiveToCategory(
-                            categoryId: categoryId, archiveId: state.id
+                            categoryId: categoryId, archiveId: state.archive.id
                         ).value
                         if response.success == 1 {
                             await send(.setSuccessMessage(
                                 String(localized: "archive.category.add.success"))
                             )
-                            await send(.updateLocalCategoryItems(state.id, categoryId, true))
+                            await send(.updateLocalCategoryItems(state.archive.id, categoryId, true))
                         } else {
                             await send(.setErrorMessage(
                                 String(localized: "archive.category.add.error"))
                             )
                         }
                     }
-                } catch: { [id = state.id] error, send in
+                } catch: { [id = state.archive.id] error, send in
                     logger.error(
                         "failed to add archive to category. categoryId=\(categoryId), archiveId=\(id) \(error)"
                     )
@@ -151,22 +146,22 @@ import NotificationBannerSwift
                 }
             case let .removeArchiveFromCategory(categoryId):
                 return .run { [state] send in
-                    if state.categoryItems[id: categoryId]?.archives.contains(state.id) == true {
+                    if state.categoryItems[id: categoryId]?.archives.contains(state.archive.id) == true {
                         let response = try await service.removeArchiveFromCategory(
-                            categoryId: categoryId, archiveId: state.id
+                            categoryId: categoryId, archiveId: state.archive.id
                         ).value
                         if response.success == 1 {
                             await send(.setSuccessMessage(
                                 String(localized: "archive.category.remove.success"))
                             )
-                            await send(.updateLocalCategoryItems(state.id, categoryId, false))
+                            await send(.updateLocalCategoryItems(state.archive.id, categoryId, false))
                         } else {
                             await send(.setErrorMessage(
                                 String(localized: "archive.category.remove.error"))
                             )
                         }
                     }
-                } catch: { [id = state.id] error, send in
+                } catch: { [id = state.archive.id] error, send in
                     logger.error(
                         "failed to remove archive from category. categoryId=\(categoryId), archiveId=\(id) \(error)"
                     )
@@ -191,6 +186,7 @@ import NotificationBannerSwift
             case .alert:
                 return .none
             case .deleteSuccess:
+                state.archiveItems.remove(id: state.archive.id)
                 return .none
             case .binding:
                 return .none
@@ -213,39 +209,35 @@ struct ArchiveDetailsV2: View {
 
     var body: some View {
         ScrollView {
-            if store.archiveMetadata != nil {
-                titleView(store: store)
-                if let imageData = store.archiveMetadata!.archiveThumbnail?.thumbnail {
-                    Image(uiImage: UIImage(data: imageData)!)
-                        .resizable()
-                        .scaledToFit()
-                        .padding()
-                        .frame(width: 200, height: 250)
-                } else {
-                    Image(systemName: "photo")
-                        .foregroundColor(.primary)
-                }
-                tagsView(store: store)
-                if store.editMode != .active {
-                    Button(
-                        role: .destructive,
-                        action: { store.send(.deleteButtonTapped) },
-                        label: {
-                            Text("archive.delete")
-                        }
-                    )
+            titleView(store: store)
+            if let imageData = store.archiveThumbnail {
+                Image(uiImage: UIImage(data: imageData)!)
+                    .resizable()
+                    .scaledToFit()
                     .padding()
-                    .background(.red)
-                    .foregroundColor(.white)
-                    .clipShape(Capsule())
-                    .disabled(store.loading)
-                }
+                    .frame(width: 200, height: 250)
             } else {
-                ProgressView("loading")
-                    .onAppear {
-                        store.send(.loadMetadata)
-                    }
+                Image(systemName: "photo")
+                    .foregroundColor(.primary)
             }
+            tagsView(store: store)
+            if store.editMode != .active {
+                Button(
+                    role: .destructive,
+                    action: { store.send(.deleteButtonTapped) },
+                    label: {
+                        Text("archive.delete")
+                    }
+                )
+                .padding()
+                .background(.red)
+                .foregroundColor(.white)
+                .clipShape(Capsule())
+                .disabled(store.loading)
+            }
+        }
+        .onAppear {
+            store.send(.loadLocalFields)
         }
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -257,13 +249,13 @@ struct ArchiveDetailsV2: View {
                         Text("archive.category.manage")
                         ForEach(staticCategory) { item in
                             Button {
-                                if item.archives.contains(store.id) {
+                                if item.archives.contains(store.archive.id) {
                                     store.send(.removeArchiveFromCategory(item.id))
                                 } else {
                                     store.send(.addArchiveToCategory(item.id))
                                 }
                             } label: {
-                                if item.archives.contains(store.id) {
+                                if item.archives.contains(store.archive.id) {
                                     Label(item.name, systemImage: "checkmark")
                                 } else {
                                     Text(item.name)

@@ -10,7 +10,7 @@ import NotificationBannerSwift
     struct State: Equatable {
         var archives: IdentifiedArrayOf<GridFeature.State> = []
 
-        @SharedReader(.appStorage(SettingsKey.hideRead)) var hideRead = false
+        @Shared(.archive) var archiveItems: IdentifiedArrayOf<ArchiveItem> = []
 
         var loading: Bool = false
         var showLoading: Bool = false
@@ -22,6 +22,7 @@ import NotificationBannerSwift
         case load(Bool)
         case populateArchives([ArchiveItem])
         case setErrorMessage(String)
+        case refreshDisplayArchives
     }
 
     @Dependency(\.lanraragiService) var service
@@ -46,8 +47,11 @@ import NotificationBannerSwift
                     await send(.setErrorMessage(error.localizedDescription))
                 }
             case let .populateArchives(archives):
+                archives.forEach { item in
+                    state.archiveItems.updateOrAppend(item)
+                }
                 let gridFeatureState = archives.map { item in
-                    GridFeature.State(archive: item)
+                    GridFeature.State(archive: state.$archiveItems[id: item.id]!)
                 }
                 state.archives = IdentifiedArray(uniqueElements: gridFeatureState)
                 state.loading = false
@@ -57,6 +61,12 @@ import NotificationBannerSwift
                 state.loading = false
                 state.showLoading = false
                 state.errorMessage = message
+                return .none
+            case .refreshDisplayArchives:
+                let filteredGridFeatureState = state.archives.filter { gridState in
+                    state.archiveItems[id: gridState.archive.id] != nil
+                }
+                state.archives = filteredGridFeatureState
                 return .none
             default:
                 return .none
@@ -79,17 +89,7 @@ struct RandomView: View {
         ScrollView {
             LazyVGrid(columns: columns) {
                 ForEach(
-                    store.scope(state: \.archives, action: \.grid).filter { (item: StoreOf<GridFeature>) in
-                        if store.hideRead {
-                            if item.archive.pagecount != item.archive.progress {
-                                return true
-                            } else {
-                                return false
-                            }
-                        } else {
-                            return true
-                        }
-                    },
+                    store.scope(state: \.archives, action: \.grid),
                     id: \.state.id
                 ) { gridStore in
                     grid(gridStore: gridStore)
@@ -103,6 +103,8 @@ struct RandomView: View {
         .onAppear {
             if store.archives.isEmpty {
                 store.send(.load(true))
+            } else {
+                store.send(.refreshDisplayArchives)
             }
         }
         .refreshable {
@@ -129,7 +131,7 @@ struct RandomView: View {
             NavigationLink(
                 state: AppFeature.Path.State.reader(
                     ArchiveReaderFeature.State.init(
-                        archive: gridStore.archive,
+                        archive: gridStore.$archive,
                         fromStart: true
                     )
                 )
@@ -150,7 +152,7 @@ struct RandomView: View {
         NavigationLink(
             state: AppFeature.Path.State.reader(
                 ArchiveReaderFeature.State.init(
-                    archive: gridStore.archive
+                    archive: gridStore.$archive
                 )
             )
         ) {

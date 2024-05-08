@@ -13,6 +13,9 @@ import Logging
         @Shared(.appStorage(SettingsKey.lanraragiUrl)) var url = ""
         @Shared(.appStorage(SettingsKey.lanraragiApiKey)) var apiKey = ""
 
+        var formUrl = ""
+        var formKey = ""
+
         var isVerifying = false
         var errorMessage = ""
     }
@@ -23,6 +26,7 @@ import Logging
         case saveComplate
         case setErrorMessage(String)
 
+        case setFormValue
         case setServerProgress(Bool)
         case setLanraragiUrl(String)
         case setLanraragiApiKey(String)
@@ -39,15 +43,15 @@ import Logging
                 state.isVerifying = true
                 return .run { [state] send in
                     let serverInfo = try await lanraragiService.verifyClient(
-                        url: state.url, apiKey: state.apiKey
+                        url: state.formUrl, apiKey: state.formKey
                     ).value
                     if serverInfo.serverTracksProgress == "1" {
                         await send(.setServerProgress(true))
                     } else {
                         await send(.setServerProgress(false))
                     }
-                    await send(.setLanraragiUrl(state.url))
-                    await send(.setLanraragiApiKey(state.apiKey))
+                    await send(.setLanraragiApiKey(state.formKey))
+                    await send(.setLanraragiUrl(state.formUrl))
                     await send(.saveComplate)
                 } catch: { error, send in
                     logger.error("failed to verify lanraragi server. \(error)")
@@ -63,6 +67,10 @@ import Logging
                 state.isVerifying = false
                 return .none
             case .binding:
+                return .none
+            case .setFormValue:
+                state.formUrl = state.url
+                state.formKey = state.apiKey
                 return .none
             case let .setServerProgress(isServerProgress):
                 state.serverProgress = isServerProgress
@@ -91,13 +99,13 @@ struct LANraragiConfigView: View {
     var body: some View {
         Form {
             Section(footer: Text("lanraragi.config.url.explain")) {
-                TextField("lanraragi.config.url", text: $store.url)
+                TextField("lanraragi.config.url", text: $store.formUrl)
                     .textContentType(.URL)
                     .keyboardType(.URL)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .focused($focused, equals: .url)
-                SecureField("lanraragi.config.apiKey", text: $store.apiKey)
+                SecureField("lanraragi.config.apiKey", text: $store.formKey)
                     .focused($focused, equals: .apiKey)
             }
             Section {
@@ -109,6 +117,9 @@ struct LANraragiConfigView: View {
                 })
                 .disabled(store.isVerifying)
             }
+        }
+        .onAppear {
+            store.send(.setFormValue)
         }
         .onSubmit {
             if focused == .url {

@@ -21,6 +21,7 @@ import NotificationBannerSwift
 
         var selectMode: EditMode = .inactive
         var selected: Set<String> = .init()
+        @Shared(.archive) var archiveItems: IdentifiedArrayOf<ArchiveItem> = []
         @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
         var filter: SearchFilter
         var loadOnAppear = true
@@ -32,16 +33,7 @@ import NotificationBannerSwift
         var successMessage = ""
         var currentTab: TabName
 
-        var archivesToDisplay: IdentifiedArrayOf<GridFeature.State> {
-            if hideRead {
-                let result = archives.filter {
-                    $0.archive.pagecount != $0.archive.progress
-                }
-                return IdentifiedArray(uniqueElements: result)
-            } else {
-                return archives
-            }
-        }
+        var archivesToDisplay: IdentifiedArrayOf<GridFeature.State> = []
     }
 
     enum Action: Equatable {
@@ -55,11 +47,7 @@ import NotificationBannerSwift
         case resetArchives
         case load(Bool)
         case populateArchives([ArchiveItem], Int, Bool)
-        case subscribeThumbnailTrigger
-        case subscribeProgressTrigger
-        case subscribeDeleteTrigger
         case refreshThumbnail(String)
-        case updateArchiveProgress(String, Int)
         case appendArchives(String)
         case removeArchive(String)
         case setErrorMessage(String)
@@ -67,6 +55,7 @@ import NotificationBannerSwift
         case cancelSearch
         case addSelect(String)
         case removeSelect(String)
+        case refreshDisplayArchives
 
         case setSearchSortOrder(String)
         case setSearchSort(String)
@@ -84,35 +73,17 @@ import NotificationBannerSwift
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
-    @Dependency(\.refreshTrigger) var refreshTrigger
 
     enum CancelId { case search }
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case .subscribeThumbnailTrigger:
-                return .run { send in
-                    for await archiveId in refreshTrigger.thumbnail.values {
-                        await send(.refreshThumbnail(archiveId))
-                    }
-                }
-            case .subscribeProgressTrigger:
-                return .run { send in
-                    for await (archiveId, progress) in refreshTrigger.progress.values {
-                        await send(.updateArchiveProgress(archiveId, progress))
-                    }
-                }
-            case .subscribeDeleteTrigger:
-                return .run { send in
-                    for await archiveId in refreshTrigger.delete.values {
-                        await send(.removeArchive(archiveId))
-                    }
-                }
             case let .setFilter(filter):
                 state.filter = filter
                 return .none
             case .resetArchives:
+                state.archivesToDisplay = .init()
                 state.archives = .init()
                 return .none
             case let .load(showLoading):
@@ -120,7 +91,9 @@ import NotificationBannerSwift
                     return .none
                 }
                 state.loading = true
-                state.showLoading = showLoading
+                if showLoading {
+                    state.showLoading = showLoading
+                }
                 let sortby = state.searchSort
                 let order = state.searchSortOrder
                 self.populateTags(state: &state)
@@ -139,33 +112,43 @@ import NotificationBannerSwift
                     state: &state, searchFilter: state.filter, sortby: sortby, start: start, order: order, append: true
                 )
             case let .removeArchive(id):
+                state.archivesToDisplay.remove(id: id)
                 state.archives.remove(id: id)
+                state.archiveItems.remove(id: id)
                 return .none
             case let .populateArchives(archives, total, append):
+                archives.forEach { item in
+                    state.archiveItems.updateOrAppend(item)
+                }
                 let gridFeatureState = archives.map { item in
-                    GridFeature.State(archive: item)
+                    GridFeature.State(archive: state.$archiveItems[id: item.id]!)
                 }
                 if !append {
                     state.archives = .init()
+                    state.archivesToDisplay = .init()
                     state.total = 0
                 }
                 state.archives.append(contentsOf: gridFeatureState)
+
+                if state.hideRead {
+                    let result = state.archives.filter {
+                        $0.archive.pagecount != $0.archive.progress
+                    }
+                    state.archivesToDisplay = IdentifiedArray(uniqueElements: result)
+                } else {
+                    state.archivesToDisplay = state.archives
+                }
+
                 state.total = total
                 state.loading = false
                 state.showLoading = false
                 return .none
             case let .refreshThumbnail(archiveId):
-                if state.archives.contains(where: { $0.id == archiveId }) {
+                if state.archivesToDisplay.contains(where: { $0.id == archiveId }) {
                     return .send(.grid(.element(id: archiveId, action: .load(true))))
                 } else {
                     return .none
                 }
-            case let .updateArchiveProgress(archiveId, progress):
-                state.archives[id: archiveId]?.archive.progress = progress
-                if progress > 1 && state.archives[id: archiveId]?.archive.isNew == true {
-                    state.archives[id: archiveId]?.archive.isNew = false
-                }
-                return .none
             case let .setErrorMessage(message):
                 state.loading = false
                 state.showLoading = false
@@ -188,6 +171,27 @@ import NotificationBannerSwift
                 return .none
             case let .removeSelect(id):
                 state.selected.remove(id)
+                return .none
+            case .refreshDisplayArchives:
+                let before = state.archives.count
+                let filteredGridFeatureState = state.archives.filter { gridState in
+                    state.archiveItems[id: gridState.archive.id] != nil
+                }
+                let after = filteredGridFeatureState.count
+                let diff = before - after
+                state.total -= diff
+
+                state.archives = filteredGridFeatureState
+
+                if state.hideRead {
+                    let result = state.archives.filter {
+                        $0.archive.pagecount != $0.archive.progress
+                    }
+                    state.archivesToDisplay = IdentifiedArray(uniqueElements: result)
+                } else {
+                    state.archivesToDisplay = state.archives
+                }
+
                 return .none
             case .alert(.dismiss):
                 return .none
@@ -233,6 +237,7 @@ import NotificationBannerSwift
             case let .removeFromCategorySuccess(archiveIds):
                 archiveIds.forEach { id in
                     state.selected.remove(id)
+                    state.archivesToDisplay.remove(id: id)
                     state.archives.remove(id: id)
                 }
                 state.loading = false
@@ -276,6 +281,14 @@ import NotificationBannerSwift
                 return .none
             case .toggleHideRead:
                 state.hideRead.toggle()
+                if state.hideRead {
+                    let result = state.archives.filter {
+                        $0.archive.pagecount != $0.archive.progress
+                    }
+                    state.archivesToDisplay = IdentifiedArray(uniqueElements: result)
+                } else {
+                    state.archivesToDisplay = state.archives
+                }
                 return .none
             case .deleteButtonTapped:
                 state.alert = AlertState {
@@ -304,7 +317,9 @@ import NotificationBannerSwift
             case let .deleteSuccess(archiveIds):
                 archiveIds.forEach { id in
                     state.selected.remove(id)
+                    state.archivesToDisplay.remove(id: id)
                     state.archives.remove(id: id)
+                    state.archiveItems.remove(id: id)
                 }
                 state.loading = false
                 return .none
@@ -450,17 +465,7 @@ struct ArchiveListV2: View {
         ScrollView {
             LazyVGrid(columns: columns) {
                 ForEach(
-                    store.scope(state: \.archives, action: \.grid).filter { (item: StoreOf<GridFeature>) in
-                        if store.hideRead {
-                            if item.archive.pagecount != item.archive.progress {
-                                return true
-                            } else {
-                                return false
-                            }
-                        } else {
-                            return true
-                        }
-                    },
+                    store.scope(state: \.archivesToDisplay, action: \.grid),
                     id: \.state.id
                 ) { gridStore in
                     grid(store: store, gridStore: gridStore)
@@ -479,12 +484,11 @@ struct ArchiveListV2: View {
             topBarTrailing()
         }
         .onAppear {
-            store.send(.subscribeThumbnailTrigger)
-            store.send(.subscribeProgressTrigger)
-            store.send(.subscribeDeleteTrigger)
             if store.lanraragiUrl.isEmpty == false &&
                 store.archives.isEmpty && store.loadOnAppear {
                 store.send(.load(true))
+            } else if !store.archives.isEmpty {
+                store.send(.refreshDisplayArchives)
             }
         }
         .refreshable {
@@ -497,23 +501,23 @@ struct ArchiveListV2: View {
             store.send(.resetArchives)
             store.send(.load(true))
         }
-        .onChange(of: self.store.searchSortOrder, {
+        .onChange(of: self.store.searchSortOrder) {
             store.send(.cancelSearch)
             store.send(.resetArchives)
             store.send(.load(true))
-        })
+        }
         .onChange(of: store.filter) {
             store.send(.cancelSearch)
             store.send(.resetArchives)
             store.send(.load(true))
         }
-        .onChange(of: store.lanraragiUrl, {
+        .onChange(of: store.lanraragiUrl) {
             if store.lanraragiUrl.isEmpty == false {
                 store.send(.cancelSearch)
                 store.send(.resetArchives)
                 store.send(.load(true))
             }
-        })
+        }
         .onChange(of: store.errorMessage) {
             if !store.errorMessage.isEmpty {
                 let banner = NotificationBanner(
@@ -543,7 +547,7 @@ struct ArchiveListV2: View {
             NavigationLink(
                 state: AppFeature.Path.State.reader(
                     ArchiveReaderFeature.State.init(
-                        archive: gridStore.archive,
+                        archive: gridStore.$archive,
                         fromStart: true
                     )
                 )
@@ -713,7 +717,7 @@ struct ArchiveListV2: View {
                 NavigationLink(
                     state: AppFeature.Path.State.reader(
                         ArchiveReaderFeature.State.init(
-                            archive: gridStore.archive
+                            archive: gridStore.$archive
                         )
                     )
                 ) {
@@ -730,23 +734,5 @@ struct ArchiveListV2: View {
                 }
             }
         }
-    }
-}
-
-struct RefreshTrigger {
-    var thumbnail = PassthroughSubject<String, Never>()
-    var progress = PassthroughSubject<(String, Int), Never>()
-    var delete = PassthroughSubject<String, Never>()
-}
-
-private enum RefreshTriggerKey: DependencyKey {
-    static let liveValue = RefreshTrigger()
-    static let testValue = RefreshTrigger()
-}
-
-extension DependencyValues {
-    var refreshTrigger: RefreshTrigger {
-        get { self[RefreshTriggerKey.self] }
-        set { self[RefreshTriggerKey.self] = newValue }
     }
 }

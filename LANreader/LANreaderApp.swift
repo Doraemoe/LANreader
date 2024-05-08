@@ -32,17 +32,14 @@ struct LANreaderApp: App {
                 // NOOP
             }
 
-            if let sessionDownloadFolder = try? FileManager.default.contentsOfDirectory(
-                at: FileManager.default.url(
-                    for: .documentDirectory,
-                    in: .userDomainMask,
-                    appropriateFor: nil,
-                    create: true
-                ).appendingPathComponent(LANraragiService.currentSessionDownloadFolder, conformingTo: .folder),
-                includingPropertiesForKeys: []
-            ) {
-                sessionDownloadFolder.forEach { url in
-                    try? FileManager.default.removeItem(at: url)
+            if LANraragiService.downloadPath != nil {
+                if let sessionDownloadFolder = try? FileManager.default.contentsOfDirectory(
+                    at: LANraragiService.downloadPath!,
+                    includingPropertiesForKeys: []
+                ) {
+                    sessionDownloadFolder.forEach { url in
+                        try? FileManager.default.removeItem(at: url)
+                    }
                 }
             }
 

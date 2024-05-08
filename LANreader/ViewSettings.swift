@@ -52,25 +52,23 @@ struct ViewSettings: View {
     @Bindable var store: StoreOf<ViewSettingsFeature>
 
     var body: some View {
-        VStack {
-            LabeledContent {
-                TextField("settings.archive.list.order.custom.title", text: $store.searchSortCustom)
-                    .multilineTextAlignment(.trailing)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-            } label: {
-                Text("settings.archive.list.order.custom.title")
-            }
-            .padding()
-            Toggle(isOn: self.$store.blurInterfaceWhenInactive, label: {
-                Text("settings.view.blur.inactive")
-            })
-            .padding()
-            Toggle(isOn: self.$store.enablePasscode, label: {
-                Text("settings.view.passcode")
-            })
-            .padding()
+        LabeledContent {
+            TextField("settings.archive.list.order.custom.title", text: $store.searchSortCustom)
+                .multilineTextAlignment(.trailing)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+        } label: {
+            Text("settings.archive.list.order.custom.title")
         }
+        .padding()
+        Toggle(isOn: self.$store.blurInterfaceWhenInactive, label: {
+            Text("settings.view.blur.inactive")
+        })
+        .padding()
+        Toggle(isOn: self.$store.enablePasscode, label: {
+            Text("settings.view.passcode")
+        })
+        .padding()
         .onAppear {
             // Correct invalid passcode status
             if store.enablePasscode && store.storedPasscode.isEmpty {

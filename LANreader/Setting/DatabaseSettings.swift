@@ -49,19 +49,17 @@ struct DatabaseSettings: View {
     let store: StoreOf<DatabaseSettingsFeature>
 
     var body: some View {
-        return VStack {
-            Button(role: .destructive, action: {
-                store.send(.clearDatabase)
-            }, label: {
-                HStack {
-                    Text("settings.database.clear")
-                    Spacer()
-                    Text(store.size)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-            })
-        }
+        Button(role: .destructive, action: {
+            store.send(.clearDatabase)
+        }, label: {
+            HStack {
+                Text("settings.database.clear")
+                Spacer()
+                Text(store.size)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+        })
         .onAppear {
             store.send(.setDatabaseSize)
         }
