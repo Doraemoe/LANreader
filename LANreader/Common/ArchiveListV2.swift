@@ -179,7 +179,7 @@ import NotificationBannerSwift
                 }
                 let after = filteredGridFeatureState.count
                 let diff = before - after
-                state.total = state.total - diff
+                state.total -= diff
 
                 state.archives = filteredGridFeatureState
 
