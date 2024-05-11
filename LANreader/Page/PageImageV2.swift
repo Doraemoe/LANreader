@@ -9,13 +9,57 @@ import Logging
     @ObservableState
     struct State: Equatable, Identifiable {
         @SharedReader(.appStorage(SettingsKey.showOriginal)) var showOriginal = false
+        @SharedReader(.appStorage(SettingsKey.fallbackReader)) var fallback = false
+        @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
+        @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
 
-        var id: Int
-        var pageId: String
-        var image: ArchiveImage?
+        @Shared var image: Data?
+        @Shared var imageLeft: Data?
+        @Shared var imageRight: Data?
+
+        let pageId: String
+        let suffix: String
+        let pageNumber: Int
         var loading: Bool = false
         var progress: Double = 0
         var errorMessage = ""
+        var pageMode: PageMode = .normal
+
+        var id: String {
+            "\(pageId)-\(suffix)"
+        }
+
+        init(archiveId: String, pageId: String, pageNumber: Int, pageMode: PageMode = .normal) {
+            self.pageId = pageId
+            self.pageNumber = pageNumber
+            self.pageMode = pageMode
+            self.suffix = pageMode.rawValue
+
+            self._image = Shared(
+                wrappedValue: nil,
+                .fileStorage(
+                    LANraragiService.downloadPath!
+                        .appendingPathComponent(archiveId, conformingTo: .folder)
+                        .appendingPathComponent(pageId, conformingTo: .image)
+                )
+            )
+            self._imageLeft = Shared(
+                wrappedValue: nil,
+                .fileStorage(
+                    LANraragiService.downloadPath!
+                        .appendingPathComponent(archiveId, conformingTo: .folder)
+                        .appendingPathComponent("\(pageId)-left", conformingTo: .image)
+                )
+            )
+            self._imageRight = Shared(
+                wrappedValue: nil,
+                .fileStorage(
+                    LANraragiService.downloadPath!
+                        .appendingPathComponent(archiveId, conformingTo: .folder)
+                        .appendingPathComponent("\(pageId)-right", conformingTo: .image)
+                )
+            )
+        }
     }
 
     enum Action: Equatable {
@@ -23,12 +67,12 @@ import Logging
         case subscribeToProgress(DownloadRequest)
         case cancelSubscribeImageProgress
         case setProgress(Double)
-        case setImage(ArchiveImage?)
+        case setImage(Data, Data?, Data?)
         case setError(String)
+        case insertPage(PageMode)
     }
 
     @Dependency(\.lanraragiService) var service
-    @Dependency(\.appDatabase) var database
     @Dependency(\.imageService) var imageService
 
     enum CancelId { case imageProgress }
@@ -56,42 +100,42 @@ import Logging
                 }
                 state.loading = true
 
-                if !force {
-                    do {
-                        state.image = try database.readArchiveImage(state.pageId)
-                    } catch {
-                        logger.error("failed to load image. id=\(state.pageId) \(error)")
-                    }
-                } else {
+                if force {
                     state.image = nil
+                    state.imageLeft = nil
+                    state.imageRight = nil
                 }
-                if state.image == nil {
+
+                let imageToRefresh = switch state.pageMode {
+                case .normal:
+                    state.image
+                case .left:
+                    state.imageLeft
+                case .right:
+                    state.imageRight
+                }
+
+                if imageToRefresh == nil {
                     return .run { [state] send in
                         do {
                             let task = service.fetchArchivePage(page: state.pageId)
                             await send(.subscribeToProgress(task))
-                            let imageUrl = try await task
-                                .serializingDownloadedFileURL()
+                            let imageData = try await task
+                                .serializingData()
                                 .value
                             await send(.cancelSubscribeImageProgress)
 
                             if !state.showOriginal {
                                 await send(.setProgress(2.0))
-                                imageService.resizeImage(url: imageUrl)
                             }
-
-                            var  pageImage = ArchiveImage(
-                                id: state.pageId, image: imageUrl.path(percentEncoded: false), lastUpdate: Date()
+                            let (processedImage, leftImage, rightImage) = imageService.resizeImage(
+                                data: imageData,
+                                split: state.splitImage && !state.fallback,
+                                skip: state.showOriginal
                             )
-                            do {
-                                try database.saveArchiveImage(&pageImage)
-                            } catch {
-                                logger.error("failed to save page to db. pageId=\(state.pageId) \(error)")
-                            }
-                            await send(.setImage(pageImage))
+                            await send(.setImage(processedImage, leftImage, rightImage))
                         } catch {
                             logger.error("failed to load image. \(error)")
-                            await send(.setImage(nil))
                         }
                     }
                 }
@@ -99,14 +143,30 @@ import Logging
             case let .setProgress(progres):
                 state.progress = progres
                 return .none
-            case let .setImage(image):
-                state.loading = false
-                state.image = image
+            case let .setImage(processedImage, leftImage, rightImage):
                 state.progress = 0
+                state.loading = false
+                if leftImage != nil && rightImage != nil {
+                    if state.piorityLeft {
+                        state.imageLeft = leftImage
+                        state.imageRight = rightImage
+                        state.pageMode = .left
+                        return .send(.insertPage(.right))
+                    } else {
+                        state.imageRight = rightImage
+                        state.imageLeft = leftImage
+                        state.pageMode = .right
+                        return .send(.insertPage(.left))
+                    }
+                } else {
+                    state.image = processedImage
+                }
                 return .none
             case let .setError(message):
                 state.loading = false
                 state.errorMessage = message
+                return .none
+            case .insertPage:
                 return .none
             }
         }
@@ -120,8 +180,16 @@ struct PageImageV2: View {
     var body: some View {
         // If not wrapped in ZStack, TabView will render ALL pages when initial load
         ZStack {
-            if let imageUrl = store.image?.image {
-                if let uiImage = UIImage(contentsOfFile: imageUrl) {
+            let imageToDisplay = switch store.pageMode {
+            case .normal:
+                store.image
+            case .left:
+                store.imageLeft
+            case .right:
+                store.imageRight
+            }
+            if let imageData = imageToDisplay {
+                if let uiImage = UIImage(data: imageData) {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
@@ -145,10 +213,16 @@ struct PageImageV2: View {
                 .frame(height: geometrySize.height)
                 .padding(.horizontal, 20)
                 .tint(.primary)
-                .onAppear {
+                .task {
                     store.send(.load(false))
                 }
             }
         }
     }
+}
+
+enum PageMode: String {
+    case left
+    case right
+    case normal
 }

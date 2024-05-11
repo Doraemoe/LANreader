@@ -487,7 +487,7 @@ struct ArchiveListV2: View {
             if store.lanraragiUrl.isEmpty == false &&
                 store.archives.isEmpty && store.loadOnAppear {
                 store.send(.load(true))
-            } else if !store.archives.isEmpty {
+            } else if !store.archivesToDisplay.isEmpty {
                 store.send(.refreshDisplayArchives)
             }
         }

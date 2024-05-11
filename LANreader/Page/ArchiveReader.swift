@@ -14,10 +14,12 @@ import NotificationBannerSwift
         @SharedReader(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
         @SharedReader(.appStorage(SettingsKey.fallbackReader)) var fallbackReader = false
         @SharedReader(.appStorage(SettingsKey.serverProgress)) var serverProgress = false
+        @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
+        @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
         @Shared var archive: ArchiveItem
         @Shared var archiveThumbnail: Data?
 
-        var index: Int?
+        var indexString: String?
         var sliderIndex: Double = 0
         var pages: IdentifiedArrayOf<PageFeature.State> = []
         var fromStart = false
@@ -27,8 +29,11 @@ import NotificationBannerSwift
         var errorMessage = ""
         var successMessage = ""
 
-        var fallbackIndex: Int {
-            index ?? 0
+        var fallbackIndexString: String {
+            indexString ?? ""
+        }
+        var currentIndex: Int? {
+            pages.index(id: indexString ?? "")
         }
 
         init(archive: Shared<ArchiveItem>, fromStart: Bool = false) {
@@ -52,9 +57,9 @@ import NotificationBannerSwift
         case finishExtracting([String])
         case toggleControlUi(Bool?)
         case preload(Int)
-        case setIndex(Int)
+        case setIndexString(String)
         case setSliderIndex(Double)
-        case updateProgress
+        case updateProgress(Int)
         case setIsNew(Bool)
         case setThumbnail
         case setThumbnailData(Data)
@@ -92,19 +97,20 @@ import NotificationBannerSwift
             case let .finishExtracting(pages):
                 let pageState = pages.enumerated().map { (index, page) in
                     let normalizedPage = String(page.dropFirst(2))
-                    return PageFeature.State(id: index, pageId: normalizedPage)
+                    return PageFeature.State(archiveId: state.archive.id, pageId: normalizedPage, pageNumber: index + 1)
                 }
                 state.pages.append(contentsOf: pageState)
                 state.extracting = false
                 let progress = state.archive.progress > 0 ? state.archive.progress - 1 : 0
-                state.index = state.fromStart ? 0 : progress
-                state.sliderIndex = Double(progress)
+                let pageIndexToShow = state.fromStart ? 0 : progress
+                state.sliderIndex = Double(pageIndexToShow)
+                state.indexString = state.pages[pageIndexToShow].id
                 state.controlUiHidden = true
                 return .none
             case .loadProgress:
                 let progress = state.archive.progress > 0 ? state.archive.progress - 1 : 0
-                state.index = state.fromStart ? 0 : progress
                 state.sliderIndex = Double(progress)
+                state.indexString = state.pages[progress].id
                 state.controlUiHidden = true
                 return .none
             case let .toggleControlUi(show):
@@ -115,28 +121,31 @@ import NotificationBannerSwift
                 }
                 return .none
             case let .preload(index):
-                return .run(priority: .utility) { [totalPage = state.pages.count] send in
+                return .run(priority: .utility) { [state] send in
                     if index - 1 > 0 {
-                        await send(.page(.element(id: index - 1, action: .load(false))))
+                        let previousPageId = state.pages[index-1].id
+                        await send(.page(.element(id: previousPageId, action: .load(false))))
                     }
-                    if index + 1 < totalPage {
-                        await send(.page(.element(id: index + 1, action: .load(false))))
+                    if index + 1 < state.pages.count {
+                        let nextPageId = state.pages[index+1].id
+                        await send(.page(.element(id: nextPageId, action: .load(false))))
                     }
                 }
-            case let .setIndex(index):
-                state.index = index
+            case let .setIndexString(indexString):
+                state.indexString = indexString
                 return .none
             case let .setSliderIndex(index):
                 state.sliderIndex = index
                 return .none
-            case .updateProgress:
-                let progress = (state.index ?? 0) + 1
-                state.archive.progress = progress
+            case let .updateProgress(pageNumber):
+                state.archive.progress = pageNumber
                 return .run(priority: .background) { [state] send in
                     if state.serverProgress {
-                        _ = try await service.updateArchiveReadProgress(id: state.archive.id, progress: progress).value
+                        _ = try await service.updateArchiveReadProgress(
+                            id: state.archive.id, progress: pageNumber
+                        ).value
                     }
-                    if progress > 1 && state.archive.isNew {
+                    if pageNumber > 1 && state.archive.isNew {
                         _ = try await service.clearNewFlag(id: state.archive.id).value
                         await send(.setIsNew(false))
                     }
@@ -149,9 +158,9 @@ import NotificationBannerSwift
                 return .none
             case .setThumbnail:
                 state.settingThumbnail = true
-                let index = (state.index ?? 0) + 1
+                guard let pageNumber = state.pages[id: state.indexString ?? ""]?.pageNumber else {return .none }
                 return .run { [id = state.archive.id] send in
-                    _ = try await service.updateArchiveThumbnail(id: id, page: index).value
+                    _ = try await service.updateArchiveThumbnail(id: id, page: pageNumber).value
                     let imageData = try await service.retrieveArchiveThumbnail(id: id).serializingData().value
                     await send(.setThumbnailData(imageData))
                     let successMessage = String(localized: "archive.thumbnail.set")
@@ -170,15 +179,15 @@ import NotificationBannerSwift
             case let .tapAction(action):
                 switch action {
                 case PageControl.next.rawValue:
-                    if let pageIndex = state.index {
-                        if pageIndex < state.archive.pagecount - 1 {
-                            state.index! += 1
+                    if let pageIndex = state.currentIndex {
+                        if pageIndex < state.pages.count - 1 {
+                            state.indexString = state.pages[pageIndex + 1].id
                         }
                     }
                 case PageControl.previous.rawValue:
-                    if let pageIndex = state.index {
+                    if let pageIndex = state.currentIndex {
                         if pageIndex > 0 {
-                            state.index! -= 1
+                            state.indexString = state.pages[pageIndex - 1].id
                         }
                     }
                 case PageControl.navigation.rawValue:
@@ -195,6 +204,19 @@ import NotificationBannerSwift
                 state.errorMessage = message
                 return .none
             case .binding:
+                return .none
+            case let .page(.element(id: id, action: .insertPage(mode))):
+                guard let current = state.pages[id: id] else { return .none }
+                let currentIndex = state.pages.index(id: id)!
+                state.pages.insert(
+                    PageFeature.State(
+                        archiveId: state.archive.id,
+                        pageId: current.pageId,
+                        pageNumber: current.pageNumber,
+                        pageMode: mode
+                    ),
+                    at: currentIndex + 1
+                )
                 return .none
             case .page:
                 return .none
@@ -249,8 +271,6 @@ struct ArchiveReader: View {
         .onAppear {
             if store.pages.isEmpty {
                 store.send(.extractArchive)
-            } else {
-                store.send(.loadProgress)
             }
             if store.archive.extension == "rar" || store.archive.extension == "cbr" {
                 let banner = NotificationBanner(
@@ -261,11 +281,13 @@ struct ArchiveReader: View {
                 banner.show()
             }
         }
-        .onChange(of: store.index) { _, newValue in
-            if let index = newValue {
+        .onChange(of: store.indexString) { _, newValue in
+            if let id = newValue {
+                let index = store.pages.index(id: id) ?? 0
+                let pageNumber = store.pages[id: id]?.pageNumber ?? 1
                 store.send(.preload(index))
                 store.send(.setSliderIndex(Double(index)))
-                store.send(.updateProgress)
+                store.send(.updateProgress(pageNumber))
             }
         }
         .onChange(of: store.errorMessage) {
@@ -313,7 +335,7 @@ struct ArchiveReader: View {
             }
             .scrollTargetLayout()
         }
-        .scrollPosition(id: $store.index)
+        .scrollPosition(id: $store.indexString)
         .onTapGesture {
             store.send(.tapAction(PageControl.navigation.rawValue))
         }
@@ -340,7 +362,7 @@ struct ArchiveReader: View {
             .scrollTargetLayout()
         }
         .scrollTargetBehavior(.paging)
-        .scrollPosition(id: $store.index)
+        .scrollPosition(id: $store.indexString)
         .onTapGesture { location in
             if location.x < geometry.size.width / 3 {
                 store.send(.tapAction(store.tapLeft))
@@ -357,7 +379,7 @@ struct ArchiveReader: View {
         store: StoreOf<ArchiveReaderFeature>,
         geometry: GeometryProxy
     ) -> some View {
-        TabView(selection: $store.fallbackIndex.sending(\.setIndex)) {
+        TabView(selection: $store.fallbackIndexString.sending(\.setIndexString)) {
             ForEach(
                 store.scope(
                     state: \.pages,
@@ -391,7 +413,7 @@ struct ArchiveReader: View {
             Grid {
                 GridRow {
                     Button(action: {
-                        store.send(.page(.element(id: store.index ?? 0, action: .load(true))))
+                        store.send(.page(.element(id: store.indexString ?? "", action: .load(true))))
                     }, label: {
                         Image(systemName: "arrow.clockwise")
                     })
@@ -415,7 +437,8 @@ struct ArchiveReader: View {
                         step: 1
                     ) { onSlider in
                         if !onSlider {
-                            store.send(.setIndex(store.sliderIndex.int))
+                            let indexString = store.pages[store.sliderIndex.int].id
+                            store.send(.setIndexString(indexString))
                         }
                     }
                     .padding(.horizontal)
