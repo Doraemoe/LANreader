@@ -44,6 +44,8 @@
 "settings.read.image.compress.three" = "When resolution > 3x screen";
 "settings.read.image.compress.four" = "When resolution > 4x screen";
 "settings.read.image.showOriginal" = "Show original image";
+"settings.read.split.page" = "Split wide page";
+"settings.read.split.page.priority.left" = "Show left split page first";
 
 "settings.view" = "View Settings";
 "settings.archive.list.order" = "Sort by";

@@ -11,6 +11,8 @@ import SwiftUI
         @Shared(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
         @Shared(.appStorage(SettingsKey.showOriginal)) var showOriginal = false
         @Shared(.appStorage(SettingsKey.fallbackReader)) var fallbackReader = false
+        @Shared(.appStorage(SettingsKey.splitWideImage)) var splitWideImage = false
+        @Shared(.appStorage(SettingsKey.splitPiorityLeft)) var splitPiorityLeft = false
     }
     enum Action: BindableAction {
         case binding(BindingAction<State>)
@@ -62,6 +64,18 @@ struct ReadSettings: View {
             Text("settings.read.image.showOriginal")
         }
         .padding()
+        if self.store.fallbackReader == false {
+            Toggle(isOn: self.$store.splitWideImage) {
+                Text("settings.read.split.page")
+            }
+            .padding()
+        }
+        if self.store.splitWideImage {
+            Toggle(isOn: self.$store.splitPiorityLeft) {
+                Text("settings.read.split.page.priority.left")
+            }
+            .padding()
+        }
     }
 
     var pageControlSelectionView: some View = Group {

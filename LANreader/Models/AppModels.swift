@@ -87,6 +87,8 @@ struct SettingsKey {
     static let compressImageThreshold = "settings.read.image.compress.threshold"
     static let showOriginal = "settings.read.image.showOriginal"
     static let fallbackReader = "settings.read.fallback"
+    static let splitWideImage = "settings.read.split.Image"
+    static let splitPiorityLeft = "settings.read.split.piorityLeft"
 
     static let archiveListOrder = "settings.archive.list.order"
     static let searchSort = "settings.search.sort"

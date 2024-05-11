@@ -42,6 +42,8 @@
 "settings.read.image.compress.three" = "大于3倍屏幕分辨率";
 "settings.read.image.compress.four" = "大于4倍屏幕分辨率";
 "settings.read.image.showOriginal" = "显示原图";
+"settings.read.split.page" = "自动分页";
+"settings.read.split.page.priority.left" = "优先显示左侧分割页面";
 
 "settings.view" = "视图设定";
 "settings.read.fallback" = "使用备选阅读器";
