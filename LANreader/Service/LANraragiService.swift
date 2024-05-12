@@ -65,10 +65,10 @@ class LANraragiService {
 
     func retrieveArchiveThumbnail(id: String) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
-        return session.download(request, to: { tempUrl, response in
+        return session.download(request, to: { tempUrl, _ in
             let destinationUrl = LANraragiService.downloadPath?
                 .appendingPathComponent("thumbnail", conformingTo: .folder)
-                .appendingPathComponent(response.suggestedFilename ?? "\(id).jpeg", conformingTo: .image)
+                .appendingPathComponent(id, conformingTo: .image)
             ?? tempUrl
             return (destinationUrl, [.createIntermediateDirectories, .removePreviousFile])
         }).validate()
@@ -154,14 +154,13 @@ class LANraragiService {
             .serializingDecodable(ArchiveExtractResponse.self)
     }
 
-    func fetchArchivePage(page: String) -> DownloadRequest {
+    func fetchArchivePage(page: String, pageNumber: Int) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
-        return session.download(request, to: { tempUrl, response in
+        return session.download(request, to: { tempUrl, _ in
             let id = String(page.split(separator: "/")[2])
             let destinationUrl = LANraragiService.downloadPath?
-                .appendingPathComponent("pages", conformingTo: .folder)
                 .appendingPathComponent(id, conformingTo: .folder)
-                .appendingPathComponent(response.suggestedFilename!, conformingTo: .image)
+                .appendingPathComponent("\(pageNumber)", conformingTo: .image)
             ?? tempUrl
             return (destinationUrl, [.createIntermediateDirectories, .removePreviousFile])
         }).validate()
