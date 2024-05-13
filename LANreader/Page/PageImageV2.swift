@@ -49,6 +49,7 @@ import Logging
 
     enum Action: Equatable {
         case load(Bool)
+        case setIsLoading(Bool)
         case subscribeToProgress(DownloadRequest)
         case cancelSubscribeImageProgress
         case setProgress(Double)
@@ -126,8 +127,13 @@ import Logging
                         } catch {
                             logger.error("failed to load image. \(error)")
                         }
+                        await send(.setIsLoading(false))
                     }
                 }
+                state.loading = false
+                return .none
+            case let .setIsLoading(loading):
+                state.loading = loading
                 return .none
             case let .setProgress(progres):
                 state.progress = progres
@@ -142,14 +148,21 @@ import Logging
                     if let path = state.pathRight {
                         try? rightImage!.write(to: path)
                     }
-                    if state.piorityLeft {
-                        state.pageMode = .left
+                    switch state.pageMode {
+                    case .normal:
+                        if state.piorityLeft {
+                            state.pageMode = .left
+                            state.image = leftImage
+                            return .send(.insertPage(.right))
+                        } else {
+                            state.pageMode = .right
+                            state.image = rightImage
+                            return .send(.insertPage(.left))
+                        }
+                    case .left:
                         state.image = leftImage
-                        return .send(.insertPage(.right))
-                    } else {
-                        state.pageMode = .right
+                    case .right:
                         state.image = rightImage
-                        return .send(.insertPage(.left))
                     }
                 } else {
                     state.image = processedImage
@@ -170,38 +183,52 @@ struct PageImageV2: View {
     let store: StoreOf<PageFeature>
     let geometrySize: CGSize
 
+    // LazyHStack not clean up memory after item load and go off screen
+    // Use this state to explicity release memory when page go off screen
+    @State var visable = false
+
     var body: some View {
         // If not wrapped in ZStack, TabView will render ALL pages when initial load
         ZStack {
-            if let imageData = store.image {
-                if let uiImage = UIImage(data: imageData) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .draggableAndZoomable(contentSize: geometrySize)
+            if visable {
+                if let imageData = store.image {
+                    if let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .draggableAndZoomable(contentSize: geometrySize)
+                    } else {
+                        Image(systemName: "rectangle.slash")
+                            .frame(height: geometrySize.height)
+                    }
                 } else {
-                    Image(systemName: "rectangle.slash")
-                        .frame(height: geometrySize.height)
+                    ProgressView(
+                        value: store.progress > 1 ? 1 : store.progress,
+                        total: 1
+                    ) {
+                        Text("loading")
+                    } currentValueLabel: {
+                        store.progress > 1 ?
+                        Text("downsampling") :
+                        Text(String(format: "%.2f%%", store.progress * 100))
+                    }
+                    .progressViewStyle(.linear)
+                    .frame(height: geometrySize.height)
+                    .padding(.horizontal, 20)
+                    .tint(.primary)
+                    .task {
+                        store.send(.load(false))
+                    }
                 }
             } else {
-                ProgressView(
-                    value: store.progress > 1 ? 1 : store.progress,
-                    total: 1
-                ) {
-                    Text("loading")
-                } currentValueLabel: {
-                    store.progress > 1 ?
-                    Text("downsampling") :
-                    Text(String(format: "%.2f%%", store.progress * 100))
-                }
-                .progressViewStyle(.linear)
-                .frame(height: geometrySize.height)
-                .padding(.horizontal, 20)
-                .tint(.primary)
-                .task {
-                    store.send(.load(false))
-                }
+                EmptyView()
             }
+        }
+        .onAppear {
+            visable = true
+        }
+        .onDisappear {
+            visable = false
         }
     }
 }
