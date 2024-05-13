@@ -13,10 +13,7 @@ import Logging
         @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
         @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
 
-        @Shared var image: Data?
-        @Shared var imageLeft: Data?
-        @Shared var imageRight: Data?
-
+        var image: Data?
         let pageId: String
         let suffix: String
         let pageNumber: Int
@@ -29,41 +26,30 @@ import Logging
             "\(pageId)-\(suffix)"
         }
 
+        let path: URL?
+        let pathLeft: URL?
+        let pathRight: URL?
+
         init(archiveId: String, pageId: String, pageNumber: Int, pageMode: PageMode = .normal) {
             self.pageId = pageId
             self.pageNumber = pageNumber
             self.pageMode = pageMode
             self.suffix = pageMode.rawValue
-
-            self._image = Shared(
-                wrappedValue: nil,
-                .fileStorage(
-                    LANraragiService.downloadPath!
-                        .appendingPathComponent(archiveId, conformingTo: .folder)
-                        .appendingPathComponent(pageId, conformingTo: .image)
-                )
-            )
-            self._imageLeft = Shared(
-                wrappedValue: nil,
-                .fileStorage(
-                    LANraragiService.downloadPath!
-                        .appendingPathComponent(archiveId, conformingTo: .folder)
-                        .appendingPathComponent("\(pageId)-left", conformingTo: .image)
-                )
-            )
-            self._imageRight = Shared(
-                wrappedValue: nil,
-                .fileStorage(
-                    LANraragiService.downloadPath!
-                        .appendingPathComponent(archiveId, conformingTo: .folder)
-                        .appendingPathComponent("\(pageId)-right", conformingTo: .image)
-                )
-            )
+            self.path = LANraragiService.downloadPath?
+                .appendingPathComponent(archiveId, conformingTo: .folder)
+                .appendingPathComponent("\(pageNumber)", conformingTo: .image)
+            self.pathLeft = LANraragiService.downloadPath?
+                .appendingPathComponent(archiveId, conformingTo: .folder)
+                .appendingPathComponent("\(pageNumber)-left", conformingTo: .image)
+            self.pathRight = LANraragiService.downloadPath?
+                .appendingPathComponent(archiveId, conformingTo: .folder)
+                .appendingPathComponent("\(pageNumber)-right", conformingTo: .image)
         }
     }
 
     enum Action: Equatable {
         case load(Bool)
+        case setIsLoading(Bool)
         case subscribeToProgress(DownloadRequest)
         case cancelSubscribeImageProgress
         case setProgress(Double)
@@ -102,23 +88,27 @@ import Logging
 
                 if force {
                     state.image = nil
-                    state.imageLeft = nil
-                    state.imageRight = nil
+                } else {
+                    switch state.pageMode {
+                    case .normal:
+                        if let path = state.path {
+                            state.image = try? Data(contentsOf: path)
+                        }
+                    case .left:
+                        if let path = state.pathLeft {
+                            state.image = try? Data(contentsOf: path)
+                        }
+                    case .right:
+                        if let path = state.pathRight {
+                            state.image = try? Data(contentsOf: path)
+                        }
+                    }
                 }
 
-                let imageToRefresh = switch state.pageMode {
-                case .normal:
-                    state.image
-                case .left:
-                    state.imageLeft
-                case .right:
-                    state.imageRight
-                }
-
-                if imageToRefresh == nil {
+                if state.image == nil {
                     return .run { [state] send in
                         do {
-                            let task = service.fetchArchivePage(page: state.pageId)
+                            let task = service.fetchArchivePage(page: state.pageId, pageNumber: state.pageNumber)
                             await send(.subscribeToProgress(task))
                             let imageData = try await task
                                 .serializingData()
@@ -137,8 +127,13 @@ import Logging
                         } catch {
                             logger.error("failed to load image. \(error)")
                         }
+                        await send(.setIsLoading(false))
                     }
                 }
+                state.loading = false
+                return .none
+            case let .setIsLoading(loading):
+                state.loading = loading
                 return .none
             case let .setProgress(progres):
                 state.progress = progres
@@ -147,16 +142,27 @@ import Logging
                 state.progress = 0
                 state.loading = false
                 if leftImage != nil && rightImage != nil {
-                    if state.piorityLeft {
-                        state.imageLeft = leftImage
-                        state.imageRight = rightImage
-                        state.pageMode = .left
-                        return .send(.insertPage(.right))
-                    } else {
-                        state.imageRight = rightImage
-                        state.imageLeft = leftImage
-                        state.pageMode = .right
-                        return .send(.insertPage(.left))
+                    if let path = state.pathLeft {
+                        try? leftImage!.write(to: path)
+                    }
+                    if let path = state.pathRight {
+                        try? rightImage!.write(to: path)
+                    }
+                    switch state.pageMode {
+                    case .normal:
+                        if state.piorityLeft {
+                            state.pageMode = .left
+                            state.image = leftImage
+                            return .send(.insertPage(.right))
+                        } else {
+                            state.pageMode = .right
+                            state.image = rightImage
+                            return .send(.insertPage(.left))
+                        }
+                    case .left:
+                        state.image = leftImage
+                    case .right:
+                        state.image = rightImage
                     }
                 } else {
                     state.image = processedImage
@@ -177,46 +183,52 @@ struct PageImageV2: View {
     let store: StoreOf<PageFeature>
     let geometrySize: CGSize
 
+    // LazyHStack not clean up memory after item load and go off screen
+    // Use this state to explicity release memory when page go off screen
+    @State var visable = false
+
     var body: some View {
         // If not wrapped in ZStack, TabView will render ALL pages when initial load
         ZStack {
-            let imageToDisplay = switch store.pageMode {
-            case .normal:
-                store.image
-            case .left:
-                store.imageLeft
-            case .right:
-                store.imageRight
-            }
-            if let imageData = imageToDisplay {
-                if let uiImage = UIImage(data: imageData) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .draggableAndZoomable(contentSize: geometrySize)
+            if visable {
+                if let imageData = store.image {
+                    if let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .draggableAndZoomable(contentSize: geometrySize)
+                    } else {
+                        Image(systemName: "rectangle.slash")
+                            .frame(height: geometrySize.height)
+                    }
                 } else {
-                    Image(systemName: "rectangle.slash")
-                        .frame(height: geometrySize.height)
+                    ProgressView(
+                        value: store.progress > 1 ? 1 : store.progress,
+                        total: 1
+                    ) {
+                        Text("loading")
+                    } currentValueLabel: {
+                        store.progress > 1 ?
+                        Text("downsampling") :
+                        Text(String(format: "%.2f%%", store.progress * 100))
+                    }
+                    .progressViewStyle(.linear)
+                    .frame(height: geometrySize.height)
+                    .padding(.horizontal, 20)
+                    .tint(.primary)
+                    .task {
+                        store.send(.load(false))
+                    }
                 }
             } else {
-                ProgressView(
-                    value: store.progress > 1 ? 1 : store.progress,
-                    total: 1
-                ) {
-                    Text("loading")
-                } currentValueLabel: {
-                    store.progress > 1 ?
-                    Text("downsampling") :
-                    Text(String(format: "%.2f%%", store.progress * 100))
-                }
-                .progressViewStyle(.linear)
-                .frame(height: geometrySize.height)
-                .padding(.horizontal, 20)
-                .tint(.primary)
-                .task {
-                    store.send(.load(false))
-                }
+                EmptyView()
             }
+        }
+        .onAppear {
+            visable = true
+        }
+        .onDisappear {
+            visable = false
         }
     }
 }
