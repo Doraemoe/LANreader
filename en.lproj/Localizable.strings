@@ -19,6 +19,7 @@
 "select" = "Select";
 "version" = "Version";
 "downsampling" = "Downsampling image...";
+"play" = "Start";
 
 "filter.name" = "Filter by name";
 
@@ -46,6 +47,8 @@
 "settings.read.image.showOriginal" = "Show original image";
 "settings.read.split.page" = "Split wide page";
 "settings.read.split.page.priority.left" = "Show left split page first";
+"settings.read.auto.page.interval" = "Automatic paging interval";
+"settings.read.auto.page.interval.cancel" = "Toggle navigation to stop automatic paging";
 
 "settings.view" = "View Settings";
 "settings.archive.list.order" = "Sort by";

@@ -1,6 +1,7 @@
 import ComposableArchitecture
 import SwiftUI
 import Logging
+import Combine
 import NotificationBannerSwift
 
 @Reducer struct ArchiveReaderFeature {
@@ -16,6 +17,7 @@ import NotificationBannerSwift
         @SharedReader(.appStorage(SettingsKey.serverProgress)) var serverProgress = false
         @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
         @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
+        @SharedReader(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
         @Shared var archive: ArchiveItem
         @Shared var archiveThumbnail: Data?
 
@@ -28,6 +30,10 @@ import NotificationBannerSwift
         var settingThumbnail = false
         var errorMessage = ""
         var successMessage = ""
+        var showAutoPageConfig = false
+        var startAutoPage = false
+        var autoPage = AutomaticPageFeature.State()
+        var autoDate = Date()
 
         var fallbackIndexString: String {
             indexString ?? ""
@@ -51,6 +57,9 @@ import NotificationBannerSwift
 
     enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
+        case autoPage(AutomaticPageFeature.Action)
+        case showAutoPageConfig
+        case setAutoDate(Date)
         case page(IdentifiedActionOf<PageFeature>)
         case extractArchive
         case loadProgress
@@ -72,10 +81,18 @@ import NotificationBannerSwift
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
 
-    enum CancelId { case updateProgress }
+    enum CancelId {
+        case updateProgress
+        case autoPage
+    }
 
     var body: some ReducerOf<Self> {
         BindingReducer()
+
+        Scope(state: \.autoPage, action: \.autoPage) {
+            AutomaticPageFeature()
+        }
+
         Reduce { state, action in
             switch action {
             case .extractArchive:
@@ -192,6 +209,8 @@ import NotificationBannerSwift
                     }
                 case PageControl.navigation.rawValue:
                     state.controlUiHidden.toggle()
+                    state.startAutoPage = false
+                    return .cancel(id: CancelId.autoPage)
                 default:
                     // This should not happen
                     break
@@ -219,6 +238,27 @@ import NotificationBannerSwift
                 )
                 return .none
             case .page:
+                return .none
+            case .showAutoPageConfig:
+                state.showAutoPageConfig = true
+                return .none
+            case .autoPage(.startAutoPage):
+                state.showAutoPageConfig = false
+                state.controlUiHidden = true
+                state.startAutoPage = true
+                return .run { [interval = state.autoPageInterval] send in
+                    for await timerDate in Timer.publish(every: interval, on: .main, in: .common).autoconnect().values {
+                        await send(.setAutoDate(timerDate))
+                    }
+                }
+                .cancellable(id: CancelId.autoPage)
+            case let .setAutoDate(date):
+                state.autoDate = date
+                return .none
+            case .autoPage(.cancelAutoPage):
+                state.showAutoPageConfig = false
+                return .none
+            case .autoPage:
                 return .none
             }
         }
@@ -268,6 +308,11 @@ struct ArchiveReader: View {
         .navigationBarTitle(store.archive.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
+        .overlay(content: {
+            store.showAutoPageConfig ? AutomaticPageConfig(
+                store: store.scope(state: \.autoPage, action: \.autoPage)
+            ) : nil
+        })
         .onAppear {
             if store.pages.isEmpty {
                 store.send(.extractArchive)
@@ -311,6 +356,11 @@ struct ArchiveReader: View {
                 )
                 banner.show()
                 store.send(.setSuccess(""))
+            }
+        }
+        .onChange(of: store.autoDate) {
+            if store.startAutoPage {
+                store.send(.tapAction(PageControl.next.rawValue))
             }
         }
     }
@@ -417,10 +467,20 @@ struct ArchiveReader: View {
                     }, label: {
                         Image(systemName: "arrow.clockwise")
                     })
+                    Button {
+                        store.send(.showAutoPageConfig)
+                    } label: {
+                        Image(systemName: "play")
+                    }
                     Text(String(format: "%d/%d",
                                 store.sliderIndex.int + 1,
                                 store.pages.count))
                     .bold()
+                    Button {
+                        // to be implemented
+                    } label: {
+                        Image(systemName: "arrowshape.down")
+                    }
                     Button(action: {
                         Task {
                             store.send(.setThumbnail)
@@ -442,7 +502,7 @@ struct ArchiveReader: View {
                         }
                     }
                     .padding(.horizontal)
-                    .gridCellColumns(3)
+                    .gridCellColumns(5)
                 }
             }
             .padding()
