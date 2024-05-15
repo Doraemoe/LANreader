@@ -19,6 +19,7 @@
 "select" = "选择";
 "version" = "版本";
 "downsampling" = "正在缩小图片尺寸";
+"play" = "开始";
 
 "filter.name" = "过滤标题";
 
@@ -44,6 +45,8 @@
 "settings.read.image.showOriginal" = "显示原图";
 "settings.read.split.page" = "自动分页";
 "settings.read.split.page.priority.left" = "优先显示左侧分割页面";
+"settings.read.auto.page.interval" = "自动翻页间隔";
+"settings.read.auto.page.interval.cancel" = "切换导航可以取消自动翻页";
 
 "settings.view" = "视图设定";
 "settings.read.fallback" = "使用备选阅读器";

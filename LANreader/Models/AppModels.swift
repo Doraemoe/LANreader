@@ -89,6 +89,7 @@ struct SettingsKey {
     static let fallbackReader = "settings.read.fallback"
     static let splitWideImage = "settings.read.split.Image"
     static let splitPiorityLeft = "settings.read.split.piorityLeft"
+    static let autoPageInterval = "settings.read.auto.page.interval"
 
     static let archiveListOrder = "settings.archive.list.order"
     static let searchSort = "settings.search.sort"
