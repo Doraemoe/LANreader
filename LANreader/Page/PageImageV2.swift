@@ -21,6 +21,7 @@ import Logging
         var progress: Double = 0
         var errorMessage = ""
         var pageMode: PageMode = .normal
+        let cached: Bool
 
         var id: String {
             "\(pageId)-\(suffix)"
@@ -30,18 +31,24 @@ import Logging
         let pathLeft: URL?
         let pathRight: URL?
 
-        init(archiveId: String, pageId: String, pageNumber: Int, pageMode: PageMode = .normal) {
+        init(archiveId: String, pageId: String, pageNumber: Int, pageMode: PageMode = .normal, cached: Bool = false) {
             self.pageId = pageId
             self.pageNumber = pageNumber
             self.pageMode = pageMode
             self.suffix = pageMode.rawValue
-            self.path = LANraragiService.downloadPath?
+            self.cached = cached
+            let imagePath = if cached {
+                LANraragiService.cachePath
+            } else {
+                LANraragiService.downloadPath
+            }
+            self.path = imagePath?
                 .appendingPathComponent(archiveId, conformingTo: .folder)
                 .appendingPathComponent("\(pageNumber)", conformingTo: .image)
-            self.pathLeft = LANraragiService.downloadPath?
+            self.pathLeft = imagePath?
                 .appendingPathComponent(archiveId, conformingTo: .folder)
                 .appendingPathComponent("\(pageNumber)-left", conformingTo: .image)
-            self.pathRight = LANraragiService.downloadPath?
+            self.pathRight = imagePath?
                 .appendingPathComponent(archiveId, conformingTo: .folder)
                 .appendingPathComponent("\(pageNumber)-right", conformingTo: .image)
         }
@@ -106,28 +113,45 @@ import Logging
                 }
 
                 if state.image == nil {
-                    return .run { [state] send in
-                        do {
-                            let task = service.fetchArchivePage(page: state.pageId, pageNumber: state.pageNumber)
-                            await send(.subscribeToProgress(task))
-                            let imageData = try await task
-                                .serializingData()
-                                .value
-                            await send(.cancelSubscribeImageProgress)
+                    if state.cached {
+                        state.loading = false
+                        return .send(.setError(String(localized: "archive.cache.page.load.failed")))
+                    } else {
+                        return .run { [state] send in
+                            do {
+                                let task = service.fetchArchivePage(page: state.pageId, pageNumber: state.pageNumber)
+                                await send(.subscribeToProgress(task))
+                                let imageData = try await task
+                                    .serializingData()
+                                    .value
+                                await send(.cancelSubscribeImageProgress)
 
-                            if !state.showOriginal {
-                                await send(.setProgress(2.0))
+                                if !state.showOriginal {
+                                    await send(.setProgress(2.0))
+                                }
+                                let (processedImage, leftImage, rightImage) = imageService.resizeImage(
+                                    data: imageData,
+                                    split: state.splitImage && !state.fallback,
+                                    skip: state.showOriginal
+                                )
+                                await send(.setImage(processedImage, leftImage, rightImage))
+                            } catch {
+                                logger.error("failed to load image. \(error)")
                             }
-                            let (processedImage, leftImage, rightImage) = imageService.resizeImage(
-                                data: imageData,
-                                split: state.splitImage && !state.fallback,
-                                skip: state.showOriginal
-                            )
-                            await send(.setImage(processedImage, leftImage, rightImage))
-                        } catch {
-                            logger.error("failed to load image. \(error)")
+                            await send(.setIsLoading(false))
                         }
-                        await send(.setIsLoading(false))
+                    }
+                } else {
+                    if state.cached && state.pageMode == .normal && state.splitImage && !state.fallback {
+                        if state.piorityLeft, let path = state.pathLeft, let leftImage = try? Data(contentsOf: path) {
+                            state.pageMode = .left
+                            state.image = leftImage
+                            return .send(.insertPage(.right))
+                        } else if let path = state.pathRight, let rightImage = try? Data(contentsOf: path) {
+                            state.pageMode = .right
+                            state.image = rightImage
+                            return .send(.insertPage(.left))
+                        }
                     }
                 }
                 state.loading = false

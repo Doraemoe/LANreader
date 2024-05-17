@@ -25,14 +25,9 @@ struct LANreaderApp: App {
             let logFileURL = try FileManager.default
                 .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
                 .appendingPathComponent("app.log", conformingTo: .log)
+            try? FileManager.default.removeItem(at: logFileURL)
 
-            do {
-                try FileManager.default.removeItem(at: logFileURL)
-            } catch {
-                // NOOP
-            }
-
-            if LANraragiService.downloadPath != nil {
+            if let path = LANraragiService.downloadPath {
                 if let sessionDownloadFolder = try? FileManager.default.contentsOfDirectory(
                     at: LANraragiService.downloadPath!,
                     includingPropertiesForKeys: []

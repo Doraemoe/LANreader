@@ -20,6 +20,7 @@
 "version" = "Version";
 "downsampling" = "Downsampling image...";
 "play" = "Start";
+"cached" = "Cached";
 
 "filter.name" = "Filter by name";
 
@@ -110,6 +111,12 @@
 "archive.category.remove.success" = "Successfully removed archive from category";
 "archive.category.remove.error" = "Failed to remove archive from category";
 "archive.metadata.update.success" = "Successfully updated archive metadata";
+"archive.cache.added" = "Archive is being added to cache";
+"archive.cache.remove" = "Remove archive from cache";
+"archive.cache.remove.message" = "Remove archive from cache?\nThis will not remove archive from server";
+"archive.cache.remove.failed" = "Failed to remove archive from cache, please retry";
+"archive.cache.load.failed" = "Failed to load archive from cache";
+"archive.cache.page.load.failed" = "Failed to load page from cache";
 
 "settings.debug" = "Debug";
 "settings.debug.log" = "Application log";

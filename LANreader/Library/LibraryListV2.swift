@@ -66,13 +66,21 @@ struct LibraryListV2: View {
             }
             .toolbar {
                 if store.archiveList.selectMode != .active {
-                    ToolbarItem(placement: .topBarLeading) {
+                    ToolbarItemGroup(placement: .topBarLeading) {
                         NavigationLink(
                             state: AppFeature.Path.State.random(
                                 RandomFeature.State()
                             )
                         ) {
                             Label("shuffle", systemImage: "shuffle")
+                                .labelStyle(.iconOnly)
+                        }
+                        NavigationLink(
+                            state: AppFeature.Path.State.cache(
+                                CacheFeature.State()
+                            )
+                        ) {
+                            Label("cached", systemImage: "arrowshape.down")
                                 .labelStyle(.iconOnly)
                         }
                     }

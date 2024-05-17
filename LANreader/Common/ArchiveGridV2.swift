@@ -12,8 +12,9 @@ import Logging
         @Shared var archiveThumbnail: Data?
 
         var id: String { self.archive.id }
+        let cached: Bool
 
-        init(archive: Shared<ArchiveItem>, archiveThumbnail: Data? = nil) {
+        init(archive: Shared<ArchiveItem>, archiveThumbnail: Data? = nil, cached: Bool = false) {
             self._archive = archive
             self._archiveThumbnail = Shared(
                 wrappedValue: archiveThumbnail,
@@ -22,6 +23,7 @@ import Logging
                             .appendingPathComponent(archive.id, conformingTo: .image)
                     )
             )
+            self.cached = cached
         }
     }
 
@@ -99,6 +101,9 @@ struct ArchiveGridV2: View {
 
     func buildTitle(archive: ArchiveItem) -> String {
         var title = archive.name
+        if store.cached {
+            return title
+        }
         if archive.pagecount == archive.progress {
             title = "👑 " + title
         } else if archive.progress < 2 {

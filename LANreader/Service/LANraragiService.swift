@@ -7,7 +7,7 @@ import Alamofire
 import Logging
 import Dependencies
 
-class LANraragiService {
+class LANraragiService: NSObject {
     public static let downloadPath = try? FileManager.default.url(
         for: .documentDirectory,
         in: .userDomainMask,
@@ -24,6 +24,14 @@ class LANraragiService {
     )
     .appendingPathComponent("thumbnail", conformingTo: .folder)
 
+    public static let cachePath = try? FileManager.default.url(
+        for: .documentDirectory,
+        in: .userDomainMask,
+        appropriateFor: .picturesDirectory,
+        create: true
+    )
+    .appendingPathComponent("cached", conformingTo: .folder)
+
     private static let logger = Logger(label: "LANraragiService")
 
     private static var _shared: LANraragiService?
@@ -33,8 +41,16 @@ class LANraragiService {
     private var session: Session
     private var prefetchSession: Session
     private let snakeCaseEncoder: JSONDecoder
+    private let imageService = ImageService.shared
 
-    private init() {
+    private lazy var urlSession: URLSession = {
+        let config = URLSessionConfiguration.background(withIdentifier: "com.jif.LANreader.download")
+        config.isDiscretionary = false
+        config.httpMaximumConnectionsPerHost = 5
+        return URLSession(configuration: config, delegate: self, delegateQueue: nil)
+    }()
+
+    private override init() {
         self.session = Session(interceptor: authInterceptor)
         self.prefetchSession = Session(interceptor: authInterceptor)
         self.snakeCaseEncoder = JSONDecoder()
@@ -166,6 +182,14 @@ class LANraragiService {
         }).validate()
     }
 
+    func backgroupFetchArchivePage(page: String, archiveId: String, pageNumber: Int) {
+        var request = URLRequest(url: URL(string: "\(url)/\(page)")!)
+        request.setValue("Bearer \(authInterceptor.encodedApiKey())", forHTTPHeaderField: "Authorization")
+        request.setValue(archiveId, forHTTPHeaderField: "X-Archive-Id")
+        request.setValue("\(pageNumber)", forHTTPHeaderField: "X-Page-Number")
+        urlSession.downloadTask(with: request).resume()
+    }
+
     func clearNewFlag(id: String) -> DataTask<String> {
         session.request("\(url)/api/archives/\(id)/isnew", method: .delete)
             .validate(statusCode: 200...200)
@@ -242,6 +266,10 @@ class AuthInterceptor: RequestInterceptor {
         modifiedURLRequest.headers.add(.authorization(bearerToken: apiKey.data(using: .utf8)!.base64EncodedString()))
         completion(.success(modifiedURLRequest))
     }
+
+    func encodedApiKey() -> String {
+        apiKey.data(using: .utf8)!.base64EncodedString()
+    }
 }
 
 extension LANraragiService: DependencyKey {
@@ -254,4 +282,32 @@ extension DependencyValues {
     get { self[LANraragiService.self] }
     set { self[LANraragiService.self] = newValue }
   }
+}
+
+extension LANraragiService: URLSessionDelegate, URLSessionDownloadDelegate {
+    func urlSession(_: URLSession, downloadTask task: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+
+        let splitImage = UserDefaults.standard.bool(forKey: SettingsKey.splitWideImage)
+        let fallback = UserDefaults.standard.bool(forKey: SettingsKey.fallbackReader)
+        let showOriginal = UserDefaults.standard.bool(forKey: SettingsKey.showOriginal)
+
+        if let archiveId = task.originalRequest?.value(forHTTPHeaderField: "X-Archive-Id"),
+           let pageNumber = task.originalRequest?.value(forHTTPHeaderField: "X-Page-Number"),
+           let imageData = try? Data(contentsOf: location) {
+            let (processImage, leftImage, rightImage) = imageService.resizeImage(
+                data: imageData, split: splitImage && !fallback, skip: showOriginal
+            )
+            let folder = LANraragiService.cachePath!
+                .appendingPathComponent(archiveId, conformingTo: .folder)
+            let path = folder.appendingPathComponent(pageNumber, conformingTo: .image)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try? processImage.write(to: path)
+            if leftImage != nil && rightImage != nil {
+                let leftPath = folder.appendingPathComponent("\(pageNumber)-left", conformingTo: .image)
+                let rightPath = folder.appendingPathComponent("\(pageNumber)-right", conformingTo: .image)
+                try? leftImage?.write(to: leftPath)
+                try? rightImage?.write(to: rightPath)
+            }
+        }
+    }
 }

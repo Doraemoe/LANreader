@@ -24,6 +24,16 @@ struct ArchiveThumbnail: Identifiable, Equatable {
     var lastUpdate: Date
 }
 
+struct ArchiveCache: Identifiable, Equatable {
+    var id: String
+    var title: String
+    var tags: String
+    var thumbnail: Data?
+    var cached: Bool
+    var totalPages: Int
+    var lastUpdate: Date
+}
+
 struct ArchiveImage: Identifiable, Equatable {
     var id: String
     var image: String
@@ -98,6 +108,18 @@ extension ArchiveThumbnail: Codable, FetchableRecord, MutablePersistableRecord {
     fileprivate enum Columns {
         static let id = Column(CodingKeys.id)
         static let thumbnail = Column(CodingKeys.thumbnail)
+        static let lastUpdate = Column(CodingKeys.lastUpdate)
+    }
+}
+
+extension ArchiveCache: Codable, FetchableRecord, MutablePersistableRecord {
+    fileprivate enum Columns {
+        static let id = Column(CodingKeys.id)
+        static let title = Column(CodingKeys.title)
+        static let tags = Column(CodingKeys.tags)
+        static let thumbnail = Column(CodingKeys.thumbnail)
+        static let cached = Column(CodingKeys.cached)
+        static let totalPages = Column(CodingKeys.totalPages)
         static let lastUpdate = Column(CodingKeys.lastUpdate)
     }
 }

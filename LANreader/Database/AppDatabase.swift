@@ -83,6 +83,18 @@ struct AppDatabase {
             }
         }
 
+        migrator.registerMigration("archiveCache") { database in
+            try database.create(table: "archiveCache") { table in
+                table.column("id", .text).primaryKey()
+                table.column("title", .text)
+                table.column("tags", .text)
+                table.column("thumbnail", .blob)
+                table.column("cached", .boolean)
+                table.column("totalPages", .integer)
+                table.column("lastUpdate", .datetime)
+            }
+        }
+
         return migrator
     }
 
@@ -95,6 +107,36 @@ struct AppDatabase {
 }
 
 extension AppDatabase {
+    func saveCache(_ cache: inout ArchiveCache) throws {
+        try dbWriter.write { database in
+            try cache.save(database)
+        }
+    }
+
+    func readAllCached() throws -> [ArchiveCache] {
+        try dbReader.read { database in
+            try ArchiveCache.fetchAll(database)
+        }
+    }
+
+    func readCache(_ id: String) throws -> ArchiveCache? {
+        try dbReader.read { database in
+            try ArchiveCache.fetchOne(database, key: id)
+        }
+    }
+    
+    func existCache(_ id: String) throws -> Bool {
+        try dbReader.read { database in
+            try ArchiveCache.exists(database, key: id)
+        }
+    }
+
+    func deleteCache(_ id: String) throws -> Bool {
+        try dbWriter.write { database in
+            try ArchiveCache.deleteOne(database, id: id)
+        }
+    }
+
     func saveArchive(_ archive: inout Archive) throws {
         try dbWriter.write { database in
             try archive.save(database)
