@@ -29,7 +29,7 @@ struct LANreaderApp: App {
 
             if let path = LANraragiService.downloadPath {
                 if let sessionDownloadFolder = try? FileManager.default.contentsOfDirectory(
-                    at: LANraragiService.downloadPath!,
+                    at: path,
                     includingPropertiesForKeys: []
                 ) {
                     sessionDownloadFolder.forEach { url in
