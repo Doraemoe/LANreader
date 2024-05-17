@@ -20,6 +20,7 @@
 "version" = "版本";
 "downsampling" = "正在缩小图片尺寸";
 "play" = "开始";
+"cached" = "已缓存";
 
 "filter.name" = "过滤标题";
 
@@ -113,6 +114,12 @@
 "archive.category.remove.success" = "成功从类别中移除文档";
 "archive.category.remove.error" = "从类别中移除文档失败";
 "archive.metadata.update.success" = "成功更新文档元数据";
+"archive.cache.added" = "已开始缓存文档";
+"archive.cache.remove" = "从缓存中删除文档";
+"archive.cache.remove.message" = "从缓存中删除文档?\n这不会从服务器上删除文档";
+"archive.cache.remove.failed" = "无法从缓存中删除文档, 请重试";
+"archive.cache.load.failed" = "从缓存中读取文档失败";
+"archive.cache.page.load.failed" = "从缓存中读取图片失败";
 
 "category.edit" = "编辑类别";
 "category.name" = "类别名";

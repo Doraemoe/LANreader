@@ -3,12 +3,15 @@ import SwiftUI
 import Logging
 import Combine
 import NotificationBannerSwift
+import OrderedCollections
 
 @Reducer struct ArchiveReaderFeature {
     private let logger = Logger(label: "ArchiveReaderFeature")
 
     @ObservableState
     struct State: Equatable {
+        @Presents var alert: AlertState<Action.Alert>?
+
         @SharedReader(.appStorage(SettingsKey.tapLeftKey)) var tapLeft = PageControl.next.rawValue
         @SharedReader(.appStorage(SettingsKey.tapMiddleKey)) var tapMiddle = PageControl.navigation.rawValue
         @SharedReader(.appStorage(SettingsKey.tapRightKey)) var tapRight = PageControl.previous.rawValue
@@ -20,6 +23,7 @@ import NotificationBannerSwift
         @SharedReader(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
         @Shared var archive: ArchiveItem
         @Shared var archiveThumbnail: Data?
+        @Shared(.totalDownloadPages) var totalDownloadPages: [String: Int] = [:]
 
         var indexString: String?
         var sliderIndex: Double = 0
@@ -34,6 +38,8 @@ import NotificationBannerSwift
         var startAutoPage = false
         var autoPage = AutomaticPageFeature.State()
         var autoDate = Date()
+        var cached = false
+        var inCache = false
 
         var fallbackIndexString: String {
             indexString ?? ""
@@ -42,7 +48,7 @@ import NotificationBannerSwift
             pages.index(id: indexString ?? "")
         }
 
-        init(archive: Shared<ArchiveItem>, fromStart: Bool = false) {
+        init(archive: Shared<ArchiveItem>, fromStart: Bool = false, cached: Bool = false) {
             self._archive = archive
             self._archiveThumbnail = Shared(
                 wrappedValue: nil,
@@ -52,11 +58,14 @@ import NotificationBannerSwift
                     )
             )
             self.fromStart = fromStart
+            self.cached = cached
         }
     }
 
     enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
+        case alert(PresentationAction<Alert>)
+
         case autoPage(AutomaticPageFeature.Action)
         case showAutoPageConfig
         case setAutoDate(Date)
@@ -76,10 +85,19 @@ import NotificationBannerSwift
         case tapAction(String)
         case setError(String)
         case setSuccess(String)
+        case downloadPages
+        case finishDownloadPages(Int)
+        case removeCache
+        case loadCached
+
+        enum Alert {
+            case confirmDelete
+        }
     }
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
+    @Dependency(\.dismiss) var dismiss
 
     enum CancelId {
         case updateProgress
@@ -95,9 +113,44 @@ import NotificationBannerSwift
 
         Reduce { state, action in
             switch action {
+            case .loadCached:
+                state.extracting = true
+
+                let id = state.archive.id
+                let cacheFolder = LANraragiService.cachePath!
+                    .appendingPathComponent(id, conformingTo: .folder)
+                if let content = try? FileManager.default.contentsOfDirectory(
+                    at: cacheFolder, includingPropertiesForKeys: []
+                ) {
+                    let pageState = content.compactMap { url in
+                        let page = url.lastPathComponent
+                        if let pageNumber = Int(page) {
+                            return PageFeature.State(archiveId: id, pageId: page, pageNumber: pageNumber, cached: true)
+                        } else {
+                            return nil
+                        }
+                    }
+                        .sorted {
+                            $0.pageNumber < $1.pageNumber
+                        }
+                    state.pages.append(contentsOf: pageState)
+                    state.sliderIndex = 0.0
+                    state.indexString = state.pages[0].id
+                    state.controlUiHidden = true
+                    state.extracting = false
+                    return .none
+                } else {
+                    state.controlUiHidden = true
+                    state.extracting = false
+                    return .send(.setError(String(localized: "archive.cache.load.failed")))
+                }
             case .extractArchive:
                 state.extracting = true
                 let id = state.archive.id
+                let isCached = try? database.existCache(id)
+                if isCached == true {
+                    state.inCache = true
+                }
                 return .run { send in
                     let extractResponse = try await service.extractArchive(id: id).value
                     if extractResponse.pages.isEmpty {
@@ -156,6 +209,9 @@ import NotificationBannerSwift
                 return .none
             case let .updateProgress(pageNumber):
                 state.archive.progress = pageNumber
+                if state.cached {
+                    return .none
+                }
                 return .run(priority: .background) { [state] send in
                     if state.serverProgress {
                         _ = try await service.updateArchiveReadProgress(
@@ -232,7 +288,8 @@ import NotificationBannerSwift
                         archiveId: state.archive.id,
                         pageId: current.pageId,
                         pageNumber: current.pageNumber,
-                        pageMode: mode
+                        pageMode: mode,
+                        cached: current.cached
                     ),
                     at: currentIndex + 1
                 )
@@ -260,11 +317,75 @@ import NotificationBannerSwift
                 return .none
             case .autoPage:
                 return .none
+            case .downloadPages:
+                return .run { [state] send in
+                    var requested: [String] = []
+                    for page in state.pages where !requested.contains(where: { requestedId in
+                        requestedId == page.pageId
+                    }) {
+                        service.backgroupFetchArchivePage(
+                            page: page.pageId,
+                            archiveId: state.archive.id,
+                            pageNumber: page.pageNumber
+                        )
+                        requested.append(page.pageId)
+                    }
+                    var cache = ArchiveCache(
+                        id: state.archive.id,
+                        title: state.archive.name,
+                        tags: state.archive.tags,
+                        thumbnail: state.archiveThumbnail,
+                        cached: false,
+                        totalPages: requested.count,
+                        lastUpdate: Date()
+                    )
+                    try database.saveCache(&cache)
+                    await send(.finishDownloadPages(requested.count))
+                } catch: { error, send in
+                    logger.error("failed to cache archive \(error)")
+                    await send(.setError(error.localizedDescription))
+                }
+            case let .finishDownloadPages(total):
+                state.totalDownloadPages[state.archive.id] = total
+                let successMessage = String(localized: "archive.cache.added")
+                state.successMessage = successMessage
+                return .none
+            case .removeCache:
+                state.alert = AlertState {
+                    TextState("archive.cache.remove.message")
+                } actions: {
+                    ButtonState(role: .destructive, action: .confirmDelete) {
+                        TextState("delete")
+                    }
+                    ButtonState(role: .cancel) {
+                        TextState("cancel")
+                    }
+                }
+                return .none
+            case .alert(.presented(.confirmDelete)):
+                return .run { [id = state.archive.id] send in
+                    let deleted = try database.deleteCache(id)
+                    if deleted != true {
+                        let errorMessage = String(localized: "archive.cache.remove.failed")
+                        await send(.setError(errorMessage))
+                    } else {
+                        let cacheFolder = LANraragiService.cachePath!
+                            .appendingPathComponent(id, conformingTo: .folder)
+                        try? FileManager.default.removeItem(at: cacheFolder)
+                        await self.dismiss()
+                    }
+                } catch: { [id = state.archive.id] error, send in
+                    logger.error("failed to remove archive cache, id=\(id) \(error)")
+                    await send(.setError(error.localizedDescription))
+                }
+            case .alert:
+                return .none
             }
         }
         .forEach(\.pages, action: \.page) {
             PageFeature()
         }
+        .ifLet(\.$alert, action: \.alert)
     }
 }
 
@@ -297,13 +418,16 @@ struct ArchiveReader: View {
             ToolbarItem(placement: .primaryAction) {
                 NavigationLink(
                     state: AppFeature.Path.State.details(
-                        ArchiveDetailsFeature.State.init(archive: store.$archive)
+                        ArchiveDetailsFeature.State.init(archive: store.$archive, cached: store.cached)
                     )
                 ) {
                     Image(systemName: "info.circle")
                 }
             }
         }
+        .alert(
+            $store.scope(state: \.alert, action: \.alert)
+        )
         .toolbar(store.controlUiHidden ? .hidden : .visible, for: .navigationBar)
         .navigationBarTitle(store.archive.name)
         .navigationBarTitleDisplayMode(.inline)
@@ -315,7 +439,11 @@ struct ArchiveReader: View {
         })
         .onAppear {
             if store.pages.isEmpty {
-                store.send(.extractArchive)
+                if store.cached {
+                    store.send(.loadCached)
+                } else {
+                    store.send(.extractArchive)
+                }
             }
             if store.archive.extension == "rar" || store.archive.extension == "cbr" {
                 let banner = NotificationBanner(
@@ -454,6 +582,7 @@ struct ArchiveReader: View {
         }
     }
 
+    // swiftlint:disable function_body_length
     @MainActor
     private func bottomToolbar(
         store: StoreOf<ArchiveReaderFeature>
@@ -467,6 +596,7 @@ struct ArchiveReader: View {
                     }, label: {
                         Image(systemName: "arrow.clockwise")
                     })
+                    .disabled(store.cached)
                     Button {
                         store.send(.showAutoPageConfig)
                     } label: {
@@ -477,9 +607,14 @@ struct ArchiveReader: View {
                                 store.pages.count))
                     .bold()
                     Button {
-                        // to be implemented
+                        if store.cached || store.inCache {
+                            store.send(.removeCache)
+                        } else {
+                            store.send(.downloadPages)
+                        }
                     } label: {
-                        Image(systemName: "arrowshape.down")
+                        store.cached || store.inCache ?
+                        Image(systemName: "trash") : Image(systemName: "arrowshape.down")
                     }
                     Button(action: {
                         Task {
@@ -488,7 +623,7 @@ struct ArchiveReader: View {
                     }, label: {
                         Image(systemName: "photo.artframe")
                     })
-                    .disabled(store.settingThumbnail)
+                    .disabled(store.settingThumbnail || store.cached)
                 }
                 GridRow {
                     Slider(
@@ -509,4 +644,5 @@ struct ArchiveReader: View {
             .background(.thinMaterial)
         }
     }
+    // swiftlint:enable function_body_length
 }

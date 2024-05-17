@@ -126,6 +126,7 @@ import Logging
         case categoryArchiveList(CategoryArchiveListFeature)
         case search(SearchFeature)
         case random(RandomFeature)
+        case cache(CacheFeature)
     }
 
     @Reducer(state: .equatable)
@@ -230,6 +231,8 @@ struct ContentView: View {
                 SearchViewV2(store: store)
             case let .random(store):
                 RandomView(store: store)
+            case let .cache(store):
+                CacheView(store: store)
             }
         }
         .tabItem {
@@ -256,6 +259,8 @@ struct ContentView: View {
                 SearchViewV2(store: store)
             case let .random(store):
                 RandomView(store: store)
+            case let .cache(store):
+                CacheView(store: store)
             }
         }
         .tabItem {
@@ -282,6 +287,8 @@ struct ContentView: View {
                 SearchViewV2(store: store)
             case let .random(store):
                 RandomView(store: store)
+            case let .cache(store):
+                CacheView(store: store)
             }
         }
         .tabItem {

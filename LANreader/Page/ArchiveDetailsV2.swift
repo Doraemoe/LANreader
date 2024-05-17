@@ -21,8 +21,9 @@ import NotificationBannerSwift
         var errorMessage = ""
         var successMessage = ""
         var loading = false
+        let cached: Bool
 
-        init(archive: Shared<ArchiveItem>) {
+        init(archive: Shared<ArchiveItem>, cached: Bool = false) {
             self._archive = archive
             self._archiveThumbnail = Shared(
                 wrappedValue: nil,
@@ -31,6 +32,7 @@ import NotificationBannerSwift
                             .appendingPathComponent(archive.id, conformingTo: .image)
                     )
             )
+            self.cached = cached
         }
     }
 
@@ -221,7 +223,7 @@ struct ArchiveDetailsV2: View {
                     .foregroundColor(.primary)
             }
             tagsView(store: store)
-            if store.editMode != .active {
+            if store.editMode != .active && !store.cached {
                 Button(
                     role: .destructive,
                     action: { store.send(.deleteButtonTapped) },
@@ -240,6 +242,7 @@ struct ArchiveDetailsV2: View {
             store.send(.loadLocalFields)
         }
         .toolbar {
+            store.cached ? nil :
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Menu {
                     if !store.categoryItems.isEmpty {
