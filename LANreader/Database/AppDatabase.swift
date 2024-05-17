@@ -124,7 +124,7 @@ extension AppDatabase {
             try ArchiveCache.fetchOne(database, key: id)
         }
     }
-    
+
     func existCache(_ id: String) throws -> Bool {
         try dbReader.read { database in
             try ArchiveCache.exists(database, key: id)
