@@ -100,7 +100,7 @@ struct RandomView: View {
                 ProgressView("loading")
             }
         }
-        .onAppear {
+        .task {
             if store.archives.isEmpty {
                 store.send(.load(true))
             } else {

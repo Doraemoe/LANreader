@@ -136,13 +136,13 @@ struct UploadView: View {
                                     ProgressView()
                                 } else if detail.isSuccess {
                                     Image(systemName: "circle.fill")
-                                        .foregroundColor(.green)
+                                        .foregroundStyle(.green)
                                 } else if detail.isError {
                                     Image(systemName: "circle.fill")
-                                        .foregroundColor(.red)
+                                        .foregroundStyle(.red)
                                 } else {
                                     Image(systemName: "questionmark")
-                                        .foregroundColor(.yellow)
+                                        .foregroundStyle(.yellow)
                                 }
                             })
                         } header: {

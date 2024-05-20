@@ -16,8 +16,6 @@ struct AppDatabase {
     private var migrator: DatabaseMigrator {
         var migrator = DatabaseMigrator()
 
-        migrator.eraseDatabaseOnSchemaChange = true
-
         migrator.registerMigration("archiveList") { database in
             try database.create(table: "archive") { table in
                 table.column("id", .text).primaryKey()
@@ -128,6 +126,14 @@ extension AppDatabase {
     func existCache(_ id: String) throws -> Bool {
         try dbReader.read { database in
             try ArchiveCache.exists(database, key: id)
+        }
+    }
+
+    func updateCached(_ id: String) throws -> Int {
+        try dbWriter.write { database in
+            try ArchiveCache
+                .filter(id: id)
+                .updateAll(database, Column("cached").set(to: true))
         }
     }
 

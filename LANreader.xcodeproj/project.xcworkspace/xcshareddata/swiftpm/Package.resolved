@@ -1,5 +1,5 @@
 {
-  "originHash" : "3cf071a1a7ca2deb3bf2037b71caf3bc8be0bb203f3263bbdb9652dec7a3ffca",
+  "originHash" : "48ed4c8333428e3be278feb5f0454dd1dac62bc5e8f6a324964e8abff59f37aa",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -141,8 +141,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-identified-collections",
       "state" : {
-        "revision" : "2481e39ea43e14556ca9628259fa6b377427730c",
-        "version" : "1.0.1"
+        "revision" : "d533cd18b0b456b106694a9899f917ee595f2666",
+        "version" : "1.0.2"
       }
     },
     {

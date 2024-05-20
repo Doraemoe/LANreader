@@ -56,7 +56,7 @@ struct DatabaseSettings: View {
                 Text("settings.database.clear")
                 Spacer()
                 Text(store.size)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(Color.secondary)
             }
             .padding()
         })

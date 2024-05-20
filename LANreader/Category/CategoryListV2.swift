@@ -95,16 +95,17 @@ struct CategoryListV2: View {
         }
 //        .toolbar {
 //            ToolbarItemGroup(placement: .topBarTrailing) {
-//                if store.editMode == .active {
-//                    Button("", systemImage: "plus.circle") {
+//                Image(systemName: "plus.circle")
+//                    .onTapGesture {
 //                        store.send(.showAddCategory)
 //                    }
+//                    .foregroundStyle(Color.accentColor)
 //                    .popover(
 //                        item: $store.scope(state: \.destination?.add, action: \.destination.add)
 //                    ) { store in
 //                        NewCategory(store: store)
 //                    }
-//                }
+//                    .opacity(store.editMode == .active ? 1 : 0)
 //                EditButton()
 //            }
 //        }
@@ -112,13 +113,13 @@ struct CategoryListV2: View {
         .environment(\.editMode, $store.editMode)
         .navigationTitle("category")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
+        .task {
             if store.categoryItems.isEmpty {
                 store.send(.loadCategory(true))
             }
         }
         .refreshable {
-            store.send(.loadCategory(false))
+            await store.send(.loadCategory(false)).finish()
         }
         .onChange(of: store.errorMessage) {
             if !store.errorMessage.isEmpty {

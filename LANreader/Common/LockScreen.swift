@@ -219,7 +219,7 @@ struct LockScreen: View {
             store.send(.submitPin)
         })
         .tint(.clear)
-        .foregroundColor(.clear)
+        .foregroundStyle(.clear)
         .keyboardType(.numberPad)
         .disabled(store.authenticating)
         .onChange(of: store.pin) { oldPin, newPin in
@@ -247,8 +247,10 @@ struct LockScreen: View {
             store.send(.setShowPin(nil))
         }, label: {
             store.showPin ?
-            Image(systemName: "eye.slash.fill").foregroundColor(.primary) :
-            Image(systemName: "eye.fill").foregroundColor(.primary)
+            Image(systemName: "eye.slash.fill")
+                .foregroundStyle(Color.primary) :
+            Image(systemName: "eye.fill")
+                .foregroundStyle(Color.primary)
         })
     }
 

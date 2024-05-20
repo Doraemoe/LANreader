@@ -14,7 +14,6 @@
 		4BD82C152E77BFD137EC03DD /* LANraragiConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82CD5954DDD63ABB7DD22 /* LANraragiConfigView.swift */; };
 		4BD82C7F9CB71CAF8F33C171 /* ViewSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8297D9DA6589446C724EC /* ViewSettings.swift */; };
 		4BD82CED54A4C9689B0E9E55 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82694B57396B2CD6BACED /* ContentView.swift */; };
-		4BD82D948032095FF807F54E /* Selector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82A7A1E34456CEE443689 /* Selector.swift */; };
 		4BD82F2BEC56B95FB9BC9841 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD827ECEE1938273E758358 /* SettingsView.swift */; };
 		4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD824A308A90B5740411016 /* LANraragiService.swift */; };
 		6DA711FA92BEE61419224BB4 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA71C5CFBC9FDA5C1244254 /* LoadingView.swift */; };
@@ -120,7 +119,6 @@
 		4BD82694B57396B2CD6BACED /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		4BD827ECEE1938273E758358 /* SettingsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = LANreader/SettingsView.swift; sourceTree = SOURCE_ROOT; };
 		4BD8297D9DA6589446C724EC /* ViewSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ViewSettings.swift; path = LANreader/ViewSettings.swift; sourceTree = SOURCE_ROOT; };
-		4BD82A7A1E34456CEE443689 /* Selector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Selector.swift; sourceTree = "<group>"; };
 		4BD82CD5954DDD63ABB7DD22 /* LANraragiConfigView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LANraragiConfigView.swift; path = LANreader/LANraragiConfigView.swift; sourceTree = SOURCE_ROOT; };
 		6DA719F864E9AE9543831EFD /* ServerSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ServerSettings.swift; sourceTree = "<group>"; };
 		6DA71C5CFBC9FDA5C1244254 /* LoadingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LoadingView.swift; path = LANreader/Common/LoadingView.swift; sourceTree = SOURCE_ROOT; };
@@ -399,7 +397,6 @@
 				4BD82F8526B52356C24BC491 /* Search */,
 				4BD8274F482337A2C904D45A /* Setting */,
 				4BD824C107853A5BC514F2AD /* Page */,
-				4BD82A7A1E34456CEE443689 /* Selector.swift */,
 				4BD82694B57396B2CD6BACED /* ContentView.swift */,
 				7D3DFF15251777B200686612 /* LANreaderApp.swift */,
 				E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */,
@@ -665,7 +662,6 @@
 				E997D8002AF20EE2007C91F1 /* ArchiveGridV2.swift in Sources */,
 				E90576B629F6BF8700C3CE3F /* WrappingHStack.swift in Sources */,
 				E9BE57B22942CFEC00A3AEA0 /* LockScreen.swift in Sources */,
-				4BD82D948032095FF807F54E /* Selector.swift in Sources */,
 				E9DCE8992AF0665900C17236 /* ArchiveListV2.swift in Sources */,
 				E9BFA2072AF52C3300DDE107 /* PageImageV2.swift in Sources */,
 				7DE399892578FB34003DC5F7 /* DatabaseSettings.swift in Sources */,
@@ -864,7 +860,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 94;
+				CURRENT_PROJECT_VERSION = 95;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -876,7 +872,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.4.0;
+				MARKETING_VERSION = 2.4.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -893,7 +889,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 94;
+				CURRENT_PROJECT_VERSION = 95;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -905,7 +901,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.4.0;
+				MARKETING_VERSION = 2.4.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -972,7 +968,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 94;
+				CURRENT_PROJECT_VERSION = 95;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -984,7 +980,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.4.0;
+				MARKETING_VERSION = 2.4.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1001,7 +997,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 94;
+				CURRENT_PROJECT_VERSION = 95;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1013,7 +1009,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.4.0;
+				MARKETING_VERSION = 2.4.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

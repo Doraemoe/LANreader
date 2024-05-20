@@ -78,6 +78,7 @@ import NotificationBannerSwift
                                 if downloadPage >= caching.value.total {
                                     await send(.removeItemFromDownloading(caching.key))
                                     inProgress.removeValue(forKey: caching.key)
+                                    _ = try? database.updateCached(caching.key)
                                 } else {
                                     await send(.updateProgressInDownloading(caching.key, downloadPage))
                                 }
@@ -182,7 +183,7 @@ struct CacheView: View {
                 ArchiveGridV2(store: gridStore)
                     .overlay {
                         RoundedRectangle(cornerRadius: 8)
-                            .foregroundColor(Color.black.opacity(0.5))
+                            .foregroundStyle(Color.black.opacity(0.5))
                             .overlay {
                                 ProgressView(value: progress) {
                                     EmptyView()
