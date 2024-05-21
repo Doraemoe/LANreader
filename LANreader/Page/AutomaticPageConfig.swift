@@ -34,11 +34,11 @@ struct AutomaticPageConfig: View {
     var body: some View {
         GeometryReader { geometry in
             Rectangle()
-                .foregroundColor(Color.black.opacity(0.5))
+                .foregroundStyle(Color.black.opacity(0.5))
                 .edgesIgnoringSafeArea(.all)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .foregroundColor(Color(UIColor.systemBackground))
+                        .foregroundStyle(Color(UIColor.systemBackground))
                         .frame(
                             width: max(geometry.size.width * 0.4, 280),
                             height: max(geometry.size.height * 0.2, 250),
@@ -51,7 +51,7 @@ struct AutomaticPageConfig: View {
                                 HStack {
                                     Slider(
                                         value: $store.autoPageInterval,
-                                        in: 0.0...20.0,
+                                        in: 1.0...20.0,
                                         step: 1
                                     )
                                     Text("\(store.autoPageInterval, specifier: "%.0f")s")
@@ -66,12 +66,16 @@ struct AutomaticPageConfig: View {
                                     }, label: {
                                         Text("cancel")
                                     })
+                                    .controlSize(.large)
+                                    .buttonStyle(.bordered)
                                     .padding()
                                     Button(action: {
                                         store.send(.startAutoPage)
                                     }) {
                                         Text("play")
                                     }
+                                    .controlSize(.large)
+                                    .buttonStyle(.bordered)
                                     .padding()
                                 }
                             }

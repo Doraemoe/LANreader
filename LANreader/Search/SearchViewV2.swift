@@ -89,7 +89,7 @@ struct SearchViewV2: View {
                 ForEach(store.suggestedTag, id: \.self) { tag in
                     HStack {
                         Text(tag)
-                            .foregroundColor(.accentColor)
+                            .foregroundStyle(Color.accentColor)
                         Spacer()
                     }
                     .contentShape(Rectangle())

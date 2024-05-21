@@ -220,23 +220,22 @@ struct ArchiveDetailsV2: View {
                     .frame(width: 200, height: 250)
             } else {
                 Image(systemName: "photo")
-                    .foregroundColor(.primary)
+                    .foregroundStyle(Color.primary)
             }
             tagsView(store: store)
-            if store.editMode != .active && !store.cached {
-                Button(
-                    role: .destructive,
-                    action: { store.send(.deleteButtonTapped) },
-                    label: {
-                        Text("archive.delete")
-                    }
-                )
-                .padding()
-                .background(.red)
-                .foregroundColor(.white)
-                .clipShape(Capsule())
-                .disabled(store.loading)
-            }
+            Button(
+                role: .destructive,
+                action: { store.send(.deleteButtonTapped) },
+                label: {
+                    Text("archive.delete")
+                }
+            )
+            .padding()
+            .background(.red)
+            .foregroundStyle(.white)
+            .clipShape(Capsule())
+            .disabled(store.loading)
+            .opacity(store.editMode != .active && !store.cached ? 1 : 0)
         }
         .onAppear {
             store.send(.loadLocalFields)
@@ -346,7 +345,7 @@ struct ArchiveDetailsV2: View {
                         parseTag(tag: String(tag))
                             .padding()
                             .controlSize(.mini)
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
                             .background(.blue)
                             .clipShape(Capsule())
                     })

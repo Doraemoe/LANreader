@@ -65,25 +65,23 @@ struct LibraryListV2: View {
                 }
             }
             .toolbar {
-                if store.archiveList.selectMode != .active {
-                    ToolbarItemGroup(placement: .topBarLeading) {
-                        NavigationLink(
-                            state: AppFeature.Path.State.random(
-                                RandomFeature.State()
-                            )
-                        ) {
-                            Label("shuffle", systemImage: "shuffle")
-                                .labelStyle(.iconOnly)
-                        }
-                        NavigationLink(
-                            state: AppFeature.Path.State.cache(
-                                CacheFeature.State()
-                            )
-                        ) {
-                            Label("cached", systemImage: "arrowshape.down")
-                                .labelStyle(.iconOnly)
-                        }
+                ToolbarItemGroup(placement: .topBarLeading) {
+                    NavigationLink(
+                        state: AppFeature.Path.State.random(
+                            RandomFeature.State()
+                        )
+                    ) {
+                        Image(systemName: "shuffle")
                     }
+                    .opacity(store.archiveList.selectMode == .active ? 0 : 1)
+                    NavigationLink(
+                        state: AppFeature.Path.State.cache(
+                            CacheFeature.State()
+                        )
+                    ) {
+                        Image(systemName: "arrowshape.down")
+                    }
+                    .opacity(store.archiveList.selectMode == .active ? 0 : 1)
                 }
             }
     }

@@ -209,12 +209,12 @@ struct PageImageV2: View {
 
     // LazyHStack not clean up memory after item load and go off screen
     // Use this state to explicity release memory when page go off screen
-    @State var visable = false
+    @State var visible = false
 
     var body: some View {
         // If not wrapped in ZStack, TabView will render ALL pages when initial load
         ZStack {
-            if visable {
+            if visible {
                 if let imageData = store.image {
                     if let uiImage = UIImage(data: imageData) {
                         Image(uiImage: uiImage)
@@ -245,14 +245,14 @@ struct PageImageV2: View {
                     }
                 }
             } else {
-                EmptyView()
+                Color.clear
             }
         }
         .onAppear {
-            visable = true
+            visible = true
         }
         .onDisappear {
-            visable = false
+            visible = false
         }
     }
 }

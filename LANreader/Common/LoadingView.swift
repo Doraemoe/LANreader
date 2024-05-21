@@ -11,7 +11,7 @@ struct LoadingView: View {
                 .frame(width: geometry.size.width / 3,
                         height: geometry.size.height / 5)
                 .background(Color.secondary)
-                .foregroundColor(Color.primary)
-                .cornerRadius(20)
+                .foregroundStyle(Color.primary)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }

@@ -165,17 +165,21 @@ import OrderedCollections
                     await send(.finishExtracting([]))
                 }
             case let .finishExtracting(pages):
-                let pageState = pages.enumerated().map { (index, page) in
-                    let normalizedPage = String(page.dropFirst(2))
-                    return PageFeature.State(archiveId: state.archive.id, pageId: normalizedPage, pageNumber: index + 1)
+                if !pages.isEmpty {
+                    let pageState = pages.enumerated().map { (index, page) in
+                        let normalizedPage = String(page.dropFirst(2))
+                        return PageFeature.State(
+                            archiveId: state.archive.id, pageId: normalizedPage, pageNumber: index + 1
+                        )
+                    }
+                    state.pages.append(contentsOf: pageState)
+                    let progress = state.archive.progress > 0 ? state.archive.progress - 1 : 0
+                    let pageIndexToShow = state.fromStart ? 0 : progress
+                    state.sliderIndex = Double(pageIndexToShow)
+                    state.indexString = state.pages[pageIndexToShow].id
+                    state.controlUiHidden = true
                 }
-                state.pages.append(contentsOf: pageState)
                 state.extracting = false
-                let progress = state.archive.progress > 0 ? state.archive.progress - 1 : 0
-                let pageIndexToShow = state.fromStart ? 0 : progress
-                state.sliderIndex = Double(pageIndexToShow)
-                state.indexString = state.pages[pageIndexToShow].id
-                state.controlUiHidden = true
                 return .none
             case .loadProgress:
                 let progress = state.archive.progress > 0 ? state.archive.progress - 1 : 0
@@ -437,7 +441,7 @@ struct ArchiveReader: View {
                 store: store.scope(state: \.autoPage, action: \.autoPage)
             ) : nil
         })
-        .onAppear {
+        .task {
             if store.pages.isEmpty {
                 if store.cached {
                     store.send(.loadCached)

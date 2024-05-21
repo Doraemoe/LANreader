@@ -483,7 +483,7 @@ struct ArchiveListV2: View {
         .toolbar {
             topBarTrailing()
         }
-        .onAppear {
+        .task {
             if store.lanraragiUrl.isEmpty == false &&
                 store.archives.isEmpty && store.loadOnAppear {
                 store.send(.load(true))
@@ -709,7 +709,7 @@ struct ArchiveListV2: View {
                                 .resizable()
                                 .scaledToFit()
                                 .frame(width: 50)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                                 .padding()
                         }
                     })

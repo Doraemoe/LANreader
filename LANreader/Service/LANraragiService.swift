@@ -286,7 +286,6 @@ extension DependencyValues {
 
 extension LANraragiService: URLSessionDelegate, URLSessionDownloadDelegate {
     func urlSession(_: URLSession, downloadTask task: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
-
         let splitImage = UserDefaults.standard.bool(forKey: SettingsKey.splitWideImage)
         let fallback = UserDefaults.standard.bool(forKey: SettingsKey.fallbackReader)
         let showOriginal = UserDefaults.standard.bool(forKey: SettingsKey.showOriginal)

@@ -72,7 +72,7 @@ struct ArchiveGridV2: View {
         VStack(alignment: HorizontalAlignment.center, spacing: 2) {
             Text(buildTitle(archive: store.archive))
                 .lineLimit(2)
-                .foregroundColor(.primary)
+                .foregroundStyle(Color.primary)
                 .padding(4)
                 .font(.caption)
             ZStack {
@@ -82,7 +82,7 @@ struct ArchiveGridV2: View {
                         .scaledToFit()
                 } else {
                     Image(systemName: "photo")
-                        .foregroundColor(.primary)
+                        .foregroundStyle(Color.primary)
                         .frame(height: 240)
                         .onAppear {
                             store.send(.load(false))
