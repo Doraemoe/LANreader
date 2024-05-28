@@ -93,23 +93,23 @@ struct CategoryListV2: View {
                 categoryItem(store: store, item: item)
             }
         }
-//        .toolbar {
-//            ToolbarItemGroup(placement: .topBarTrailing) {
-//                Image(systemName: "plus.circle")
-//                    .onTapGesture {
-//                        store.send(.showAddCategory)
-//                    }
-//                    .foregroundStyle(Color.accentColor)
-//                    .popover(
-//                        item: $store.scope(state: \.destination?.add, action: \.destination.add)
-//                    ) { store in
-//                        NewCategory(store: store)
-//                    }
-//                    .opacity(store.editMode == .active ? 1 : 0)
-//                EditButton()
-//            }
-//        }
-//        .toolbar(store.editMode == .active ? .hidden : .visible, for: .tabBar)
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Image(systemName: "plus.circle")
+                    .onTapGesture {
+                        store.send(.showAddCategory)
+                    }
+                    .foregroundStyle(Color.accentColor)
+                    .popover(
+                        item: $store.scope(state: \.destination?.add, action: \.destination.add)
+                    ) { store in
+                        NewCategory(store: store)
+                    }
+                    .opacity(store.editMode == .active ? 1 : 0)
+                EditButton()
+            }
+        }
+        .toolbar(store.editMode == .active ? .hidden : .visible, for: .tabBar)
         .environment(\.editMode, $store.editMode)
         .navigationTitle("category")
         .navigationBarTitleDisplayMode(.inline)
