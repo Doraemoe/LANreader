@@ -59,27 +59,30 @@ struct NewCategory: View {
     @Bindable var store: StoreOf<NewCategoryFeature>
 
     var body: some View {
-        Group {
-            TextField("category.new.name", text: $store.name)
-                .textFieldStyle(.roundedBorder)
-                .padding()
-            if store.dynamic {
-                TextField("category.new.predicate", text: $store.filter)
-                    .textFieldStyle(.roundedBorder)
-                    .padding()
+        Form {
+            Section {
+                TextField("category.new.name", text: $store.name)
+                if store.dynamic {
+                    TextField("category.new.predicate", text: $store.filter)
+                }
+                Toggle(isOn: $store.dynamic) {
+                    Text("category.new.isDynamic")
+                }
             }
-            Toggle(isOn: $store.dynamic) {
-                Text("category.new.isDynamic")
+            Section {
+                Button {
+                    store.send(.addCategoryTapped)
+                } label: {
+                    Text("category.new.add")
+                }
+                .disabled(store.name.isEmpty || (store.dynamic && store.filter.isEmpty))
             }
-            .padding()
-            Button {
-                store.send(.addCategoryTapped)
-            } label: {
-                Text("category.new.add")
-            }
-            .padding()
-            .disabled(store.name.isEmpty || (store.dynamic && store.filter.isEmpty))
         }
+        // disable refreshable
+        // swiftlint:disable force_cast
+        .environment(\EnvironmentValues.refresh as! WritableKeyPath<EnvironmentValues, RefreshAction?>, nil)
+        // swiftlint:enable force_cast
+        .frame(minWidth: 280, minHeight: store.dynamic ? 280 : 230)
         .onChange(of: store.errorMessage) {
             if !store.errorMessage.isEmpty {
                 let banner = NotificationBanner(
