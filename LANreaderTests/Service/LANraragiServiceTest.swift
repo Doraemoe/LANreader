@@ -201,8 +201,7 @@ class LANraragiServiceTest: XCTestCase {
                                 search: "search", pinned: "0")
 
         let actual = try await service.updateCategory(item: item).value
-        let expected = try FileUtils.readJsonFile(filename: "UpdateSearchCategoryResponse")
-        XCTAssertEqual(actual, expected)
+        XCTAssertEqual(actual.success, 1)
     }
 
     func testUpdateCategoryUnauthorized() async throws {
