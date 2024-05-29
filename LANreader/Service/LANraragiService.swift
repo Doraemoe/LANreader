@@ -142,14 +142,22 @@ class LANraragiService: NSObject {
             .serializingDecodable(GenericSuccessResponse.self)
     }
 
-    func updateDynamicCategory(item: CategoryItem) async -> DataTask<String> {
+    func updateCategory(item: CategoryItem) async -> DataTask<GenericSuccessResponse> {
         var query = [String: String]()
         query["name"] = item.name
-        query["search"] = item.search
+        if !item.search.isEmpty {
+            query["search"] = item.search
+        }
         query["pinned"] = item.pinned
         return session.request("\(url)/api/categories/\(item.id)", method: .put, parameters: query)
             .validate(statusCode: 200...200)
-            .serializingString()
+            .serializingDecodable(GenericSuccessResponse.self)
+    }
+
+    func deleteCategory(id: String) async -> DataTask<GenericSuccessResponse> {
+        return session.request("\(url)/api/categories/\(id)", method: .delete)
+            .validate(statusCode: 200...200)
+            .serializingDecodable(GenericSuccessResponse.self)
     }
 
     func addArchiveToCategory(categoryId: String, archiveId: String) async -> DataTask<GenericSuccessResponse> {
