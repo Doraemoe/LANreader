@@ -90,7 +90,7 @@
 "settings.database.clear" = "Clear cache in database";
 
 "archive.delete" = "Delete archive";
-"archive.delete.confirm" = "Are you sure you want to delete this?";
+"archive.delete.confirm" = "Are you sure you want to delete this archive?";
 "archive.reload.thumbnail" = "Reload thumbnail";
 "archive.read.fromStart" = "Read from beginning";
 "archive.thumbnail.current" = "Set current page as thumbnail";
@@ -125,11 +125,12 @@
 "category.name" = "Category name";
 "category.search" = "Search keyword";
 "category.static.edit" = "Please use select function in library and category view to edit static category";
-"category.new.name" = "Category name";
 "category.new.isDynamic" = "Dynamic category";
-"category.new.predicate" = "Predicate";
 "category.new.add" = "Add";
 "category.new.add.failed" = "Failed to add category";
+"category.edit.failed" = "Failed to edit category";
+"category.delete.confirm" = "Are you sure you want to delete this category?";
+"category.delete.failed" = "Failed to edit category";
 
 "error.host" = "Cannot connect to server, please check your settings";
 "error.list" = "Cannot load library, please try again or check your server settings";

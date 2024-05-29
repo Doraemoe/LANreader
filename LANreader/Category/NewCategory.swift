@@ -61,9 +61,9 @@ struct NewCategory: View {
     var body: some View {
         Form {
             Section {
-                TextField("category.new.name", text: $store.name)
+                TextField("category.name", text: $store.name)
                 if store.dynamic {
-                    TextField("category.new.predicate", text: $store.filter)
+                    TextField("category.search", text: $store.filter)
                 }
                 Toggle(isOn: $store.dynamic) {
                     Text("category.new.isDynamic")
