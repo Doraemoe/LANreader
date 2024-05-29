@@ -10,25 +10,23 @@ LANreader is an iOS manga reader for [LANraragi](https://github.com/Difegue/LANr
 
 ### Library View
 
-![Screenshot 2024-02-07 at 1 11 31 pm](https://github.com/Doraemoe/LANreader/assets/1129569/3b5f7e23-d9c9-42bd-9a21-c88bb3e0174f)
-
+![Screenshot 2024-05-29 at 1 25 07 PM](https://github.com/Doraemoe/LANreader/assets/1129569/06ac2991-5735-4b6f-8ce6-6f31121ebc60)
 
 ### Archive Page View
 
-![Screenshot 2023-11-30 at 9 50 10 pm](https://github.com/Doraemoe/DuReader/assets/1129569/28157674-21d4-4bc2-a7fd-2f03d4866975)
-
+![Screenshot 2024-05-29 at 1 07 59 PM](https://github.com/Doraemoe/LANreader/assets/1129569/f6e2d613-2015-4ecd-b894-743a52ce4268)
 
 ### Archive Details View
 
-![Screenshot 2023-11-30 at 9 50 24 pm](https://github.com/Doraemoe/DuReader/assets/1129569/fef75731-b144-41e4-8ba8-736026c2e814)
+![Screenshot 2024-05-29 at 1 08 27 PM](https://github.com/Doraemoe/LANreader/assets/1129569/5f763218-cc65-454d-9d85-8805d5af7029)
 
 ### Category Page
 
-![Screenshot 2023-11-30 at 9 53 23 pm](https://github.com/Doraemoe/DuReader/assets/1129569/014ecbc2-100a-4bd1-8e52-89fed05bc289)
+![Screenshot 2024-05-29 at 1 12 09 PM](https://github.com/Doraemoe/LANreader/assets/1129569/454601f8-9b9e-4dcc-8659-765e01b18d3d)
 
 ### Settings Page
 
-![Screenshot 2024-02-07 at 1 11 35 pm](https://github.com/Doraemoe/LANreader/assets/1129569/58ee26d2-5d2a-488a-a2f8-f105379e5139)
+![Screenshot 2024-05-29 at 1 10 14 PM](https://github.com/Doraemoe/LANreader/assets/1129569/b15f0ddf-3df8-4be9-bd7f-c5931922f80a)
 
 ### Save URL
 
