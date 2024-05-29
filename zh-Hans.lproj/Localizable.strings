@@ -125,10 +125,12 @@
 "category.name" = "类别名";
 "category.search" = "搜索关键词";
 "category.static.edit" = "请使用库与类别视图中的选择功能编辑固定类别";
-"category.new.name" = "类别名";
 "category.new.isDynamic" = "动态类别";
-"category.new.predicate" = "关键词";
 "category.new.add" = "添加";
+"category.new.add.failed" = "添加类别失败";
+"category.edit.failed" = "编辑类别失败";
+"category.delete.confirm" = "确定要删除此类别吗？";
+"category.delete.failed" = "删除类别失败";
 
 "error.host" = "无法连接服务器，请检查设置";
 "error.list" = "无法加载媒体库，请重试或检查服务器设定";

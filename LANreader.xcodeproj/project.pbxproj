@@ -75,6 +75,7 @@
 		E9E3631826F463F800C58D01 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 7DF7EA792564E264003B5A5A /* GRDB */; };
 		E9E3631926F463F800C58D01 /* OHHTTPStubsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE924F1660200617F4A /* OHHTTPStubsSwift */; };
 		E9E3631F26F471E400C58D01 /* LogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9E3631E26F471E400C58D01 /* LogView.swift */; };
+		E9EB422B2C05BE0B00E49AE1 /* EditCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9EB422A2C05BE0B00E49AE1 /* EditCategory.swift */; };
 		E9F3B0122B01A21C00F60F62 /* CategoryListV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F3B0112B01A21C00F60F62 /* CategoryListV2.swift */; };
 		E9F3B0142B01D2DB00F60F62 /* CategoryArchiveListV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F3B0132B01D2DB00F60F62 /* CategoryArchiveListV2.swift */; };
 /* End PBXBuildFile section */
@@ -179,6 +180,7 @@
 		E9DCE8982AF0665900C17236 /* ArchiveListV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveListV2.swift; sourceTree = "<group>"; };
 		E9DCE8A12AF0795600C17236 /* SearchViewV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewV2.swift; sourceTree = "<group>"; };
 		E9E3631E26F471E400C58D01 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
+		E9EB422A2C05BE0B00E49AE1 /* EditCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditCategory.swift; sourceTree = "<group>"; };
 		E9F3B0112B01A21C00F60F62 /* CategoryListV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryListV2.swift; sourceTree = "<group>"; };
 		E9F3B0132B01D2DB00F60F62 /* CategoryArchiveListV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryArchiveListV2.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -298,6 +300,7 @@
 				E9F3B0132B01D2DB00F60F62 /* CategoryArchiveListV2.swift */,
 				E9F3B0112B01A21C00F60F62 /* CategoryListV2.swift */,
 				E926CE792B1B5474000E0B10 /* NewCategory.swift */,
+				E9EB422A2C05BE0B00E49AE1 /* EditCategory.swift */,
 			);
 			path = Category;
 			sourceTree = "<group>";
@@ -655,6 +658,7 @@
 				4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */,
 				4BD821C3FDF1FC3B60AB4823 /* AppModels.swift in Sources */,
 				4BD82C152E77BFD137EC03DD /* LANraragiConfigView.swift in Sources */,
+				E9EB422B2C05BE0B00E49AE1 /* EditCategory.swift in Sources */,
 				4BD823AC73ED9E45F8B7E436 /* ReadSettings.swift in Sources */,
 				4BD82F2BEC56B95FB9BC9841 /* SettingsView.swift in Sources */,
 				4BD82C7F9CB71CAF8F33C171 /* ViewSettings.swift in Sources */,
@@ -860,7 +864,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 96;
+				CURRENT_PROJECT_VERSION = 97;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -889,7 +893,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 96;
+				CURRENT_PROJECT_VERSION = 97;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -968,7 +972,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 96;
+				CURRENT_PROJECT_VERSION = 97;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -997,7 +1001,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 96;
+				CURRENT_PROJECT_VERSION = 97;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;

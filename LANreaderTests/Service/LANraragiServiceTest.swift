@@ -186,7 +186,7 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertNil(actual)
     }
 
-    func testUpdateDynamicCategory() async throws {
+    func testUpdateCategory() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/categories/SET_12345678")
                 && isMethodPUT()
@@ -200,12 +200,12 @@ class LANraragiServiceTest: XCTestCase {
         let item = CategoryItem(id: "SET_12345678", name: "name", archives: [],
                                 search: "search", pinned: "0")
 
-        let actual = try await service.updateDynamicCategory(item: item).value
+        let actual = try await service.updateCategory(item: item).value
         let expected = try FileUtils.readJsonFile(filename: "UpdateSearchCategoryResponse")
         XCTAssertEqual(actual, expected)
     }
 
-    func testUpdateDynamicCategoryUnauthorized() async throws {
+    func testUpdateCategoryUnauthorized() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/categories/SET_12345678")
                 && isMethodPUT()
@@ -218,7 +218,7 @@ class LANraragiServiceTest: XCTestCase {
         let item = CategoryItem(id: "SET_12345678", name: "name", archives: [],
                                 search: "search", pinned: "0")
 
-        let actual = try? await service.updateDynamicCategory(item: item).value
+        let actual = try? await service.updateCategory(item: item).value
         XCTAssertNil(actual)
     }
 

@@ -10,6 +10,7 @@ import NotificationBannerSwift
     struct State: Equatable {
         @Presents var destination: Destination.State?
 
+        @SharedReader(.appStorage(SettingsKey.lanraragiUrl)) var lanraragiUrl = ""
         @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
 
         var editMode: EditMode = .inactive
@@ -26,6 +27,7 @@ import NotificationBannerSwift
         case populateCategory([CategoryItem])
         case setErrorMessage(String)
         case showAddCategory
+        case showEditCategory(CategoryItem)
     }
 
     @Dependency(\.lanraragiService) var service
@@ -57,9 +59,30 @@ import NotificationBannerSwift
             case .showAddCategory:
                 state.destination = .add(NewCategoryFeature.State())
                 return .none
+            case let .showEditCategory(item):
+                state.destination = .edit(
+                    EditCategoryFeature.State(
+                        id: item.id,
+                        name: item.name,
+                        filter: item.search,
+                        dynamic: !item.search.isEmpty,
+                        pinned: item.pinned
+                    )
+                )
+                return .none
             case .binding:
                 return .none
             case .destination(.presented(.add(.addCategorySuccess))):
+                state.destination = nil
+                return .run { send in
+                    await send(.loadCategory(true))
+                }
+            case .destination(.presented(.edit(.editCategorySuccess))):
+                state.destination = nil
+                return .run { send in
+                    await send(.loadCategory(true))
+                }
+            case .destination(.presented(.edit(.deleteCategorySuccess))):
                 state.destination = nil
                 return .run { send in
                     await send(.loadCategory(true))
@@ -74,6 +97,7 @@ import NotificationBannerSwift
     @Reducer(state: .equatable)
     enum Destination {
         case add(NewCategoryFeature)
+        case edit(EditCategoryFeature)
     }
 }
 
@@ -109,6 +133,9 @@ struct CategoryListV2: View {
                 EditButton()
             }
         }
+        .sheet(item: $store.scope(state: \.destination?.edit, action: \.destination.edit), content: { store in
+            EditCategory(store: store)
+        })
         .toolbar(store.editMode == .active ? .hidden : .visible, for: .tabBar)
         .environment(\.editMode, $store.editMode)
         .navigationTitle("category")
@@ -132,6 +159,11 @@ struct CategoryListV2: View {
                 store.send(.setErrorMessage(""))
             }
         }
+        .onChange(of: store.lanraragiUrl) {
+            if !store.lanraragiUrl.isEmpty {
+                store.send(.loadCategory(true))
+            }
+        }
         .transaction { transaction in
             transaction.animation = nil
         }
@@ -143,6 +175,11 @@ struct CategoryListV2: View {
                 .font(.title)
             Spacer()
             Image(systemName: store.editMode == .active ? "square.and.pencil" : "chevron.right")
+        }
+        .contentShape(Rectangle())
+        .allowsHitTesting(store.editMode == .active)
+        .onTapGesture {
+            store.send(.showEditCategory(item))
         }
         .background {
             NavigationLink(
