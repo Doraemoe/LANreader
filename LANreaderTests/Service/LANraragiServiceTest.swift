@@ -190,7 +190,7 @@ class LANraragiServiceTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/categories/SET_12345678")
                 && isMethodPUT()
-                && hasBody("name=name&pinned=0&search=search".data(using: .utf8)!)
+                && hasBody(Data("name=name&pinned=0&search=search".utf8))
                 && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(
                     fileAtPath: OHPathForFile("UpdateSearchCategoryResponse.json", type(of: self))!,
@@ -284,7 +284,7 @@ class LANraragiServiceTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/metadata")
                 && isMethodPUT()
-                && hasBody("tags=tags&title=name".data(using: .utf8)!)
+                && hasBody(Data("tags=tags&title=name".utf8))
                 && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(
                     fileAtPath: OHPathForFile("SetArchiveMetadataResponse.json", type(of: self))!,
@@ -303,7 +303,7 @@ class LANraragiServiceTest: XCTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/metadata")
                 && isMethodPUT()
-                && hasBody("tags=tags&title=name".data(using: .utf8)!)
+                && hasBody(Data("tags=tags&title=name".utf8))
                 && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(
                     fileAtPath: OHPathForFile("UnauthorizedResponse.json", type(of: self))!,

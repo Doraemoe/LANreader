@@ -1,43 +1,35 @@
 import Foundation
 import UIKit
 import CoreGraphics
-import func AVFoundation.AVMakeRect
 import Dependencies
 
 class ImageService {
     private static var _shared: ImageService?
 
-    // swiftlint:disable large_tuple
-    func resizeImage(data: Data, split: Bool, skip: Bool) -> (Data, Data?, Data?) {
-        var imageData: Data = data
-        var leftImageData: Data?
-        var rightImageData: Data?
-        guard !skip, let image = UIImage(data: data) else { return (imageData, leftImageData, rightImageData) }
-        let screenRect = AVMakeRect(aspectRatio: image.size, insideRect: UIScreen.main.bounds)
-        let imagePixels = image.size.width * image.scale * image.size.height * image.scale
-        let screenPixels = screenRect.size.width * UIScreen.main.scale * screenRect.size.height * UIScreen.main.scale
+    func resizeImage(imageUrl: URL, destinationUrl: URL, pageNumber: String, split: Bool, skip: Bool) -> Bool {
+        try? FileManager.default.createDirectory(at: destinationUrl, withIntermediateDirectories: true)
+        let mainPath = destinationUrl.appendingPathComponent(pageNumber, conformingTo: .image)
 
-        let drawSize = CGSize(
-            width: screenRect.size.width * 1.5,
-            height: screenRect.size.height * 1.5
-        )
-
-        if imagePixels > screenPixels * 2 {
-            let renderer = UIGraphicsImageRenderer(size: drawSize)
-            let image = renderer.image { _ in
-                image.draw(in: CGRect(origin: .zero, size: drawSize))
-            }
-            imageData = image.jpegData(compressionQuality: 0.8) ?? data
+        // if use UIImage(contentsOfFile:) directly, IOSurface creation failed warning may happen
+        // Same thing happens in PageImageV2
+        guard let imageData = try? Data(contentsOf: imageUrl),
+                let image = UIImage(data: imageData) else { return false }
+        var splitted = false
+        if !skip {
+            try? image.heicData()?.write(to: mainPath)
+        } else {
+            try? FileManager.default.moveItem(at: imageUrl, to: mainPath)
         }
 
         if split && (image.size.width / image.size.height > 1.2) {
-            leftImageData = image.leftHalf?.jpegData(compressionQuality: 0.8)
-            rightImageData = image.rightHalf?.jpegData(compressionQuality: 0.8)
+            let leftPath = destinationUrl.appendingPathComponent("\(pageNumber)-left", conformingTo: .image)
+            let rightPath = destinationUrl.appendingPathComponent("\(pageNumber)-right", conformingTo: .image)
+            try? image.leftHalf?.heicData()?.write(to: leftPath)
+            try? image.rightHalf?.heicData()?.write(to: rightPath)
+            splitted = true
         }
-
-        return (imageData, leftImageData, rightImageData)
+        return splitted
     }
-    // swiftlint:enable large_tuple
 
     public static var shared: ImageService {
         if _shared == nil {

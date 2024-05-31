@@ -300,21 +300,15 @@ extension LANraragiService: URLSessionDelegate, URLSessionDownloadDelegate {
 
         if let archiveId = task.originalRequest?.value(forHTTPHeaderField: "X-Archive-Id"),
            let pageNumber = task.originalRequest?.value(forHTTPHeaderField: "X-Page-Number"),
-           let imageData = try? Data(contentsOf: location) {
-            let (processImage, leftImage, rightImage) = imageService.resizeImage(
-                data: imageData, split: splitImage && !fallback, skip: showOriginal
+           let cachePath = LANraragiService.cachePath {
+            let folder = cachePath.appendingPathComponent(archiveId, conformingTo: .folder)
+            _ = imageService.resizeImage(
+                imageUrl: location,
+                destinationUrl: folder,
+                pageNumber: pageNumber,
+                split: splitImage && !fallback,
+                skip: showOriginal
             )
-            let folder = LANraragiService.cachePath!
-                .appendingPathComponent(archiveId, conformingTo: .folder)
-            let path = folder.appendingPathComponent(pageNumber, conformingTo: .image)
-            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            try? processImage.write(to: path)
-            if leftImage != nil && rightImage != nil {
-                let leftPath = folder.appendingPathComponent("\(pageNumber)-left", conformingTo: .image)
-                let rightPath = folder.appendingPathComponent("\(pageNumber)-right", conformingTo: .image)
-                try? leftImage?.write(to: leftPath)
-                try? rightImage?.write(to: rightPath)
-            }
         }
     }
 }

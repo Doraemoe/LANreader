@@ -13,25 +13,25 @@ import Logging
         @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
         @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
 
-        var image: Data?
         let pageId: String
         let suffix: String
         let pageNumber: Int
         var loading: Bool = false
         var progress: Double = 0
         var errorMessage = ""
-        var pageMode: PageMode = .normal
+        var pageMode: PageMode
         let cached: Bool
 
         var id: String {
             "\(pageId)-\(suffix)"
         }
 
+        let folder: URL?
         let path: URL?
         let pathLeft: URL?
         let pathRight: URL?
 
-        init(archiveId: String, pageId: String, pageNumber: Int, pageMode: PageMode = .normal, cached: Bool = false) {
+        init(archiveId: String, pageId: String, pageNumber: Int, pageMode: PageMode = .loading, cached: Bool = false) {
             self.pageId = pageId
             self.pageNumber = pageNumber
             self.pageMode = pageMode
@@ -42,14 +42,12 @@ import Logging
             } else {
                 LANraragiService.downloadPath
             }
-            self.path = imagePath?
-                .appendingPathComponent(archiveId, conformingTo: .folder)
+            self.folder = imagePath?.appendingPathComponent(archiveId, conformingTo: .folder)
+            self.path = self.folder?
                 .appendingPathComponent("\(pageNumber)", conformingTo: .image)
-            self.pathLeft = imagePath?
-                .appendingPathComponent(archiveId, conformingTo: .folder)
+            self.pathLeft = self.folder?
                 .appendingPathComponent("\(pageNumber)-left", conformingTo: .image)
-            self.pathRight = imagePath?
-                .appendingPathComponent(archiveId, conformingTo: .folder)
+            self.pathRight = self.folder?
                 .appendingPathComponent("\(pageNumber)-right", conformingTo: .image)
         }
     }
@@ -60,7 +58,7 @@ import Logging
         case subscribeToProgress(DownloadRequest)
         case cancelSubscribeImageProgress
         case setProgress(Double)
-        case setImage(Data, Data?, Data?)
+        case setImage(PageMode, Bool)
         case setError(String)
         case insertPage(PageMode)
     }
@@ -93,26 +91,34 @@ import Logging
                 }
                 state.loading = true
 
+                let previousPageMode = state.pageMode
+
                 if force {
-                    state.image = nil
-                } else {
-                    switch state.pageMode {
-                    case .normal:
-                        if let path = state.path {
-                            state.image = try? Data(contentsOf: path)
-                        }
-                    case .left:
-                        if let path = state.pathLeft {
-                            state.image = try? Data(contentsOf: path)
-                        }
-                    case .right:
-                        if let path = state.pathRight {
-                            state.image = try? Data(contentsOf: path)
+                    state.pageMode = .loading
+                } else if state.pageMode == .loading {
+                    if state.splitImage && !state.fallback {
+                        if state.piorityLeft &&
+                            FileManager.default.fileExists(
+                                atPath: state.pathLeft?.path(percentEncoded: false) ?? ""
+                            ) {
+                            state.pageMode = .left
+                            return .send(.insertPage(.right))
+                        } else if FileManager.default.fileExists(
+                            atPath: state.pathRight?.path(percentEncoded: false) ?? ""
+                        ) {
+                            state.pageMode = .right
+                            return .send(.insertPage(.left))
                         }
                     }
+                    if FileManager.default.fileExists(atPath: state.path?.path(percentEncoded: false) ?? "") {
+                        state.pageMode = .normal
+                        return .none
+                    }
+                } else {
+                    return .none
                 }
 
-                if state.image == nil {
+                if state.pageMode == .loading {
                     if state.cached {
                         state.loading = false
                         return .send(.setError(String(localized: "archive.cache.page.load.failed")))
@@ -121,36 +127,26 @@ import Logging
                             do {
                                 let task = service.fetchArchivePage(page: state.pageId, pageNumber: state.pageNumber)
                                 await send(.subscribeToProgress(task))
-                                let imageData = try await task
-                                    .serializingData()
+                                let imageUrl = try await task
+                                    .serializingDownloadedFileURL()
                                     .value
                                 await send(.cancelSubscribeImageProgress)
 
                                 if !state.showOriginal {
                                     await send(.setProgress(2.0))
                                 }
-                                let (processedImage, leftImage, rightImage) = imageService.resizeImage(
-                                    data: imageData,
+                                let splitted = imageService.resizeImage(
+                                    imageUrl: imageUrl,
+                                    destinationUrl: state.folder!,
+                                    pageNumber: String(state.pageNumber),
                                     split: state.splitImage && !state.fallback,
                                     skip: state.showOriginal
                                 )
-                                await send(.setImage(processedImage, leftImage, rightImage))
+                                await send(.setImage(previousPageMode, splitted))
                             } catch {
                                 logger.error("failed to load image. \(error)")
                             }
                             await send(.setIsLoading(false))
-                        }
-                    }
-                } else {
-                    if state.cached && state.pageMode == .normal && state.splitImage && !state.fallback {
-                        if state.piorityLeft, let path = state.pathLeft, let leftImage = try? Data(contentsOf: path) {
-                            state.pageMode = .left
-                            state.image = leftImage
-                            return .send(.insertPage(.right))
-                        } else if let path = state.pathRight, let rightImage = try? Data(contentsOf: path) {
-                            state.pageMode = .right
-                            state.image = rightImage
-                            return .send(.insertPage(.left))
                         }
                     }
                 }
@@ -162,34 +158,23 @@ import Logging
             case let .setProgress(progres):
                 state.progress = progres
                 return .none
-            case let .setImage(processedImage, leftImage, rightImage):
+            case let .setImage(previousPageMode, splitted):
                 state.progress = 0
                 state.loading = false
-                if leftImage != nil && rightImage != nil {
-                    if let path = state.pathLeft {
-                        try? leftImage!.write(to: path)
+                if splitted {
+                    if previousPageMode == .left || previousPageMode == .right {
+                        state.pageMode = previousPageMode
+                        return .none
                     }
-                    if let path = state.pathRight {
-                        try? rightImage!.write(to: path)
-                    }
-                    switch state.pageMode {
-                    case .normal:
-                        if state.piorityLeft {
-                            state.pageMode = .left
-                            state.image = leftImage
-                            return .send(.insertPage(.right))
-                        } else {
-                            state.pageMode = .right
-                            state.image = rightImage
-                            return .send(.insertPage(.left))
-                        }
-                    case .left:
-                        state.image = leftImage
-                    case .right:
-                        state.image = rightImage
+                    if state.piorityLeft {
+                        state.pageMode = .left
+                        return .send(.insertPage(.right))
+                    } else {
+                        state.pageMode = .right
+                        return .send(.insertPage(.left))
                     }
                 } else {
-                    state.image = processedImage
+                    state.pageMode = .normal
                 }
                 return .none
             case let .setError(message):
@@ -215,17 +200,7 @@ struct PageImageV2: View {
         // If not wrapped in ZStack, TabView will render ALL pages when initial load
         ZStack {
             if visible {
-                if let imageData = store.image {
-                    if let uiImage = UIImage(data: imageData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .draggableAndZoomable(contentSize: geometrySize)
-                    } else {
-                        Image(systemName: "rectangle.slash")
-                            .frame(height: geometrySize.height)
-                    }
-                } else {
+                if store.pageMode == .loading {
                     ProgressView(
                         value: store.progress > 1 ? 1 : store.progress,
                         total: 1
@@ -243,10 +218,34 @@ struct PageImageV2: View {
                     .task {
                         store.send(.load(false))
                     }
+                } else {
+                    let contentPath = {
+                        switch store.pageMode {
+                        case .left:
+                            return store.pathLeft
+                        case .right:
+                            return store.pathRight
+                        default:
+                            return store.path
+                        }
+                    }()
+
+                    // if use UIImage(contentsOfFile:) directly, IOSurface creation failed warning may happen
+                    // Same thing happens in ImageService
+                    if let imageData = try? Data(contentsOf: contentPath!), let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .draggableAndZoomable(contentSize: geometrySize)
+                    } else {
+                        Image(systemName: "rectangle.slash")
+                            .frame(height: geometrySize.height)
+                    }
                 }
             } else {
                 Color.clear
             }
+
         }
         .onAppear {
             visible = true
@@ -258,6 +257,7 @@ struct PageImageV2: View {
 }
 
 enum PageMode: String {
+    case loading
     case left
     case right
     case normal
