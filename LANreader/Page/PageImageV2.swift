@@ -229,12 +229,14 @@ struct PageImageV2: View {
                             return store.path
                         }
                     }()
-                    AsyncImage(url: contentPath) { image in
-                        image
+                    // if use UIImage(contentsOfFile:) directly, IOSurface creation failed warning may happen
+                    // Same thing happens in ImageService
+                    if let imageData = try? Data(contentsOf: contentPath!), let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .draggableAndZoomable(contentSize: geometrySize)
-                    } placeholder: {
+                    } else {
                         Image(systemName: "rectangle.slash")
                             .frame(height: geometrySize.height)
                     }
