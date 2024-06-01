@@ -15,10 +15,10 @@ class ImageService {
         guard let imageData = try? Data(contentsOf: imageUrl),
                 let image = UIImage(data: imageData) else { return false }
         var splitted = false
-        if !skip {
-            try? image.heicData()?.write(to: mainPath)
-        } else {
+        if skip {
             try? FileManager.default.moveItem(at: imageUrl, to: mainPath)
+        } else {
+            try? image.heicData()?.write(to: mainPath)
         }
 
         if split && (image.size.width / image.size.height > 1.2) {
