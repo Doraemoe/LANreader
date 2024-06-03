@@ -192,14 +192,9 @@ struct PageImageV2: View {
     let store: StoreOf<PageFeature>
     let geometrySize: CGSize
 
-    // LazyHStack not clean up memory after item load and go off screen
-    // Use this state to explicity release memory when page go off screen
-    @State var visible = false
-
     var body: some View {
         // If not wrapped in ZStack, TabView will render ALL pages when initial load
         ZStack {
-            if visible {
                 if store.pageMode == .loading {
                     ProgressView(
                         value: store.progress > 1 ? 1 : store.progress,
@@ -229,28 +224,24 @@ struct PageImageV2: View {
                             return store.path
                         }
                     }()
-                    // if use UIImage(contentsOfFile:) directly, IOSurface creation failed warning may happen
-                    // Same thing happens in ImageService
-                    if let imageData = try? Data(contentsOf: contentPath!), let uiImage = UIImage(data: imageData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .draggableAndZoomable(contentSize: geometrySize)
-                    } else {
-                        Image(systemName: "rectangle.slash")
-                            .frame(height: geometrySize.height)
+
+                    AsyncImage(url: contentPath) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .draggableAndZoomable(contentSize: geometrySize)
+                        case .failure(let error):
+                            Label(error.localizedDescription, systemImage: "rectangle.slash")
+                                .frame(height: geometrySize.height)
+                        @unknown default:
+                            EmptyView()
+                        }
                     }
                 }
-            } else {
-                Color.clear
-            }
-
-        }
-        .onAppear {
-            visible = true
-        }
-        .onDisappear {
-            visible = false
         }
     }
 }

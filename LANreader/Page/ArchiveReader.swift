@@ -492,7 +492,7 @@ struct ArchiveReader: View {
         }
         .onChange(of: store.autoDate) {
             if store.startAutoPage {
-                store.send(.tapAction(PageControl.next.rawValue))
+                store.send(.tapAction(PageControl.next.rawValue), animation: .linear)
             }
         }
     }
@@ -547,11 +547,11 @@ struct ArchiveReader: View {
         .scrollPosition(id: $store.indexString)
         .onTapGesture { location in
             if location.x < geometry.size.width / 3 {
-                store.send(.tapAction(store.tapLeft))
+                store.send(.tapAction(store.tapLeft), animation: .linear)
             } else if location.x > geometry.size.width / 3 * 2 {
-                store.send(.tapAction(store.tapRight))
+                store.send(.tapAction(store.tapRight), animation: .linear)
             } else {
-                store.send(.tapAction(store.tapMiddle))
+                store.send(.tapAction(store.tapMiddle), animation: .linear)
             }
         }
     }
@@ -577,11 +577,11 @@ struct ArchiveReader: View {
         .tabViewStyle(.page(indexDisplayMode: .never))
         .onTapGesture { location in
             if location.x < geometry.size.width / 3 {
-                store.send(.tapAction(store.tapLeft))
+                store.send(.tapAction(store.tapLeft), animation: .linear)
             } else if location.x > geometry.size.width / 3 * 2 {
-                store.send(.tapAction(store.tapRight))
+                store.send(.tapAction(store.tapRight), animation: .linear)
             } else {
-                store.send(.tapAction(store.tapMiddle))
+                store.send(.tapAction(store.tapMiddle), animation: .linear)
             }
         }
     }

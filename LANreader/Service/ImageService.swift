@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import CoreGraphics
 import Dependencies
+import func AVFoundation.AVMakeRect
 
 class ImageService {
     private static var _shared: ImageService?
@@ -15,17 +16,41 @@ class ImageService {
         guard let imageData = try? Data(contentsOf: imageUrl),
                 let image = UIImage(data: imageData) else { return false }
         var splitted = false
+
+        let screenRect = UIScreen.main.bounds
+        let rect = AVMakeRect(aspectRatio: image.size, insideRect: screenRect)
+        let renderer = UIGraphicsImageRenderer(size: screenRect.size)
+
         if skip {
-            try? FileManager.default.moveItem(at: imageUrl, to: mainPath)
-        } else {
             try? image.heicData()?.write(to: mainPath)
+        } else {
+            try? renderer.image { _ in
+                image.draw(in: rect)
+            }.heicData()?.write(to: mainPath)
         }
 
         if split && (image.size.width / image.size.height > 1.2) {
             let leftPath = destinationUrl.appendingPathComponent("\(pageNumber)-left", conformingTo: .image)
             let rightPath = destinationUrl.appendingPathComponent("\(pageNumber)-right", conformingTo: .image)
-            try? image.leftHalf?.heicData()?.write(to: leftPath)
-            try? image.rightHalf?.heicData()?.write(to: rightPath)
+            if skip {
+                try? image.leftHalf?.heicData()?.write(to: leftPath)
+                try? image.rightHalf?.heicData()?.write(to: rightPath)
+            } else {
+                let leftRect = AVMakeRect(
+                    aspectRatio: image.leftHalf?.size ?? CGSize(width: 0, height: 0),
+                    insideRect: screenRect
+                )
+                try? renderer.image { _ in
+                    image.leftHalf?.draw(in: leftRect)
+                }.heicData()?.write(to: leftPath)
+                let rightRect = AVMakeRect(
+                    aspectRatio: image.rightHalf?.size ?? CGSize(width: 0, height: 0),
+                    insideRect: screenRect
+                )
+                try? renderer.image { _ in
+                    image.rightHalf?.draw(in: rightRect)
+                }.heicData()?.write(to: rightPath)
+            }
             splitted = true
         }
         return splitted
