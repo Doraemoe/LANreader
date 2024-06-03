@@ -61,6 +61,7 @@
 "settings.archive.list.order.series" = "Series";
 "settings.archive.list.order.character" = "Character";
 "settings.archive.list.order.parody" = "Parody";
+"settings.archive.list.order.lastRead" = "Last read";
 "settings.archive.list.order.custom" = "Custom";
 "settings.archive.list.order.custom.title" = "Custom sort namespace";
 "settings.archive.list.order.custom.explain" = "Sort namespace could be any tag key";

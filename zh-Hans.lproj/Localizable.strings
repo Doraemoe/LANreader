@@ -61,6 +61,7 @@
 "settings.archive.list.order.series" = "系列";
 "settings.archive.list.order.character" = "角色";
 "settings.archive.list.order.parody" = "同人";
+"settings.archive.list.order.lastRead" = "最近阅读";
 "settings.archive.list.order.custom" = "自定义";
 "settings.archive.list.order.custom.title" = "自定义排序";
 "settings.archive.list.order.custom.explain" = "自定义排序可以是任意标签名";
