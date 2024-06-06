@@ -388,7 +388,7 @@ import NotificationBannerSwift
                 return .none
             }
         }
-        .forEach(\.archives, action: \.grid) {
+        .forEach(\.archivesToDisplay, action: \.grid) {
             GridFeature()
         }
         .ifLet(\.$alert, action: \.alert)

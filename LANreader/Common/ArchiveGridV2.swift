@@ -4,33 +4,28 @@ import Logging
 
 @Reducer struct GridFeature {
     private let logger = Logger(label: "GridFeature")
-    private let thumbnailPath = LANraragiService.thumbnailPath!
 
     @ObservableState
     struct State: Equatable, Identifiable {
         @Shared var archive: ArchiveItem
-        @Shared var archiveThumbnail: Data?
 
         var id: String { self.archive.id }
+        var path: URL?
+        var mode: ThumbnailMode = .loading
         let cached: Bool
 
-        init(archive: Shared<ArchiveItem>, archiveThumbnail: Data? = nil, cached: Bool = false) {
+        init(archive: Shared<ArchiveItem>, cached: Bool = false) {
             self._archive = archive
-            self._archiveThumbnail = Shared(
-                wrappedValue: archiveThumbnail,
-                    .fileStorage(
-                        LANraragiService.thumbnailPath!
-                            .appendingPathComponent(archive.id, conformingTo: .image)
-                    )
-            )
+            self.path = LANraragiService.thumbnailPath?
+                .appendingPathComponent(archive.id, conformingTo: .image)
             self.cached = cached
         }
     }
 
     enum Action: Equatable {
         case load(Bool)
-        case setThumbnail(Data)
-        case unload
+        case finishLoading
+        case finishRefreshArchive
     }
 
     @Dependency(\.lanraragiService) var service
@@ -41,24 +36,31 @@ import Logging
             switch action {
             case let .load(force):
                 if force {
-                    state.archiveThumbnail = nil
+                    state.mode = .loading
+                } else {
+                    if FileManager.default.fileExists(atPath: state.path?.path(percentEncoded: false) ?? "") {
+                        state.mode = .normal
+                        return .none
+                    }
                 }
-                if state.archiveThumbnail == nil {
+                if state.mode == .loading {
                     return .run(priority: .utility) { [id = state.id] send in
                         do {
-                            let imageData = try await service.retrieveArchiveThumbnail(id: id).serializingData().value
-                            await send(.setThumbnail(imageData))
+                            _ = try await service.retrieveArchiveThumbnail(id: id)
+                                .serializingDownloadedFileURL()
+                                .value
+                            await send(.finishLoading)
                         } catch {
                             logger.error("failed to fetch thumbnail. \(error)")
                         }
                     }
                 }
                 return .none
-            case let .setThumbnail(thumbnail):
-                state.archiveThumbnail = thumbnail
+            case .finishLoading:
+                state.mode = .normal
                 return .none
-            case .unload:
-                state.archiveThumbnail = nil
+            case .finishRefreshArchive:
+                state.archive.refresh = false
                 return .none
             }
         }
@@ -76,17 +78,29 @@ struct ArchiveGridV2: View {
                 .padding(4)
                 .font(.caption)
             ZStack {
-                if let imageData = store.archiveThumbnail {
-                    Image(uiImage: UIImage(data: imageData)!)
-                        .resizable()
-                        .scaledToFit()
-                } else {
+                if store.mode == .loading {
                     Image(systemName: "photo")
                         .foregroundStyle(Color.primary)
                         .frame(height: 240)
                         .onAppear {
                             store.send(.load(false))
                         }
+                } else {
+                    if let uiImage = UIImage(contentsOfFile: store.path?.path(percentEncoded: false) ?? "") {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFit()
+                    } else {
+                        Image(systemName: "photo")
+                            .foregroundStyle(Color.primary)
+                            .frame(height: 240)
+                    }
+                }
+            }
+            .onChange(of: store.archive.refresh) { _, newValue in
+                if newValue {
+                    store.send(.load(true))
+                    store.send(.finishRefreshArchive)
                 }
             }
         }
@@ -111,4 +125,9 @@ struct ArchiveGridV2: View {
         }
         return title
     }
+}
+
+enum ThumbnailMode: String {
+    case loading
+    case normal
 }
