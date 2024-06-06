@@ -48,7 +48,6 @@ import NotificationBannerSwift
                         gridStates.append(
                             GridFeature.State(
                                 archive: Shared(item),
-                                archiveThumbnail: cache.thumbnail,
                                 cached: true
                             )
                         )
@@ -111,6 +110,9 @@ import NotificationBannerSwift
             default:
                 return .none
             }
+        }
+        .forEach(\.archives, action: \.grid) {
+            GridFeature()
         }
     }
 }

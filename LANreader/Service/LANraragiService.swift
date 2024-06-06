@@ -82,8 +82,7 @@ class LANraragiService: NSObject {
     func retrieveArchiveThumbnail(id: String) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
         return session.download(request, to: { tempUrl, _ in
-            let destinationUrl = LANraragiService.downloadPath?
-                .appendingPathComponent("thumbnail", conformingTo: .folder)
+            let destinationUrl = LANraragiService.thumbnailPath?
                 .appendingPathComponent(id, conformingTo: .image)
             ?? tempUrl
             return (destinationUrl, [.createIntermediateDirectories, .removePreviousFile])

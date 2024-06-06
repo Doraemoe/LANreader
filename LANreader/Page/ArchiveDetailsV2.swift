@@ -13,8 +13,8 @@ import NotificationBannerSwift
         @Shared(.archive) var archiveItems: IdentifiedArrayOf<ArchiveItem> = []
         @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
         @Shared var archive: ArchiveItem
-        @Shared var archiveThumbnail: Data?
 
+        var thumbnailPath: URL?
         var editMode: EditMode = .inactive
         var title = ""
         var tags = ""
@@ -25,13 +25,8 @@ import NotificationBannerSwift
 
         init(archive: Shared<ArchiveItem>, cached: Bool = false) {
             self._archive = archive
-            self._archiveThumbnail = Shared(
-                wrappedValue: nil,
-                    .fileStorage(
-                        LANraragiService.thumbnailPath!
-                            .appendingPathComponent(archive.id, conformingTo: .image)
-                    )
-            )
+            self.thumbnailPath = LANraragiService.thumbnailPath?
+                .appendingPathComponent(archive.id, conformingTo: .image)
             self.cached = cached
         }
     }
@@ -196,11 +191,6 @@ import NotificationBannerSwift
         }
         .ifLet(\.$alert, action: \.alert)
     }
-
-    struct ArchiveMetadata: Equatable {
-        let archive: ArchiveItem
-        let archiveThumbnail: ArchiveThumbnail?
-    }
 }
 
 struct ArchiveDetailsV2: View {
@@ -212,15 +202,16 @@ struct ArchiveDetailsV2: View {
     var body: some View {
         ScrollView {
             titleView(store: store)
-            if let imageData = store.archiveThumbnail {
-                Image(uiImage: UIImage(data: imageData)!)
+            AsyncImage(url: store.thumbnailPath) { image in
+                image
                     .resizable()
                     .scaledToFit()
                     .padding()
                     .frame(width: 200, height: 250)
-            } else {
+            } placeholder: {
                 Image(systemName: "photo")
                     .foregroundStyle(Color.primary)
+                    .frame(width: 200, height: 250)
             }
             tagsView(store: store)
             Button(

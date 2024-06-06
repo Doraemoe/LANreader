@@ -22,7 +22,6 @@ import OrderedCollections
         @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
         @SharedReader(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
         @Shared var archive: ArchiveItem
-        @Shared var archiveThumbnail: Data?
         @Shared(.totalDownloadPages) var totalDownloadPages: [String: Int] = [:]
 
         var indexString: String?
@@ -50,13 +49,6 @@ import OrderedCollections
 
         init(archive: Shared<ArchiveItem>, fromStart: Bool = false, cached: Bool = false) {
             self._archive = archive
-            self._archiveThumbnail = Shared(
-                wrappedValue: nil,
-                    .fileStorage(
-                        LANraragiService.thumbnailPath!
-                            .appendingPathComponent(archive.id, conformingTo: .image)
-                    )
-            )
             self.fromStart = fromStart
             self.cached = cached
         }
@@ -80,7 +72,6 @@ import OrderedCollections
         case updateProgress(Int)
         case setIsNew(Bool)
         case setThumbnail
-        case setThumbnailData(Data)
         case finishThumbnailLoading
         case tapAction(String)
         case setError(String)
@@ -238,20 +229,18 @@ import OrderedCollections
                 guard let pageNumber = state.pages[id: state.indexString ?? ""]?.pageNumber else {return .none }
                 return .run { [id = state.archive.id] send in
                     _ = try await service.updateArchiveThumbnail(id: id, page: pageNumber).value
-                    let imageData = try await service.retrieveArchiveThumbnail(id: id).serializingData().value
-                    await send(.setThumbnailData(imageData))
+                    _ = try await service.retrieveArchiveThumbnail(id: id).serializingDownloadedFileURL().value
                     let successMessage = String(localized: "archive.thumbnail.set")
                     await send(.setSuccess(successMessage))
                     await send(.finishThumbnailLoading)
                 } catch: { [id = state.archive.id] error, send in
                     logger.error("Failed to set current page as thumbnail. id=\(id) \(error)")
                     await send(.setError(error.localizedDescription))
+                    await send(.finishThumbnailLoading)
                 }
-            case let .setThumbnailData(thumbnail):
-                state.archiveThumbnail = thumbnail
-                return .none
             case .finishThumbnailLoading:
                 state.settingThumbnail = false
+                state.archive.refresh = true
                 return .none
             case let .tapAction(action):
                 switch action {
@@ -338,7 +327,7 @@ import OrderedCollections
                         id: state.archive.id,
                         title: state.archive.name,
                         tags: state.archive.tags,
-                        thumbnail: state.archiveThumbnail,
+                        thumbnail: Data(),
                         cached: false,
                         totalPages: requested.count,
                         lastUpdate: Date()
