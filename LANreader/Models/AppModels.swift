@@ -150,9 +150,3 @@ extension PersistenceReaderKey where Self == InMemoryKey<IdentifiedArrayOf<Archi
     inMemory("archive")
   }
 }
-
-extension PersistenceReaderKey where Self == InMemoryKey<[String: Int]> {
-  static var totalDownloadPages: Self {
-    inMemory("totalDownloadPages")
-  }
-}

@@ -22,7 +22,6 @@ import OrderedCollections
         @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
         @SharedReader(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
         @Shared var archive: ArchiveItem
-        @Shared(.totalDownloadPages) var totalDownloadPages: [String: Int] = [:]
 
         var indexString: String?
         var sliderIndex: Double = 0
@@ -77,7 +76,7 @@ import OrderedCollections
         case setError(String)
         case setSuccess(String)
         case downloadPages
-        case finishDownloadPages(Int)
+        case finishDownloadPages
         case removeCache
         case loadCached
 
@@ -333,13 +332,12 @@ import OrderedCollections
                         lastUpdate: Date()
                     )
                     try database.saveCache(&cache)
-                    await send(.finishDownloadPages(requested.count))
+                    await send(.finishDownloadPages)
                 } catch: { error, send in
                     logger.error("failed to cache archive \(error)")
                     await send(.setError(error.localizedDescription))
                 }
-            case let .finishDownloadPages(total):
-                state.totalDownloadPages[state.archive.id] = total
+            case .finishDownloadPages:
                 let successMessage = String(localized: "archive.cache.added")
                 state.successMessage = successMessage
                 return .none
