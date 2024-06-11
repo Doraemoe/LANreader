@@ -120,8 +120,10 @@ import NotificationBannerSwift
                 archives.forEach { item in
                     state.archiveItems.updateOrAppend(item)
                 }
-                let gridFeatureState = archives.map { item in
-                    GridFeature.State(archive: state.$archiveItems[id: item.id]!)
+                let gridFeatureState = archives.compactMap { item in
+                    state.$archiveItems[id: item.id]
+                }.map {
+                    GridFeature.State(archive: $0)
                 }
                 if !append {
                     state.archives = .init()

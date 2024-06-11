@@ -83,13 +83,4 @@ struct ReadSettings: View {
         Text("settings.previousPage").tag(PageControl.previous.rawValue)
         Text("settings.navigation").tag(PageControl.navigation.rawValue)
     }
-
-    var compressSelectionView: some View = Group {
-        Text("settings.read.image.compress.never").tag(CompressThreshold.never)
-        Text("settings.read.image.compress.one").tag(CompressThreshold.one)
-        Text("settings.read.image.compress.two").tag(CompressThreshold.two)
-        Text("settings.read.image.compress.three").tag(CompressThreshold.three)
-        Text("settings.read.image.compress.four").tag(CompressThreshold.four)
-    }
-
 }

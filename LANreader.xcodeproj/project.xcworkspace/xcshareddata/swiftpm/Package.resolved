@@ -1,5 +1,5 @@
 {
-  "originHash" : "48ed4c8333428e3be278feb5f0454dd1dac62bc5e8f6a324964e8abff59f37aa",
+  "originHash" : "3ebd59855c807c61a66b524a1640afeb2a6f273baa7e6dea62b926a34f5ff5f6",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -78,8 +78,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-case-paths",
       "state" : {
-        "revision" : "8d712376c99fc0267aa0e41fea732babe365270a",
-        "version" : "1.3.3"
+        "revision" : "ecb5b29e65bfc58b4c90216d4ca6ef3a573a28a7",
+        "version" : "1.4.1"
       }
     },
     {
@@ -94,7 +94,7 @@
     {
       "identity" : "swift-collections",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-collections.git",
+      "location" : "https://github.com/apple/swift-collections",
       "state" : {
         "revision" : "94cf62b3ba8d4bed62680a282d4c25f9c63c2efb",
         "version" : "1.1.0"
@@ -103,10 +103,10 @@
     {
       "identity" : "swift-composable-architecture",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pointfreeco/swift-composable-architecture",
+      "location" : "https://github.com/pointfreeco/swift-composable-architecture.git",
       "state" : {
-        "revision" : "433a23118f739078644ebeb4009e23d307af694a",
-        "version" : "1.10.4"
+        "revision" : "1eeca17b21b931fd6a5cc683a2cd659fb0441c66",
+        "version" : "1.11.0"
       }
     },
     {
@@ -159,8 +159,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-perception",
       "state" : {
-        "revision" : "9b77fbd07b9529312f7e9adb10f5131acd9e2363",
-        "version" : "1.2.0"
+        "revision" : "64f7f6c28c6a4d3c4b9da2ba02383e29ab48a8cf",
+        "version" : "1.2.2"
       }
     },
     {

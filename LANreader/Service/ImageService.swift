@@ -1,6 +1,4 @@
-import Foundation
 import UIKit
-import CoreGraphics
 import Dependencies
 import func AVFoundation.AVMakeRect
 
@@ -19,13 +17,14 @@ class ImageService {
 
         let screenRect = UIScreen.main.bounds
         let rect = AVMakeRect(aspectRatio: image.size, insideRect: screenRect)
-        let renderer = UIGraphicsImageRenderer(size: screenRect.size)
+        let normalizedRect = CGRect(origin: .zero, size: rect.size)
+        let renderer = UIGraphicsImageRenderer(size: normalizedRect.size)
 
         if skip {
             try? image.heicData()?.write(to: mainPath)
         } else {
             try? renderer.image { _ in
-                image.draw(in: rect)
+                image.draw(in: normalizedRect)
             }.heicData()?.write(to: mainPath)
         }
 
@@ -36,19 +35,26 @@ class ImageService {
                 try? image.leftHalf?.heicData()?.write(to: leftPath)
                 try? image.rightHalf?.heicData()?.write(to: rightPath)
             } else {
+                let leftImage = image.leftHalf
                 let leftRect = AVMakeRect(
-                    aspectRatio: image.leftHalf?.size ?? CGSize(width: 0, height: 0),
+                    aspectRatio: leftImage?.size ?? .zero,
                     insideRect: screenRect
                 )
-                try? renderer.image { _ in
-                    image.leftHalf?.draw(in: leftRect)
+                let normalizedLeftRect = CGRect(origin: .zero, size: leftRect.size)
+                let leftRenderer = UIGraphicsImageRenderer(size: normalizedLeftRect.size)
+                try? leftRenderer.image { _ in
+                    leftImage?.draw(in: normalizedLeftRect)
                 }.heicData()?.write(to: leftPath)
+
+                let rightImage = image.rightHalf
                 let rightRect = AVMakeRect(
-                    aspectRatio: image.rightHalf?.size ?? CGSize(width: 0, height: 0),
+                    aspectRatio: rightImage?.size ?? .zero,
                     insideRect: screenRect
                 )
-                try? renderer.image { _ in
-                    image.rightHalf?.draw(in: rightRect)
+                let normalizedRightRect = CGRect(origin: .zero, size: rightRect.size)
+                let rightRenderer = UIGraphicsImageRenderer(size: normalizedRightRect.size)
+                try? rightRenderer.image { _ in
+                    rightImage?.draw(in: normalizedRightRect)
                 }.heicData()?.write(to: rightPath)
             }
             splitted = true
