@@ -260,7 +260,7 @@ struct LockScreen: View {
         }
 
         if store.showPin {
-            return store.pin.digits[index].numberString + ".circle"
+            return store.pin.digits[index].singleDigitNumberString + ".circle"
         }
 
         return "circle.fill"
@@ -280,7 +280,7 @@ extension String {
 }
 
 extension Int {
-    var numberString: String {
+    var singleDigitNumberString: String {
         guard self < 10 else { return "0" }
         return String(self)
     }

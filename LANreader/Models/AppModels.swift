@@ -85,51 +85,21 @@ struct SettingsKey {
     static let tapMiddleKey = "settings.read.tap.middle"
     static let tapRightKey = "settings.read.tap.right"
     static let readDirection = "settings.read.direction"
-    static let compressImageThreshold = "settings.read.image.compress.threshold"
     static let showOriginal = "settings.read.image.showOriginal"
     static let fallbackReader = "settings.read.fallback"
     static let splitWideImage = "settings.read.split.Image"
     static let splitPiorityLeft = "settings.read.split.piorityLeft"
     static let autoPageInterval = "settings.read.auto.page.interval"
 
-    static let archiveListOrder = "settings.archive.list.order"
     static let searchSort = "settings.search.sort"
     static let searchSortCustom = "settings.search.sort.custom"
     static let searchSortOrder = "settings.search.sort.order"
-    static let useListView = "settings.view.use.list"
     static let blurInterfaceWhenInactive = "settings.view.blur.inactive"
     static let enablePasscode = "settings.view.passcode.enable"
     static let passcode = "settings.view.passcode"
     static let hideRead = "settings.view.hideRead"
 
-    static let alwaysLoadFromServer = "settings.host.alwaysLoad"
-
     static let lastTagRefresh = "lastTagRefresh"
-}
-
-struct ErrorCode: Equatable {
-
-    static func == (lhs: ErrorCode, rhs: ErrorCode) -> Bool {
-        lhs.name == rhs.name
-                && lhs.code == rhs.code
-    }
-
-    let name: String
-    let code: Int
-
-    private init(name: String, code: Int) {
-        self.name = name
-        self.code = code
-    }
-
-    static let lanraragiServerError = ErrorCode(name: "error.host", code: 1000)
-
-    static let archiveFetchError = ErrorCode(name: "error.list", code: 2000)
-    static let archiveExtractError = ErrorCode(name: "error.extract", code: 2002)
-
-    static let categoryFetchError = ErrorCode(name: "error.category", code: 3000)
-
-    static let emptyPageError = ErrorCode(name: "error.page.empty", code: 4000)
 }
 
 extension Double {

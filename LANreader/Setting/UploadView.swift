@@ -146,7 +146,7 @@ struct UploadView: View {
                                 }
                             })
                         } header: {
-                            Text("Job ID: \(key)")
+                            Text("download.job.id \(key)")
                         }
                     }
                     Text("settings.host.upload.note")
