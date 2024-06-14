@@ -381,6 +381,8 @@ import OrderedCollections
 }
 
 struct ArchiveReader: View {
+    @FocusState private var isFocused: Bool
+
     @Bindable var store: StoreOf<ArchiveReaderFeature>
 
     var body: some View {
@@ -404,6 +406,28 @@ struct ArchiveReader: View {
                     LoadingView(geometry: geometry)
                 }
             }
+        }
+        .focusable()
+        .focused($isFocused)
+        .focusEffectDisabled()
+        .onKeyPress(keys: [.leftArrow, .rightArrow]) { press in
+            if store.readDirection == ReadDirection.leftRight.rawValue {
+                if press.key == .leftArrow {
+                    store.send(.tapAction(PageControl.previous.rawValue), animation: .linear)
+                } else if press.key == .rightArrow {
+                    store.send(.tapAction(PageControl.next.rawValue), animation: .linear)
+                }
+            } else if store.readDirection == ReadDirection.rightLeft.rawValue {
+                if press.key == .leftArrow {
+                    store.send(.tapAction(PageControl.next.rawValue), animation: .linear)
+                } else if press.key == .rightArrow {
+                    store.send(.tapAction(PageControl.previous.rawValue), animation: .linear)
+                }
+            }
+            return .handled
+        }
+        .onAppear {
+            isFocused = true
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

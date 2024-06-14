@@ -120,7 +120,8 @@ import NotificationBannerSwift
                 return .none
             case let .addArchiveToCategory(categoryId):
                 return .run { [state] send in
-                    if state.categoryItems[id: categoryId]?.archives.contains(state.archive.id) == false {
+                    let categoryArchives = state.$categoryItems.withLock { $0[id: categoryId]?.archives }
+                    if categoryArchives?.contains(state.archive.id) == false {
                         let response = try await service.addArchiveToCategory(
                             categoryId: categoryId, archiveId: state.archive.id
                         ).value
@@ -143,7 +144,8 @@ import NotificationBannerSwift
                 }
             case let .removeArchiveFromCategory(categoryId):
                 return .run { [state] send in
-                    if state.categoryItems[id: categoryId]?.archives.contains(state.archive.id) == true {
+                    let categoryArchives = state.$categoryItems.withLock { $0[id: categoryId]?.archives }
+                    if categoryArchives?.contains(state.archive.id) == true {
                         let response = try await service.removeArchiveFromCategory(
                             categoryId: categoryId, archiveId: state.archive.id
                         ).value

@@ -344,7 +344,7 @@ import NotificationBannerSwift
                 return .run { [state] send in
                     var successIds: Set<String> = .init()
                     var errorIds: Set<String> = .init()
-                    let currentCategory = state.categoryItems[id: categoryId]!
+                    let currentCategory = state.$categoryItems.withLock { $0[id: categoryId]! }
 
                     for archiveId in state.selected {
                         if currentCategory.archives.contains(archiveId) {
