@@ -45,6 +45,7 @@
 		E90576B629F6BF8700C3CE3F /* WrappingHStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90576B529F6BF8700C3CE3F /* WrappingHStack.swift */; };
 		E90576BC29F7FB2900C3CE3F /* DraggableAndZoomableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90576BB29F7FB2900C3CE3F /* DraggableAndZoomableView.swift */; };
 		E90576BF29F8C10700C3CE3F /* Puppy in Frameworks */ = {isa = PBXBuildFile; productRef = E90576BE29F8C10700C3CE3F /* Puppy */; };
+		E90C26CB2C1A7A6D00BE87D9 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = E90C26CA2C1A7A6D00BE87D9 /* ComposableArchitecture */; };
 		E926CE7A2B1B5474000E0B10 /* NewCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = E926CE792B1B5474000E0B10 /* NewCategory.swift */; };
 		E94C1DDC2A204DDA00552ABD /* ImageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E94C1DDB2A204DDA00552ABD /* ImageService.swift */; };
 		E9623E6D2BF583FD005FD609 /* CacheView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9623E6C2BF583FD005FD609 /* CacheView.swift */; };
@@ -55,7 +56,6 @@
 		E98B8B7D2A0A7B68004CBBC0 /* Action.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E98B8B6F2A0A7B67004CBBC0 /* Action.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		E98B8B8E2A0B12F3004CBBC0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E98B8B8D2A0B12F3004CBBC0 /* Assets.xcassets */; };
 		E98B8B902A0BA9D1004CBBC0 /* UploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E98B8B8F2A0BA9D1004CBBC0 /* UploadView.swift */; };
-		E995D4E52C12E46800D9D3F3 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = E995D4E42C12E46800D9D3F3 /* ComposableArchitecture */; };
 		E997D8002AF20EE2007C91F1 /* ArchiveGridV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E997D7FF2AF20EE2007C91F1 /* ArchiveGridV2.swift */; };
 		E997D8042AF3C9BA007C91F1 /* LibraryListV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E997D8032AF3C9BA007C91F1 /* LibraryListV2.swift */; };
 		E99D2B412B0176410029FDEC /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E99D2B402B0176410029FDEC /* InfoPlist.xcstrings */; };
@@ -191,7 +191,7 @@
 			files = (
 				E9E3631626F463F800C58D01 /* Logging in Frameworks */,
 				E9E3631826F463F800C58D01 /* GRDB in Frameworks */,
-				E995D4E52C12E46800D9D3F3 /* ComposableArchitecture in Frameworks */,
+				E90C26CB2C1A7A6D00BE87D9 /* ComposableArchitecture in Frameworks */,
 				E9E3631726F463F800C58D01 /* NotificationBannerSwift in Frameworks */,
 				E90576BF29F8C10700C3CE3F /* Puppy in Frameworks */,
 				E9E3631426F463F800C58D01 /* Alamofire in Frameworks */,
@@ -469,7 +469,7 @@
 				7D7A6842250239750051F232 /* NotificationBannerSwift */,
 				7DF7EA792564E264003B5A5A /* GRDB */,
 				E90576BE29F8C10700C3CE3F /* Puppy */,
-				E995D4E42C12E46800D9D3F3 /* ComposableArchitecture */,
+				E90C26CA2C1A7A6D00BE87D9 /* ComposableArchitecture */,
 			);
 			productName = DuManga;
 			productReference = 7D354C9C24F1316800617F4A /* LANreader.app */;
@@ -553,7 +553,7 @@
 				7D7A6841250239750051F232 /* XCRemoteSwiftPackageReference "NotificationBanner" */,
 				7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */,
 				E90576BD29F8C10700C3CE3F /* XCRemoteSwiftPackageReference "Puppy" */,
-				E995D4E32C12E46800D9D3F3 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
+				E90C26C92C1A7A6D00BE87D9 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
 			);
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
 			projectDirPath = "";
@@ -854,7 +854,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 102;
+				CURRENT_PROJECT_VERSION = 103;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -883,7 +883,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 102;
+				CURRENT_PROJECT_VERSION = 103;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -962,7 +962,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 102;
+				CURRENT_PROJECT_VERSION = 103;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -991,7 +991,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 102;
+				CURRENT_PROJECT_VERSION = 103;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1103,12 +1103,12 @@
 				minimumVersion = 0.7.0;
 			};
 		};
-		E995D4E32C12E46800D9D3F3 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */ = {
+		E90C26C92C1A7A6D00BE87D9 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/pointfreeco/swift-composable-architecture.git";
+			repositoryURL = "https://github.com/pointfreeco/swift-composable-architecture";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
+				minimumVersion = 1.11.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -1144,9 +1144,9 @@
 			package = E90576BD29F8C10700C3CE3F /* XCRemoteSwiftPackageReference "Puppy" */;
 			productName = Puppy;
 		};
-		E995D4E42C12E46800D9D3F3 /* ComposableArchitecture */ = {
+		E90C26CA2C1A7A6D00BE87D9 /* ComposableArchitecture */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E995D4E32C12E46800D9D3F3 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;
+			package = E90C26C92C1A7A6D00BE87D9 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;
 			productName = ComposableArchitecture;
 		};
 /* End XCSwiftPackageProductDependency section */
