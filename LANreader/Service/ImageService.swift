@@ -5,14 +5,16 @@ import func AVFoundation.AVMakeRect
 class ImageService {
     private static var _shared: ImageService?
 
+    func processThumbnail(thumbnailUrl: URL, destinationUrl: URL) {
+        guard let image = UIImage(contentsOfFile: thumbnailUrl.path(percentEncoded: false)) else { return }
+        try? image.heicData()?.write(to: destinationUrl)
+    }
+
     func resizeImage(imageUrl: URL, destinationUrl: URL, pageNumber: String, split: Bool, skip: Bool) -> Bool {
         try? FileManager.default.createDirectory(at: destinationUrl, withIntermediateDirectories: true)
-        let mainPath = destinationUrl.appendingPathComponent(pageNumber, conformingTo: .image)
+        let mainPath = destinationUrl.appendingPathComponent("\(pageNumber).heic", conformingTo: .heic)
 
-        // if use UIImage(contentsOfFile:) directly, IOSurface creation failed warning may happen
-        // Same thing happens in PageImageV2
-        guard let imageData = try? Data(contentsOf: imageUrl),
-                let image = UIImage(data: imageData) else { return false }
+        guard let image = UIImage(contentsOfFile: imageUrl.path(percentEncoded: false)) else { return false }
         var splitted = false
 
         let screenRect = UIScreen.main.bounds
@@ -29,8 +31,8 @@ class ImageService {
         }
 
         if split && (image.size.width / image.size.height > 1.2) {
-            let leftPath = destinationUrl.appendingPathComponent("\(pageNumber)-left", conformingTo: .image)
-            let rightPath = destinationUrl.appendingPathComponent("\(pageNumber)-right", conformingTo: .image)
+            let leftPath = destinationUrl.appendingPathComponent("\(pageNumber)-left.heic", conformingTo: .heic)
+            let rightPath = destinationUrl.appendingPathComponent("\(pageNumber)-right.heic", conformingTo: .heic)
             if skip {
                 try? image.leftHalf?.heicData()?.write(to: leftPath)
                 try? image.rightHalf?.heicData()?.write(to: rightPath)

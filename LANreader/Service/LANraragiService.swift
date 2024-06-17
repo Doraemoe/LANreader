@@ -81,9 +81,17 @@ class LANraragiService: NSObject {
 
     func retrieveArchiveThumbnail(id: String) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/api/archives/\(id)/thumbnail")!)
-        return session.download(request, to: { tempUrl, _ in
-            let destinationUrl = LANraragiService.thumbnailPath?
-                .appendingPathComponent(id, conformingTo: .image)
+        return session.download(request, to: { tempUrl, rsp in
+            let destName: String
+            if let filename = rsp.suggestedFilename {
+                let fileExt = (filename as NSString).pathExtension
+                destName = "\(id).\(fileExt)"
+            } else {
+                destName = id
+            }
+            let destinationUrl = LANraragiService.downloadPath?
+                .appendingPathComponent("thumbnail", conformingTo: .folder)
+                .appendingPathComponent(destName, conformingTo: .image)
             ?? tempUrl
             return (destinationUrl, [.createIntermediateDirectories, .removePreviousFile])
         }).validate()
@@ -179,11 +187,18 @@ class LANraragiService: NSObject {
 
     func fetchArchivePage(page: String, pageNumber: Int) -> DownloadRequest {
         let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
-        return session.download(request, to: { tempUrl, _ in
+        return session.download(request, to: { tempUrl, rsp in
+            let destName: String
+            if let filename = rsp.suggestedFilename {
+                let fileExt = (filename as NSString).pathExtension
+                destName = "\(pageNumber).\(fileExt)"
+            } else {
+                destName = "\(pageNumber)"
+            }
             let id = String(page.split(separator: "/")[2])
             let destinationUrl = LANraragiService.downloadPath?
                 .appendingPathComponent(id, conformingTo: .folder)
-                .appendingPathComponent("\(pageNumber)", conformingTo: .image)
+                .appendingPathComponent(destName, conformingTo: .image)
             ?? tempUrl
             return (destinationUrl, [.createIntermediateDirectories, .removePreviousFile])
         }).validate()
