@@ -68,7 +68,7 @@ import NotificationBannerSwift
                                 at: cacheFolder, includingPropertiesForKeys: []
                             ) {
                                 let downloadPage = content.compactMap { url in
-                                    if let pageNumber = Int(url.lastPathComponent) {
+                                    if let pageNumber = Int(url.deletingPathExtension().lastPathComponent) {
                                         return pageNumber
                                     } else {
                                         return nil

@@ -44,11 +44,11 @@ import Logging
             }
             self.folder = imagePath?.appendingPathComponent(archiveId, conformingTo: .folder)
             self.path = self.folder?
-                .appendingPathComponent("\(pageNumber)", conformingTo: .image)
+                .appendingPathComponent("\(pageNumber).heic", conformingTo: .heic)
             self.pathLeft = self.folder?
-                .appendingPathComponent("\(pageNumber)-left", conformingTo: .image)
+                .appendingPathComponent("\(pageNumber)-left.heic", conformingTo: .heic)
             self.pathRight = self.folder?
-                .appendingPathComponent("\(pageNumber)-right", conformingTo: .image)
+                .appendingPathComponent("\(pageNumber)-right.heic", conformingTo: .heic)
         }
     }
 
@@ -192,6 +192,10 @@ struct PageImageV2: View {
     let store: StoreOf<PageFeature>
     let geometrySize: CGSize
 
+    // LazyHStack not clean up memory after item load and go off screen
+    // Use this state to explicity release memory when page go off screen
+    @State var visible = false
+
     var body: some View {
         // If not wrapped in ZStack, TabView will render ALL pages when initial load
         ZStack {
@@ -214,34 +218,37 @@ struct PageImageV2: View {
                         store.send(.load(false))
                     }
                 } else {
-                    let contentPath = {
-                        switch store.pageMode {
-                        case .left:
-                            return store.pathLeft
-                        case .right:
-                            return store.pathRight
-                        default:
-                            return store.path
-                        }
-                    }()
+                    if visible {
+                        let contentPath = {
+                            switch store.pageMode {
+                            case .left:
+                                return store.pathLeft
+                            case .right:
+                                return store.pathRight
+                            default:
+                                return store.path
+                            }
+                        }()
 
-                    AsyncImage(url: contentPath) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                        case .success(let image):
-                            image
+                        if let uiImage = UIImage(contentsOfFile: contentPath?.path(percentEncoded: false) ?? "") {
+                            Image(uiImage: uiImage)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .draggableAndZoomable(contentSize: geometrySize)
-                        case .failure(let error):
-                            Label(error.localizedDescription, systemImage: "rectangle.slash")
+                        } else {
+                            Image(systemName: "rectangle.slash")
                                 .frame(height: geometrySize.height)
-                        @unknown default:
-                            EmptyView()
                         }
+                    } else {
+                        Color.clear
                     }
                 }
+        }
+        .onAppear {
+            visible = true
+        }
+        .onDisappear {
+            visible = false
         }
     }
 }

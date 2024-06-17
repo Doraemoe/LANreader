@@ -26,7 +26,7 @@ import NotificationBannerSwift
         init(archive: Shared<ArchiveItem>, cached: Bool = false) {
             self._archive = archive
             self.thumbnailPath = LANraragiService.thumbnailPath?
-                .appendingPathComponent(archive.id, conformingTo: .image)
+                .appendingPathComponent("\(archive.id).heic", conformingTo: .heic)
             self.cached = cached
         }
     }

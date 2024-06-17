@@ -17,7 +17,7 @@ import Logging
         init(archive: Shared<ArchiveItem>, cached: Bool = false) {
             self._archive = archive
             self.path = LANraragiService.thumbnailPath?
-                .appendingPathComponent(archive.id, conformingTo: .image)
+                .appendingPathComponent("\(archive.id).heic", conformingTo: .heic)
             self.cached = cached
         }
     }
@@ -29,6 +29,7 @@ import Logging
     }
 
     @Dependency(\.lanraragiService) var service
+    @Dependency(\.imageService) var imageService
     @Dependency(\.appDatabase) var database
 
     var body: some ReducerOf<Self> {
@@ -44,11 +45,12 @@ import Logging
                     }
                 }
                 if state.mode == .loading {
-                    return .run(priority: .utility) { [id = state.id] send in
+                    return .run(priority: .utility) { [id = state.id, path = state.path] send in
                         do {
-                            _ = try await service.retrieveArchiveThumbnail(id: id)
+                            let thumbnailUrl = try await service.retrieveArchiveThumbnail(id: id)
                                 .serializingDownloadedFileURL()
                                 .value
+                            imageService.processThumbnail(thumbnailUrl: thumbnailUrl, destinationUrl: path!)
                             await send(.finishLoading)
                         } catch {
                             logger.error("failed to fetch thumbnail. \(error)")

@@ -86,6 +86,7 @@ import OrderedCollections
     }
 
     @Dependency(\.lanraragiService) var service
+    @Dependency(\.imageService) var imageService
     @Dependency(\.appDatabase) var database
     @Dependency(\.dismiss) var dismiss
 
@@ -113,7 +114,7 @@ import OrderedCollections
                     at: cacheFolder, includingPropertiesForKeys: []
                 ) {
                     let pageState = content.compactMap { url in
-                        let page = url.lastPathComponent
+                        let page = url.deletingPathExtension().lastPathComponent
                         if let pageNumber = Int(page) {
                             return PageFeature.State(archiveId: id, pageId: page, pageNumber: pageNumber, cached: true)
                         } else {
@@ -228,7 +229,14 @@ import OrderedCollections
                 guard let pageNumber = state.pages[id: state.indexString ?? ""]?.pageNumber else {return .none }
                 return .run { [id = state.archive.id] send in
                     _ = try await service.updateArchiveThumbnail(id: id, page: pageNumber).value
-                    _ = try await service.retrieveArchiveThumbnail(id: id).serializingDownloadedFileURL().value
+                    let thumbnailUrl = try await service.retrieveArchiveThumbnail(id: id)
+                        .serializingDownloadedFileURL()
+                        .value
+                    imageService.processThumbnail(
+                        thumbnailUrl: thumbnailUrl,
+                        destinationUrl: LANraragiService.thumbnailPath!
+                            .appendingPathComponent("\(id).heic", conformingTo: .heic)
+                    )
                     let successMessage = String(localized: "archive.thumbnail.set")
                     await send(.setSuccess(successMessage))
                     await send(.finishThumbnailLoading)
