@@ -51,7 +51,7 @@ import NotificationBannerSwift
                     state.archiveItems.updateOrAppend(item)
                 }
                 let gridFeatureState = archives.compactMap { item in
-                    state.$archiveItems[id: item.id]
+                    Shared(state.$archiveItems[id: item.id])
                 }.map {
                     GridFeature.State(archive: $0)
                 }

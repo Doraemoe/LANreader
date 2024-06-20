@@ -121,7 +121,7 @@ import NotificationBannerSwift
                     state.archiveItems.updateOrAppend(item)
                 }
                 let gridFeatureState = archives.compactMap { item in
-                    state.$archiveItems[id: item.id]
+                    Shared(state.$archiveItems[id: item.id])
                 }.map {
                     GridFeature.State(archive: $0)
                 }
@@ -344,7 +344,7 @@ import NotificationBannerSwift
                 return .run { [state] send in
                     var successIds: Set<String> = .init()
                     var errorIds: Set<String> = .init()
-                    let currentCategory = state.$categoryItems.withLock { $0[id: categoryId]! }
+                    let currentCategory = await state.$categoryItems.withLock { $0[id: categoryId]! }
 
                     for archiveId in state.selected {
                         if currentCategory.archives.contains(archiveId) {
