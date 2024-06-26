@@ -90,6 +90,7 @@ struct SettingsKey {
     static let splitWideImage = "settings.read.split.Image"
     static let splitPiorityLeft = "settings.read.split.piorityLeft"
     static let autoPageInterval = "settings.read.auto.page.interval"
+    static let doublePageLayout = "settings.read.double.page"
 
     static let searchSort = "settings.search.sort"
     static let searchSortCustom = "settings.search.sort.custom"
