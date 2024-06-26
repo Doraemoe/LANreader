@@ -21,6 +21,7 @@ import OrderedCollections
         @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
         @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
         @SharedReader(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
+        @SharedReader(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
         @Shared var archive: ArchiveItem
 
         var indexString: String?
@@ -187,13 +188,34 @@ import OrderedCollections
                 return .none
             case let .preload(index):
                 return .run(priority: .utility) { [state] send in
-                    if index - 1 > 0 {
-                        let previousPageId = state.pages[index-1].id
-                        await send(.page(.element(id: previousPageId, action: .load(false))))
-                    }
-                    if index + 1 < state.pages.count {
-                        let nextPageId = state.pages[index+1].id
-                        await send(.page(.element(id: nextPageId, action: .load(false))))
+                    if state.doublePageLayout &&
+                        state.readDirection != ReadDirection.upDown.rawValue &&
+                        !state.fallbackReader {
+                        if index - 1 > 0 {
+                            let previous2PageId = state.pages[index-2].id
+                            await send(.page(.element(id: previous2PageId, action: .load(false))))
+                        }
+                        if index - 2 > 0 {
+                            let previous3PageId = state.pages[index-3].id
+                            await send(.page(.element(id: previous3PageId, action: .load(false))))
+                        }
+                        if index + 2 < state.pages.count {
+                            let next2PageId = state.pages[index+2].id
+                            await send(.page(.element(id: next2PageId, action: .load(false))))
+                        }
+                        if index + 3 < state.pages.count {
+                            let next3PageId = state.pages[index+3].id
+                            await send(.page(.element(id: next3PageId, action: .load(false))))
+                        }
+                    } else {
+                        if index > 0 {
+                            let previousPageId = state.pages[index-1].id
+                            await send(.page(.element(id: previousPageId, action: .load(false))))
+                        }
+                        if index + 1 < state.pages.count {
+                            let nextPageId = state.pages[index+1].id
+                            await send(.page(.element(id: nextPageId, action: .load(false))))
+                        }
                     }
                 }
             case let .setIndexString(indexString):
@@ -253,14 +275,34 @@ import OrderedCollections
                 switch action {
                 case PageControl.next.rawValue:
                     if let pageIndex = state.currentIndex {
-                        if pageIndex < state.pages.count - 1 {
-                            state.indexString = state.pages[pageIndex + 1].id
+                        if state.doublePageLayout &&
+                            state.readDirection != ReadDirection.upDown.rawValue &&
+                            !state.fallbackReader {
+                            if pageIndex < state.pages.count - 2 {
+                                state.indexString = state.pages[pageIndex + 2].id
+                            } else if pageIndex < state.pages.count - 1 {
+                                state.indexString = state.pages[pageIndex + 1].id
+                            }
+                        } else {
+                            if pageIndex < state.pages.count - 1 {
+                                state.indexString = state.pages[pageIndex + 1].id
+                            }
                         }
                     }
                 case PageControl.previous.rawValue:
                     if let pageIndex = state.currentIndex {
-                        if pageIndex > 0 {
-                            state.indexString = state.pages[pageIndex - 1].id
+                        if state.doublePageLayout &&
+                            state.readDirection != ReadDirection.upDown.rawValue &&
+                            !state.fallbackReader {
+                            if pageIndex > 1 {
+                                state.indexString = state.pages[pageIndex - 2].id
+                            } else if pageIndex > 0 {
+                                state.indexString = state.pages[pageIndex - 1].id
+                            }
+                        } else {
+                            if pageIndex > 0 {
+                                state.indexString = state.pages[pageIndex - 1].id
+                            }
                         }
                     }
                 case PageControl.navigation.rawValue:
@@ -557,12 +599,12 @@ struct ArchiveReader: View {
                     id: \.state.id
                 ) { pageStore in
                     PageImageV2(store: pageStore, geometrySize: geometry.size)
-                        .frame(width: geometry.size.width)
+                        .frame(width: store.doublePageLayout ? geometry.size.width / 2 : geometry.size.width)
                 }
             }
             .scrollTargetLayout()
         }
-        .scrollTargetBehavior(.paging)
+        .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
         .scrollPosition(id: $store.indexString)
         .onTapGesture { location in
             if location.x < geometry.size.width / 3 {

@@ -1896,6 +1896,23 @@
         }
       }
     },
+    "settings.read.double.page" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double page layout"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "双页模式"
+          }
+        }
+      }
+    },
     "settings.read.fallback" : {
       "extractionState" : "manual",
       "localizations" : {
