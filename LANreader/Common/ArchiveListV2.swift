@@ -405,20 +405,13 @@ import NotificationBannerSwift
             state.lastTagRefresh = Date().timeIntervalSince1970
             Task.detached(priority: .utility) {
                 do {
-                    let response = try await service.databaseBackup().value
+                    let response = try await service.databaseStats().value
                     _ = try database.deleteAllTag()
-                    response.archives.forEach { archive in
-                        archive.tags?.split(separator: ",")
-                            .map { tag in
-                                tag.trimmingCharacters(in: .whitespacesAndNewlines)
-                            }
-                            .forEach { normalizedTag in
-                                let tagKey = String(normalizedTag.split(separator: ":").first ?? "")
-                                if !excludeTags.contains(tagKey) {
-                                    var tagItem = TagItem(tag: normalizedTag)
-                                    try? database.saveTag(tagItem: &tagItem)
-                                }
-                            }
+                    response.forEach { tag in
+                        if !excludeTags.contains(tag.namespace) {
+                            var tagItem = TagItem(tag: "\(tag.namespace):\(tag.text)")
+                            try? database.saveTag(tagItem: &tagItem)
+                        }
                     }
                 } catch {
                     logger.error("failed to refresh tags. \(error)")
