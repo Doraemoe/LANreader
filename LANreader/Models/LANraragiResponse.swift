@@ -38,6 +38,12 @@ struct ArchiveRandomResponse: Decodable {
     let data: [ArchiveIndexResponse]
 }
 
+struct StatsResponse: Decodable {
+    let namespace: String
+    let text: String
+    let weight: String
+}
+
 struct GenericSuccessResponse: Decodable {
     let success: Int
 }
