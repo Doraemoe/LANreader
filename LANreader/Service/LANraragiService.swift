@@ -260,7 +260,7 @@ class LANraragiService: NSObject {
             .validate(statusCode: 200...200)
             .serializingDecodable(DatabaseBackup.self)
     }
-    
+
     func databaseStats() async -> DataTask<[StatsResponse]> {
         session.request("\(url)/api/database/stats", method: .get)
             .validate(statusCode: 200...200)
