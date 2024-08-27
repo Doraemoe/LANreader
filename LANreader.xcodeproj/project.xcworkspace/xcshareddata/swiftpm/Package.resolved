@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/groue/GRDB.swift",
       "state" : {
-        "revision" : "dd6b98ce04eda39aa22f066cd421c24d7236ea8a",
-        "version" : "6.29.1"
+        "revision" : "57a4587b5b09ac706bc985288a62432ddbf20b09",
+        "version" : "6.29.2"
       }
     },
     {
@@ -96,8 +96,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-collections",
       "state" : {
-        "revision" : "3d2dc41a01f9e49d84f0a3925fb858bed64f702d",
-        "version" : "1.1.2"
+        "revision" : "9bf03ff58ce34478e66aaee630e491823326fd06",
+        "version" : "1.1.3"
       }
     },
     {
@@ -105,8 +105,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-composable-architecture",
       "state" : {
-        "revision" : "121b6080697b5457ac63e37d2f2d97cf5acd999a",
-        "version" : "1.13.1"
+        "revision" : "0d8980f5bcc5fe6941f1788758667ff2b8c10f03",
+        "version" : "1.14.0"
       }
     },
     {
@@ -132,8 +132,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-dependencies",
       "state" : {
-        "revision" : "21660b042cd8fd0bdd45cc39050cacd4e91a63a4",
-        "version" : "1.3.8"
+        "revision" : "3ef38bb702a1a2f39c7e19fc0578403b8ee52b17",
+        "version" : "1.3.9"
       }
     },
     {
@@ -159,8 +159,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-navigation",
       "state" : {
-        "revision" : "70321c441d51b0b893c3abbf79687f550a027fde",
-        "version" : "2.0.6"
+        "revision" : "e834b3760731160d7d448509ee6a1408c8582a6b",
+        "version" : "2.2.0"
       }
     },
     {
@@ -168,8 +168,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-perception",
       "state" : {
-        "revision" : "1552c8f722ac256cc0b8daaf1a7073217d4fcdfb",
-        "version" : "1.3.4"
+        "revision" : "bc67aa8e461351c97282c2419153757a446ae1c9",
+        "version" : "1.3.5"
       }
     },
     {

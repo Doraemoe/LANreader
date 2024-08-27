@@ -158,16 +158,7 @@ struct ContentView: View {
             searchView
             settingsView
         }
-        .fullScreenCover(
-            item: $store.scope(state: \.destination?.login, action: \.destination.login)
-        ) { store in
-            LANraragiConfigView(store: store)
-        }
-        .fullScreenCover(
-            item: $store.scope(state: \.destination?.lockScreen, action: \.destination.lockScreen)
-        ) { store in
-            LockScreen(store: store)
-        }
+        .modifier(Covers(store: store))
         .onAppear {
             if store.lanraragiUrl.isEmpty != false {
                 store.send(.showLogin)
@@ -305,5 +296,24 @@ struct ContentView: View {
                 Text("settings")
             }
             .tag("settings")
+    }
+}
+
+// Stupid SwiftUI will complain 'The compiler is unable to type-check this expression in reasonable time' otherwise
+struct Covers: ViewModifier {
+    @Bindable var store: StoreOf<AppFeature>
+
+    func body(content: Content) -> some View {
+        content
+            .fullScreenCover(
+                item: $store.scope(state: \.destination?.login, action: \.destination.login)
+            ) { store in
+                LANraragiConfigView(store: store)
+            }
+            .fullScreenCover(
+                item: $store.scope(state: \.destination?.lockScreen, action: \.destination.lockScreen)
+            ) { store in
+                LockScreen(store: store)
+            }
     }
 }
