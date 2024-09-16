@@ -409,7 +409,11 @@ import NotificationBannerSwift
                     _ = try database.deleteAllTag()
                     response.forEach { tag in
                         if !excludeTags.contains(tag.namespace) {
-                            var tagItem = TagItem(tag: "\(tag.namespace):\(tag.text)")
+                            var tagItem = if tag.namespace.isEmpty {
+                                TagItem(tag: tag.text)
+                            } else {
+                                TagItem(tag: "\(tag.namespace):\(tag.text)")
+                            }
                             try? database.saveTag(tagItem: &tagItem)
                         }
                     }
