@@ -66,8 +66,8 @@ import NotificationBannerSwift
                     archive.name = state.title
                     archive.tags = state.tags
                     _ = try await service.updateArchive(archive: archive).value
-                    state.archive.name = state.title
-                    state.archive.tags = state.tags
+                    await state.$archive.withLock { $0.name = state.title }
+                    await state.$archive.withLock { $0.tags = state.tags }
                     await send(.setSuccessMessage(
                         String(localized: "archive.metadata.update.success"))
                     )
