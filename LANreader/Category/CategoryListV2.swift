@@ -3,11 +3,11 @@ import Logging
 import SwiftUI
 import NotificationBannerSwift
 
-@Reducer struct CategoryFeature {
+@Reducer public struct CategoryFeature {
     private let logger = Logger(label: "CategoryFeature")
 
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         @Presents var destination: Destination.State?
 
         @SharedReader(.appStorage(SettingsKey.lanraragiUrl)) var lanraragiUrl = ""
@@ -18,7 +18,7 @@ import NotificationBannerSwift
         var errorMessage = ""
     }
 
-    enum Action: BindableAction {
+    public enum Action: BindableAction {
         case destination(PresentationAction<Destination.Action>)
 
         case binding(BindingAction<State>)
@@ -32,7 +32,7 @@ import NotificationBannerSwift
 
     @Dependency(\.lanraragiService) var service
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         BindingReducer()
 
         Reduce { state, action in
@@ -95,7 +95,7 @@ import NotificationBannerSwift
     }
 
     @Reducer(state: .equatable)
-    enum Destination {
+    public enum Destination {
         case add(NewCategoryFeature)
         case edit(EditCategoryFeature)
     }

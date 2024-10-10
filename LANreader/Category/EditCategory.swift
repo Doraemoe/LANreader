@@ -2,11 +2,11 @@ import SwiftUI
 import ComposableArchitecture
 import Logging
 
-@Reducer struct EditCategoryFeature {
+@Reducer public struct EditCategoryFeature {
     private let logger = Logger(label: "EditCategoryFeature")
 
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
 
         var id: String
@@ -18,7 +18,7 @@ import Logging
         var errorMessage = ""
     }
 
-    enum Action: Equatable, BindableAction {
+    public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
         case alert(PresentationAction<Alert>)
 
@@ -29,7 +29,7 @@ import Logging
         case editCategoryCancel
         case setErrorMessage(String)
 
-        enum Alert {
+        public enum Alert {
             case confirmDelete
         }
     }
@@ -37,7 +37,7 @@ import Logging
     @Dependency(\.lanraragiService) var service
     @Dependency(\.dismiss) var dismiss
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         BindingReducer()
 
         Reduce { state, action in

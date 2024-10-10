@@ -5,11 +5,11 @@ import Combine
 import Logging
 import NotificationBannerSwift
 
-@Reducer struct ArchiveListFeature {
+@Reducer public struct ArchiveListFeature {
     private let logger = Logger(label: "ArchiveListFeature")
 
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
 
         @SharedReader(.appStorage(SettingsKey.lanraragiUrl)) var lanraragiUrl = ""
@@ -36,7 +36,7 @@ import NotificationBannerSwift
         var archivesToDisplay: IdentifiedArrayOf<GridFeature.State> = []
     }
 
-    enum Action: Equatable {
+    public enum Action: Equatable {
         case alert(PresentationAction<Alert>)
         case grid(IdentifiedActionOf<GridFeature>)
         case loadCategory
@@ -65,7 +65,7 @@ import NotificationBannerSwift
         case deleteSuccess(Set<String>)
         case removeFromCategoryButtonTapped
         case removeFromCategorySuccess(Set<String>)
-        enum Alert {
+        public enum Alert {
             case confirmDelete
             case confirmRemoveFromCategory
         }
@@ -76,7 +76,7 @@ import NotificationBannerSwift
 
     enum CancelId { case search }
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case let .setFilter(filter):

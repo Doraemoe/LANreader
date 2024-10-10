@@ -3,8 +3,8 @@
 import Foundation
 import SwiftUI
 
-struct ArchiveItem: Identifiable, Equatable, Hashable {
-    let id: String
+public struct ArchiveItem: Identifiable, Equatable, Hashable {
+    public let id: String
     var name: String
     let normalizedName: String
     let `extension`: String
@@ -16,8 +16,8 @@ struct ArchiveItem: Identifiable, Equatable, Hashable {
     let dateAdded: Int?
 }
 
-struct CategoryItem: Identifiable, Equatable, Hashable {
-    let id: String
+public struct CategoryItem: Identifiable, Equatable, Hashable {
+    public let id: String
     let name: String
     var archives: [String]
     let search: String

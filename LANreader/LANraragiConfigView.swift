@@ -4,11 +4,11 @@ import SwiftUI
 import NotificationBannerSwift
 import Logging
 
-@Reducer struct LANraragiConfigFeature {
+@Reducer public struct LANraragiConfigFeature {
     private let logger = Logger(label: "LANraragiConfigFeature")
 
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         @Shared(.appStorage(SettingsKey.serverProgress)) var serverProgress = false
         @Shared(.appStorage(SettingsKey.lanraragiUrl)) var url = ""
         @Shared(.appStorage(SettingsKey.lanraragiApiKey)) var apiKey = ""
@@ -20,7 +20,7 @@ import Logging
         var errorMessage = ""
     }
 
-    enum Action: Equatable, BindableAction {
+    public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
         case verifyServer
         case saveComplate
@@ -35,7 +35,7 @@ import Logging
     @Dependency(\.lanraragiService) var lanraragiService
     @Dependency(\.dismiss) var dismiss
 
-    var body: some Reducer<State, Action> {
+    public var body: some Reducer<State, Action> {
         BindingReducer()
         Reduce { state, action in
             switch action {

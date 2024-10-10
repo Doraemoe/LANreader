@@ -2,9 +2,9 @@
 import ComposableArchitecture
 import SwiftUI
 
-@Reducer struct ReadSettingsFeature {
+@Reducer public struct ReadSettingsFeature {
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         @Shared(.appStorage(SettingsKey.tapLeftKey)) var tapLeft = PageControl.next.rawValue
         @Shared(.appStorage(SettingsKey.tapMiddleKey)) var tapMiddle = PageControl.navigation.rawValue
         @Shared(.appStorage(SettingsKey.tapRightKey)) var tapRight = PageControl.previous.rawValue
@@ -15,11 +15,11 @@ import SwiftUI
         @Shared(.appStorage(SettingsKey.splitPiorityLeft)) var splitPiorityLeft = false
         @Shared(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
     }
-    enum Action: BindableAction {
+    public enum Action: BindableAction {
         case binding(BindingAction<State>)
     }
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         BindingReducer()
 
         Reduce { _, action in

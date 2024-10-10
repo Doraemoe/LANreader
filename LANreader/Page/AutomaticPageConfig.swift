@@ -1,22 +1,22 @@
 import SwiftUI
 import ComposableArchitecture
 
-@Reducer struct AutomaticPageFeature {
+@Reducer public struct AutomaticPageFeature {
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         @Shared(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
 
         var showAutomaticPage: Bool = false
     }
 
-    enum Action: Equatable, BindableAction {
+    public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
 
         case startAutoPage
         case cancelAutoPage
     }
 
-    var body: some Reducer<State, Action> {
+    public var body: some Reducer<State, Action> {
         BindingReducer()
 
         Reduce { _, action in

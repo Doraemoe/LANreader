@@ -2,18 +2,18 @@ import ComposableArchitecture
 import Logging
 import SwiftUI
 
-@Reducer struct LibraryFeature {
+@Reducer public struct LibraryFeature {
     private let logger = Logger(label: "LibraryFeature")
 
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         var archiveList = ArchiveListFeature.State(
             filter: SearchFilter(category: nil, filter: nil),
             currentTab: .library
         )
     }
 
-    enum Action: Equatable, BindableAction {
+    public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
 
         case archiveList(ArchiveListFeature.Action)
@@ -23,7 +23,7 @@ import SwiftUI
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         BindingReducer()
 
         Scope(state: \.archiveList, action: \.archiveList) {
