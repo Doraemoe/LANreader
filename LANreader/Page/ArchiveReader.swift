@@ -5,11 +5,11 @@ import Combine
 import NotificationBannerSwift
 import OrderedCollections
 
-@Reducer struct ArchiveReaderFeature {
+@Reducer public struct ArchiveReaderFeature {
     private let logger = Logger(label: "ArchiveReaderFeature")
 
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
 
         @SharedReader(.appStorage(SettingsKey.tapLeftKey)) var tapLeft = PageControl.next.rawValue
@@ -54,7 +54,7 @@ import OrderedCollections
         }
     }
 
-    enum Action: Equatable, BindableAction {
+    public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
         case alert(PresentationAction<Alert>)
 
@@ -81,7 +81,7 @@ import OrderedCollections
         case removeCache
         case loadCached
 
-        enum Alert {
+        public enum Alert {
             case confirmDelete
         }
     }
@@ -91,12 +91,12 @@ import OrderedCollections
     @Dependency(\.appDatabase) var database
     @Dependency(\.dismiss) var dismiss
 
-    enum CancelId {
+    public enum CancelId {
         case updateProgress
         case autoPage
     }
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         BindingReducer()
 
         Scope(state: \.autoPage, action: \.autoPage) {
@@ -479,17 +479,17 @@ struct ArchiveReader: View {
         .onAppear {
             isFocused = true
         }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                NavigationLink(
-                    state: AppFeature.Path.State.details(
-                        ArchiveDetailsFeature.State.init(archive: store.$archive, cached: store.cached)
-                    )
-                ) {
-                    Image(systemName: "info.circle")
-                }
-            }
-        }
+//        .toolbar {
+//            ToolbarItem(placement: .primaryAction) {
+//                NavigationLink(
+//                    state: AppFeature.Path.State.details(
+//                        ArchiveDetailsFeature.State.init(archive: store.$archive, cached: store.cached)
+//                    )
+//                ) {
+//                    Image(systemName: "info.circle")
+//                }
+//            }
+//        }
         .alert(
             $store.scope(state: \.alert, action: \.alert)
         )
@@ -507,6 +507,7 @@ struct ArchiveReader: View {
                 if store.cached {
                     store.send(.loadCached)
                 } else {
+                    print("exracting")
                     store.send(.extractArchive)
                 }
             }
@@ -563,25 +564,26 @@ struct ArchiveReader: View {
         store: StoreOf<ArchiveReaderFeature>,
         geometry: GeometryProxy
     ) -> some View {
-        ScrollView(.vertical) {
-            LazyVStack(spacing: 0) {
-                ForEach(
-                    store.scope(
-                        state: \.pages,
-                        action: \.page
-                    ),
-                    id: \.state.id
-                ) { pageStore in
-                    PageImageV2(store: pageStore, geometrySize: geometry.size)
-                        .frame(width: geometry.size.width)
-                }
+//        ScrollView(.vertical) {
+//            LazyVStack(spacing: 0) {
+//                ForEach(
+//                    store.scope(
+//                        state: \.pages,
+//                        action: \.page
+//                    ),
+//                    id: \.state.id
+//                ) { pageStore in
+//                    PageImageV2(store: pageStore, geometrySize: geometry.size)
+//                        .frame(width: geometry.size.width)
+//                }
+//            }
+//            .scrollTargetLayout()
+//        }
+//        .scrollPosition(id: $store.indexString)
+        UIPageCollection(store: store, size: geometry.size)
+            .onTapGesture {
+                store.send(.tapAction(PageControl.navigation.rawValue))
             }
-            .scrollTargetLayout()
-        }
-        .scrollPosition(id: $store.indexString)
-        .onTapGesture {
-            store.send(.tapAction(PageControl.navigation.rawValue))
-        }
     }
 
     @MainActor
@@ -589,32 +591,33 @@ struct ArchiveReader: View {
         store: StoreOf<ArchiveReaderFeature>,
         geometry: GeometryProxy
     ) -> some View {
-        ScrollView(.horizontal) {
-            LazyHStack(spacing: 0) {
-                ForEach(
-                    store.scope(
-                        state: \.pages,
-                        action: \.page
-                    ),
-                    id: \.state.id
-                ) { pageStore in
-                    PageImageV2(store: pageStore, geometrySize: geometry.size)
-                        .frame(width: store.doublePageLayout ? geometry.size.width / 2 : geometry.size.width)
+//        ScrollView(.horizontal) {
+//            LazyHStack(spacing: 0) {
+//                ForEach(
+//                    store.scope(
+//                        state: \.pages,
+//                        action: \.page
+//                    ),
+//                    id: \.state.id
+//                ) { pageStore in
+//                    PageImageV2(store: pageStore, geometrySize: geometry.size)
+//                        .frame(width: store.doublePageLayout ? geometry.size.width / 2 : geometry.size.width)
+//                }
+//            }
+//            .scrollTargetLayout()
+//        }
+//        .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
+//        .scrollPosition(id: $store.indexString)
+        UIPageCollection(store: store, size: geometry.size)
+            .onTapGesture { location in
+                if location.x < geometry.size.width / 3 {
+                    store.send(.tapAction(store.tapLeft), animation: .linear)
+                } else if location.x > geometry.size.width / 3 * 2 {
+                    store.send(.tapAction(store.tapRight), animation: .linear)
+                } else {
+                    store.send(.tapAction(store.tapMiddle), animation: .linear)
                 }
             }
-            .scrollTargetLayout()
-        }
-        .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
-        .scrollPosition(id: $store.indexString)
-        .onTapGesture { location in
-            if location.x < geometry.size.width / 3 {
-                store.send(.tapAction(store.tapLeft), animation: .linear)
-            } else if location.x > geometry.size.width / 3 * 2 {
-                store.send(.tapAction(store.tapRight), animation: .linear)
-            } else {
-                store.send(.tapAction(store.tapMiddle), animation: .linear)
-            }
-        }
     }
 
     @MainActor

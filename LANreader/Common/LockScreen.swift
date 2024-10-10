@@ -3,9 +3,9 @@ import SwiftUI
 import NotificationBannerSwift
 import LocalAuthentication
 
-@Reducer struct LockScreenFeature {
+@Reducer public struct LockScreenFeature {
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         @Shared(.appStorage(SettingsKey.passcode)) var passcode = ""
 
         var pin = ""
@@ -17,7 +17,7 @@ import LocalAuthentication
         var errorMessage = ""
     }
 
-    enum Action: Equatable, BindableAction {
+    public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
 
         case setPin(String)
@@ -32,7 +32,7 @@ import LocalAuthentication
 
     @Dependency(\.dismiss) var dismiss
 
-    var body: some Reducer<State, Action> {
+    public var body: some Reducer<State, Action> {
         BindingReducer()
 
         Reduce { state, action in

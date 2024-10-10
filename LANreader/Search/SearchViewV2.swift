@@ -3,11 +3,11 @@ import SwiftUI
 import NotificationBannerSwift
 import Logging
 
-@Reducer struct SearchFeature {
+@Reducer public struct SearchFeature {
     private let logger = Logger(label: "SearchFeature")
 
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         var keyword = ""
         var suggestedTag = [String]()
         var archiveList = ArchiveListFeature.State(
@@ -17,7 +17,7 @@ import Logging
         )
     }
 
-    enum Action: Equatable, BindableAction {
+    public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
         case generateSuggestion
         case suggestionTapped(String)
@@ -28,9 +28,9 @@ import Logging
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
 
-    enum CancelId { case search }
+    public enum CancelId { case search }
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
 
         Scope(state: \.archiveList, action: \.archiveList) {
             ArchiveListFeature()

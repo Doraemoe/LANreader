@@ -4,17 +4,17 @@
 import ComposableArchitecture
 import SwiftUI
 
-@Reducer struct LogFeature {
+@Reducer public struct LogFeature {
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         var log = ""
     }
 
-    enum Action: Equatable {
+    public enum Action: Equatable {
         case setLog(String)
     }
 
-    var body: some Reducer<State, Action> {
+    public var body: some Reducer<State, Action> {
         Reduce { state, action in
             switch action {
             case let .setLog(log):
