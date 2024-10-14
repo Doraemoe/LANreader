@@ -441,9 +441,6 @@ struct ArchiveReader: View {
             ZStack {
                 if store.readDirection == ReadDirection.upDown.rawValue {
                     vReader(store: store, geometry: geometry)
-                } else if store.fallbackReader {
-                    hReaderFallback(store: store, geometry: geometry)
-                        .environment(\.layoutDirection, flip ? .rightToLeft : .leftToRight)
                 } else {
                     hReader(store: store, geometry: geometry)
                         .environment(\.layoutDirection, flip ? .rightToLeft : .leftToRight)
@@ -493,7 +490,7 @@ struct ArchiveReader: View {
         .alert(
             $store.scope(state: \.alert, action: \.alert)
         )
-        .toolbar(store.controlUiHidden ? .hidden : .visible, for: .navigationBar)
+//        .toolbar(store.controlUiHidden ? .hidden : .visible, for: .navigationBar)
         .navigationBarTitle(store.archive.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
@@ -564,22 +561,6 @@ struct ArchiveReader: View {
         store: StoreOf<ArchiveReaderFeature>,
         geometry: GeometryProxy
     ) -> some View {
-//        ScrollView(.vertical) {
-//            LazyVStack(spacing: 0) {
-//                ForEach(
-//                    store.scope(
-//                        state: \.pages,
-//                        action: \.page
-//                    ),
-//                    id: \.state.id
-//                ) { pageStore in
-//                    PageImageV2(store: pageStore, geometrySize: geometry.size)
-//                        .frame(width: geometry.size.width)
-//                }
-//            }
-//            .scrollTargetLayout()
-//        }
-//        .scrollPosition(id: $store.indexString)
         UIPageCollection(store: store, size: geometry.size)
             .onTapGesture {
                 store.send(.tapAction(PageControl.navigation.rawValue))
@@ -591,23 +572,6 @@ struct ArchiveReader: View {
         store: StoreOf<ArchiveReaderFeature>,
         geometry: GeometryProxy
     ) -> some View {
-//        ScrollView(.horizontal) {
-//            LazyHStack(spacing: 0) {
-//                ForEach(
-//                    store.scope(
-//                        state: \.pages,
-//                        action: \.page
-//                    ),
-//                    id: \.state.id
-//                ) { pageStore in
-//                    PageImageV2(store: pageStore, geometrySize: geometry.size)
-//                        .frame(width: store.doublePageLayout ? geometry.size.width / 2 : geometry.size.width)
-//                }
-//            }
-//            .scrollTargetLayout()
-//        }
-//        .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
-//        .scrollPosition(id: $store.indexString)
         UIPageCollection(store: store, size: geometry.size)
             .onTapGesture { location in
                 if location.x < geometry.size.width / 3 {
@@ -618,36 +582,6 @@ struct ArchiveReader: View {
                     store.send(.tapAction(store.tapMiddle), animation: .linear)
                 }
             }
-    }
-
-    @MainActor
-    private func hReaderFallback(
-        store: StoreOf<ArchiveReaderFeature>,
-        geometry: GeometryProxy
-    ) -> some View {
-        TabView(selection: $store.fallbackIndexString.sending(\.setIndexString)) {
-            ForEach(
-                store.scope(
-                    state: \.pages,
-                    action: \.page
-                ),
-                id: \.state.id
-            ) { pageStore in
-                PageImageV2(store: pageStore, geometrySize: geometry.size)
-                    .frame(width: geometry.size.width)
-                    .tag(pageStore.state.id)
-            }
-        }
-        .tabViewStyle(.page(indexDisplayMode: .never))
-        .onTapGesture { location in
-            if location.x < geometry.size.width / 3 {
-                store.send(.tapAction(store.tapLeft), animation: .linear)
-            } else if location.x > geometry.size.width / 3 * 2 {
-                store.send(.tapAction(store.tapRight), animation: .linear)
-            } else {
-                store.send(.tapAction(store.tapMiddle), animation: .linear)
-            }
-        }
     }
 
     // swiftlint:disable function_body_length

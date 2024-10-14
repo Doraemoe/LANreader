@@ -370,20 +370,24 @@ struct ArchiveDetailsV2: View {
         }
         let normalizedTag = String(tag.trimmingCharacters(in: .whitespacesAndNewlines))
         return AnyView(
-            NavigationLink(
-                state: AppFeature.Path.State.search(
-                    SearchFeature.State.init(
-                        keyword: normalizedTag, archiveList: ArchiveListFeature.State(
-                            filter: SearchFilter(category: nil, filter: normalizedTag),
-                            loadOnAppear: true,
-                            currentTab: .search
-                        )
-                    )
-                )
-            ) {
-                Text(processedTag)
-                    .lineLimit(1)
-            }
+            Text(processedTag)
+                .lineLimit(1)
         )
+//        return AnyView(
+//            NavigationLink(
+//                state: AppFeature.Path.State.search(
+//                    SearchFeature.State.init(
+//                        keyword: normalizedTag, archiveList: ArchiveListFeature.State(
+//                            filter: SearchFilter(category: nil, filter: normalizedTag),
+//                            loadOnAppear: true,
+//                            currentTab: .search
+//                        )
+//                    )
+//                )
+//            ) {
+//                Text(processedTag)
+//                    .lineLimit(1)
+//            }
+//        )
     }
 }

@@ -1,63 +1,122 @@
-import UIKit
-import ComposableArchitecture
 import Combine
+import ComposableArchitecture
 import SwiftUI
+import UIKit
 
 class UIPageCell: UICollectionViewCell {
-    private var hostingController: UIHostingController<PageImageV2>?
+    static let reuseIdentifier = "UIPageCell"
 
+    private var store: StoreOf<PageFeature>?
+    private var cellSize: CGSize?
     private var cancellables: Set<AnyCancellable> = []
 
-    private var cellSize: CGSize = .zero
+    private let scrollView: UIScrollView = {
+        let view = UIScrollView()
+        view.minimumZoomScale = 1.0
+        view.maximumZoomScale = 3.0
+        view.showsHorizontalScrollIndicator = false
+        view.showsVerticalScrollIndicator = false
+        return view
+    }()
+
+    private let imageView: UIImageView = {
+        let view = UIImageView()
+        view.contentMode = .scaleAspectFit
+        view.clipsToBounds = true
+        return view
+    }()
+
+    private let progressView: UIProgressView = {
+        let view = UIProgressView(progressViewStyle: .default)
+        view.progressTintColor = .label
+        return view
+    }()
+
+    private let progressViewLabel: UILabel = {
+        let label = UILabel()
+        label.textAlignment = .natural
+        label.textColor = .label
+        return label
+    }()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupImageView()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    private func setupImageView() {
+        contentView.addSubview(scrollView)
+        scrollView.addSubview(imageView)
+        contentView.addSubview(progressView)
+        contentView.addSubview(progressViewLabel)
+
+        scrollView.delegate = self
+
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        progressView.translatesAutoresizingMaskIntoConstraints = false
+        progressViewLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            scrollView.leadingAnchor.constraint(
+                equalTo: contentView.leadingAnchor),
+            scrollView.trailingAnchor.constraint(
+                equalTo: contentView.trailingAnchor),
+            scrollView.bottomAnchor.constraint(
+                equalTo: contentView.bottomAnchor),
+
+            imageView.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            imageView.leadingAnchor.constraint(
+                equalTo: scrollView.leadingAnchor),
+            imageView.trailingAnchor.constraint(
+                equalTo: scrollView.trailingAnchor),
+            imageView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+            imageView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
+            imageView.heightAnchor.constraint(equalTo: scrollView.heightAnchor),
+
+            progressView.centerXAnchor.constraint(
+                equalTo: contentView.centerXAnchor),
+            progressView.centerYAnchor.constraint(
+                equalTo: contentView.centerYAnchor),
+            progressView.widthAnchor.constraint(
+                equalTo: contentView.widthAnchor, multiplier: 0.9),
+
+            progressViewLabel.leadingAnchor.constraint(
+                equalTo: progressView.leadingAnchor),
+            progressViewLabel.topAnchor.constraint(
+                equalTo: progressView.bottomAnchor, constant: 8)
+        ])
+    }
 
     func configure(with store: StoreOf<PageFeature>, size: CGSize) {
-        if hostingController == nil {
-            let hostingController = UIHostingController(rootView: PageImageV2(store: store, geometrySize: size))
-            hostingController.view.backgroundColor = .clear
-            hostingController.view.translatesAutoresizingMaskIntoConstraints = false
-            contentView.addSubview(hostingController.view)
-            NSLayoutConstraint.activate([
-                hostingController.view.topAnchor.constraint(equalTo: contentView.topAnchor),
-                hostingController.view.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-                hostingController.view.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-                hostingController.view.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
-            ])
-            self.hostingController = hostingController
-        } else {
-            hostingController?.rootView = PageImageV2(store: store, geometrySize: size)
-        }
+        self.store = store
+        self.cellSize = size
+        imageView.image = nil
+        progressView.progress = 0
+        progressView.isHidden = true
+        progressViewLabel.isHidden = true
+        scrollView.zoomScale = 1.0
+        setupObserve(store: store)
     }
 
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        self.cellSize = .zero
-    }
+    func setupObserve(store: StoreOf<PageFeature>) {
+        observe { [weak self] in
+            guard let self else { return }
 
-    func load(callback: () -> Void) async {
-        if hostingController?.rootView.store.pageMode == .loading {
-            print("load image")
-            await hostingController?.rootView.store.send(.load(false)).finish()
-            callback()
-        }
-    }
-
-    override func preferredLayoutAttributesFitting(_ layoutAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutAttributes {
-        let attributes = super.preferredLayoutAttributesFitting(layoutAttributes)
-        guard let hostingController = hostingController else {
-            return attributes
-        }
-
-        let store = hostingController.rootView.store
-        let targetWidth = layoutAttributes.size.width
-
-        if store.readDirection != ReadDirection.upDown.rawValue || store.pageMode == .loading {
-            attributes.size = hostingController.rootView.geometrySize
-        } else {
-            if self.cellSize != .zero {
-                print("cheap")
-                attributes.size = self.cellSize
+            if store.pageMode == .loading {
+                progressView.isHidden = false
+                progressViewLabel.isHidden = false
+                progressView.progress = Float(store.progress)
+                progressViewLabel.text = String(
+                    format: "%.2f%%", store.progress * 100)
             } else {
-                print("expensive")
+                progressView.isHidden = true
+                progressViewLabel.isHidden = true
                 let contentPath = {
                     switch store.pageMode {
                     case .left:
@@ -68,15 +127,57 @@ class UIPageCell: UICollectionViewCell {
                         return store.path
                     }
                 }()
-                if let uiImage = UIImage(contentsOfFile: contentPath?.path(percentEncoded: false) ?? "") {
-                    let height = hostingController.rootView.geometrySize.width * uiImage.size.height / uiImage.size.width
-                    attributes.size = CGSize(width: targetWidth, height: height)
+
+                if let uiImage = UIImage(
+                    contentsOfFile: contentPath?.path(percentEncoded: false)
+                        ?? "") {
+                    imageView.image = uiImage
                 } else {
-                    attributes.size = CGSize(width: targetWidth, height: hostingController.rootView.geometrySize.height)
+                    imageView.image = UIImage(systemName: "rectangle.slash")
                 }
-                self.cellSize = attributes.size
             }
         }
+    }
+
+    func load(callback: () -> Void) async {
+        if store?.pageMode == .loading {
+            await store?.send(.load(false)).finish()
+            callback()
+        }
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        imageView.image = nil
+        progressView.progress = 0
+        progressView.isHidden = true
+        scrollView.zoomScale = 1.0
+    }
+
+    override func preferredLayoutAttributesFitting(
+        _ layoutAttributes: UICollectionViewLayoutAttributes
+    ) -> UICollectionViewLayoutAttributes {
+        let attributes = super.preferredLayoutAttributesFitting(
+            layoutAttributes)
+
+        if store?.pageMode == .loading || cellSize == nil
+            || imageView.image == nil
+            || store?.readDirection != ReadDirection.upDown.rawValue {
+            attributes.size = cellSize ?? .zero
+            return attributes
+        } else {
+            let height =
+                cellSize!.width * imageView.image!.size.height
+                / imageView.image!.size.width
+            attributes.size = CGSize(width: cellSize!.width, height: height)
+        }
+
         return attributes
+    }
+}
+
+extension UIPageCell: UIScrollViewDelegate {
+    func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+        return imageView
     }
 }

@@ -30,6 +30,30 @@ class UIArchiveReaderController: UIViewController {
         ])
     }
 
+    func setupToolbar() {
+        let detailsAction = UIAction(image: UIImage(systemName: "info.circle")) { [weak self] _ in
+            guard let self else { return }
+            let detailsStore = Store(
+                initialState: ArchiveDetailsFeature.State.init(archive: store.$archive, cached: store.cached)
+            ) {
+                ArchiveDetailsFeature()
+            }
+
+            navigationController?.pushViewController(
+                UIHostingController(rootView: ArchiveDetailsV2(store: detailsStore)),
+                animated: true
+            )
+        }
+        let detailsButton = UIBarButtonItem(primaryAction: detailsAction)
+
+        navigationItem.rightBarButtonItem = detailsButton
+    }
+
+    // Action method for the button tap
+    @objc func rightButtonTapped() {
+        print("Right navigation button tapped")
+    }
+
     private func setupObserve() {
         store.publisher.controlUiHidden
             .sink { [weak self] hidden in
@@ -45,12 +69,13 @@ class UIArchiveReaderController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupLayout()
+        setupToolbar()
         setupObserve()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(true, animated: animated)
+        navigationController?.setNavigationBarHidden(store.controlUiHidden, animated: animated)
     }
 
     override func viewWillDisappear(_ animated: Bool) {

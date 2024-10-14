@@ -64,7 +64,9 @@ class UILibraryListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let archiveListView = UIArchiveListViewController(store: store.scope(state: \.archiveList, action: \.archiveList))
+        let archiveListView = UIArchiveListViewController(
+            store: store.scope(state: \.archiveList, action: \.archiveList)
+        )
         add(archiveListView)
         NSLayoutConstraint.activate([
             archiveListView.view.topAnchor.constraint(equalTo: view.topAnchor),

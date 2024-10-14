@@ -1,5 +1,5 @@
-import ComposableArchitecture
 import Combine
+import ComposableArchitecture
 import SwiftUI
 import UIKit
 
@@ -28,7 +28,8 @@ class UIPageCollectionController: UICollectionViewController {
     let store: StoreOf<ArchiveReaderFeature>
     let size: CGSize
 
-    var dataSource: UICollectionViewDiffableDataSource<Section, StoreOf<PageFeature>>!
+    var dataSource:
+        UICollectionViewDiffableDataSource<Section, StoreOf<PageFeature>>!
 
     private var cancellables: Set<AnyCancellable> = []
 
@@ -36,14 +37,18 @@ class UIPageCollectionController: UICollectionViewController {
         self.store = store
         self.size = size
 
-        let heightDimension = store.readDirection == ReadDirection.upDown.rawValue ? NSCollectionLayoutDimension.estimated(size.height) : NSCollectionLayoutDimension.fractionalHeight(1)
+        let heightDimension =
+            store.readDirection == ReadDirection.upDown.rawValue
+            ? NSCollectionLayoutDimension.estimated(size.height)
+            : NSCollectionLayoutDimension.fractionalHeight(1)
         let itemSize = NSCollectionLayoutSize(
             widthDimension: NSCollectionLayoutDimension.fractionalWidth(1),
             heightDimension: heightDimension
         )
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
 
-        let group = NSCollectionLayoutGroup.horizontal(layoutSize: itemSize, repeatingSubitem: item, count: 1)
+        let group = NSCollectionLayoutGroup.horizontal(
+            layoutSize: itemSize, repeatingSubitem: item, count: 1)
 
         let section = NSCollectionLayoutSection(group: group)
         if store.readDirection != ReadDirection.upDown.rawValue {
@@ -51,10 +56,6 @@ class UIPageCollectionController: UICollectionViewController {
         }
 
         let layout = UICollectionViewCompositionalLayout(section: section)
-
-//        let layout = UICollectionViewFlowLayout()
-//        layout.scrollDirection = .vertical
-//        layout.estimatedItemSize = UICollectionViewFlowLayout.automaticSize
 
         super.init(collectionViewLayout: layout)
     }
@@ -70,25 +71,33 @@ class UIPageCollectionController: UICollectionViewController {
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
             collectionView.topAnchor.constraint(equalTo: self.view.topAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
-            collectionView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor)
+            collectionView.bottomAnchor.constraint(
+                equalTo: self.view.bottomAnchor),
+            collectionView.leadingAnchor.constraint(
+                equalTo: self.view.leadingAnchor),
+            collectionView.trailingAnchor.constraint(
+                equalTo: self.view.trailingAnchor)
 
         ])
     }
 
     private func setupCell() {
-        collectionView.register(UIPageCell.self, forCellWithReuseIdentifier: "Page")
-        let cellRegistration = UICollectionView.CellRegistration<UIPageCell, StoreOf<PageFeature>> { [weak self] cell, _, pageStore in
+        collectionView.register(
+            UIPageCell.self, forCellWithReuseIdentifier: "Page")
+        let cellRegistration = UICollectionView.CellRegistration<
+            UIPageCell, StoreOf<PageFeature>
+        > { [weak self] cell, _, pageStore in
             guard self != nil else { return }
             cell.configure(with: pageStore, size: self?.size ?? .zero)
         }
 
-        dataSource = UICollectionViewDiffableDataSource<Section, StoreOf<PageFeature>>(collectionView: collectionView) { collectionView, indexPath, pageStore in
+        dataSource = UICollectionViewDiffableDataSource<
+            Section, StoreOf<PageFeature>
+        >(collectionView: collectionView) { collectionView, indexPath, pageStore in
             collectionView.dequeueConfiguredReusableCell(
-              using: cellRegistration,
-              for: indexPath,
-              item: pageStore
+                using: cellRegistration,
+                for: indexPath,
+                item: pageStore
             )
         }
     }
@@ -96,9 +105,12 @@ class UIPageCollectionController: UICollectionViewController {
     private func setupObserve() {
         observe { [weak self] in
             guard let self else { return }
-            var snapshot = NSDiffableDataSourceSnapshot<Section, StoreOf<PageFeature>>()
+            var snapshot = NSDiffableDataSourceSnapshot<
+                Section, StoreOf<PageFeature>
+            >()
             snapshot.appendSections([.main])
-            snapshot.appendItems(Array(store.scope(state: \.pages, action: \.page)))
+            snapshot.appendItems(
+                Array(store.scope(state: \.pages, action: \.page)))
             dataSource.apply(snapshot, animatingDifferences: false)
         }
     }
@@ -118,9 +130,13 @@ class UIPageCollectionController: UICollectionViewController {
     }
 }
 
-extension UIPageCollectionController: UICollectionViewDataSourcePrefetching, UICollectionViewDelegateFlowLayout {
+extension UIPageCollectionController: UICollectionViewDataSourcePrefetching,
+    UICollectionViewDelegateFlowLayout {
 
-    override func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+    override func collectionView(
+        _ collectionView: UICollectionView,
+        willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath
+    ) {
         if let pageCell = cell as? UIPageCell {
             Task {
                 await pageCell.load {
@@ -132,19 +148,27 @@ extension UIPageCollectionController: UICollectionViewDataSourcePrefetching, UIC
         }
     }
 
-    override func collectionView(_ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+    override func collectionView(
+        _ collectionView: UICollectionView,
+        didEndDisplaying cell: UICollectionViewCell,
+        forItemAt indexPath: IndexPath
+    ) {
 
     }
 
-    func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
+    func collectionView(
+        _ collectionView: UICollectionView,
+        prefetchItemsAt indexPaths: [IndexPath]
+    ) {
         indexPaths.forEach { path in
             if let pageStore = dataSource.itemIdentifier(for: path) {
                 if pageStore.pageMode == .loading {
-                    print("preload")
                     Task {
                         await pageStore.send(.load(false)).finish()
-                        if self.store.readDirection == ReadDirection.upDown.rawValue {
-                            collectionView.collectionViewLayout.invalidateLayout()
+                        if self.store.readDirection
+                            == ReadDirection.upDown.rawValue {
+                            collectionView.collectionViewLayout
+                                .invalidateLayout()
                         }
                     }
                 }
@@ -152,6 +176,9 @@ extension UIPageCollectionController: UICollectionViewDataSourcePrefetching, UIC
         }
     }
 
-    func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
+    func collectionView(
+        _ collectionView: UICollectionView,
+        cancelPrefetchingForItemsAt indexPaths: [IndexPath]
+    ) {
     }
 }
