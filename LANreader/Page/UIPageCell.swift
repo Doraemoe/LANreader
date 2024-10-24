@@ -6,7 +6,7 @@ import UIKit
 class UIPageCell: UICollectionViewCell {
     static let reuseIdentifier = "UIPageCell"
 
-    private var store: StoreOf<PageFeature>?
+    var store: StoreOf<PageFeature>?
     private var cellSize: CGSize?
     private var cancellables: Set<AnyCancellable> = []
 

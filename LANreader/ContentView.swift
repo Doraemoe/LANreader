@@ -158,7 +158,6 @@ struct ContentView: View {
             searchView
             settingsView
         }
-//        .environment(\.horizontalSizeClass, .compact)
         .modifier(Covers(store: store))
         .onAppear {
             if store.lanraragiUrl.isEmpty != false {
