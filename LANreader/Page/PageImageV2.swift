@@ -3,15 +3,14 @@ import Alamofire
 import SwiftUI
 import Logging
 
-@Reducer struct PageFeature {
+@Reducer public struct PageFeature {
     private let logger = Logger(label: "PageFeature")
 
     @ObservableState
-    struct State: Equatable, Identifiable {
-        @SharedReader(.appStorage(SettingsKey.showOriginal)) var showOriginal = false
-        @SharedReader(.appStorage(SettingsKey.fallbackReader)) var fallback = false
+    public struct State: Equatable, Identifiable {
         @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
         @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
+        @SharedReader(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
 
         let pageId: String
         let suffix: String
@@ -22,7 +21,7 @@ import Logging
         var pageMode: PageMode
         let cached: Bool
 
-        var id: String {
+        public var id: String {
             "\(pageId)-\(suffix)"
         }
 
@@ -52,7 +51,7 @@ import Logging
         }
     }
 
-    enum Action: Equatable {
+    public enum Action: Equatable {
         case load(Bool)
         case setIsLoading(Bool)
         case subscribeToProgress(DownloadRequest)
@@ -66,9 +65,9 @@ import Logging
     @Dependency(\.lanraragiService) var service
     @Dependency(\.imageService) var imageService
 
-    enum CancelId { case imageProgress }
+    public enum CancelId { case imageProgress }
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case let .subscribeToProgress(progress):
@@ -96,7 +95,7 @@ import Logging
                 if force {
                     state.pageMode = .loading
                 } else if state.pageMode == .loading {
-                    if state.splitImage && !state.fallback {
+                    if state.splitImage {
                         if state.piorityLeft &&
                             FileManager.default.fileExists(
                                 atPath: state.pathLeft?.path(percentEncoded: false) ?? ""
@@ -132,15 +131,11 @@ import Logging
                                     .value
                                 await send(.cancelSubscribeImageProgress)
 
-                                if !state.showOriginal {
-                                    await send(.setProgress(2.0))
-                                }
                                 let splitted = imageService.resizeImage(
                                     imageUrl: imageUrl,
                                     destinationUrl: state.folder!,
                                     pageNumber: String(state.pageNumber),
-                                    split: state.splitImage && !state.fallback,
-                                    skip: state.showOriginal
+                                    split: state.splitImage
                                 )
                                 await send(.setImage(previousPageMode, splitted))
                             } catch {
@@ -192,10 +187,6 @@ struct PageImageV2: View {
     let store: StoreOf<PageFeature>
     let geometrySize: CGSize
 
-    // LazyHStack not clean up memory after item load and go off screen
-    // Use this state to explicity release memory when page go off screen
-    @State var visible = false
-
     var body: some View {
         // If not wrapped in ZStack, TabView will render ALL pages when initial load
         ZStack {
@@ -214,46 +205,33 @@ struct PageImageV2: View {
                     .frame(height: geometrySize.height)
                     .padding(.horizontal, 20)
                     .tint(.primary)
-                    .task {
-                        store.send(.load(false))
-                    }
                 } else {
-                    if visible {
-                        let contentPath = {
-                            switch store.pageMode {
-                            case .left:
-                                return store.pathLeft
-                            case .right:
-                                return store.pathRight
-                            default:
-                                return store.path
-                            }
-                        }()
-
-                        if let uiImage = UIImage(contentsOfFile: contentPath?.path(percentEncoded: false) ?? "") {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .draggableAndZoomable(contentSize: geometrySize)
-                        } else {
-                            Image(systemName: "rectangle.slash")
-                                .frame(height: geometrySize.height)
+                    let contentPath = {
+                        switch store.pageMode {
+                        case .left:
+                            return store.pathLeft
+                        case .right:
+                            return store.pathRight
+                        default:
+                            return store.path
                         }
+                    }()
+
+                    if let uiImage = UIImage(contentsOfFile: contentPath?.path(percentEncoded: false) ?? "") {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .draggableAndZoomable(contentSize: geometrySize)
                     } else {
-                        Color.clear
+                        Image(systemName: "rectangle.slash")
+                            .frame(height: geometrySize.height)
                     }
                 }
-        }
-        .onAppear {
-            visible = true
-        }
-        .onDisappear {
-            visible = false
         }
     }
 }
 
-enum PageMode: String {
+public enum PageMode: String {
     case loading
     case left
     case right

@@ -37,9 +37,8 @@ class LANraragiService: NSObject {
     private static var _shared: LANraragiService?
 
     private var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
-    private let authInterceptor = AuthInterceptor()
+    private var authInterceptor = AuthInterceptor(apiKey: nil)
     private var session: Session
-    private var prefetchSession: Session
     private let snakeCaseEncoder: JSONDecoder
     private let imageService = ImageService.shared
 
@@ -52,14 +51,15 @@ class LANraragiService: NSObject {
 
     private override init() {
         self.session = Session(interceptor: authInterceptor)
-        self.prefetchSession = Session(interceptor: authInterceptor)
         self.snakeCaseEncoder = JSONDecoder()
         self.snakeCaseEncoder.keyDecodingStrategy = .convertFromSnakeCase
     }
 
     func verifyClient(url: String, apiKey: String) async -> DataTask<ServerInfo> {
         self.url = url
-        self.authInterceptor.updateApiKey(apiKey)
+        let interceptor = AuthInterceptor(apiKey: apiKey)
+        self.authInterceptor = interceptor
+        self.session = Session(interceptor: interceptor)
         let cacher = ResponseCacher(behavior: .doNotCache)
         return session.request("\(self.url)/api/info")
             .cacheResponse(using: cacher)
@@ -279,12 +279,12 @@ class LANraragiService: NSObject {
     }
 }
 
-class AuthInterceptor: RequestInterceptor {
+final class AuthInterceptor: RequestInterceptor {
 
-    private var apiKey = UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey) ?? ""
+    private let apiKey: String
 
-    func updateApiKey(_ apiKey: String) {
-        self.apiKey = apiKey
+    init(apiKey: String?) {
+        self.apiKey = apiKey ?? UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey) ?? ""
     }
 
     func adapt(_ urlRequest: URLRequest,
@@ -315,8 +315,6 @@ extension DependencyValues {
 extension LANraragiService: URLSessionDelegate, URLSessionDownloadDelegate {
     func urlSession(_: URLSession, downloadTask task: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
         let splitImage = UserDefaults.standard.bool(forKey: SettingsKey.splitWideImage)
-        let fallback = UserDefaults.standard.bool(forKey: SettingsKey.fallbackReader)
-        let showOriginal = UserDefaults.standard.bool(forKey: SettingsKey.showOriginal)
 
         if let archiveId = task.originalRequest?.value(forHTTPHeaderField: "X-Archive-Id"),
            let pageNumber = task.originalRequest?.value(forHTTPHeaderField: "X-Page-Number"),
@@ -326,8 +324,7 @@ extension LANraragiService: URLSessionDelegate, URLSessionDownloadDelegate {
                 imageUrl: location,
                 destinationUrl: folder,
                 pageNumber: pageNumber,
-                split: splitImage && !fallback,
-                skip: showOriginal
+                split: splitImage
             )
         }
     }

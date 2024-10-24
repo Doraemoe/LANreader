@@ -3,22 +3,22 @@ import ComposableArchitecture
 import SwiftUI
 import Logging
 
-@Reducer struct DatabaseSettingsFeature {
+@Reducer public struct DatabaseSettingsFeature {
     private let logger = Logger(label: "DatabaseSettingsFeature")
 
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         var size = ""
     }
 
-    enum Action: Equatable {
+    public enum Action: Equatable {
         case setDatabaseSize
         case clearDatabase
     }
 
     @Dependency(\.appDatabase) var database
 
-    func reduce(into state: inout State, action: Action) -> Effect<Action> {
+    public func reduce(into state: inout State, action: Action) -> Effect<Action> {
         switch action {
         case .setDatabaseSize:
             do {

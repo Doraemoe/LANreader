@@ -5,7 +5,7 @@
 import Foundation
 import ComposableArchitecture
 
-struct SearchFilter: Equatable {
+public struct SearchFilter: Equatable {
     let category: String?
     let filter: String?
 }

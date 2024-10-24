@@ -3,11 +3,11 @@ import SwiftUI
 import Logging
 import NotificationBannerSwift
 
-@Reducer struct ArchiveDetailsFeature {
+@Reducer public struct ArchiveDetailsFeature {
     private let logger = Logger(label: "ArchiveDetailsFeature")
 
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
 
         @Shared(.archive) var archiveItems: IdentifiedArrayOf<ArchiveItem> = []
@@ -31,7 +31,7 @@ import NotificationBannerSwift
         }
     }
 
-    enum Action: Equatable, BindableAction {
+    public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
         case alert(PresentationAction<Alert>)
 
@@ -47,7 +47,7 @@ import NotificationBannerSwift
 
         case deleteButtonTapped
         case deleteSuccess
-        enum Alert {
+        public enum Alert {
             case confirmDelete
         }
     }
@@ -55,7 +55,7 @@ import NotificationBannerSwift
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         BindingReducer()
 
         Reduce { state, action in
@@ -370,20 +370,24 @@ struct ArchiveDetailsV2: View {
         }
         let normalizedTag = String(tag.trimmingCharacters(in: .whitespacesAndNewlines))
         return AnyView(
-            NavigationLink(
-                state: AppFeature.Path.State.search(
-                    SearchFeature.State.init(
-                        keyword: normalizedTag, archiveList: ArchiveListFeature.State(
-                            filter: SearchFilter(category: nil, filter: normalizedTag),
-                            loadOnAppear: true,
-                            currentTab: .search
-                        )
-                    )
-                )
-            ) {
-                Text(processedTag)
-                    .lineLimit(1)
-            }
+            Text(processedTag)
+                .lineLimit(1)
         )
+//        return AnyView(
+//            NavigationLink(
+//                state: AppFeature.Path.State.search(
+//                    SearchFeature.State.init(
+//                        keyword: normalizedTag, archiveList: ArchiveListFeature.State(
+//                            filter: SearchFilter(category: nil, filter: normalizedTag),
+//                            loadOnAppear: true,
+//                            currentTab: .search
+//                        )
+//                    )
+//                )
+//            ) {
+//                Text(processedTag)
+//                    .lineLimit(1)
+//            }
+//        )
     }
 }

@@ -1,6 +1,5 @@
 import UIKit
 import Dependencies
-import func AVFoundation.AVMakeRect
 
 class ImageService {
     private static var _shared: ImageService?
@@ -10,55 +9,22 @@ class ImageService {
         try? image.heicData()?.write(to: destinationUrl)
     }
 
-    func resizeImage(imageUrl: URL, destinationUrl: URL, pageNumber: String, split: Bool, skip: Bool) -> Bool {
+    func resizeImage(imageUrl: URL, destinationUrl: URL, pageNumber: String, split: Bool) -> Bool {
         try? FileManager.default.createDirectory(at: destinationUrl, withIntermediateDirectories: true)
         let mainPath = destinationUrl.appendingPathComponent("\(pageNumber).heic", conformingTo: .heic)
 
         guard let image = UIImage(contentsOfFile: imageUrl.path(percentEncoded: false)) else { return false }
         var splitted = false
 
-        let screenRect = UIScreen.main.bounds
-        let rect = AVMakeRect(aspectRatio: image.size, insideRect: screenRect)
-        let normalizedRect = CGRect(origin: .zero, size: rect.size)
-        let renderer = UIGraphicsImageRenderer(size: normalizedRect.size)
-
-        if skip {
-            try? image.heicData()?.write(to: mainPath)
-        } else {
-            try? renderer.image { _ in
-                image.draw(in: normalizedRect)
-            }.heicData()?.write(to: mainPath)
-        }
+        try? image.heicData()?.write(to: mainPath)
 
         if split && (image.size.width / image.size.height > 1.2) {
             let leftPath = destinationUrl.appendingPathComponent("\(pageNumber)-left.heic", conformingTo: .heic)
             let rightPath = destinationUrl.appendingPathComponent("\(pageNumber)-right.heic", conformingTo: .heic)
-            if skip {
-                try? image.leftHalf?.heicData()?.write(to: leftPath)
-                try? image.rightHalf?.heicData()?.write(to: rightPath)
-            } else {
-                let leftImage = image.leftHalf
-                let leftRect = AVMakeRect(
-                    aspectRatio: leftImage?.size ?? .zero,
-                    insideRect: screenRect
-                )
-                let normalizedLeftRect = CGRect(origin: .zero, size: leftRect.size)
-                let leftRenderer = UIGraphicsImageRenderer(size: normalizedLeftRect.size)
-                try? leftRenderer.image { _ in
-                    leftImage?.draw(in: normalizedLeftRect)
-                }.heicData()?.write(to: leftPath)
 
-                let rightImage = image.rightHalf
-                let rightRect = AVMakeRect(
-                    aspectRatio: rightImage?.size ?? .zero,
-                    insideRect: screenRect
-                )
-                let normalizedRightRect = CGRect(origin: .zero, size: rightRect.size)
-                let rightRenderer = UIGraphicsImageRenderer(size: normalizedRightRect.size)
-                try? rightRenderer.image { _ in
-                    rightImage?.draw(in: normalizedRightRect)
-                }.heicData()?.write(to: rightPath)
-            }
+            try? image.leftHalf?.heicData()?.write(to: leftPath)
+            try? image.rightHalf?.heicData()?.write(to: rightPath)
+
             splitted = true
         }
         return splitted
