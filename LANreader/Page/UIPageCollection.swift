@@ -30,6 +30,7 @@ class UIPageCollectionController: UICollectionViewController {
 
     var dataSource:
         UICollectionViewDiffableDataSource<Section, StoreOf<PageFeature>>!
+    var didInitialJump = false
 
     private var cancellables: Set<AnyCancellable> = []
 
@@ -105,6 +106,7 @@ class UIPageCollectionController: UICollectionViewController {
     private func setupObserve() {
         observe { [weak self] in
             guard let self else { return }
+            guard !store.pages.isEmpty else { return }
             var snapshot = NSDiffableDataSourceSnapshot<
                 Section, StoreOf<PageFeature>
             >()
@@ -112,7 +114,24 @@ class UIPageCollectionController: UICollectionViewController {
             snapshot.appendItems(
                 Array(store.scope(state: \.pages, action: \.page)))
             dataSource.apply(snapshot, animatingDifferences: false)
+            if !didInitialJump {
+                let indexPath = IndexPath(row: store.jumpIndex, section: 0)
+                collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: false)
+                didInitialJump = true
+            }
         }
+
+        store.publisher.jumpIndex
+            .dropFirst()
+            .sink { [weak self] _ in
+                guard let self else { return }
+                guard collectionView.numberOfSections > 0 else { return }
+                let numberOfItems = collectionView.numberOfItems(inSection: 0)
+                guard store.jumpIndex < numberOfItems else { return }
+                let indexPath = IndexPath(row: store.jumpIndex, section: 0)
+                collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: false)
+            }
+            .store(in: &cancellables)
     }
 
     private func setupGesture() {
@@ -150,7 +169,6 @@ extension UIPageCollectionController: UIGestureRecognizerDelegate {
 
         // Determine which region was tapped
         let region: TapRegion
-        print("width: \(width) location-x: \(location.x)")
         switch location.x {
         case ..<(width / 3):
             region = .left
@@ -224,6 +242,7 @@ extension UIPageCollectionController: UICollectionViewDataSourcePrefetching,
                     }
                 }
             }
+            store.send(.updateProgress(pageCell.store?.pageNumber ?? 1))
         }
     }
 
@@ -231,11 +250,7 @@ extension UIPageCollectionController: UICollectionViewDataSourcePrefetching,
         _ collectionView: UICollectionView,
         didEndDisplaying cell: UICollectionViewCell,
         forItemAt indexPath: IndexPath
-    ) {
-        if let pageCell = cell as? UIPageCell {
-            store.send(.updateProgress(pageCell.store?.pageNumber ?? 1))
-        }
-    }
+    ) { }
 
     func collectionView(
         _ collectionView: UICollectionView,

@@ -109,12 +109,14 @@ class UIPageCell: UICollectionViewCell {
             guard let self else { return }
 
             if store.pageMode == .loading {
+                imageView.isHidden = true
                 progressView.isHidden = false
                 progressViewLabel.isHidden = false
                 progressView.progress = Float(store.progress)
                 progressViewLabel.text = String(
                     format: "%.2f%%", store.progress * 100)
             } else {
+                imageView.isHidden = false
                 progressView.isHidden = true
                 progressViewLabel.isHidden = true
                 let contentPath = {

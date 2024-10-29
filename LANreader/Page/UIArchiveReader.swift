@@ -49,11 +49,6 @@ class UIArchiveReaderController: UIViewController {
         navigationItem.rightBarButtonItem = detailsButton
     }
 
-    // Action method for the button tap
-    @objc func rightButtonTapped() {
-        print("Right navigation button tapped")
-    }
-
     private func setupObserve() {
         store.publisher.controlUiHidden
             .sink { [weak self] hidden in
