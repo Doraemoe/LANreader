@@ -45,7 +45,7 @@ import Logging
                     let serverInfo = try await lanraragiService.verifyClient(
                         url: state.formUrl, apiKey: state.formKey
                     ).value
-                    if serverInfo.serverTracksProgress == "1" {
+                    if serverInfo.serverTracksProgress {
                         await send(.setServerProgress(true))
                     } else {
                         await send(.setServerProgress(false))

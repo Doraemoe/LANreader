@@ -7,6 +7,8 @@ import SwiftUI
 
     @ObservableState
     public struct State: Equatable {
+        @Shared(.inMemory(SettingsKey.tabBarHidden)) var tabBarHidden = false
+
         var id: String
         var name: String
 
@@ -18,6 +20,7 @@ import SwiftUI
 
         case archiveList(ArchiveListFeature.Action)
         case toggleSelectMode
+        case setTabBarHidden(Bool)
     }
 
     public var body: some ReducerOf<Self> {
@@ -39,6 +42,9 @@ import SwiftUI
             case .binding:
                 return .none
             case .archiveList:
+                return .none
+            case let .setTabBarHidden(hidden):
+                state.tabBarHidden = hidden
                 return .none
             }
         }

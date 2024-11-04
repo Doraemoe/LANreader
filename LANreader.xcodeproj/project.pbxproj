@@ -42,6 +42,9 @@
 		7DF7EA742564E1D2003B5A5A /* AppDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA732564E1D2003B5A5A /* AppDatabase.swift */; };
 		7DF7EA7F2564E5D1003B5A5A /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA7E2564E5D1003B5A5A /* Persistence.swift */; };
 		7DF7EA852564E675003B5A5A /* Record.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA842564E675003B5A5A /* Record.swift */; };
+		E902FC4E2CD870530071106B /* UICategoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = E902FC4D2CD8704E0071106B /* UICategoryList.swift */; };
+		E902FC502CD87A780071106B /* UICategoryArchiveGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = E902FC4F2CD87A710071106B /* UICategoryArchiveGrid.swift */; };
+		E902FC522CD887DD0071106B /* UISearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E902FC512CD887DA0071106B /* UISearchView.swift */; };
 		E90576B629F6BF8700C3CE3F /* WrappingHStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90576B529F6BF8700C3CE3F /* WrappingHStack.swift */; };
 		E90576BC29F7FB2900C3CE3F /* DraggableAndZoomableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90576BB29F7FB2900C3CE3F /* DraggableAndZoomableView.swift */; };
 		E90576BF29F8C10700C3CE3F /* Puppy in Frameworks */ = {isa = PBXBuildFile; productRef = E90576BE29F8C10700C3CE3F /* Puppy */; };
@@ -158,6 +161,9 @@
 		7DF7EA732564E1D2003B5A5A /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
 		7DF7EA7E2564E5D1003B5A5A /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
 		7DF7EA842564E675003B5A5A /* Record.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Record.swift; sourceTree = "<group>"; };
+		E902FC4D2CD8704E0071106B /* UICategoryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICategoryList.swift; sourceTree = "<group>"; };
+		E902FC4F2CD87A710071106B /* UICategoryArchiveGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICategoryArchiveGrid.swift; sourceTree = "<group>"; };
+		E902FC512CD887DA0071106B /* UISearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISearchView.swift; sourceTree = "<group>"; };
 		E90576B529F6BF8700C3CE3F /* WrappingHStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WrappingHStack.swift; sourceTree = "<group>"; };
 		E90576BB29F7FB2900C3CE3F /* DraggableAndZoomableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraggableAndZoomableView.swift; sourceTree = "<group>"; };
 		E91EE6822CAB78E80046853C /* UIArchiveReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIArchiveReader.swift; sourceTree = "<group>"; };
@@ -317,8 +323,10 @@
 		4BD82C9AD1A1D57332A10917 /* Category */ = {
 			isa = PBXGroup;
 			children = (
+				E902FC4F2CD87A710071106B /* UICategoryArchiveGrid.swift */,
 				E9F3B0132B01D2DB00F60F62 /* CategoryArchiveListV2.swift */,
 				E9F3B0112B01A21C00F60F62 /* CategoryListV2.swift */,
+				E902FC4D2CD8704E0071106B /* UICategoryList.swift */,
 				E926CE792B1B5474000E0B10 /* NewCategory.swift */,
 				E9EB422A2C05BE0B00E49AE1 /* EditCategory.swift */,
 			);
@@ -328,6 +336,7 @@
 		4BD82F8526B52356C24BC491 /* Search */ = {
 			isa = PBXGroup;
 			children = (
+				E902FC512CD887DA0071106B /* UISearchView.swift */,
 				E9DCE8A12AF0795600C17236 /* SearchViewV2.swift */,
 			);
 			path = Search;
@@ -663,6 +672,7 @@
 				7DF7EA742564E1D2003B5A5A /* AppDatabase.swift in Sources */,
 				E9623E6D2BF583FD005FD609 /* CacheView.swift in Sources */,
 				E9F3B0142B01D2DB00F60F62 /* CategoryArchiveListV2.swift in Sources */,
+				E902FC522CD887DD0071106B /* UISearchView.swift in Sources */,
 				E9DCE8A22AF0795600C17236 /* SearchViewV2.swift in Sources */,
 				E91EE6832CAB78ED0046853C /* UIArchiveReader.swift in Sources */,
 				E926CE7A2B1B5474000E0B10 /* NewCategory.swift in Sources */,
@@ -684,6 +694,7 @@
 				E9EB422B2C05BE0B00E49AE1 /* EditCategory.swift in Sources */,
 				4BD823AC73ED9E45F8B7E436 /* ReadSettings.swift in Sources */,
 				4BD82F2BEC56B95FB9BC9841 /* SettingsView.swift in Sources */,
+				E902FC502CD87A780071106B /* UICategoryArchiveGrid.swift in Sources */,
 				E998836C2CBCE76A00A81F60 /* UIArchiveDetails.swift in Sources */,
 				4BD82C7F9CB71CAF8F33C171 /* ViewSettings.swift in Sources */,
 				4BD82CED54A4C9689B0E9E55 /* ContentView.swift in Sources */,
@@ -696,6 +707,7 @@
 				E9BFA2072AF52C3300DDE107 /* PageImageV2.swift in Sources */,
 				7DE399892578FB34003DC5F7 /* DatabaseSettings.swift in Sources */,
 				7DF7EA7F2564E5D1003B5A5A /* Persistence.swift in Sources */,
+				E902FC4E2CD870530071106B /* UICategoryList.swift in Sources */,
 				E997D8042AF3C9BA007C91F1 /* LibraryListV2.swift in Sources */,
 				E9AAC1352CBC8FC600E5E89A /* UIPageCell.swift in Sources */,
 				E9E3631F26F471E400C58D01 /* LogView.swift in Sources */,

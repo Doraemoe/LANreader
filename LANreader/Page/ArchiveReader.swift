@@ -157,7 +157,7 @@ import OrderedCollections
             case let .finishExtracting(pages):
                 if !pages.isEmpty {
                     let pageState = pages.enumerated().map { (index, page) in
-                        let normalizedPage = String(page.dropFirst(2))
+                        let normalizedPage = String(page.dropFirst(1))
                         return PageFeature.State(
                             archiveId: state.archive.id, pageId: normalizedPage, pageNumber: index + 1
                         )

@@ -101,6 +101,7 @@ struct SettingsKey {
     static let hideRead = "settings.view.hideRead"
 
     static let lastTagRefresh = "lastTagRefresh"
+    static let tabBarHidden = "tab.bar.hidden"
 }
 
 extension Double {

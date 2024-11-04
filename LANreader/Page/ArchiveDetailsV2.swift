@@ -8,7 +8,7 @@ import NotificationBannerSwift
 
     @ObservableState
     public struct State: Equatable {
-        @Presents var alert: AlertState<Action.Alert>?
+//        @Presents var alert: AlertState<Action.Alert>?
 
         @Shared(.archive) var archiveItems: IdentifiedArrayOf<ArchiveItem> = []
         @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
@@ -22,6 +22,7 @@ import NotificationBannerSwift
         var successMessage = ""
         var loading = false
         let cached: Bool
+        var showAlert: Bool = false
 
         init(archive: Shared<ArchiveItem>, cached: Bool = false) {
             self._archive = archive
@@ -33,7 +34,7 @@ import NotificationBannerSwift
 
     public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
-        case alert(PresentationAction<Alert>)
+//        case alert(PresentationAction<Alert>)
 
         case loadLocalFields
         case updateArchiveMetadata
@@ -44,12 +45,13 @@ import NotificationBannerSwift
         case updateLocalCategoryItems(String, String, Bool)
         case setErrorMessage(String)
         case setSuccessMessage(String)
+        case confirmDelete
 
         case deleteButtonTapped
         case deleteSuccess
-        public enum Alert {
-            case confirmDelete
-        }
+//        public enum Alert {
+//            case confirmDelete
+//        }
     }
 
     @Dependency(\.lanraragiService) var service
@@ -80,18 +82,19 @@ import NotificationBannerSwift
                 state.tags = state.archive.tags
                 return .none
             case .deleteButtonTapped:
-                state.alert = AlertState {
-                    TextState("archive.delete.confirm")
-                } actions: {
-                    ButtonState(role: .destructive, action: .confirmDelete) {
-                        TextState("delete")
-                    }
-                    ButtonState(role: .cancel) {
-                        TextState("cancel")
-                    }
-                }
+                state.showAlert = true
+//                state.alert = AlertState {
+//                    TextState("archive.delete.confirm")
+//                } actions: {
+//                    ButtonState(role: .destructive, action: .confirmDelete) {
+//                        TextState("delete")
+//                    }
+//                    ButtonState(role: .cancel) {
+//                        TextState("cancel")
+//                    }
+//                }
                 return .none
-            case .alert(.presented(.confirmDelete)):
+            case .confirmDelete:
                 state.loading = true
                 return .run { [id = state.archive.id] send in
                     let response = try await service.deleteArchive(id: id).value
@@ -104,6 +107,19 @@ import NotificationBannerSwift
                     logger.error("failed to delete archive, id=\(id) \(error)")
                     await send(.setErrorMessage(error.localizedDescription))
                 }
+//            case .alert(.presented(.confirmDelete)):
+//                state.loading = true
+//                return .run { [id = state.archive.id] send in
+//                    let response = try await service.deleteArchive(id: id).value
+//                    if response.success == 1 {
+//                        await send(.deleteSuccess)
+//                    } else {
+//                        await send(.setErrorMessage(String(localized: "error.archive.delete")))
+//                    }
+//                } catch: { [id = state.archive.id] error, send in
+//                    logger.error("failed to delete archive, id=\(id) \(error)")
+//                    await send(.setErrorMessage(error.localizedDescription))
+//                }
             case .loadCategory:
                 return .run { send in
                     let categories = try await service.retrieveCategories().value
@@ -182,8 +198,8 @@ import NotificationBannerSwift
             case let .setSuccessMessage(message):
                 state.successMessage = message
                 return .none
-            case .alert:
-                return .none
+//            case .alert:
+//                return .none
             case .deleteSuccess:
                 state.archiveItems.remove(id: state.archive.id)
                 return .none
@@ -191,7 +207,7 @@ import NotificationBannerSwift
                 return .none
             }
         }
-        .ifLet(\.$alert, action: \.alert)
+//        .ifLet(\.$alert, action: \.alert)
     }
 }
 
@@ -200,6 +216,7 @@ struct ArchiveDetailsV2: View {
     private static let dateTag = "date_added"
 
     @Bindable var store: StoreOf<ArchiveDetailsFeature>
+    let onDelete: () -> Void
 
     var body: some View {
         ScrollView {
@@ -272,9 +289,18 @@ struct ArchiveDetailsV2: View {
             }
         }
         .environment(\.editMode, $store.editMode)
-        .alert(
-            $store.scope(state: \.alert, action: \.alert)
-        )
+//        .alert(
+//            $store.scope(state: \.alert, action: \.alert)
+//        )
+        .alert("archive.delete.confirm", isPresented: $store.showAlert) {
+            Button("cancel", role: .cancel) { }
+            Button("delete", role: .destructive) {
+                Task {
+                    await store.send(.confirmDelete).finish()
+                }
+                onDelete()
+            }
+        }
         .onChange(of: store.editMode) { oldMode, newMode in
             if oldMode == .active && newMode == .inactive {
                 store.send(.updateArchiveMetadata)

@@ -40,7 +40,12 @@ class UIArchiveReaderController: UIViewController {
             }
 
             navigationController?.pushViewController(
-                UIHostingController(rootView: ArchiveDetailsV2(store: detailsStore)),
+                UIHostingController(rootView: ArchiveDetailsV2(store: detailsStore, onDelete: {
+                    if let viewControllers = self.navigationController?.viewControllers, viewControllers.count > 2 {
+                        let destination = viewControllers[viewControllers.count - 3]
+                        self.navigationController?.popToViewController(destination, animated: true)
+                    }
+                })),
                 animated: true
             )
         }

@@ -74,7 +74,6 @@ class UIArchiveListViewController: UICollectionViewController {
     func setupCollectionView() {
         collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         collectionView.backgroundColor = .systemBackground
-        navigationItem.title = String(localized: "library")
         navigationItem.largeTitleDisplayMode = .inline
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([

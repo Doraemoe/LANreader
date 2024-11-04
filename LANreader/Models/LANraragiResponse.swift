@@ -70,13 +70,13 @@ struct JobResult: Decodable {
 }
 
 struct ServerInfo: Decodable {
-    let archivesPerPage: String
-    let debugMode: String
-    let hasPassword: String
+    let archivesPerPage: Int
+    let debugMode: Bool
+    let hasPassword: Bool
     let motd: String
     let name: String
-    let nofunMode: String
-    let serverTracksProgress: String
+    let nofunMode: Bool
+    let serverTracksProgress: Bool
     let version: String
     let versionName: String
 }

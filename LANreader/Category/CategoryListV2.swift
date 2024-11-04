@@ -12,6 +12,7 @@ import NotificationBannerSwift
 
         @SharedReader(.appStorage(SettingsKey.lanraragiUrl)) var lanraragiUrl = ""
         @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
+        @Shared(.inMemory(SettingsKey.tabBarHidden)) var tabBarHidden = false
 
         var editMode: EditMode = .inactive
         var showLoading = false
@@ -28,6 +29,7 @@ import NotificationBannerSwift
         case setErrorMessage(String)
         case showAddCategory
         case showEditCategory(CategoryItem)
+        case setTabBarHidden(Bool)
     }
 
     @Dependency(\.lanraragiService) var service
@@ -87,6 +89,9 @@ import NotificationBannerSwift
                 return .run { send in
                     await send(.loadCategory(true))
                 }
+            case let .setTabBarHidden(hidden):
+                state.tabBarHidden = hidden
+                return .none
             default:
                 return .none
             }
@@ -103,6 +108,7 @@ import NotificationBannerSwift
 
 struct CategoryListV2: View {
     @Bindable var store: StoreOf<CategoryFeature>
+    let onTapCategory: (StoreOf<CategoryArchiveListFeature>) -> Void
 
     var body: some View {
         if store.showLoading {
@@ -117,29 +123,30 @@ struct CategoryListV2: View {
                 categoryItem(store: store, item: item)
             }
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Image(systemName: "plus.circle")
-                    .onTapGesture {
-                        store.send(.showAddCategory)
-                    }
-                    .foregroundStyle(Color.accentColor)
-                    .popover(
-                        item: $store.scope(state: \.destination?.add, action: \.destination.add)
-                    ) { store in
-                        NewCategory(store: store)
-                    }
-                    .opacity(store.editMode == .active ? 1 : 0)
-                EditButton()
-            }
-        }
-        .sheet(item: $store.scope(state: \.destination?.edit, action: \.destination.edit), content: { store in
-            EditCategory(store: store)
-        })
-        .toolbar(store.editMode == .active ? .hidden : .visible, for: .tabBar)
-        .environment(\.editMode, $store.editMode)
-        .navigationTitle("category")
-        .navigationBarTitleDisplayMode(.inline)
+//        .toolbar {
+//            ToolbarItemGroup(placement: .topBarTrailing) {
+//                Image(systemName: "plus.circle")
+//                    .onTapGesture {
+//                        store.send(.showAddCategory)
+//                    }
+//                    .foregroundStyle(Color.accentColor)
+//                    .popover(
+//                        item: $store.scope(state: \.destination?.add, action: \.destination.add)
+//                    ) { store in
+//                        NewCategory(store: store)
+//                    }
+//                    .opacity(store.editMode == .active ? 1 : 0)
+//                EditButton()
+//            }
+//        }
+//        .sheet(item: $store.scope(state: \.destination?.edit, action: \.destination.edit), content: { store in
+//            EditCategory(store: store)
+//        })
+//        .toolbar(store.editMode == .active ? .hidden : .visible, for: .tabBar)
+//        .environment(\.editMode, $store.editMode)
+//        .navigationTitle("category")
+//        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(store.tabBarHidden ? .hidden : .visible, for: .tabBar)
         .task {
             if store.categoryItems.isEmpty {
                 store.send(.loadCategory(true))
@@ -177,14 +184,13 @@ struct CategoryListV2: View {
             Image(systemName: store.editMode == .active ? "square.and.pencil" : "chevron.right")
         }
         .contentShape(Rectangle())
-        .allowsHitTesting(store.editMode == .active)
+//        .allowsHitTesting(store.editMode == .active)
         .onTapGesture {
-            store.send(.showEditCategory(item))
-        }
-        .background {
-            NavigationLink(
-                "", state: AppFeature.Path.State.categoryArchiveList(
-                    CategoryArchiveListFeature.State.init(
+            if store.editMode == .active {
+                store.send(.showEditCategory(item))
+            } else {
+                let categoryArchiveListStore = Store(
+                    initialState: CategoryArchiveListFeature.State.init(
                         id: item.id,
                         name: item.name,
                         archiveList: ArchiveListFeature.State(
@@ -192,9 +198,26 @@ struct CategoryListV2: View {
                             currentTab: .category
                         )
                     )
-                )
-            )
-            .opacity(0)
+                ) {
+                    CategoryArchiveListFeature()
+                }
+                onTapCategory(categoryArchiveListStore)
+            }
         }
+//        .background {
+//            NavigationLink(
+//                "", state: AppFeature.Path.State.categoryArchiveList(
+//                    CategoryArchiveListFeature.State.init(
+//                        id: item.id,
+//                        name: item.name,
+//                        archiveList: ArchiveListFeature.State(
+//                            filter: SearchFilter(category: item.id, filter: nil),
+//                            currentTab: .category
+//                        )
+//                    )
+//                )
+//            )
+//            .opacity(0)
+//        }
     }
 }

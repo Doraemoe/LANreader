@@ -2,15 +2,15 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 
-public struct UILibraryList: UIViewControllerRepresentable {
-    let store: StoreOf<LibraryFeature>
+public struct UICategoryArchiveGrid: UIViewControllerRepresentable {
+    let store: StoreOf<CategoryArchiveListFeature>
 
-    public init(store: StoreOf<LibraryFeature>) {
+    public init(store: StoreOf<CategoryArchiveListFeature>) {
         self.store = store
     }
 
     public func makeUIViewController(context: Context) -> UIViewController {
-        UINavigationController(rootViewController: UILibraryListViewController(store: store))
+        UICategoryArchiveGridController(store: store)
     }
 
     public func updateUIViewController(
@@ -21,10 +21,10 @@ public struct UILibraryList: UIViewControllerRepresentable {
     }
 }
 
-class UILibraryListViewController: UIViewController {
-    let store: StoreOf<LibraryFeature>
+class UICategoryArchiveGridController: UIViewController {
+    let store: StoreOf<CategoryArchiveListFeature>
 
-    init(store: StoreOf<LibraryFeature>) {
+    init(store: StoreOf<CategoryArchiveListFeature>) {
         self.store = store
         super.init(nibName: nil, bundle: nil)
     }
@@ -36,7 +36,8 @@ class UILibraryListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        navigationItem.title = String(localized: "library")
+        navigationItem.title = store.name
+        tabBarController?.tabBar.isHidden = true
 
         let archiveListView = UIArchiveListViewController(
             store: store.scope(state: \.archiveList, action: \.archiveList)
@@ -48,5 +49,10 @@ class UILibraryListViewController: UIViewController {
             archiveListView.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             archiveListView.view.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        store.send(.setTabBarHidden(true))
     }
 }
