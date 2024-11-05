@@ -1,12 +1,16 @@
 {
-    "archives_per_page": "100",
-    "debug_mode": "0",
-    "has_password": "1",
-    "motd": "Welcome to this Library running LANraragi!",
-    "name": "LANraragi",
-    "nofun_mode": "1",
-    "server_resizes_images": "0",
-    "version": "0.7.2",
-    "version_name": "Neighborhood Threat",
-    "serverTracksProgress": "1"
+  "archives_per_page": 100,
+  "cache_last_cleared": 1730409286,
+  "debug_mode": false,
+  "has_password": true,
+  "motd": "Welcome to this Library running LANraragi!",
+  "name": "LANraragi",
+  "nofun_mode": true,
+  "server_resizes_images": false,
+  "server_tracks_progress": true,
+  "total_archives": 10559,
+  "total_pages_read": 65589,
+  "version": "0.9.30",
+  "version_desc": "I'm under Japanese influence and my honor's at stake!",
+  "version_name": "Law (Earthlings On Fire)"
 }

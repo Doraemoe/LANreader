@@ -246,6 +246,22 @@ class UIArchiveListViewController: UICollectionViewController {
                 }
             }
             .store(in: &cancellables)
+
+        store.publisher[dynamicMember: \ArchiveListFeature.State.filter]
+            .scan((previous: nil as SearchFilter?, current: nil as SearchFilter?)) { tuple, newValue in
+                (previous: tuple.current, current: newValue as SearchFilter?)
+            }
+            .dropFirst()
+            .sink { [weak self] (previous, current) in
+                guard let self else { return }
+                guard current?.filter?.isEmpty == false else { return }
+                if previous?.filter != current?.filter {
+                    store.send(.cancelSearch)
+                    store.send(.resetArchives)
+                    manualTriggerPullToRefresh()
+                }
+            }
+            .store(in: &cancellables)
     }
     // swiftlint:enable function_body_length
 
@@ -280,6 +296,7 @@ class UIArchiveListViewController: UICollectionViewController {
     }
 
     private func manualTriggerPullToRefresh() {
+        guard collectionView.refreshControl?.isRefreshing == false else { return }
         collectionView.refreshControl?.beginRefreshing()
         let offsetPoint = CGPoint.init(
             x: 0, y: -refreshControl.frame.size.height)
