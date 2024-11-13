@@ -54,13 +54,11 @@ class UISearchViewController: UIViewController {
         tableView.isHidden = true
         tableView.layer.cornerRadius = 8
         tableView.layer.borderWidth = 1
-//        tableView.layer.borderColor = UIColor.systemGray5.cgColor
-//        tableView.backgroundColor = .systemBackground
-//        tableView.separatorInset = .zero
         return tableView
     }()
 
     private func setupLayout() {
+        searchBar.text = store.keyword
         view.addSubview(searchBar)
 
         let archiveListView = UIArchiveListViewController(
@@ -82,7 +80,6 @@ class UISearchViewController: UIViewController {
             suggestionsTableView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 8),
             suggestionsTableView.leadingAnchor.constraint(equalTo: searchBar.leadingAnchor),
             suggestionsTableView.trailingAnchor.constraint(equalTo: searchBar.trailingAnchor),
-//            suggestionsTableView.heightAnchor.constraint(lessThanOrEqualToConstant: 200),
 
             archiveListView.view.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 8),
             archiveListView.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -128,8 +125,6 @@ class UISearchViewController: UIViewController {
                 self.suggestionsTableView.isHidden = false
                 self.view.layoutIfNeeded()
             }
-
-//            view.bringSubviewToFront(suggestionsTableView)
         } else {
             UIView.animate(withDuration: 0.3) {
                 self.suggestionsHeightConstraint?.constant = 0
@@ -155,7 +150,6 @@ extension UISearchViewController: UISearchBarDelegate {
         store.send(.searchSubmit(searchText))
         suggestionsTableView.isHidden = true
         searchBar.resignFirstResponder()
-        print("search submit")
     }
 }
 
@@ -179,7 +173,6 @@ extension UISearchViewController: UITableViewDelegate, UITableViewDataSource {
             tableView.isHidden = true
             self.view.layoutIfNeeded()
         }
-        searchBar.resignFirstResponder()
         tableView.deselectRow(at: indexPath, animated: true)
     }
 

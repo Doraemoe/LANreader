@@ -215,8 +215,11 @@ struct ArchiveDetailsV2: View {
     private static let sourceTag = "source"
     private static let dateTag = "date_added"
 
+    @Environment(\.openURL) var openURL
+
     @Bindable var store: StoreOf<ArchiveDetailsFeature>
     let onDelete: () -> Void
+    let onTagNavigation: (StoreOf<SearchFeature>) -> Void
 
     var body: some View {
         ScrollView {
@@ -380,12 +383,15 @@ struct ArchiveDetailsV2: View {
         let tagValue = tagPair.count == 2 ? tagPair[1].trimmingCharacters(in: .whitespacesAndNewlines) : ""
         if tagName == ArchiveDetailsV2.sourceTag {
             let urlString = tagValue.hasPrefix("http") ? tagValue : "https://\(tagValue)"
-            return AnyView(
-                Link(destination: URL(string: urlString)!) {
+            return
+//                Link(destination: URL(string: urlString)!) {
                     Text(tag)
                         .lineLimit(1)
-                }
-            )
+                        .onTapGesture {
+                            openURL(URL(string: urlString)!)
+                        }
+//                }
+
         }
         let processedTag: String
         if tagName == ArchiveDetailsV2.dateTag {
@@ -395,10 +401,21 @@ struct ArchiveDetailsV2: View {
             processedTag = tag
         }
         let normalizedTag = String(tag.trimmingCharacters(in: .whitespacesAndNewlines))
-        return AnyView(
-            Text(processedTag)
-                .lineLimit(1)
-        )
+        return Text(processedTag)
+            .lineLimit(1)
+            .onTapGesture {
+                let searchStore = Store(initialState: SearchFeature.State.init(
+                    keyword: normalizedTag, archiveList: ArchiveListFeature.State(
+                        filter: SearchFilter(category: nil, filter: normalizedTag),
+                        loadOnAppear: true,
+                        currentTab: .search
+                    )
+                )) {
+                    SearchFeature()
+                }
+                onTagNavigation(searchStore)
+            }
+
 //        return AnyView(
 //            NavigationLink(
 //                state: AppFeature.Path.State.search(

@@ -184,7 +184,6 @@ struct CategoryListV2: View {
             Image(systemName: store.editMode == .active ? "square.and.pencil" : "chevron.right")
         }
         .contentShape(Rectangle())
-//        .allowsHitTesting(store.editMode == .active)
         .onTapGesture {
             if store.editMode == .active {
                 store.send(.showEditCategory(item))
@@ -204,20 +203,5 @@ struct CategoryListV2: View {
                 onTapCategory(categoryArchiveListStore)
             }
         }
-//        .background {
-//            NavigationLink(
-//                "", state: AppFeature.Path.State.categoryArchiveList(
-//                    CategoryArchiveListFeature.State.init(
-//                        id: item.id,
-//                        name: item.name,
-//                        archiveList: ArchiveListFeature.State(
-//                            filter: SearchFilter(category: item.id, filter: nil),
-//                            currentTab: .category
-//                        )
-//                    )
-//                )
-//            )
-//            .opacity(0)
-//        }
     }
 }
