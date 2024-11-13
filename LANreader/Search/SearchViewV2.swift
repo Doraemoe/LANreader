@@ -3,11 +3,11 @@ import SwiftUI
 import NotificationBannerSwift
 import Logging
 
-@Reducer struct SearchFeature {
+@Reducer public struct SearchFeature {
     private let logger = Logger(label: "SearchFeature")
 
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         var keyword = ""
         var suggestedTag = [String]()
         var archiveList = ArchiveListFeature.State(
@@ -17,9 +17,9 @@ import Logging
         )
     }
 
-    enum Action: Equatable, BindableAction {
+    public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
-        case generateSuggestion
+        case generateSuggestion(String)
         case suggestionTapped(String)
         case searchSubmit(String)
         case archiveList(ArchiveListFeature.Action)
@@ -28,9 +28,9 @@ import Logging
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
 
-    enum CancelId { case search }
+    public enum CancelId { case search }
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
 
         Scope(state: \.archiveList, action: \.archiveList) {
             ArchiveListFeature()
@@ -39,8 +39,8 @@ import Logging
         BindingReducer()
         Reduce { state, action in
             switch action {
-            case .generateSuggestion:
-                let lastToken = state.keyword.split(
+            case let .generateSuggestion(searchText):
+                let lastToken = searchText.split(
                     separator: " ",
                     omittingEmptySubsequences: false
                 ).last.map(String.init) ?? ""
@@ -62,10 +62,10 @@ import Logging
                 state.keyword = "\(validKeyword) \(tag)$,"
                 return .none
             case let .searchSubmit(keyword):
-                guard !state.keyword.isEmpty else {
+                guard !keyword.isEmpty else {
                     return .none
                 }
-                state.suggestedTag = []
+//                state.suggestedTag = []
                 state.archiveList.filter = SearchFilter(category: nil, filter: keyword)
                 return .none
             case .binding:
@@ -104,7 +104,7 @@ struct SearchViewV2: View {
             .navigationTitle("search")
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: store.keyword) {
-                store.send(.generateSuggestion)
+                store.send(.generateSuggestion(""))
             }
     }
 }

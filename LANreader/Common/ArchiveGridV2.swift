@@ -2,14 +2,14 @@ import ComposableArchitecture
 import SwiftUI
 import Logging
 
-@Reducer struct GridFeature {
+@Reducer public struct GridFeature {
     private let logger = Logger(label: "GridFeature")
 
     @ObservableState
-    struct State: Equatable, Identifiable {
+    public struct State: Equatable, Identifiable {
         @Shared var archive: ArchiveItem
 
-        var id: String { self.archive.id }
+        public var id: String { self.archive.id }
         var path: URL?
         var mode: ThumbnailMode = .loading
         let cached: Bool
@@ -22,7 +22,7 @@ import Logging
         }
     }
 
-    enum Action: Equatable {
+    public enum Action: Equatable {
         case load(Bool)
         case finishLoading
         case finishRefreshArchive
@@ -32,7 +32,7 @@ import Logging
     @Dependency(\.imageService) var imageService
     @Dependency(\.appDatabase) var database
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case let .load(force):

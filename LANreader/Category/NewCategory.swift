@@ -3,18 +3,18 @@ import SwiftUI
 import Logging
 import NotificationBannerSwift
 
-@Reducer struct NewCategoryFeature {
+@Reducer public struct NewCategoryFeature {
     private let logger = Logger(label: "NewCategoryFeature")
 
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         var name = ""
         var dynamic = false
         var filter = ""
         var errorMessage = ""
     }
 
-    enum Action: Equatable, BindableAction {
+    public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
 
         case addCategoryTapped
@@ -24,7 +24,7 @@ import NotificationBannerSwift
 
     @Dependency(\.lanraragiService) var service
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         BindingReducer()
 
         Reduce { state, action in

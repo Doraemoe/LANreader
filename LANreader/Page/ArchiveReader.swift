@@ -5,11 +5,11 @@ import Combine
 import NotificationBannerSwift
 import OrderedCollections
 
-@Reducer struct ArchiveReaderFeature {
+@Reducer public struct ArchiveReaderFeature {
     private let logger = Logger(label: "ArchiveReaderFeature")
 
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
 
         @SharedReader(.appStorage(SettingsKey.tapLeftKey)) var tapLeft = PageControl.next.rawValue
@@ -24,8 +24,9 @@ import OrderedCollections
         @SharedReader(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
         @Shared var archive: ArchiveItem
 
-        var indexString: String?
+//        var indexString: String?
         var sliderIndex: Double = 0
+        var jumpIndex: Int = 0
         var pages: IdentifiedArrayOf<PageFeature.State> = []
         var fromStart = false
         var extracting = false
@@ -40,12 +41,9 @@ import OrderedCollections
         var cached = false
         var inCache = false
 
-        var fallbackIndexString: String {
-            indexString ?? ""
-        }
-        var currentIndex: Int? {
-            pages.index(id: indexString ?? "")
-        }
+//        var currentIndex: Int? {
+//            pages.index(id: indexString ?? "")
+//        }
 
         init(archive: Shared<ArchiveItem>, fromStart: Bool = false, cached: Bool = false) {
             self._archive = archive
@@ -54,7 +52,7 @@ import OrderedCollections
         }
     }
 
-    enum Action: Equatable, BindableAction {
+    public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
         case alert(PresentationAction<Alert>)
 
@@ -66,14 +64,14 @@ import OrderedCollections
         case loadProgress
         case finishExtracting([String])
         case toggleControlUi(Bool?)
-        case preload(Int)
-        case setIndexString(String)
+//        case setIndexString(String)
+        case setJumpIndex(Int)
         case setSliderIndex(Double)
         case updateProgress(Int)
         case setIsNew(Bool)
         case setThumbnail
         case finishThumbnailLoading
-        case tapAction(String)
+//        case tapAction(String)
         case setError(String)
         case setSuccess(String)
         case downloadPages
@@ -81,7 +79,7 @@ import OrderedCollections
         case removeCache
         case loadCached
 
-        enum Alert {
+        public enum Alert {
             case confirmDelete
         }
     }
@@ -91,12 +89,12 @@ import OrderedCollections
     @Dependency(\.appDatabase) var database
     @Dependency(\.dismiss) var dismiss
 
-    enum CancelId {
+    public enum CancelId {
         case updateProgress
         case autoPage
     }
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         BindingReducer()
 
         Scope(state: \.autoPage, action: \.autoPage) {
@@ -127,7 +125,7 @@ import OrderedCollections
                         }
                     state.pages.append(contentsOf: pageState)
                     state.sliderIndex = 0.0
-                    state.indexString = state.pages[0].id
+//                    state.indexString = state.pages[0].id
                     state.controlUiHidden = true
                     state.extracting = false
                     return .none
@@ -159,7 +157,7 @@ import OrderedCollections
             case let .finishExtracting(pages):
                 if !pages.isEmpty {
                     let pageState = pages.enumerated().map { (index, page) in
-                        let normalizedPage = String(page.dropFirst(2))
+                        let normalizedPage = String(page.dropFirst(1))
                         return PageFeature.State(
                             archiveId: state.archive.id, pageId: normalizedPage, pageNumber: index + 1
                         )
@@ -167,8 +165,10 @@ import OrderedCollections
                     state.pages.append(contentsOf: pageState)
                     let progress = state.archive.progress > 0 ? state.archive.progress - 1 : 0
                     let pageIndexToShow = state.fromStart ? 0 : progress
+//                    print("inside store \(pageIndexToShow)")
                     state.sliderIndex = Double(pageIndexToShow)
-                    state.indexString = state.pages[pageIndexToShow].id
+                    state.jumpIndex = pageIndexToShow
+//                    state.indexString = state.pages[pageIndexToShow].id
                     state.controlUiHidden = true
                 }
                 state.extracting = false
@@ -176,7 +176,7 @@ import OrderedCollections
             case .loadProgress:
                 let progress = state.archive.progress > 0 ? state.archive.progress - 1 : 0
                 state.sliderIndex = Double(progress)
-                state.indexString = state.pages[progress].id
+//                state.indexString = state.pages[progress].id
                 state.controlUiHidden = true
                 return .none
             case let .toggleControlUi(show):
@@ -186,40 +186,11 @@ import OrderedCollections
                     state.controlUiHidden.toggle()
                 }
                 return .none
-            case let .preload(index):
-                return .run(priority: .utility) { [state] send in
-                    if state.doublePageLayout &&
-                        state.readDirection != ReadDirection.upDown.rawValue &&
-                        !state.fallbackReader {
-                        if index - 1 > 0 {
-                            let previous2PageId = state.pages[index-2].id
-                            await send(.page(.element(id: previous2PageId, action: .load(false))))
-                        }
-                        if index - 2 > 0 {
-                            let previous3PageId = state.pages[index-3].id
-                            await send(.page(.element(id: previous3PageId, action: .load(false))))
-                        }
-                        if index + 2 < state.pages.count {
-                            let next2PageId = state.pages[index+2].id
-                            await send(.page(.element(id: next2PageId, action: .load(false))))
-                        }
-                        if index + 3 < state.pages.count {
-                            let next3PageId = state.pages[index+3].id
-                            await send(.page(.element(id: next3PageId, action: .load(false))))
-                        }
-                    } else {
-                        if index > 0 {
-                            let previousPageId = state.pages[index-1].id
-                            await send(.page(.element(id: previousPageId, action: .load(false))))
-                        }
-                        if index + 1 < state.pages.count {
-                            let nextPageId = state.pages[index+1].id
-                            await send(.page(.element(id: nextPageId, action: .load(false))))
-                        }
-                    }
-                }
-            case let .setIndexString(indexString):
-                state.indexString = indexString
+//            case let .setIndexString(indexString):
+//                state.indexString = indexString
+//                return .none
+            case let .setJumpIndex(jumpIndex):
+                state.jumpIndex = jumpIndex
                 return .none
             case let .setSliderIndex(index):
                 state.sliderIndex = index
@@ -248,7 +219,7 @@ import OrderedCollections
                 return .none
             case .setThumbnail:
                 state.settingThumbnail = true
-                guard let pageNumber = state.pages[id: state.indexString ?? ""]?.pageNumber else {return .none }
+                let pageNumber = state.pages[state.sliderIndex.int].pageNumber
                 return .run { [id = state.archive.id] send in
                     _ = try await service.updateArchiveThumbnail(id: id, page: pageNumber).value
                     let thumbnailUrl = try await service.retrieveArchiveThumbnail(id: id)
@@ -271,49 +242,8 @@ import OrderedCollections
                 state.settingThumbnail = false
                 state.archive.refresh = true
                 return .none
-            case let .tapAction(action):
-                switch action {
-                case PageControl.next.rawValue:
-                    if let pageIndex = state.currentIndex {
-                        if state.doublePageLayout &&
-                            state.readDirection != ReadDirection.upDown.rawValue &&
-                            !state.fallbackReader {
-                            if pageIndex < state.pages.count - 2 {
-                                state.indexString = state.pages[pageIndex + 2].id
-                            } else if pageIndex < state.pages.count - 1 {
-                                state.indexString = state.pages[pageIndex + 1].id
-                            }
-                        } else {
-                            if pageIndex < state.pages.count - 1 {
-                                state.indexString = state.pages[pageIndex + 1].id
-                            }
-                        }
-                    }
-                case PageControl.previous.rawValue:
-                    if let pageIndex = state.currentIndex {
-                        if state.doublePageLayout &&
-                            state.readDirection != ReadDirection.upDown.rawValue &&
-                            !state.fallbackReader {
-                            if pageIndex > 1 {
-                                state.indexString = state.pages[pageIndex - 2].id
-                            } else if pageIndex > 0 {
-                                state.indexString = state.pages[pageIndex - 1].id
-                            }
-                        } else {
-                            if pageIndex > 0 {
-                                state.indexString = state.pages[pageIndex - 1].id
-                            }
-                        }
-                    }
-                case PageControl.navigation.rawValue:
-                    state.controlUiHidden.toggle()
-                    state.startAutoPage = false
-                    return .cancel(id: CancelId.autoPage)
-                default:
-                    // This should not happen
-                    break
-                }
-                return .none
+//            case let .tapAction(action):
+//                return .none
             case let .setSuccess(message):
                 state.successMessage = message
                 return .none
@@ -441,9 +371,6 @@ struct ArchiveReader: View {
             ZStack {
                 if store.readDirection == ReadDirection.upDown.rawValue {
                     vReader(store: store, geometry: geometry)
-                } else if store.fallbackReader {
-                    hReaderFallback(store: store, geometry: geometry)
-                        .environment(\.layoutDirection, flip ? .rightToLeft : .leftToRight)
                 } else {
                     hReader(store: store, geometry: geometry)
                         .environment(\.layoutDirection, flip ? .rightToLeft : .leftToRight)
@@ -460,40 +387,28 @@ struct ArchiveReader: View {
         .focusable()
         .focused($isFocused)
         .focusEffectDisabled()
-        .onKeyPress(keys: [.leftArrow, .rightArrow]) { press in
-            if store.readDirection == ReadDirection.leftRight.rawValue {
-                if press.key == .leftArrow {
-                    store.send(.tapAction(PageControl.previous.rawValue), animation: .linear)
-                } else if press.key == .rightArrow {
-                    store.send(.tapAction(PageControl.next.rawValue), animation: .linear)
-                }
-            } else if store.readDirection == ReadDirection.rightLeft.rawValue {
-                if press.key == .leftArrow {
-                    store.send(.tapAction(PageControl.next.rawValue), animation: .linear)
-                } else if press.key == .rightArrow {
-                    store.send(.tapAction(PageControl.previous.rawValue), animation: .linear)
-                }
-            }
-            return .handled
-        }
+//        .onKeyPress(keys: [.leftArrow, .rightArrow]) { press in
+//            if store.readDirection == ReadDirection.leftRight.rawValue {
+//                if press.key == .leftArrow {
+//                    store.send(.tapAction(PageControl.previous.rawValue), animation: .linear)
+//                } else if press.key == .rightArrow {
+//                    store.send(.tapAction(PageControl.next.rawValue), animation: .linear)
+//                }
+//            } else if store.readDirection == ReadDirection.rightLeft.rawValue {
+//                if press.key == .leftArrow {
+//                    store.send(.tapAction(PageControl.next.rawValue), animation: .linear)
+//                } else if press.key == .rightArrow {
+//                    store.send(.tapAction(PageControl.previous.rawValue), animation: .linear)
+//                }
+//            }
+//            return .handled
+//        }
         .onAppear {
             isFocused = true
-        }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                NavigationLink(
-                    state: AppFeature.Path.State.details(
-                        ArchiveDetailsFeature.State.init(archive: store.$archive, cached: store.cached)
-                    )
-                ) {
-                    Image(systemName: "info.circle")
-                }
-            }
         }
         .alert(
             $store.scope(state: \.alert, action: \.alert)
         )
-        .toolbar(store.controlUiHidden ? .hidden : .visible, for: .navigationBar)
         .navigationBarTitle(store.archive.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
@@ -519,15 +434,6 @@ struct ArchiveReader: View {
                 banner.show()
             }
         }
-        .onChange(of: store.indexString) { _, newValue in
-            if let id = newValue {
-                let index = store.pages.index(id: id) ?? 0
-                let pageNumber = store.pages[id: id]?.pageNumber ?? 1
-                store.send(.preload(index))
-                store.send(.setSliderIndex(Double(index)))
-                store.send(.updateProgress(pageNumber))
-            }
-        }
         .onChange(of: store.errorMessage) {
             if !store.errorMessage.isEmpty {
                 let banner = NotificationBanner(
@@ -551,11 +457,11 @@ struct ArchiveReader: View {
                 store.send(.setSuccess(""))
             }
         }
-        .onChange(of: store.autoDate) {
-            if store.startAutoPage {
-                store.send(.tapAction(PageControl.next.rawValue), animation: .linear)
-            }
-        }
+//        .onChange(of: store.autoDate) {
+//            if store.startAutoPage {
+//                store.send(.tapAction(PageControl.next.rawValue), animation: .linear)
+//            }
+//        }
     }
 
     @MainActor
@@ -563,25 +469,7 @@ struct ArchiveReader: View {
         store: StoreOf<ArchiveReaderFeature>,
         geometry: GeometryProxy
     ) -> some View {
-        ScrollView(.vertical) {
-            LazyVStack(spacing: 0) {
-                ForEach(
-                    store.scope(
-                        state: \.pages,
-                        action: \.page
-                    ),
-                    id: \.state.id
-                ) { pageStore in
-                    PageImageV2(store: pageStore, geometrySize: geometry.size)
-                        .frame(width: geometry.size.width)
-                }
-            }
-            .scrollTargetLayout()
-        }
-        .scrollPosition(id: $store.indexString)
-        .onTapGesture {
-            store.send(.tapAction(PageControl.navigation.rawValue))
-        }
+        UIPageCollection(store: store, size: geometry.size)
     }
 
     @MainActor
@@ -589,62 +477,7 @@ struct ArchiveReader: View {
         store: StoreOf<ArchiveReaderFeature>,
         geometry: GeometryProxy
     ) -> some View {
-        ScrollView(.horizontal) {
-            LazyHStack(spacing: 0) {
-                ForEach(
-                    store.scope(
-                        state: \.pages,
-                        action: \.page
-                    ),
-                    id: \.state.id
-                ) { pageStore in
-                    PageImageV2(store: pageStore, geometrySize: geometry.size)
-                        .frame(width: store.doublePageLayout ? geometry.size.width / 2 : geometry.size.width)
-                }
-            }
-            .scrollTargetLayout()
-        }
-        .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
-        .scrollPosition(id: $store.indexString)
-        .onTapGesture { location in
-            if location.x < geometry.size.width / 3 {
-                store.send(.tapAction(store.tapLeft), animation: .linear)
-            } else if location.x > geometry.size.width / 3 * 2 {
-                store.send(.tapAction(store.tapRight), animation: .linear)
-            } else {
-                store.send(.tapAction(store.tapMiddle), animation: .linear)
-            }
-        }
-    }
-
-    @MainActor
-    private func hReaderFallback(
-        store: StoreOf<ArchiveReaderFeature>,
-        geometry: GeometryProxy
-    ) -> some View {
-        TabView(selection: $store.fallbackIndexString.sending(\.setIndexString)) {
-            ForEach(
-                store.scope(
-                    state: \.pages,
-                    action: \.page
-                ),
-                id: \.state.id
-            ) { pageStore in
-                PageImageV2(store: pageStore, geometrySize: geometry.size)
-                    .frame(width: geometry.size.width)
-                    .tag(pageStore.state.id)
-            }
-        }
-        .tabViewStyle(.page(indexDisplayMode: .never))
-        .onTapGesture { location in
-            if location.x < geometry.size.width / 3 {
-                store.send(.tapAction(store.tapLeft), animation: .linear)
-            } else if location.x > geometry.size.width / 3 * 2 {
-                store.send(.tapAction(store.tapRight), animation: .linear)
-            } else {
-                store.send(.tapAction(store.tapMiddle), animation: .linear)
-            }
-        }
+        UIPageCollection(store: store, size: geometry.size)
     }
 
     // swiftlint:disable function_body_length
@@ -657,7 +490,8 @@ struct ArchiveReader: View {
             Grid {
                 GridRow {
                     Button(action: {
-                        store.send(.page(.element(id: store.indexString ?? "", action: .load(true))))
+                        let indexString = store.pages[store.sliderIndex.int].id
+                        store.send(.page(.element(id: indexString, action: .load(true))))
                     }, label: {
                         Image(systemName: "arrow.clockwise")
                     })
@@ -697,8 +531,7 @@ struct ArchiveReader: View {
                         step: 1
                     ) { onSlider in
                         if !onSlider {
-                            let indexString = store.pages[store.sliderIndex.int].id
-                            store.send(.setIndexString(indexString))
+                            store.send(.setJumpIndex(store.sliderIndex.int))
                         }
                     }
                     .padding(.horizontal)

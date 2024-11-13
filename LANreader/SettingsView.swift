@@ -2,16 +2,16 @@
 import ComposableArchitecture
 import SwiftUI
 
-@Reducer struct SettingsFeature {
+@Reducer public struct SettingsFeature {
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         var path = StackState<Path.State>()
 
         var read = ReadSettingsFeature.State()
         var view = ViewSettingsFeature.State()
         var database = DatabaseSettingsFeature.State()
     }
-    enum Action {
+    public enum Action {
         case path(StackAction<Path.State, Path.Action>)
 
         case read(ReadSettingsFeature.Action)
@@ -19,7 +19,7 @@ import SwiftUI
         case database(DatabaseSettingsFeature.Action)
     }
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         Scope(state: \.read, action: \.read) {
             ReadSettingsFeature()
         }
@@ -42,7 +42,7 @@ import SwiftUI
     }
 
     @Reducer(state: .equatable)
-    enum Path {
+    public enum Path {
         case lanraragiSettings(LANraragiConfigFeature)
         case upload(UploadFeature)
         case log(LogFeature)

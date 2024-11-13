@@ -49,8 +49,8 @@ struct Category: Identifiable {
     var lastUpdate: Date
 }
 
-struct DownloadJob: Identifiable, Equatable {
-    var id: Int
+public struct DownloadJob: Identifiable, Equatable {
+    public var id: Int
     var url: String
     var title: String
     var isActive: Bool

@@ -2,25 +2,28 @@ import ComposableArchitecture
 import Logging
 import SwiftUI
 
-@Reducer struct CategoryArchiveListFeature {
+@Reducer public struct CategoryArchiveListFeature {
     private let logger = Logger(label: "CategoryArchiveListFeature")
 
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
+        @Shared(.inMemory(SettingsKey.tabBarHidden)) var tabBarHidden = false
+
         var id: String
         var name: String
 
         var archiveList: ArchiveListFeature.State
     }
 
-    enum Action: Equatable, BindableAction {
+    public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
 
         case archiveList(ArchiveListFeature.Action)
         case toggleSelectMode
+        case setTabBarHidden(Bool)
     }
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         BindingReducer()
 
         Scope(state: \.archiveList, action: \.archiveList) {
@@ -39,6 +42,9 @@ import SwiftUI
             case .binding:
                 return .none
             case .archiveList:
+                return .none
+            case let .setTabBarHidden(hidden):
+                state.tabBarHidden = hidden
                 return .none
             }
         }

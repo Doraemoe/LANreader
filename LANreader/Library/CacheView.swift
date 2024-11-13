@@ -2,16 +2,16 @@ import SwiftUI
 import ComposableArchitecture
 import NotificationBannerSwift
 
-@Reducer struct CacheFeature {
+@Reducer public struct CacheFeature {
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         var archives: IdentifiedArrayOf<GridFeature.State> = []
         var downloading: [String: PageProgress] = [:]
         var showLoading: Bool = false
         var errorMessage: String = ""
     }
 
-    enum Action: Equatable {
+    public enum Action: Equatable {
         case grid(IdentifiedActionOf<GridFeature>)
         case load
         case refreshProgress
@@ -24,7 +24,7 @@ import NotificationBannerSwift
     @Dependency(\.appDatabase) var database
     @Dependency(\.continuousClock) var clock
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .load:

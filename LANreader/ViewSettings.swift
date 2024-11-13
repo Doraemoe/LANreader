@@ -2,9 +2,9 @@
 import ComposableArchitecture
 import SwiftUI
 
-@Reducer struct ViewSettingsFeature {
+@Reducer public struct ViewSettingsFeature {
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         @Presents var destination: Destination.State?
 
         @Shared(.appStorage(SettingsKey.searchSortCustom)) var searchSortCustom = ""
@@ -13,7 +13,7 @@ import SwiftUI
         @Shared(.appStorage(SettingsKey.passcode)) var storedPasscode = ""
     }
 
-    enum Action: BindableAction {
+    public enum Action: BindableAction {
         case binding(BindingAction<State>)
 
         case destination(PresentationAction<Destination.Action>)
@@ -22,7 +22,7 @@ import SwiftUI
         case showLockScreen(Bool)
     }
 
-    var body: some Reducer<State, Action> {
+    public var body: some Reducer<State, Action> {
         BindingReducer()
 
         Reduce { state, action in
@@ -43,7 +43,7 @@ import SwiftUI
     }
 
     @Reducer(state: .equatable)
-    enum Destination {
+    public enum Destination {
         case lockScreen(LockScreenFeature)
     }
 }

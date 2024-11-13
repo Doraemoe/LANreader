@@ -4,11 +4,11 @@ import SwiftUI
 import NotificationBannerSwift
 import Logging
 
-@Reducer struct AppFeature {
+@Reducer public struct AppFeature {
     private let logger = Logger(label: "AppFeature")
 
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         var path = StackState<AppFeature.Path.State>()
         @Presents var destination: Destination.State?
 
@@ -26,7 +26,7 @@ import Logging
         var settings = SettingsFeature.State()
     }
 
-    enum Action: BindableAction {
+    public enum Action: BindableAction {
         case path(StackAction<AppFeature.Path.State, AppFeature.Path.Action>)
         case destination(PresentationAction<Destination.Action>)
 
@@ -47,7 +47,7 @@ import Logging
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
 
-    var body: some Reducer<State, Action> {
+    public var body: some Reducer<State, Action> {
         BindingReducer()
 
         Scope(state: \.library, action: \.library) {
@@ -100,10 +100,10 @@ import Logging
                     await send(.setErrorMessage(error.localizedDescription))
                 }
             case let .path(.element(id: id, action: .details(.deleteSuccess))):
-                guard case .details = state.path[id: id]
-                else { return .none }
-                let penultimateId = state.path.ids.dropLast().last
-                state.path.pop(from: penultimateId!)
+//                guard case .details = state.path[id: id]
+//                else { return .none }
+//                let penultimateId = state.path.ids.dropLast().last
+//                state.path.pop(from: penultimateId!)
                 return .none
             case let .setErrorMessage(message):
                 state.errorMessage = message
@@ -120,7 +120,7 @@ import Logging
     }
 
     @Reducer(state: .equatable)
-    enum Path {
+    public enum Path {
         case reader(ArchiveReaderFeature)
         case details(ArchiveDetailsFeature)
         case categoryArchiveList(CategoryArchiveListFeature)
@@ -130,7 +130,7 @@ import Logging
     }
 
     @Reducer(state: .equatable)
-    enum Destination {
+    public enum Destination {
         case login(LANraragiConfigFeature)
         case lockScreen(LockScreenFeature)
     }
@@ -206,26 +206,27 @@ struct ContentView: View {
     }
 
     var libraryView: some View {
-        NavigationStack(
-            path: $store.scope(state: \.path, action: \.path)
-        ) {
-            LibraryListV2(store: store.scope(state: \.library, action: \.library))
-        } destination: { store in
-            switch store.case {
-            case let .reader(store):
-                ArchiveReader(store: store)
-            case let .details(store):
-                ArchiveDetailsV2(store: store)
-            case let .categoryArchiveList(store):
-                CategoryArchiveListV2(store: store)
-            case let .search(store):
-                SearchViewV2(store: store)
-            case let .random(store):
-                RandomView(store: store)
-            case let .cache(store):
-                CacheView(store: store)
-            }
-        }
+//        NavigationStack(
+//            path: $store.scope(state: \.path, action: \.path)
+//        ) {
+//            UILibraryList(store: store.scope(state: \.library, action: \.library))
+//        } destination: { store in
+//            switch store.case {
+//            case let .reader(store):
+//                ArchiveReader(store: store)
+//            case let .details(store):
+//                ArchiveDetailsV2(store: store)
+//            case let .categoryArchiveList(store):
+//                CategoryArchiveListV2(store: store)
+//            case let .search(store):
+//                SearchViewV2(store: store)
+//            case let .random(store):
+//                RandomView(store: store)
+//            case let .cache(store):
+//                CacheView(store: store)
+//            }
+//        }
+        UILibraryList(store: store.scope(state: \.library, action: \.library))
         .tabItem {
             Image(systemName: "books.vertical")
             Text("library")
@@ -234,26 +235,27 @@ struct ContentView: View {
     }
 
     var categoryView: some View {
-        NavigationStack(
-            path: $store.scope(state: \.path, action: \.path)
-        ) {
-            CategoryListV2(store: store.scope(state: \.category, action: \.category))
-        } destination: { store in
-            switch store.case {
-            case let .reader(store):
-                ArchiveReader(store: store)
-            case let .details(store):
-                ArchiveDetailsV2(store: store)
-            case let .categoryArchiveList(store):
-                CategoryArchiveListV2(store: store)
-            case let .search(store):
-                SearchViewV2(store: store)
-            case let .random(store):
-                RandomView(store: store)
-            case let .cache(store):
-                CacheView(store: store)
-            }
-        }
+//        NavigationStack(
+//            path: $store.scope(state: \.path, action: \.path)
+//        ) {
+//            CategoryListV2(store: store.scope(state: \.category, action: \.category))
+//        } destination: { store in
+//            switch store.case {
+//            case let .reader(store):
+//                ArchiveReader(store: store)
+//            case let .details(store):
+//                ArchiveDetailsV2(store: store, onDelete: { })
+//            case let .categoryArchiveList(store):
+//                CategoryArchiveListV2(store: store)
+//            case let .search(store):
+//                SearchViewV2(store: store)
+//            case let .random(store):
+//                RandomView(store: store)
+//            case let .cache(store):
+//                CacheView(store: store)
+//            }
+//        }
+        UICategoryList(store: store.scope(state: \.category, action: \.category))
         .tabItem {
             Image(systemName: "folder")
             Text("category")
@@ -262,26 +264,27 @@ struct ContentView: View {
     }
 
     var searchView: some View {
-        NavigationStack(
-            path: $store.scope(state: \.path, action: \.path)
-        ) {
-            SearchViewV2(store: store.scope(state: \.search, action: \.search))
-        } destination: { store in
-            switch store.case {
-            case let .reader(store):
-                ArchiveReader(store: store)
-            case let .details(store):
-                ArchiveDetailsV2(store: store)
-            case let .categoryArchiveList(store):
-                CategoryArchiveListV2(store: store)
-            case let .search(store):
-                SearchViewV2(store: store)
-            case let .random(store):
-                RandomView(store: store)
-            case let .cache(store):
-                CacheView(store: store)
-            }
-        }
+//        NavigationStack(
+//            path: $store.scope(state: \.path, action: \.path)
+//        ) {
+//            SearchViewV2(store: store.scope(state: \.search, action: \.search))
+//        } destination: { store in
+//            switch store.case {
+//            case let .reader(store):
+//                ArchiveReader(store: store)
+//            case let .details(store):
+//                ArchiveDetailsV2(store: store, onDelete: { })
+//            case let .categoryArchiveList(store):
+//                CategoryArchiveListV2(store: store)
+//            case let .search(store):
+//                SearchViewV2(store: store)
+//            case let .random(store):
+//                RandomView(store: store)
+//            case let .cache(store):
+//                CacheView(store: store)
+//            }
+//        }
+        UISearchView(store: store.scope(state: \.search, action: \.search))
         .tabItem {
             Image(systemName: "magnifyingglass")
             Text("search")
@@ -315,5 +318,20 @@ struct Covers: ViewModifier {
             ) { store in
                 LockScreen(store: store)
             }
+    }
+}
+
+@nonobjc extension UIViewController {
+    func add(_ child: UIViewController) {
+        addChild(child)
+        child.view.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(child.view)
+        child.didMove(toParent: self)
+    }
+
+    func remove() {
+        willMove(toParent: nil)
+        view.removeFromSuperview()
+        removeFromParent()
     }
 }

@@ -3,11 +3,11 @@ import SwiftUI
 import Logging
 import NotificationBannerSwift
 
-@Reducer struct RandomFeature {
+@Reducer public struct RandomFeature {
     private let logger = Logger(label: "RandomFeature")
 
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         var archives: IdentifiedArrayOf<GridFeature.State> = []
 
         @Shared(.archive) var archiveItems: IdentifiedArrayOf<ArchiveItem> = []
@@ -17,7 +17,7 @@ import NotificationBannerSwift
         var errorMessage = ""
     }
 
-    enum Action: Equatable {
+    public enum Action: Equatable {
         case grid(IdentifiedActionOf<GridFeature>)
         case load(Bool)
         case populateArchives([ArchiveItem])
@@ -27,7 +27,7 @@ import NotificationBannerSwift
 
     @Dependency(\.lanraragiService) var service
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case let .load(showLoading):

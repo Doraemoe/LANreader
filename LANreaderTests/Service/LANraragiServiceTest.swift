@@ -38,9 +38,9 @@ class LANraragiServiceTest: XCTestCase {
         }
 
         let actual = try await service.verifyClient(url: url, apiKey: apiKey).value
-        XCTAssertEqual(actual.archivesPerPage, "100")
-        XCTAssertEqual(actual.debugMode, "0")
-        XCTAssertEqual(actual.hasPassword, "1")
+        XCTAssertEqual(actual.archivesPerPage, 100)
+        XCTAssertEqual(actual.debugMode, false)
+        XCTAssertEqual(actual.hasPassword, true)
     }
 
     func testGetServerInfoUnauthorized() async throws {

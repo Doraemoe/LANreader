@@ -5,7 +5,7 @@
 import Foundation
 import ComposableArchitecture
 
-struct SearchFilter: Equatable {
+public struct SearchFilter: Equatable {
     let category: String?
     let filter: String?
 }
@@ -101,6 +101,7 @@ struct SettingsKey {
     static let hideRead = "settings.view.hideRead"
 
     static let lastTagRefresh = "lastTagRefresh"
+    static let tabBarHidden = "tab.bar.hidden"
 }
 
 extension Double {
