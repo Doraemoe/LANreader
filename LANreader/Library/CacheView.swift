@@ -47,7 +47,7 @@ import NotificationBannerSwift
                         )
                         gridStates.append(
                             GridFeature.State(
-                                archive: Shared(item),
+                                archive: Shared(value: item),
                                 cached: true
                             )
                         )

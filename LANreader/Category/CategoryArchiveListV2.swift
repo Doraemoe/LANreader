@@ -20,7 +20,7 @@ import SwiftUI
 
         case archiveList(ArchiveListFeature.Action)
         case toggleSelectMode
-        case setTabBarHidden(Bool)
+//        case setTabBarHidden(Bool)
     }
 
     public var body: some ReducerOf<Self> {
@@ -43,9 +43,11 @@ import SwiftUI
                 return .none
             case .archiveList:
                 return .none
-            case let .setTabBarHidden(hidden):
-                state.tabBarHidden = hidden
-                return .none
+//            case let .setTabBarHidden(hidden):
+//                state.$tabBarHidden.withLock {
+//                    $0 = hidden
+//                }
+//                return .none
             }
         }
     }

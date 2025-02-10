@@ -65,6 +65,8 @@
 		E997D8042AF3C9BA007C91F1 /* LibraryListV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E997D8032AF3C9BA007C91F1 /* LibraryListV2.swift */; };
 		E998836C2CBCE76A00A81F60 /* UIArchiveDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = E998836B2CBCE76300A81F60 /* UIArchiveDetails.swift */; };
 		E99D2B412B0176410029FDEC /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E99D2B402B0176410029FDEC /* InfoPlist.xcstrings */; };
+		E9A4DD0E2D558D1E00E16FEC /* UIAppTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A4DD0D2D558D1E00E16FEC /* UIAppTabView.swift */; };
+		E9A4DD102D59BAEC00E16FEC /* UIRandomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A4DD0F2D59BAE600E16FEC /* UIRandomView.swift */; };
 		E9A8612D2BF31534003534FA /* AutomaticPageConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A8612C2BF31534003534FA /* AutomaticPageConfig.swift */; };
 		E9AAC1352CBC8FC600E5E89A /* UIPageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AAC1342CBC8FC600E5E89A /* UIPageCell.swift */; };
 		E9B39A6E2B21E7A800700FE4 /* RandomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9B39A6D2B21E7A800700FE4 /* RandomView.swift */; };
@@ -184,6 +186,8 @@
 		E998836B2CBCE76300A81F60 /* UIArchiveDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIArchiveDetails.swift; sourceTree = "<group>"; };
 		E99D2B3F2B0176400029FDEC /* mul */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = mul; path = mul.lproj/LaunchScreen.xcstrings; sourceTree = "<group>"; };
 		E99D2B402B0176410029FDEC /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		E9A4DD0D2D558D1E00E16FEC /* UIAppTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAppTabView.swift; sourceTree = "<group>"; };
+		E9A4DD0F2D59BAE600E16FEC /* UIRandomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIRandomView.swift; sourceTree = "<group>"; };
 		E9A8612C2BF31534003534FA /* AutomaticPageConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticPageConfig.swift; sourceTree = "<group>"; };
 		E9AAC1342CBC8FC600E5E89A /* UIPageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIPageCell.swift; sourceTree = "<group>"; };
 		E9B39A6D2B21E7A800700FE4 /* RandomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomView.swift; sourceTree = "<group>"; };
@@ -257,6 +261,7 @@
 		4BD8240793F86C42AF3383BB /* Library */ = {
 			isa = PBXGroup;
 			children = (
+				E9A4DD0F2D59BAE600E16FEC /* UIRandomView.swift */,
 				E9C354E32CA646D3004C10CD /* UILibraryList.swift */,
 				E997D8032AF3C9BA007C91F1 /* LibraryListV2.swift */,
 				E9B39A6D2B21E7A800700FE4 /* RandomView.swift */,
@@ -430,6 +435,7 @@
 				4BD8274F482337A2C904D45A /* Setting */,
 				4BD824C107853A5BC514F2AD /* Page */,
 				4BD82694B57396B2CD6BACED /* ContentView.swift */,
+				E9A4DD0D2D558D1E00E16FEC /* UIAppTabView.swift */,
 				7D3DFF15251777B200686612 /* LANreaderApp.swift */,
 				E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */,
 			);
@@ -687,12 +693,14 @@
 				E98B8B902A0BA9D1004CBBC0 /* UploadView.swift in Sources */,
 				E9DAEC552B07295D00ADC215 /* ArchiveDetailsV2.swift in Sources */,
 				E9A8612D2BF31534003534FA /* AutomaticPageConfig.swift in Sources */,
+				E9A4DD102D59BAEC00E16FEC /* UIRandomView.swift in Sources */,
 				E9B39A6E2B21E7A800700FE4 /* RandomView.swift in Sources */,
 				4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */,
 				4BD821C3FDF1FC3B60AB4823 /* AppModels.swift in Sources */,
 				4BD82C152E77BFD137EC03DD /* LANraragiConfigView.swift in Sources */,
 				E9EB422B2C05BE0B00E49AE1 /* EditCategory.swift in Sources */,
 				4BD823AC73ED9E45F8B7E436 /* ReadSettings.swift in Sources */,
+				E9A4DD0E2D558D1E00E16FEC /* UIAppTabView.swift in Sources */,
 				4BD82F2BEC56B95FB9BC9841 /* SettingsView.swift in Sources */,
 				E902FC502CD87A780071106B /* UICategoryArchiveGrid.swift in Sources */,
 				E998836C2CBCE76A00A81F60 /* UIArchiveDetails.swift in Sources */,
@@ -893,14 +901,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 113;
+				CURRENT_PROJECT_VERSION = 114;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = LANreader/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -921,14 +929,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 113;
+				CURRENT_PROJECT_VERSION = 114;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = LANreader/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -952,7 +960,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				INFOPLIST_FILE = LANreaderTests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -976,7 +984,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				INFOPLIST_FILE = LANreaderTests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -998,13 +1006,13 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 113;
+				CURRENT_PROJECT_VERSION = 114;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Download from URL";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2023 Jin Yifan. All rights reserved.";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1027,13 +1035,13 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 113;
+				CURRENT_PROJECT_VERSION = 114;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Download from URL";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2023 Jin Yifan. All rights reserved.";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1128,7 +1136,7 @@
 			repositoryURL = "https://github.com/groue/GRDB.swift";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 6.14.0;
+				minimumVersion = 7.0.0;
 			};
 		};
 		E90576BD29F8C10700C3CE3F /* XCRemoteSwiftPackageReference "Puppy" */ = {

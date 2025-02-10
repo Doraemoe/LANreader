@@ -141,7 +141,9 @@ import LocalAuthentication
                 }
                 return .none
             case let .savePasscode(passcode):
-                state.passcode = passcode
+                state.$passcode.withLock {
+                    $0 = passcode
+                }
                 return .none
             default:
                 return .none

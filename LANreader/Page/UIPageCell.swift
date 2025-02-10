@@ -2,13 +2,14 @@ import Combine
 import ComposableArchitecture
 import SwiftUI
 import UIKit
+import Logging
 
 class UIPageCell: UICollectionViewCell {
     static let reuseIdentifier = "UIPageCell"
 
     var store: StoreOf<PageFeature>?
-    private var cellSize: CGSize?
-    private var cancellables: Set<AnyCancellable> = []
+
+    private let logger = Logger(label: "UIPageCell")
 
     private let scrollView: UIScrollView = {
         let view = UIScrollView()
@@ -70,14 +71,14 @@ class UIPageCell: UICollectionViewCell {
             scrollView.bottomAnchor.constraint(
                 equalTo: contentView.bottomAnchor),
 
-            imageView.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            imageView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
             imageView.leadingAnchor.constraint(
-                equalTo: scrollView.leadingAnchor),
+                equalTo: scrollView.contentLayoutGuide.leadingAnchor),
             imageView.trailingAnchor.constraint(
-                equalTo: scrollView.trailingAnchor),
-            imageView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            imageView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
-            imageView.heightAnchor.constraint(equalTo: scrollView.heightAnchor),
+                equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            imageView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            imageView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+            imageView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor),
 
             progressView.centerXAnchor.constraint(
                 equalTo: contentView.centerXAnchor),
@@ -93,9 +94,8 @@ class UIPageCell: UICollectionViewCell {
         ])
     }
 
-    func configure(with store: StoreOf<PageFeature>, size: CGSize) {
+    func configure(with store: StoreOf<PageFeature>) {
         self.store = store
-        self.cellSize = size
         imageView.image = nil
         progressView.progress = 0
         progressView.isHidden = true
@@ -141,13 +141,6 @@ class UIPageCell: UICollectionViewCell {
         }
     }
 
-    func load(callback: () -> Void) async {
-        if store?.pageMode == .loading {
-            await store?.send(.load(false)).finish()
-            callback()
-        }
-    }
-
     override func prepareForReuse() {
         super.prepareForReuse()
         imageView.image = nil
@@ -159,21 +152,12 @@ class UIPageCell: UICollectionViewCell {
     override func preferredLayoutAttributesFitting(
         _ layoutAttributes: UICollectionViewLayoutAttributes
     ) -> UICollectionViewLayoutAttributes {
-        let attributes = super.preferredLayoutAttributesFitting(
-            layoutAttributes)
-
-        if store?.pageMode == .loading || cellSize == nil
-            || imageView.image == nil
-            || store?.readDirection != ReadDirection.upDown.rawValue {
-            attributes.size = cellSize ?? .zero
-            return attributes
-        } else {
-            let height =
-                cellSize!.width * imageView.image!.size.height
-                / imageView.image!.size.width
-            attributes.size = CGSize(width: cellSize!.width, height: height)
+        let attributes = super.preferredLayoutAttributesFitting(layoutAttributes)
+        if let image = imageView.image {
+            let width = layoutAttributes.frame.width
+            let height = width * (image.size.height / image.size.width)
+            attributes.frame.size.height = height
         }
-
         return attributes
     }
 }

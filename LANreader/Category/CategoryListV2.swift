@@ -12,7 +12,6 @@ import NotificationBannerSwift
 
         @SharedReader(.appStorage(SettingsKey.lanraragiUrl)) var lanraragiUrl = ""
         @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
-        @Shared(.inMemory(SettingsKey.tabBarHidden)) var tabBarHidden = false
 
         var editMode: EditMode = .inactive
         var showLoading = false
@@ -29,7 +28,6 @@ import NotificationBannerSwift
         case setErrorMessage(String)
         case showAddCategory
         case showEditCategory(CategoryItem)
-        case setTabBarHidden(Bool)
     }
 
     @Dependency(\.lanraragiService) var service
@@ -52,7 +50,9 @@ import NotificationBannerSwift
                     await send(.setErrorMessage(error.localizedDescription))
                 }
             case let .populateCategory(items):
-                state.categoryItems = IdentifiedArray(uniqueElements: items)
+                state.$categoryItems.withLock {
+                    $0 = IdentifiedArray(uniqueElements: items)
+                }
                 state.showLoading = false
                 return .none
             case let .setErrorMessage(message):
@@ -89,9 +89,6 @@ import NotificationBannerSwift
                 return .run { send in
                     await send(.loadCategory(true))
                 }
-            case let .setTabBarHidden(hidden):
-                state.tabBarHidden = hidden
-                return .none
             default:
                 return .none
             }
@@ -146,7 +143,8 @@ struct CategoryListV2: View {
 //        .environment(\.editMode, $store.editMode)
 //        .navigationTitle("category")
 //        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(store.tabBarHidden ? .hidden : .visible, for: .tabBar)
+//        .toolbar(store.tabBarHidden ? .hidden : .visible, for: .tabBar)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             if store.categoryItems.isEmpty {
                 store.send(.loadCategory(true))

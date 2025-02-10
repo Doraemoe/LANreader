@@ -16,7 +16,6 @@ import OrderedCollections
         @SharedReader(.appStorage(SettingsKey.tapMiddleKey)) var tapMiddle = PageControl.navigation.rawValue
         @SharedReader(.appStorage(SettingsKey.tapRightKey)) var tapRight = PageControl.previous.rawValue
         @SharedReader(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
-        @SharedReader(.appStorage(SettingsKey.fallbackReader)) var fallbackReader = false
         @SharedReader(.appStorage(SettingsKey.serverProgress)) var serverProgress = false
         @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
         @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
@@ -24,7 +23,6 @@ import OrderedCollections
         @SharedReader(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
         @Shared var archive: ArchiveItem
 
-//        var indexString: String?
         var sliderIndex: Double = 0
         var jumpIndex: Int = 0
         var pages: IdentifiedArrayOf<PageFeature.State> = []
@@ -40,10 +38,6 @@ import OrderedCollections
         var autoDate = Date()
         var cached = false
         var inCache = false
-
-//        var currentIndex: Int? {
-//            pages.index(id: indexString ?? "")
-//        }
 
         init(archive: Shared<ArchiveItem>, fromStart: Bool = false, cached: Bool = false) {
             self._archive = archive
@@ -64,14 +58,12 @@ import OrderedCollections
         case loadProgress
         case finishExtracting([String])
         case toggleControlUi(Bool?)
-//        case setIndexString(String)
         case setJumpIndex(Int)
         case setSliderIndex(Double)
         case updateProgress(Int)
         case setIsNew(Bool)
         case setThumbnail
         case finishThumbnailLoading
-//        case tapAction(String)
         case setError(String)
         case setSuccess(String)
         case downloadPages
@@ -125,7 +117,6 @@ import OrderedCollections
                         }
                     state.pages.append(contentsOf: pageState)
                     state.sliderIndex = 0.0
-//                    state.indexString = state.pages[0].id
                     state.controlUiHidden = true
                     state.extracting = false
                     return .none
@@ -165,10 +156,8 @@ import OrderedCollections
                     state.pages.append(contentsOf: pageState)
                     let progress = state.archive.progress > 0 ? state.archive.progress - 1 : 0
                     let pageIndexToShow = state.fromStart ? 0 : progress
-//                    print("inside store \(pageIndexToShow)")
                     state.sliderIndex = Double(pageIndexToShow)
                     state.jumpIndex = pageIndexToShow
-//                    state.indexString = state.pages[pageIndexToShow].id
                     state.controlUiHidden = true
                 }
                 state.extracting = false
@@ -176,7 +165,6 @@ import OrderedCollections
             case .loadProgress:
                 let progress = state.archive.progress > 0 ? state.archive.progress - 1 : 0
                 state.sliderIndex = Double(progress)
-//                state.indexString = state.pages[progress].id
                 state.controlUiHidden = true
                 return .none
             case let .toggleControlUi(show):
@@ -186,17 +174,17 @@ import OrderedCollections
                     state.controlUiHidden.toggle()
                 }
                 return .none
-//            case let .setIndexString(indexString):
-//                state.indexString = indexString
-//                return .none
             case let .setJumpIndex(jumpIndex):
+                logger.info("jump from page \(state.jumpIndex) to page \(jumpIndex)")
                 state.jumpIndex = jumpIndex
                 return .none
             case let .setSliderIndex(index):
                 state.sliderIndex = index
                 return .none
             case let .updateProgress(pageNumber):
-                state.archive.progress = pageNumber
+                state.$archive.withLock {
+                    $0.progress = pageNumber
+                }
                 if state.cached {
                     return .none
                 }
@@ -215,7 +203,9 @@ import OrderedCollections
                 }
                 .debounce(id: CancelId.updateProgress, for: .seconds(0.5), scheduler: DispatchQueue.main)
             case let .setIsNew(isNew):
-                state.archive.isNew = isNew
+                state.$archive.withLock {
+                    $0.isNew = isNew
+                }
                 return .none
             case .setThumbnail:
                 state.settingThumbnail = true
@@ -240,10 +230,10 @@ import OrderedCollections
                 }
             case .finishThumbnailLoading:
                 state.settingThumbnail = false
-                state.archive.refresh = true
+                state.$archive.withLock {
+                    $0.refresh = true
+                }
                 return .none
-//            case let .tapAction(action):
-//                return .none
             case let .setSuccess(message):
                 state.successMessage = message
                 return .none
@@ -387,22 +377,6 @@ struct ArchiveReader: View {
         .focusable()
         .focused($isFocused)
         .focusEffectDisabled()
-//        .onKeyPress(keys: [.leftArrow, .rightArrow]) { press in
-//            if store.readDirection == ReadDirection.leftRight.rawValue {
-//                if press.key == .leftArrow {
-//                    store.send(.tapAction(PageControl.previous.rawValue), animation: .linear)
-//                } else if press.key == .rightArrow {
-//                    store.send(.tapAction(PageControl.next.rawValue), animation: .linear)
-//                }
-//            } else if store.readDirection == ReadDirection.rightLeft.rawValue {
-//                if press.key == .leftArrow {
-//                    store.send(.tapAction(PageControl.next.rawValue), animation: .linear)
-//                } else if press.key == .rightArrow {
-//                    store.send(.tapAction(PageControl.previous.rawValue), animation: .linear)
-//                }
-//            }
-//            return .handled
-//        }
         .onAppear {
             isFocused = true
         }
@@ -469,7 +443,7 @@ struct ArchiveReader: View {
         store: StoreOf<ArchiveReaderFeature>,
         geometry: GeometryProxy
     ) -> some View {
-        UIPageCollection(store: store, size: geometry.size)
+        UIPageCollection(store: store)
     }
 
     @MainActor
@@ -477,7 +451,7 @@ struct ArchiveReader: View {
         store: StoreOf<ArchiveReaderFeature>,
         geometry: GeometryProxy
     ) -> some View {
-        UIPageCollection(store: store, size: geometry.size)
+        UIPageCollection(store: store)
     }
 
     // swiftlint:disable function_body_length

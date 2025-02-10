@@ -113,6 +113,15 @@ class UISearchViewController: UIViewController {
 //        setupObserve()
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        if #available(iOS 18.0, *) {
+            if navigationController?.viewControllers.count == 1 {
+                tabBarController?.setTabBarHidden(false, animated: false)
+            }
+        }
+    }
+
     private func updateSuggestionsVisibility(for searchText: String) {
         if !searchText.isEmpty && !store.suggestedTag.isEmpty {
             // Calculate height based on number of suggestions

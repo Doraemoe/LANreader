@@ -73,13 +73,19 @@ import Logging
                 state.formKey = state.apiKey
                 return .none
             case let .setServerProgress(isServerProgress):
-                state.serverProgress = isServerProgress
+                state.$serverProgress.withLock {
+                    $0 = isServerProgress
+                }
                 return .none
             case let .setLanraragiUrl(url):
-                state.url = url
+                state.$url.withLock {
+                    $0 = url
+                }
                 return .none
             case let .setLanraragiApiKey(key):
-                state.apiKey = key
+                state.$apiKey.withLock {
+                    $0 = key
+                }
                 return .none
             }
         }

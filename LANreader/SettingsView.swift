@@ -58,8 +58,7 @@ struct SettingsView: View {
         ) {
             Form {
                 Section(
-                    header: Text("settings.read"),
-                    footer: Text("settings.read.fallback.explain")
+                    header: Text("settings.read")
                 ) {
                     ReadSettings(store: self.store.scope(state: \.read, action: \.read))
                 }
@@ -86,8 +85,7 @@ struct SettingsView: View {
                         .padding()
                 }
             }
-            .navigationBarTitle("settings")
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
         } destination: { store in
             switch store.case {
             case let .lanraragiSettings(store):

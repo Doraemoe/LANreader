@@ -78,6 +78,9 @@ class UIArchiveReaderController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(store.controlUiHidden, animated: animated)
+        if #available(iOS 18.0, *) {
+            tabBarController?.setTabBarHidden(true, animated: false)
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {

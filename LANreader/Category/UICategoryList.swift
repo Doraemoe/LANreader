@@ -36,13 +36,13 @@ class UICategoryListViewController: UIViewController {
 
     private func setupLayout() {
         self.hostingController = UIHostingController(rootView: CategoryListV2(store: store, onTapCategory: {store in
+            let categoryController = UICategoryArchiveGridController(store: store)
+            categoryController.hidesBottomBarWhenPushed = true
             self.navigationController?.pushViewController(
-                UICategoryArchiveGridController(store: store),
+                categoryController,
                 animated: true
             )
         }))
-//        navigationItem.title = String(localized: "category")
-//        navigationItem.largeTitleDisplayMode = .inline
         add(hostingController)
         NSLayoutConstraint.activate([
             hostingController!.view.topAnchor.constraint(equalTo: view.topAnchor),
@@ -59,6 +59,8 @@ class UICategoryListViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        store.send(.setTabBarHidden(false))
+        if #available(iOS 18.0, *) {
+            tabBarController?.setTabBarHidden(false, animated: false)
+        }
     }
 }
