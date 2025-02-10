@@ -148,8 +148,10 @@ class UIPageCell: UICollectionViewCell {
         progressView.isHidden = true
         scrollView.zoomScale = 1.0
     }
-    
-    override func preferredLayoutAttributesFitting(_ layoutAttributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutAttributes {
+
+    override func preferredLayoutAttributesFitting(
+        _ layoutAttributes: UICollectionViewLayoutAttributes
+    ) -> UICollectionViewLayoutAttributes {
         let attributes = super.preferredLayoutAttributesFitting(layoutAttributes)
         if let image = imageView.image {
             let width = layoutAttributes.frame.width

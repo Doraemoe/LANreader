@@ -112,7 +112,7 @@ class UISearchViewController: UIViewController {
         setupDelegates()
 //        setupObserve()
     }
-    
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         if #available(iOS 18.0, *) {

@@ -389,7 +389,7 @@ struct ArchiveDetailsV2: View {
                 .onTapGesture {
                     openURL(URL(string: urlString)!)
                 }
-            
+
         }
         let processedTag: String
         if tagName == ArchiveDetailsV2.dateTag {

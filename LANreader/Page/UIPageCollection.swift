@@ -6,7 +6,7 @@ import Logging
 
 public struct UIPageCollection: UIViewControllerRepresentable {
     let store: StoreOf<ArchiveReaderFeature>
-    
+
     public init(store: StoreOf<ArchiveReaderFeature>) {
         self.store = store
     }
@@ -25,7 +25,7 @@ public struct UIPageCollection: UIViewControllerRepresentable {
 
 class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     private let logger = Logger(label: "UIPageCollectionController")
-    
+
     let store: StoreOf<ArchiveReaderFeature>
     var collectionView: UICollectionView!
     var lastPageIndexPath: IndexPath?
@@ -44,7 +44,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     private func setupLayout() {
         let heightDimension =
             store.readDirection == ReadDirection.upDown.rawValue
@@ -63,8 +63,8 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         if store.readDirection != ReadDirection.upDown.rawValue {
             section.orthogonalScrollingBehavior = .paging
         }
-        
-        section.visibleItemsInvalidationHandler = { [weak self] items, offset, environment in
+
+        section.visibleItemsInvalidationHandler = { [weak self] items, _, _ in
             guard let self else { return }
             if let idx = items.last?.indexPath, self.lastPageIndexPath != idx {
                 self.store.send(.setSliderIndex(Double(idx.row)))
@@ -100,8 +100,9 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         collectionView.register(
             UIPageCell.self, forCellWithReuseIdentifier: "Page"
         )
-        
-        let cellRegistration = UICollectionView.CellRegistration<UIPageCell, StoreOf<PageFeature>> { [weak self] cell, _, pageStore in
+
+        let cellRegistration = UICollectionView
+            .CellRegistration<UIPageCell, StoreOf<PageFeature>> { [weak self] cell, _, pageStore in
             guard self != nil else { return }
             cell.configure(with: pageStore)
         }
@@ -177,7 +178,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         collectionView.delegate = self
         collectionView.prefetchDataSource = self
     }
-    
+
     enum Section {
         case main
     }
@@ -270,7 +271,7 @@ extension UIPageCollectionController: UICollectionViewDataSourcePrefetching {
             }
         }
     }
-    
+
     func collectionView(
         _ collectionView: UICollectionView,
         prefetchItemsAt indexPaths: [IndexPath]
