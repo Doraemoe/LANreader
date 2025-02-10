@@ -99,12 +99,6 @@ import Logging
                     logger.error("failed to queue url to download. url=\(url) \(error)")
                     await send(.setErrorMessage(error.localizedDescription))
                 }
-            case let .path(.element(id: id, action: .details(.deleteSuccess))):
-//                guard case .details = state.path[id: id]
-//                else { return .none }
-//                let penultimateId = state.path.ids.dropLast().last
-//                state.path.pop(from: penultimateId!)
-                return .none
             case let .setErrorMessage(message):
                 state.errorMessage = message
                 return .none
@@ -152,12 +146,7 @@ struct ContentView: View {
     }
 
     var body: some View {
-        TabView(selection: $store.tabName) {
-            libraryView
-            categoryView
-            searchView
-            settingsView
-        }
+        UIAppTabView(store: store)
         .modifier(Covers(store: store))
         .onAppear {
             if store.lanraragiUrl.isEmpty != false {
@@ -203,102 +192,6 @@ struct ContentView: View {
                 store.send(.setSuccessMessage(""))
             }
         }
-    }
-
-    var libraryView: some View {
-//        NavigationStack(
-//            path: $store.scope(state: \.path, action: \.path)
-//        ) {
-//            UILibraryList(store: store.scope(state: \.library, action: \.library))
-//        } destination: { store in
-//            switch store.case {
-//            case let .reader(store):
-//                ArchiveReader(store: store)
-//            case let .details(store):
-//                ArchiveDetailsV2(store: store)
-//            case let .categoryArchiveList(store):
-//                CategoryArchiveListV2(store: store)
-//            case let .search(store):
-//                SearchViewV2(store: store)
-//            case let .random(store):
-//                RandomView(store: store)
-//            case let .cache(store):
-//                CacheView(store: store)
-//            }
-//        }
-        UILibraryList(store: store.scope(state: \.library, action: \.library))
-        .tabItem {
-            Image(systemName: "books.vertical")
-            Text("library")
-        }
-        .tag("library")
-    }
-
-    var categoryView: some View {
-//        NavigationStack(
-//            path: $store.scope(state: \.path, action: \.path)
-//        ) {
-//            CategoryListV2(store: store.scope(state: \.category, action: \.category))
-//        } destination: { store in
-//            switch store.case {
-//            case let .reader(store):
-//                ArchiveReader(store: store)
-//            case let .details(store):
-//                ArchiveDetailsV2(store: store, onDelete: { })
-//            case let .categoryArchiveList(store):
-//                CategoryArchiveListV2(store: store)
-//            case let .search(store):
-//                SearchViewV2(store: store)
-//            case let .random(store):
-//                RandomView(store: store)
-//            case let .cache(store):
-//                CacheView(store: store)
-//            }
-//        }
-        UICategoryList(store: store.scope(state: \.category, action: \.category))
-        .tabItem {
-            Image(systemName: "folder")
-            Text("category")
-        }
-        .tag("category")
-    }
-
-    var searchView: some View {
-//        NavigationStack(
-//            path: $store.scope(state: \.path, action: \.path)
-//        ) {
-//            SearchViewV2(store: store.scope(state: \.search, action: \.search))
-//        } destination: { store in
-//            switch store.case {
-//            case let .reader(store):
-//                ArchiveReader(store: store)
-//            case let .details(store):
-//                ArchiveDetailsV2(store: store, onDelete: { })
-//            case let .categoryArchiveList(store):
-//                CategoryArchiveListV2(store: store)
-//            case let .search(store):
-//                SearchViewV2(store: store)
-//            case let .random(store):
-//                RandomView(store: store)
-//            case let .cache(store):
-//                CacheView(store: store)
-//            }
-//        }
-        UISearchView(store: store.scope(state: \.search, action: \.search))
-        .tabItem {
-            Image(systemName: "magnifyingglass")
-            Text("search")
-        }
-        .tag("search")
-    }
-
-    var settingsView: some View {
-        SettingsView(store: store.scope(state: \.settings, action: \.settings))
-            .tabItem {
-                Image(systemName: "gearshape")
-                Text("settings")
-            }
-            .tag("settings")
     }
 }
 

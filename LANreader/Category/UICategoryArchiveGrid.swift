@@ -37,7 +37,6 @@ class UICategoryArchiveGridController: UIViewController {
         super.viewDidLoad()
 
         navigationItem.title = store.name
-        tabBarController?.tabBar.isHidden = true
 
         let archiveListView = UIArchiveListViewController(
             store: store.scope(state: \.archiveList, action: \.archiveList)
@@ -53,6 +52,8 @@ class UICategoryArchiveGridController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        store.send(.setTabBarHidden(true))
+        if #available(iOS 18.0, *) {
+            tabBarController?.setTabBarHidden(true, animated: false)
+        }
     }
 }

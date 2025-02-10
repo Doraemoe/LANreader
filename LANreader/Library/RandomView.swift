@@ -48,7 +48,9 @@ import NotificationBannerSwift
                 }
             case let .populateArchives(archives):
                 archives.forEach { item in
-                    state.archiveItems.updateOrAppend(item)
+                    state.$archiveItems.withLock {
+                        _ = $0.updateOrAppend(item)
+                    }
                 }
                 let gridFeatureState = archives.compactMap { item in
                     Shared(state.$archiveItems[id: item.id])

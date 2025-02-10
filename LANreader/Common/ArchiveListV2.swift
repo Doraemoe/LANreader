@@ -114,11 +114,15 @@ import NotificationBannerSwift
             case let .removeArchive(id):
                 state.archivesToDisplay.remove(id: id)
                 state.archives.remove(id: id)
-                state.archiveItems.remove(id: id)
+                state.$archiveItems.withLock {
+                    _ = $0.remove(id: id)
+                }
                 return .none
             case let .populateArchives(archives, total, append):
                 archives.forEach { item in
-                    state.archiveItems.updateOrAppend(item)
+                    state.$archiveItems.withLock {
+                        _ = $0.updateOrAppend(item)
+                    }
                 }
                 let gridFeatureState = archives.compactMap { item in
                     Shared(state.$archiveItems[id: item.id])
@@ -276,13 +280,20 @@ import NotificationBannerSwift
                     await send(.deleteSuccess(successIds))
                 }
             case let .setSearchSortOrder(order):
-                state.searchSortOrder = order
+                state.$searchSortOrder.withLock {
+                    $0 = order
+                }
+//                state.searchSortOrder = order
                 return .none
             case let .setSearchSort(sort):
-                state.searchSort = sort
+                state.$searchSort.withLock {
+                    $0 = sort
+                }
                 return .none
             case .toggleHideRead:
-                state.hideRead.toggle()
+                state.$hideRead.withLock {
+                    $0.toggle()
+                }
                 if state.hideRead {
                     let result = state.archives.filter {
                         $0.archive.pagecount != $0.archive.progress
@@ -321,7 +332,9 @@ import NotificationBannerSwift
                     state.selected.remove(id)
                     state.archivesToDisplay.remove(id: id)
                     state.archives.remove(id: id)
-                    state.archiveItems.remove(id: id)
+                    state.$archiveItems.withLock {
+                        _ = $0.remove(id: id)
+                    }
                 }
                 state.loading = false
                 return .none
@@ -337,14 +350,16 @@ import NotificationBannerSwift
                     await send(.setErrorMessage(error.localizedDescription))
                 }
             case let .populateCategory(items):
-                state.categoryItems = IdentifiedArray(uniqueElements: items)
+                state.$categoryItems.withLock {
+                    $0 = IdentifiedArray(uniqueElements: items)
+                }
                 return .none
             case let .addArchivesToCategory(categoryId):
                 state.loading = true
                 return .run { [state] send in
                     var successIds: Set<String> = .init()
                     var errorIds: Set<String> = .init()
-                    let currentCategory = await state.$categoryItems.withLock { $0[id: categoryId]! }
+                    let currentCategory = state.$categoryItems.withLock { $0[id: categoryId]! }
 
                     for archiveId in state.selected {
                         if currentCategory.archives.contains(archiveId) {
@@ -382,7 +397,9 @@ import NotificationBannerSwift
                     await send(.updateLocalCategory(categoryId, successIds))
                 }
             case let .updateLocalCategory(categoryId, archiveIds):
-                state.categoryItems[id: categoryId]?.archives.append(contentsOf: archiveIds)
+                state.$categoryItems.withLock {
+                    $0[id: categoryId]?.archives.append(contentsOf: archiveIds)
+                }
                 archiveIds.forEach { id in
                     state.selected.remove(id)
                 }
@@ -402,7 +419,9 @@ import NotificationBannerSwift
         let excludeTags = ["date_added", "source"]
         // refresh only after 1 day
         if currentTime - lastUpdateTime > 86400 {
-            state.lastTagRefresh = Date().timeIntervalSince1970
+            state.$lastTagRefresh.withLock {
+                $0 = Date().timeIntervalSince1970
+            }
             Task.detached(priority: .utility) {
                 do {
                     let response = try await service.databaseStats().value

@@ -36,11 +36,11 @@ class UILibraryListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        navigationItem.title = String(localized: "library")
-
         let archiveListView = UIArchiveListViewController(
             store: store.scope(state: \.archiveList, action: \.archiveList)
         )
+        let randomButton = UIBarButtonItem(image: UIImage(systemName: "shuffle"), style: .plain, target: self, action: #selector(tapRandomButton))
+        navigationItem.leftBarButtonItem = randomButton
         add(archiveListView)
         NSLayoutConstraint.activate([
             archiveListView.view.topAnchor.constraint(equalTo: view.topAnchor),
@@ -48,5 +48,24 @@ class UILibraryListViewController: UIViewController {
             archiveListView.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             archiveListView.view.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        if #available(iOS 18.0, *) {
+            tabBarController?.setTabBarHidden(false, animated: false)
+        }
+    }
+    
+    @objc private func tapRandomButton() {
+        let randomStore = Store(initialState: RandomFeature.State.init()) {
+            RandomFeature()
+        }
+        let randomController = UIRandomViewController(store: randomStore)
+        randomController.hidesBottomBarWhenPushed = true
+        navigationController?.pushViewController(
+            randomController,
+            animated: true
+        )
     }
 }

@@ -28,7 +28,9 @@ import SwiftUI
         Reduce { state, action in
             switch action {
             case let .setEnablePasscode(isEnable):
-                state.enablePasscode = isEnable
+                state.$enablePasscode.withLock {
+                    $0 = isEnable
+                }
                 return .none
             case let .showLockScreen(isEnable):
                 state.destination = .lockScreen(

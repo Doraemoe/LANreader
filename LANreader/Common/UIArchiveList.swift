@@ -100,7 +100,6 @@ class UIArchiveListViewController: UICollectionViewController {
         let cellRegistration = UICollectionView.CellRegistration<
             UIArchiveCell, StoreOf<GridFeature>
         > { [weak self] cell, _, itemStore in
-
             guard self != nil else { return }
             cell.configure(with: itemStore)
         }
@@ -340,9 +339,10 @@ extension UIArchiveListViewController: UICollectionViewDelegateFlowLayout {
         ) {
             ArchiveReaderFeature()
         }
-        //        traitCollection.push(value: AppFeature.Path.State.reader(ArchiveReaderFeature.State.init(archive: selectedItemStore.$archive)))
+        let readerController = UIArchiveReaderController(store: readerStore)
+        readerController.hidesBottomBarWhenPushed = true
         navigationController?.pushViewController(
-            UIArchiveReaderController(store: readerStore), animated: true)
+            readerController, animated: true)
     }
 
     func collectionView(

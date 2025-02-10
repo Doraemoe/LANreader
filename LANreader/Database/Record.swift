@@ -83,11 +83,7 @@ extension Archive {
         let tagString = tags.joined(separator: ",")
         return ArchiveItem(id: id,
                 name: title,
-                normalizedName: title.replacingOccurrences(
-                    of: "\\s*(\\[|\\()[^\\]\\)]*(\\]|\\))\\s*",
-                    with: "",
-                    options: .regularExpression
-                ),
+                normalizedName: "",
                 extension: `extension`,
                 tags: tagString,
                 isNew: isNew,

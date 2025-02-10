@@ -62,7 +62,9 @@ import Logging
                 state.mode = .normal
                 return .none
             case .finishRefreshArchive:
-                state.archive.refresh = false
+                state.$archive.withLock {
+                    $0.refresh = false
+                }
                 return .none
             }
         }

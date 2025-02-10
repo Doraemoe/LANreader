@@ -68,8 +68,8 @@ import NotificationBannerSwift
                     archive.name = state.title
                     archive.tags = state.tags
                     _ = try await service.updateArchive(archive: archive).value
-                    await state.$archive.withLock { $0.name = state.title }
-                    await state.$archive.withLock { $0.tags = state.tags }
+                    state.$archive.withLock { $0.name = state.title }
+                    state.$archive.withLock { $0.tags = state.tags }
                     await send(.setSuccessMessage(
                         String(localized: "archive.metadata.update.success"))
                     )
@@ -132,11 +132,12 @@ import NotificationBannerSwift
                     await send(.setErrorMessage(error.localizedDescription))
                 }
             case let .populateCategory(items):
-                state.categoryItems = IdentifiedArray(uniqueElements: items)
+                state.$categoryItems.withLock { $0 = IdentifiedArray(uniqueElements: items) }
+//                state.categoryItems = IdentifiedArray(uniqueElements: items)
                 return .none
             case let .addArchiveToCategory(categoryId):
                 return .run { [state] send in
-                    let categoryArchives = await state.$categoryItems.withLock { $0[id: categoryId]?.archives }
+                    let categoryArchives = state.$categoryItems.withLock { $0[id: categoryId]?.archives }
                     if categoryArchives?.contains(state.archive.id) == false {
                         let response = try await service.addArchiveToCategory(
                             categoryId: categoryId, archiveId: state.archive.id
@@ -160,7 +161,7 @@ import NotificationBannerSwift
                 }
             case let .removeArchiveFromCategory(categoryId):
                 return .run { [state] send in
-                    let categoryArchives = await state.$categoryItems.withLock { $0[id: categoryId]?.archives }
+                    let categoryArchives = state.$categoryItems.withLock { $0[id: categoryId]?.archives }
                     if categoryArchives?.contains(state.archive.id) == true {
                         let response = try await service.removeArchiveFromCategory(
                             categoryId: categoryId, archiveId: state.archive.id
@@ -184,10 +185,14 @@ import NotificationBannerSwift
                 }
             case let .updateLocalCategoryItems(archiveId, categoryId, isAdd):
                 if isAdd {
-                    state.categoryItems[id: categoryId]?.archives.append(archiveId)
+                    state.$categoryItems.withLock {
+                        $0[id: categoryId]?.archives.append(archiveId)
+                    }
                 } else {
-                    state.categoryItems[id: categoryId]?.archives.removeAll { id in
-                        id == archiveId
+                    state.$categoryItems.withLock {
+                        $0[id: categoryId]?.archives.removeAll { id in
+                            id == archiveId
+                        }
                     }
                 }
                 return .none
@@ -198,16 +203,15 @@ import NotificationBannerSwift
             case let .setSuccessMessage(message):
                 state.successMessage = message
                 return .none
-//            case .alert:
-//                return .none
             case .deleteSuccess:
-                state.archiveItems.remove(id: state.archive.id)
+                state.$archiveItems.withLock {
+                    _ = $0.remove(id: state.archive.id)
+                }
                 return .none
             case .binding:
                 return .none
             }
         }
-//        .ifLet(\.$alert, action: \.alert)
     }
 }
 
@@ -292,9 +296,6 @@ struct ArchiveDetailsV2: View {
             }
         }
         .environment(\.editMode, $store.editMode)
-//        .alert(
-//            $store.scope(state: \.alert, action: \.alert)
-//        )
         .alert("archive.delete.confirm", isPresented: $store.showAlert) {
             Button("cancel", role: .cancel) { }
             Button("delete", role: .destructive) {
@@ -383,15 +384,12 @@ struct ArchiveDetailsV2: View {
         let tagValue = tagPair.count == 2 ? tagPair[1].trimmingCharacters(in: .whitespacesAndNewlines) : ""
         if tagName == ArchiveDetailsV2.sourceTag {
             let urlString = tagValue.hasPrefix("http") ? tagValue : "https://\(tagValue)"
-            return
-//                Link(destination: URL(string: urlString)!) {
-                    Text(tag)
-                        .lineLimit(1)
-                        .onTapGesture {
-                            openURL(URL(string: urlString)!)
-                        }
-//                }
-
+            return Text(tag)
+                .lineLimit(1)
+                .onTapGesture {
+                    openURL(URL(string: urlString)!)
+                }
+            
         }
         let processedTag: String
         if tagName == ArchiveDetailsV2.dateTag {
@@ -415,22 +413,5 @@ struct ArchiveDetailsV2: View {
                 }
                 onTagNavigation(searchStore)
             }
-
-//        return AnyView(
-//            NavigationLink(
-//                state: AppFeature.Path.State.search(
-//                    SearchFeature.State.init(
-//                        keyword: normalizedTag, archiveList: ArchiveListFeature.State(
-//                            filter: SearchFilter(category: nil, filter: normalizedTag),
-//                            loadOnAppear: true,
-//                            currentTab: .search
-//                        )
-//                    )
-//                )
-//            ) {
-//                Text(processedTag)
-//                    .lineLimit(1)
-//            }
-//        )
     }
 }
