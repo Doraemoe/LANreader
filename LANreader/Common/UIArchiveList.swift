@@ -3,28 +3,10 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 
-public struct UIArchiveList: UIViewControllerRepresentable {
+class UIArchiveListViewController: UIViewController {
     let store: StoreOf<ArchiveListFeature>
 
-    public init(store: StoreOf<ArchiveListFeature>) {
-        self.store = store
-    }
-
-    public func makeUIViewController(context: Context) -> UIViewController {
-        UIArchiveListViewController(store: store)
-    }
-
-    public func updateUIViewController(
-        _ uiViewController: UIViewController,
-        context: Context
-    ) {
-        // Nothing to do
-    }
-}
-
-class UIArchiveListViewController: UICollectionViewController {
-    let store: StoreOf<ArchiveListFeature>
-
+    var collectionView: UICollectionView!
     var dataSource:
         UICollectionViewDiffableDataSource<Section, StoreOf<GridFeature>>!
     var isLoading = false
@@ -34,34 +16,61 @@ class UIArchiveListViewController: UICollectionViewController {
 
     init(store: StoreOf<ArchiveListFeature>) {
         self.store = store
-        super.init(collectionViewLayout: UICollectionViewFlowLayout())
+        super.init(nibName: nil, bundle: nil)
     }
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func setupLayout() {
-        guard
-            let layout = collectionView.collectionViewLayout
-                as? UICollectionViewFlowLayout
-        else { return }
+    func setupCollectionView() {
+        let layout = UICollectionViewCompositionalLayout { _, layoutEnvironment -> NSCollectionLayoutSection? in
+            let containerWidth = layoutEnvironment.container.effectiveContentSize.width
+            let columns = max(Int(containerWidth / 180), 1)
+            let interItemSpacing: CGFloat = 8.0
+            let totalSpacing = CGFloat(columns - 1) * interItemSpacing
 
-        layout.minimumInteritemSpacing = 5
-        layout.sectionInset = UIEdgeInsets(
-            top: 10, left: 10, bottom: 10, right: 10)
+            let availableWidth = containerWidth - totalSpacing
+            let cellWidth = availableWidth / CGFloat(columns)
+            let cellHeight = (cellWidth / 2.0 * 3.0) + 10.0
 
-        if let viewWidth = parent?.view.bounds.width {
-            if viewWidth / 3 < 160 {
-                let width = viewWidth / 2 - 15
-                layout.itemSize = CGSize(
-                    width: width, height: width / 2 * 3 + 10)
-            } else {
-                layout.itemSize = CGSize(width: 190, height: 295)
-            }
-        } else {
-            layout.itemSize = CGSize(width: 180, height: 270)
+            let itemSize = NSCollectionLayoutSize(
+                widthDimension: .fractionalWidth(1.0 / CGFloat(columns)),
+                heightDimension: .fractionalHeight(1.0)
+            )
+            let item = NSCollectionLayoutItem(layoutSize: itemSize)
+            item.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4)
+
+            let groupSize = NSCollectionLayoutSize(
+                widthDimension: .fractionalWidth(1.0),
+                heightDimension: .absolute(cellHeight)
+            )
+            let group = NSCollectionLayoutGroup.horizontal(
+                layoutSize: groupSize,
+                repeatingSubitem: item,
+                count: columns
+            )
+            group.interItemSpacing = .fixed(interItemSpacing)
+
+            let section = NSCollectionLayoutSection(group: group)
+
+            let footerSize = NSCollectionLayoutSize(
+                widthDimension: .fractionalWidth(1.0),
+                heightDimension: .absolute(80)
+            )
+            let footer = NSCollectionLayoutBoundarySupplementaryItem(
+                layoutSize: footerSize,
+                elementKind: UICollectionView.elementKindSectionFooter,
+                alignment: .bottom
+            )
+            section.boundarySupplementaryItems = [footer]
+
+            return section
         }
+        collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
+        collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(collectionView)
     }
 
     func setupRefresh() {
@@ -69,23 +78,6 @@ class UIArchiveListViewController: UICollectionViewController {
             self, action: #selector(didPullToRefresh(_:)), for: .valueChanged)
         collectionView.alwaysBounceVertical = true
         collectionView.refreshControl = refreshControl
-    }
-
-    func setupCollectionView() {
-        collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        collectionView.backgroundColor = .systemBackground
-        navigationItem.largeTitleDisplayMode = .inline
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: self.view.topAnchor),
-            collectionView.bottomAnchor.constraint(
-                equalTo: self.view.bottomAnchor),
-            collectionView.leadingAnchor.constraint(
-                equalTo: self.view.leadingAnchor),
-            collectionView.trailingAnchor.constraint(
-                equalTo: self.view.trailingAnchor)
-
-        ])
     }
 
     func setupCell() {
@@ -115,6 +107,7 @@ class UIArchiveListViewController: UICollectionViewController {
         }
 
         dataSource.supplementaryViewProvider = { [weak self] collectionView, kind, indexPath in
+            guard kind == UICollectionView.elementKindSectionFooter else { return nil }
             let footer =
                 collectionView.dequeueReusableSupplementaryView(
                     ofKind: kind,
@@ -267,9 +260,8 @@ class UIArchiveListViewController: UICollectionViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        setupLayout()
-        setupRefresh()
         setupCollectionView()
+        setupRefresh()
         setupCell()
         setupObserve()
 
@@ -308,8 +300,8 @@ class UIArchiveListViewController: UICollectionViewController {
     }
 }
 
-extension UIArchiveListViewController: UICollectionViewDelegateFlowLayout {
-    override func collectionView(
+extension UIArchiveListViewController: UICollectionViewDelegate {
+    func collectionView(
         _ collectionView: UICollectionView,
         willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath
     ) {
@@ -317,18 +309,18 @@ extension UIArchiveListViewController: UICollectionViewDelegateFlowLayout {
             if store.loading == false && store.archives.count < store.total {
                 Task {
                     self.isLoading = true
-                    collectionView.collectionViewLayout.invalidateLayout()
+                    collectionView.performBatchUpdates { }
                     await store.send(
                         .appendArchives(String(store.archives.count))
                     ).finish()
                     self.isLoading = false
-                    collectionView.collectionViewLayout.invalidateLayout()
+                    collectionView.performBatchUpdates { }
                 }
             }
         }
     }
 
-    override func collectionView(
+    func collectionView(
         _ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath
     ) {
         guard let selectedItemStore = dataSource.itemIdentifier(for: indexPath)
@@ -343,15 +335,6 @@ extension UIArchiveListViewController: UICollectionViewDelegateFlowLayout {
         readerController.hidesBottomBarWhenPushed = true
         navigationController?.pushViewController(
             readerController, animated: true)
-    }
-
-    func collectionView(
-        _ collectionView: UICollectionView,
-        layout collectionViewLayout: UICollectionViewLayout,
-        referenceSizeForFooterInSection section: Int
-    ) -> CGSize {
-        return isLoading
-            ? CGSize(width: collectionView.bounds.width, height: 80) : .zero
     }
 }
 

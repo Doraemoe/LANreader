@@ -2,25 +2,6 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 
-public struct UICategoryList: UIViewControllerRepresentable {
-    let store: StoreOf<CategoryFeature>
-
-    public init(store: StoreOf<CategoryFeature>) {
-        self.store = store
-    }
-
-    public func makeUIViewController(context: Context) -> UIViewController {
-        UINavigationController(rootViewController: UICategoryListViewController(store: store))
-    }
-
-    public func updateUIViewController(
-        _ uiViewController: UIViewController,
-        context: Context
-    ) {
-        // Nothing to do
-    }
-}
-
 class UICategoryListViewController: UIViewController {
     private let store: StoreOf<CategoryFeature>
     private var hostingController: UIHostingController<CategoryListV2>!
@@ -55,6 +36,7 @@ class UICategoryListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupLayout()
+        navigationItem.title = String(localized: "category")
     }
 
     override func viewWillAppear(_ animated: Bool) {

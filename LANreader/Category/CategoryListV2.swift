@@ -144,7 +144,7 @@ struct CategoryListV2: View {
 //        .navigationTitle("category")
 //        .navigationBarTitleDisplayMode(.inline)
 //        .toolbar(store.tabBarHidden ? .hidden : .visible, for: .tabBar)
-        .toolbar(.hidden, for: .navigationBar)
+//        .toolbar(.hidden, for: .navigationBar)
         .task {
             if store.categoryItems.isEmpty {
                 store.send(.loadCategory(true))

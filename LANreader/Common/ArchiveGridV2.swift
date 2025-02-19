@@ -1,6 +1,8 @@
 import ComposableArchitecture
 import SwiftUI
 import Logging
+import GRDB
+import GRDBQuery
 
 @Reducer public struct GridFeature {
     private let logger = Logger(label: "GridFeature")
@@ -10,21 +12,16 @@ import Logging
         @Shared var archive: ArchiveItem
 
         public var id: String { self.archive.id }
-        var path: URL?
-        var mode: ThumbnailMode = .loading
         let cached: Bool
 
         init(archive: Shared<ArchiveItem>, cached: Bool = false) {
             self._archive = archive
-            self.path = LANraragiService.thumbnailPath?
-                .appendingPathComponent("\(archive.id).heic", conformingTo: .heic)
             self.cached = cached
         }
     }
 
     public enum Action: Equatable {
         case load(Bool)
-        case finishLoading
         case finishRefreshArchive
     }
 
@@ -36,31 +33,23 @@ import Logging
         Reduce { state, action in
             switch action {
             case let .load(force):
-                if force {
-                    state.mode = .loading
-                } else {
-                    if FileManager.default.fileExists(atPath: state.path?.path(percentEncoded: false) ?? "") {
-                        state.mode = .normal
-                        return .none
-                    }
+                let exists = try? database.existsArchiveThumbnail(state.id)
+                if !force && exists == true {
+                    return .none
                 }
-                if state.mode == .loading {
-                    return .run(priority: .utility) { [id = state.id, path = state.path] send in
-                        do {
-                            let thumbnailUrl = try await service.retrieveArchiveThumbnail(id: id)
-                                .serializingDownloadedFileURL()
-                                .value
-                            imageService.processThumbnail(thumbnailUrl: thumbnailUrl, destinationUrl: path!)
-                            await send(.finishLoading)
-                        } catch {
-                            logger.error("failed to fetch thumbnail. \(error)")
-                        }
-                    }
+                return .run(priority: .utility) { [id = state.id] _ in
+                    let thumbnailUrl = try await service.retrieveArchiveThumbnail(id: id)
+                        .serializingDownloadedFileURL()
+                        .value
+                    var archiveThumbnail = ArchiveThumbnail(
+                        id: id,
+                        thumbnail: imageService.heicDataOfImage(url: thumbnailUrl) ?? Data(),
+                        lastUpdate: Date()
+                    )
+                    try database.saveArchiveThumbnail(&archiveThumbnail)
+                } catch: { error, _ in
+                    logger.error("failed to fetch thumbnail. \(error)")
                 }
-                return .none
-            case .finishLoading:
-                state.mode = .normal
-                return .none
             case .finishRefreshArchive:
                 state.$archive.withLock {
                     $0.refresh = false
@@ -74,6 +63,13 @@ import Logging
 struct ArchiveGridV2: View {
     let store: StoreOf<GridFeature>
 
+    @Query<ThumbnailRequest> var thumbnailObj: ArchiveThumbnail?
+
+    init(store: StoreOf<GridFeature>) {
+        self.store = store
+        self._thumbnailObj = Query(ThumbnailRequest(id: store.id))
+    }
+
     var body: some View {
         VStack(alignment: HorizontalAlignment.center, spacing: 2) {
             Text(buildTitle(archive: store.archive))
@@ -82,23 +78,17 @@ struct ArchiveGridV2: View {
                 .padding(4)
                 .font(.caption)
             ZStack {
-                if store.mode == .loading {
+                if let thumbnailData = thumbnailObj?.thumbnail, let uiImage = UIImage(data: thumbnailData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                } else {
                     Image(systemName: "photo")
                         .foregroundStyle(Color.primary)
                         .frame(height: 240)
                         .onAppear {
                             store.send(.load(false))
                         }
-                } else {
-                    if let uiImage = UIImage(contentsOfFile: store.path?.path(percentEncoded: false) ?? "") {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                    } else {
-                        Image(systemName: "photo")
-                            .foregroundStyle(Color.primary)
-                            .frame(height: 240)
-                    }
                 }
             }
             .onChange(of: store.archive.refresh) { _, newValue in
@@ -131,7 +121,12 @@ struct ArchiveGridV2: View {
     }
 }
 
-enum ThumbnailMode: String {
-    case loading
-    case normal
+struct ThumbnailRequest: ValueObservationQueryable {
+    static var defaultValue: ArchiveThumbnail? { nil }
+
+    var id: String
+
+    func fetch(_ database: Database) throws -> ArchiveThumbnail? {
+        try ArchiveThumbnail.fetchOne(database, key: id)
+    }
 }

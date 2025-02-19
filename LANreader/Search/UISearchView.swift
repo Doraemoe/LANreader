@@ -2,25 +2,6 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 
-public struct UISearchView: UIViewControllerRepresentable {
-    let store: StoreOf<SearchFeature>
-
-    public init(store: StoreOf<SearchFeature>) {
-        self.store = store
-    }
-
-    public func makeUIViewController(context: Context) -> UIViewController {
-        UINavigationController(rootViewController: UISearchViewController(store: store))
-    }
-
-    public func updateUIViewController(
-        _ uiViewController: UIViewController,
-        context: Context
-    ) {
-        // Nothing to do
-    }
-}
-
 class UISearchViewController: UIViewController {
     private let store: StoreOf<SearchFeature>
 
@@ -42,7 +23,7 @@ class UISearchViewController: UIViewController {
 
     private let searchBar: UISearchBar = {
         let searchBar = UISearchBar()
-        searchBar.placeholder = "Search..."
+        searchBar.placeholder = String(localized: "search")
         searchBar.translatesAutoresizingMaskIntoConstraints = false
         searchBar.searchBarStyle = .minimal
         return searchBar
@@ -111,6 +92,8 @@ class UISearchViewController: UIViewController {
         setupLayout()
         setupDelegates()
 //        setupObserve()
+
+        navigationItem.title = String(localized: "search")
     }
 
     override func viewWillAppear(_ animated: Bool) {

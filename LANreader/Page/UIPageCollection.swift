@@ -159,6 +159,13 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
                 }
             }
             .store(in: &cancellables)
+
+        store.publisher.autoDate
+            .dropFirst()
+            .sink { [weak self] _ in
+                self?.handleTapAction(action: PageControl.next.rawValue)
+            }
+            .store(in: &cancellables)
     }
 
     private func setupGesture() {
@@ -177,6 +184,28 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
         collectionView.delegate = self
         collectionView.prefetchDataSource = self
+
+        becomeFirstResponder()
+    }
+
+    override var canBecomeFirstResponder: Bool {
+        return true
+    }
+
+    override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        for press in presses {
+            if let key = press.key {
+                switch key.keyCode {
+                case .keyboardLeftArrow:
+                    handleTapAction(action: store.tapRight)
+                case .keyboardRightArrow:
+                    handleTapAction(action: store.tapLeft)
+                default:
+                    super.pressesBegan(presses, with: event)
+                }
+            }
+        }
+
     }
 
     enum Section {

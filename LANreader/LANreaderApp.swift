@@ -3,6 +3,7 @@ import ComposableArchitecture
 import SwiftUI
 import Logging
 import Puppy
+import GRDBQuery
 
 @main
 struct LANreaderApp: App {
@@ -69,5 +70,6 @@ struct LANreaderApp: App {
             ContentView(store: self.store)
                 .blur(radius: store.blurInterfaceWhenInactive && scenePhase != .active ? 200 : 0)
         }
+        .databaseContext(.readOnly { AppDatabase.shared.dbReader })
     }
 }
