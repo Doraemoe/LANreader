@@ -217,6 +217,12 @@ extension AppDatabase {
         }
     }
 
+    func existsArchiveThumbnail(_ id: String) throws -> Bool {
+        try dbReader.read { database in
+            try ArchiveThumbnail.exists(database, key: id)
+        }
+    }
+
     func saveArchiveImage(_ image: inout ArchiveImage) throws {
         try dbWriter.write { database in
             try image.save(database)

@@ -1,5 +1,5 @@
 {
-  "originHash" : "48ed4c8333428e3be278feb5f0454dd1dac62bc5e8f6a324964e8abff59f37aa",
+  "originHash" : "2af1047297a7f51ece1232153fc318116d64696ab934f049ae65a09da34024cc",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -24,8 +24,17 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/groue/GRDB.swift",
       "state" : {
-        "revision" : "ea6d8e0123b0db79cd3cf736f5d9798a89839c51",
-        "version" : "7.1.0"
+        "revision" : "c7205b172f38439e7ee62c208d1d76fa353c0a81",
+        "version" : "7.2.0"
+      }
+    },
+    {
+      "identity" : "grdbquery",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/groue/GRDBQuery",
+      "state" : {
+        "revision" : "f279a57b7ba5749c05d347751a2f572f8759a7d2",
+        "version" : "0.10.1"
       }
     },
     {
@@ -177,8 +186,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-sharing",
       "state" : {
-        "revision" : "e4e239979e718ce52fb67ffd14ef491cede7ab43",
-        "version" : "2.2.0"
+        "revision" : "10ba53dd428aed9fc4a1543d3271860a6d4b8dd2",
+        "version" : "2.3.0"
       }
     },
     {

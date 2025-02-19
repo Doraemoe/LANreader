@@ -173,9 +173,8 @@ import OrderedCollections
                 } else {
                     state.controlUiHidden.toggle()
                 }
-                return .none
+                return .cancel(id: CancelId.autoPage)
             case let .setJumpIndex(jumpIndex):
-                logger.info("jump from page \(state.jumpIndex) to page \(jumpIndex)")
                 state.jumpIndex = jumpIndex
                 return .none
             case let .setSliderIndex(index):
@@ -351,8 +350,6 @@ import OrderedCollections
 }
 
 struct ArchiveReader: View {
-    @FocusState private var isFocused: Bool
-
     @Bindable var store: StoreOf<ArchiveReaderFeature>
 
     var body: some View {
@@ -374,18 +371,9 @@ struct ArchiveReader: View {
                 }
             }
         }
-        .focusable()
-        .focused($isFocused)
-        .focusEffectDisabled()
-        .onAppear {
-            isFocused = true
-        }
         .alert(
             $store.scope(state: \.alert, action: \.alert)
         )
-        .navigationBarTitle(store.archive.name)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
         .overlay(content: {
             store.showAutoPageConfig ? AutomaticPageConfig(
                 store: store.scope(state: \.autoPage, action: \.autoPage)
@@ -431,11 +419,6 @@ struct ArchiveReader: View {
                 store.send(.setSuccess(""))
             }
         }
-//        .onChange(of: store.autoDate) {
-//            if store.startAutoPage {
-//                store.send(.tapAction(PageControl.next.rawValue), animation: .linear)
-//            }
-//        }
     }
 
     @MainActor

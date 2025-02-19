@@ -2,25 +2,6 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 
-public struct UILibraryList: UIViewControllerRepresentable {
-    let store: StoreOf<LibraryFeature>
-
-    public init(store: StoreOf<LibraryFeature>) {
-        self.store = store
-    }
-
-    public func makeUIViewController(context: Context) -> UIViewController {
-        UINavigationController(rootViewController: UILibraryListViewController(store: store))
-    }
-
-    public func updateUIViewController(
-        _ uiViewController: UIViewController,
-        context: Context
-    ) {
-        // Nothing to do
-    }
-}
-
 class UILibraryListViewController: UIViewController {
     let store: StoreOf<LibraryFeature>
 
@@ -33,12 +14,7 @@ class UILibraryListViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        let archiveListView = UIArchiveListViewController(
-            store: store.scope(state: \.archiveList, action: \.archiveList)
-        )
+    private func setupNavigationBar() {
         let randomButton = UIBarButtonItem(
             image: UIImage(systemName: "shuffle"),
             style: .plain,
@@ -46,6 +22,17 @@ class UILibraryListViewController: UIViewController {
             action: #selector(tapRandomButton)
         )
         navigationItem.leftBarButtonItem = randomButton
+        navigationItem.title = String(localized: "library")
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        setupNavigationBar()
+
+        let archiveListView = UIArchiveListViewController(
+            store: store.scope(state: \.archiveList, action: \.archiveList)
+        )
         add(archiveListView)
         NSLayoutConstraint.activate([
             archiveListView.view.topAnchor.constraint(equalTo: view.topAnchor),

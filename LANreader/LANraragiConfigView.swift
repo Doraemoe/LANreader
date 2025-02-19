@@ -17,6 +17,7 @@ import Logging
         var formKey = ""
 
         var isVerifying = false
+        var successVerifed = false
         var errorMessage = ""
     }
 
@@ -33,6 +34,7 @@ import Logging
     }
 
     @Dependency(\.lanraragiService) var lanraragiService
+    @Dependency(\.isPresented) var isPresented
     @Dependency(\.dismiss) var dismiss
 
     public var body: some Reducer<State, Action> {
@@ -59,8 +61,11 @@ import Logging
                 }
             case .saveComplate:
                 state.isVerifying = false
+                state.successVerifed = true
                 return .run { _ in
-                    await self.dismiss()
+                    if isPresented {
+                        await self.dismiss()
+                    }
                 }
             case let .setErrorMessage(errorMessage):
                 state.errorMessage = errorMessage
@@ -101,6 +106,8 @@ struct LANraragiConfigView: View {
     @FocusState private var focused: FocusedField?
 
     @Bindable var store: StoreOf<LANraragiConfigFeature>
+
+    var navigation: NavigationHelper?
 
     var body: some View {
         Form {
@@ -145,6 +152,50 @@ struct LANraragiConfigView: View {
                 banner.show()
                 store.send(.setErrorMessage(""))
             }
+        }
+        .onChange(of: store.successVerifed) { _, newValue in
+            if newValue == true {
+                navigation?.pop()
+            }
+        }
+    }
+}
+
+class UILANraragiConfigViewController: UIViewController {
+    private let store: StoreOf<LANraragiConfigFeature>
+    private let navigation: NavigationHelper
+    private var hostingController: UIHostingController<LANraragiConfigView>!
+
+    init(store: StoreOf<LANraragiConfigFeature>, navigation: NavigationHelper) {
+        self.store = store
+        self.navigation = navigation
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        let hostingController = UIHostingController(
+            rootView: LANraragiConfigView(store: store, navigation: navigation)
+        )
+
+        add(hostingController)
+        NSLayoutConstraint.activate([
+            hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
+            hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            hostingController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        if #available(iOS 18.0, *) {
+            tabBarController?.setTabBarHidden(true, animated: false)
         }
     }
 }

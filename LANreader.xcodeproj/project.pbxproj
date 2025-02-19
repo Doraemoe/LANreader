@@ -67,6 +67,7 @@
 		E99D2B412B0176410029FDEC /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E99D2B402B0176410029FDEC /* InfoPlist.xcstrings */; };
 		E9A4DD0E2D558D1E00E16FEC /* UIAppTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A4DD0D2D558D1E00E16FEC /* UIAppTabView.swift */; };
 		E9A4DD102D59BAEC00E16FEC /* UIRandomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A4DD0F2D59BAE600E16FEC /* UIRandomView.swift */; };
+		E9A4DD122D5ACEA300E16FEC /* UINavigationHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A4DD112D5ACE9B00E16FEC /* UINavigationHelper.swift */; };
 		E9A8612D2BF31534003534FA /* AutomaticPageConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A8612C2BF31534003534FA /* AutomaticPageConfig.swift */; };
 		E9AAC1352CBC8FC600E5E89A /* UIPageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AAC1342CBC8FC600E5E89A /* UIPageCell.swift */; };
 		E9B39A6E2B21E7A800700FE4 /* RandomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9B39A6D2B21E7A800700FE4 /* RandomView.swift */; };
@@ -87,6 +88,7 @@
 		E9E3631826F463F800C58D01 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 7DF7EA792564E264003B5A5A /* GRDB */; };
 		E9E3631926F463F800C58D01 /* OHHTTPStubsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE924F1660200617F4A /* OHHTTPStubsSwift */; };
 		E9E3631F26F471E400C58D01 /* LogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9E3631E26F471E400C58D01 /* LogView.swift */; };
+		E9EACA7B2D64517000229508 /* GRDBQuery in Frameworks */ = {isa = PBXBuildFile; productRef = E9EACA7A2D64517000229508 /* GRDBQuery */; };
 		E9EB422B2C05BE0B00E49AE1 /* EditCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9EB422A2C05BE0B00E49AE1 /* EditCategory.swift */; };
 		E9F3B0122B01A21C00F60F62 /* CategoryListV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F3B0112B01A21C00F60F62 /* CategoryListV2.swift */; };
 		E9F3B0142B01D2DB00F60F62 /* CategoryArchiveListV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F3B0132B01D2DB00F60F62 /* CategoryArchiveListV2.swift */; };
@@ -188,6 +190,7 @@
 		E99D2B402B0176410029FDEC /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		E9A4DD0D2D558D1E00E16FEC /* UIAppTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAppTabView.swift; sourceTree = "<group>"; };
 		E9A4DD0F2D59BAE600E16FEC /* UIRandomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIRandomView.swift; sourceTree = "<group>"; };
+		E9A4DD112D5ACE9B00E16FEC /* UINavigationHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UINavigationHelper.swift; sourceTree = "<group>"; };
 		E9A8612C2BF31534003534FA /* AutomaticPageConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticPageConfig.swift; sourceTree = "<group>"; };
 		E9AAC1342CBC8FC600E5E89A /* UIPageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIPageCell.swift; sourceTree = "<group>"; };
 		E9B39A6D2B21E7A800700FE4 /* RandomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomView.swift; sourceTree = "<group>"; };
@@ -215,6 +218,7 @@
 			files = (
 				E9E3631626F463F800C58D01 /* Logging in Frameworks */,
 				E9E3631826F463F800C58D01 /* GRDB in Frameworks */,
+				E9EACA7B2D64517000229508 /* GRDBQuery in Frameworks */,
 				E90C26CB2C1A7A6D00BE87D9 /* ComposableArchitecture in Frameworks */,
 				E9E3631726F463F800C58D01 /* NotificationBannerSwift in Frameworks */,
 				E90576BF29F8C10700C3CE3F /* Puppy in Frameworks */,
@@ -435,6 +439,7 @@
 				4BD8274F482337A2C904D45A /* Setting */,
 				4BD824C107853A5BC514F2AD /* Page */,
 				4BD82694B57396B2CD6BACED /* ContentView.swift */,
+				E9A4DD112D5ACE9B00E16FEC /* UINavigationHelper.swift */,
 				E9A4DD0D2D558D1E00E16FEC /* UIAppTabView.swift */,
 				7D3DFF15251777B200686612 /* LANreaderApp.swift */,
 				E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */,
@@ -506,6 +511,7 @@
 				7DF7EA792564E264003B5A5A /* GRDB */,
 				E90576BE29F8C10700C3CE3F /* Puppy */,
 				E90C26CA2C1A7A6D00BE87D9 /* ComposableArchitecture */,
+				E9EACA7A2D64517000229508 /* GRDBQuery */,
 			);
 			productName = DuManga;
 			productReference = 7D354C9C24F1316800617F4A /* LANreader.app */;
@@ -590,6 +596,7 @@
 				7DF7EA782564E264003B5A5A /* XCRemoteSwiftPackageReference "GRDB" */,
 				E90576BD29F8C10700C3CE3F /* XCRemoteSwiftPackageReference "Puppy" */,
 				E90C26C92C1A7A6D00BE87D9 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
+				E9EACA792D64517000229508 /* XCRemoteSwiftPackageReference "GRDBQuery" */,
 			);
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
 			projectDirPath = "";
@@ -696,6 +703,7 @@
 				E9A4DD102D59BAEC00E16FEC /* UIRandomView.swift in Sources */,
 				E9B39A6E2B21E7A800700FE4 /* RandomView.swift in Sources */,
 				4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */,
+				E9A4DD122D5ACEA300E16FEC /* UINavigationHelper.swift in Sources */,
 				4BD821C3FDF1FC3B60AB4823 /* AppModels.swift in Sources */,
 				4BD82C152E77BFD137EC03DD /* LANraragiConfigView.swift in Sources */,
 				E9EB422B2C05BE0B00E49AE1 /* EditCategory.swift in Sources */,
@@ -1155,6 +1163,14 @@
 				minimumVersion = 1.11.1;
 			};
 		};
+		E9EACA792D64517000229508 /* XCRemoteSwiftPackageReference "GRDBQuery" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDBQuery";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.10.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1192,6 +1208,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E90C26C92C1A7A6D00BE87D9 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;
 			productName = ComposableArchitecture;
+		};
+		E9EACA7A2D64517000229508 /* GRDBQuery */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E9EACA792D64517000229508 /* XCRemoteSwiftPackageReference "GRDBQuery" */;
+			productName = GRDBQuery;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
