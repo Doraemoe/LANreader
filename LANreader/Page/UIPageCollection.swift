@@ -51,13 +51,17 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         ? NSCollectionLayoutDimension.estimated(UIScreen.main.bounds.height)
             : NSCollectionLayoutDimension.fractionalHeight(1)
         let itemSize = NSCollectionLayoutSize(
-            widthDimension: NSCollectionLayoutDimension.fractionalWidth(1),
+            widthDimension: NSCollectionLayoutDimension.fractionalWidth(store.doublePageLayout ? 0.5 : 1),
             heightDimension: heightDimension
         )
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
 
+        let groupSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(1.0),
+            heightDimension: .fractionalHeight(1.0)
+        )
         let group = NSCollectionLayoutGroup.horizontal(
-            layoutSize: itemSize, repeatingSubitem: item, count: 1)
+            layoutSize: groupSize, repeatingSubitem: item, count: store.doublePageLayout ? 2 : 1)
 
         let section = NSCollectionLayoutSection(group: group)
         if store.readDirection != ReadDirection.upDown.rawValue {
@@ -170,6 +174,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
     private func setupGesture() {
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        tapGesture.numberOfTapsRequired = 1
         collectionView.addGestureRecognizer(tapGesture)
         tapGesture.delegate = self
     }
@@ -279,8 +284,18 @@ extension UIPageCollectionController: UIGestureRecognizerDelegate {
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
-        if collectionView.isDragging || collectionView.isDecelerating {
-            return false
+        if store.readDirection == ReadDirection.upDown.rawValue {
+            if collectionView.isDragging || collectionView.isDecelerating {
+                return false
+            }
+        } else {
+            if let innerScrollView = collectionView.subviews.first(
+                where: { $0 is UIScrollView && $0 != collectionView }
+            ) as? UIScrollView {
+                // Only allow the tap if the scroll view is not currently dragging.
+                return innerScrollView.panGestureRecognizer.state != .began &&
+                innerScrollView.panGestureRecognizer.state != .changed
+            }
         }
         return true
     }

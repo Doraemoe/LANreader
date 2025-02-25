@@ -61,6 +61,7 @@
 		E98B8B7D2A0A7B68004CBBC0 /* Action.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E98B8B6F2A0A7B67004CBBC0 /* Action.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		E98B8B8E2A0B12F3004CBBC0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E98B8B8D2A0B12F3004CBBC0 /* Assets.xcassets */; };
 		E98B8B902A0BA9D1004CBBC0 /* UploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E98B8B8F2A0BA9D1004CBBC0 /* UploadView.swift */; };
+		E9965AAA2D6830DB00114E32 /* UICacheView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9965AA92D6830D800114E32 /* UICacheView.swift */; };
 		E997D8002AF20EE2007C91F1 /* ArchiveGridV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E997D7FF2AF20EE2007C91F1 /* ArchiveGridV2.swift */; };
 		E997D8042AF3C9BA007C91F1 /* LibraryListV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E997D8032AF3C9BA007C91F1 /* LibraryListV2.swift */; };
 		E998836C2CBCE76A00A81F60 /* UIArchiveDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = E998836B2CBCE76300A81F60 /* UIArchiveDetails.swift */; };
@@ -183,6 +184,7 @@
 		E98B8B7A2A0A7B68004CBBC0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		E98B8B8D2A0B12F3004CBBC0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E98B8B8F2A0BA9D1004CBBC0 /* UploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadView.swift; sourceTree = "<group>"; };
+		E9965AA92D6830D800114E32 /* UICacheView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICacheView.swift; sourceTree = "<group>"; };
 		E997D7FF2AF20EE2007C91F1 /* ArchiveGridV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveGridV2.swift; sourceTree = "<group>"; };
 		E997D8032AF3C9BA007C91F1 /* LibraryListV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryListV2.swift; sourceTree = "<group>"; };
 		E998836B2CBCE76300A81F60 /* UIArchiveDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIArchiveDetails.swift; sourceTree = "<group>"; };
@@ -265,6 +267,7 @@
 		4BD8240793F86C42AF3383BB /* Library */ = {
 			isa = PBXGroup;
 			children = (
+				E9965AA92D6830D800114E32 /* UICacheView.swift */,
 				E9A4DD0F2D59BAE600E16FEC /* UIRandomView.swift */,
 				E9C354E32CA646D3004C10CD /* UILibraryList.swift */,
 				E997D8032AF3C9BA007C91F1 /* LibraryListV2.swift */,
@@ -713,6 +716,7 @@
 				E902FC502CD87A780071106B /* UICategoryArchiveGrid.swift in Sources */,
 				E998836C2CBCE76A00A81F60 /* UIArchiveDetails.swift in Sources */,
 				4BD82C7F9CB71CAF8F33C171 /* ViewSettings.swift in Sources */,
+				E9965AAA2D6830DB00114E32 /* UICacheView.swift in Sources */,
 				4BD82CED54A4C9689B0E9E55 /* ContentView.swift in Sources */,
 				E997D8002AF20EE2007C91F1 /* ArchiveGridV2.swift in Sources */,
 				E9C354E22CA64161004C10CD /* UIArchiveList.swift in Sources */,
@@ -909,7 +913,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 114;
+				CURRENT_PROJECT_VERSION = 115;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -937,7 +941,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 114;
+				CURRENT_PROJECT_VERSION = 115;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -1014,7 +1018,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 114;
+				CURRENT_PROJECT_VERSION = 115;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1043,7 +1047,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 114;
+				CURRENT_PROJECT_VERSION = 115;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;

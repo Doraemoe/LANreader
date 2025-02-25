@@ -17,8 +17,8 @@ import OrderedCollections
         @SharedReader(.appStorage(SettingsKey.tapRightKey)) var tapRight = PageControl.previous.rawValue
         @SharedReader(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
         @SharedReader(.appStorage(SettingsKey.serverProgress)) var serverProgress = false
-        @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
-        @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
+//        @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
+//        @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
         @SharedReader(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
         @SharedReader(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
         @Shared var archive: ArchiveItem
@@ -38,6 +38,7 @@ import OrderedCollections
         var autoDate = Date()
         var cached = false
         var inCache = false
+        var removeCacheSuccess = false
 
         init(archive: Shared<ArchiveItem>, fromStart: Bool = false, cached: Bool = false) {
             self._archive = archive
@@ -70,6 +71,7 @@ import OrderedCollections
         case finishDownloadPages
         case removeCache
         case loadCached
+        case removeCacheSuccess
 
         public enum Alert {
             case confirmDelete
@@ -323,6 +325,7 @@ import OrderedCollections
                 }
                 return .none
             case .alert(.presented(.confirmDelete)):
+                state.removeCacheSuccess = false
                 return .run { [id = state.archive.id] send in
                     let deleted = try database.deleteCache(id)
                     if deleted != true {
@@ -332,12 +335,15 @@ import OrderedCollections
                         let cacheFolder = LANraragiService.cachePath!
                             .appendingPathComponent(id, conformingTo: .folder)
                         try? FileManager.default.removeItem(at: cacheFolder)
-                        await self.dismiss()
+                        await send(.removeCacheSuccess)
                     }
                 } catch: { [id = state.archive.id] error, send in
                     logger.error("failed to remove archive cache, id=\(id) \(error)")
                     await send(.setError(error.localizedDescription))
                 }
+            case .removeCacheSuccess:
+                state.removeCacheSuccess = true
+                return .none
             case .alert:
                 return .none
             }
@@ -351,6 +357,7 @@ import OrderedCollections
 
 struct ArchiveReader: View {
     @Bindable var store: StoreOf<ArchiveReaderFeature>
+    let navigationHelper: NavigationHelper?
 
     var body: some View {
         let flip = store.readDirection == ReadDirection.rightLeft.rawValue
@@ -417,6 +424,11 @@ struct ArchiveReader: View {
                 )
                 banner.show()
                 store.send(.setSuccess(""))
+            }
+        }
+        .onChange(of: store.removeCacheSuccess) {
+            if store.removeCacheSuccess {
+                navigationHelper?.pop()
             }
         }
     }

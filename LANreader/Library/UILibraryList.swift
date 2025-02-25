@@ -4,9 +4,11 @@ import UIKit
 
 class UILibraryListViewController: UIViewController {
     let store: StoreOf<LibraryFeature>
+    let navigationHelper: NavigationHelper
 
-    init(store: StoreOf<LibraryFeature>) {
+    init(store: StoreOf<LibraryFeature>, navigationHelper: NavigationHelper) {
         self.store = store
+        self.navigationHelper = navigationHelper
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -21,7 +23,13 @@ class UILibraryListViewController: UIViewController {
             target: self,
             action: #selector(tapRandomButton)
         )
-        navigationItem.leftBarButtonItem = randomButton
+        let cachedButton = UIBarButtonItem(
+            image: UIImage(systemName: "arrowshape.down"),
+            style: .plain,
+            target: self,
+            action: #selector(tapCachedButton)
+        )
+        navigationItem.leftBarButtonItems = [randomButton, cachedButton]
         navigationItem.title = String(localized: "library")
     }
 
@@ -59,5 +67,15 @@ class UILibraryListViewController: UIViewController {
             randomController,
             animated: true
         )
+    }
+
+    @objc private func tapCachedButton() {
+        let cacheStore = Store(initialState: CacheFeature.State.init()) {
+            CacheFeature()
+        }
+        let cacheController = UICacheViewController(store: cacheStore, navigationHelper: navigationHelper)
+        cacheController.hidesBottomBarWhenPushed = true
+        navigationController?.pushViewController(cacheController, animated: true)
+
     }
 }

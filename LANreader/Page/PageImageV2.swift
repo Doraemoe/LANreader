@@ -95,20 +95,20 @@ import Logging
                 if force {
                     state.pageMode = .loading
                 } else if state.pageMode == .loading {
-                    if state.splitImage {
-                        if state.piorityLeft &&
-                            FileManager.default.fileExists(
-                                atPath: state.pathLeft?.path(percentEncoded: false) ?? ""
-                            ) {
-                            state.pageMode = .left
-                            return .send(.insertPage(.right))
-                        } else if FileManager.default.fileExists(
-                            atPath: state.pathRight?.path(percentEncoded: false) ?? ""
-                        ) {
-                            state.pageMode = .right
-                            return .send(.insertPage(.left))
-                        }
-                    }
+//                    if state.splitImage {
+//                        if state.piorityLeft &&
+//                            FileManager.default.fileExists(
+//                                atPath: state.pathLeft?.path(percentEncoded: false) ?? ""
+//                            ) {
+//                            state.pageMode = .left
+//                            return .send(.insertPage(.right))
+//                        } else if FileManager.default.fileExists(
+//                            atPath: state.pathRight?.path(percentEncoded: false) ?? ""
+//                        ) {
+//                            state.pageMode = .right
+//                            return .send(.insertPage(.left))
+//                        }
+//                    }
                     if FileManager.default.fileExists(atPath: state.path?.path(percentEncoded: false) ?? "") {
                         state.pageMode = .normal
                         return .none
@@ -156,21 +156,21 @@ import Logging
             case let .setImage(previousPageMode, splitted):
                 state.progress = 0
                 state.loading = false
-                if splitted {
-                    if previousPageMode == .left || previousPageMode == .right {
-                        state.pageMode = previousPageMode
-                        return .none
-                    }
-                    if state.piorityLeft {
-                        state.pageMode = .left
-                        return .send(.insertPage(.right))
-                    } else {
-                        state.pageMode = .right
-                        return .send(.insertPage(.left))
-                    }
-                } else {
+//                if splitted {
+//                    if previousPageMode == .left || previousPageMode == .right {
+//                        state.pageMode = previousPageMode
+//                        return .none
+//                    }
+//                    if state.piorityLeft {
+//                        state.pageMode = .left
+//                        return .send(.insertPage(.right))
+//                    } else {
+//                        state.pageMode = .right
+//                        return .send(.insertPage(.left))
+//                    }
+//                } else {
                     state.pageMode = .normal
-                }
+//                }
                 return .none
             case let .setError(message):
                 state.loading = false

@@ -101,21 +101,9 @@ struct SettingsView: View {
     }
 }
 
-struct SettingsViewWrapper: View {
-    var store: StoreOf<SettingsFeature>
-
-    let navigationHelper: NavigationHelper
-
-    var body: some View {
-        SettingsView(store: store)
-            .environment(navigationHelper)
-    }
-}
-
 class UISettingsViewController: UIViewController {
     private let store: StoreOf<SettingsFeature>
     private let navigationHelper: NavigationHelper
-    private var hostingController: UIHostingController<SettingsViewWrapper>!
 
     init(store: StoreOf<SettingsFeature>, navigationHelper: NavigationHelper) {
         self.store = store
@@ -131,7 +119,8 @@ class UISettingsViewController: UIViewController {
         super.viewDidLoad()
 
         let hostingController = UIHostingController(
-            rootView: SettingsViewWrapper(store: store, navigationHelper: navigationHelper)
+            rootView: SettingsView(store: store)
+                .environment(navigationHelper)
         )
 
         add(hostingController)

@@ -129,7 +129,6 @@ class UIPageCell: UICollectionViewCell {
                         return store.path
                     }
                 }()
-
                 if let uiImage = UIImage(
                     contentsOfFile: contentPath?.path(percentEncoded: false)
                         ?? "") {

@@ -37,8 +37,14 @@ class UITabViewController: UITabBarController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let libraryView = UILibraryListViewController(store: store.scope(state: \.library, action: \.library))
-        let libraryNav = UINavigationController(rootViewController: libraryView)
+        let libraryNav = UINavigationController()
+        let libraryNavHelper = NavigationHelper()
+        libraryNavHelper.navigationController = libraryNav
+        let libraryView = UILibraryListViewController(
+            store: store.scope(state: \.library, action: \.library),
+            navigationHelper: libraryNavHelper
+        )
+        libraryNav.viewControllers = [libraryView]
         libraryNav.tabBarItem = UITabBarItem(
             title: String(localized: "library"),
             image: UIImage(systemName: "books.vertical"),

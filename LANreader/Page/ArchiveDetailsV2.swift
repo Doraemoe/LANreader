@@ -2,14 +2,14 @@ import ComposableArchitecture
 import SwiftUI
 import Logging
 import NotificationBannerSwift
+import GRDB
+import GRDBQuery
 
 @Reducer public struct ArchiveDetailsFeature {
     private let logger = Logger(label: "ArchiveDetailsFeature")
 
     @ObservableState
     public struct State: Equatable {
-//        @Presents var alert: AlertState<Action.Alert>?
-
         @Shared(.archive) var archiveItems: IdentifiedArrayOf<ArchiveItem> = []
         @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
         @Shared var archive: ArchiveItem
@@ -34,8 +34,6 @@ import NotificationBannerSwift
 
     public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
-//        case alert(PresentationAction<Alert>)
-
         case loadLocalFields
         case updateArchiveMetadata
         case loadCategory
@@ -49,9 +47,6 @@ import NotificationBannerSwift
 
         case deleteButtonTapped
         case deleteSuccess
-//        public enum Alert {
-//            case confirmDelete
-//        }
     }
 
     @Dependency(\.lanraragiService) var service
@@ -83,16 +78,6 @@ import NotificationBannerSwift
                 return .none
             case .deleteButtonTapped:
                 state.showAlert = true
-//                state.alert = AlertState {
-//                    TextState("archive.delete.confirm")
-//                } actions: {
-//                    ButtonState(role: .destructive, action: .confirmDelete) {
-//                        TextState("delete")
-//                    }
-//                    ButtonState(role: .cancel) {
-//                        TextState("cancel")
-//                    }
-//                }
                 return .none
             case .confirmDelete:
                 state.loading = true
@@ -107,19 +92,6 @@ import NotificationBannerSwift
                     logger.error("failed to delete archive, id=\(id) \(error)")
                     await send(.setErrorMessage(error.localizedDescription))
                 }
-//            case .alert(.presented(.confirmDelete)):
-//                state.loading = true
-//                return .run { [id = state.archive.id] send in
-//                    let response = try await service.deleteArchive(id: id).value
-//                    if response.success == 1 {
-//                        await send(.deleteSuccess)
-//                    } else {
-//                        await send(.setErrorMessage(String(localized: "error.archive.delete")))
-//                    }
-//                } catch: { [id = state.archive.id] error, send in
-//                    logger.error("failed to delete archive, id=\(id) \(error)")
-//                    await send(.setErrorMessage(error.localizedDescription))
-//                }
             case .loadCategory:
                 return .run { send in
                     let categories = try await service.retrieveCategories().value
@@ -133,7 +105,6 @@ import NotificationBannerSwift
                 }
             case let .populateCategory(items):
                 state.$categoryItems.withLock { $0 = IdentifiedArray(uniqueElements: items) }
-//                state.categoryItems = IdentifiedArray(uniqueElements: items)
                 return .none
             case let .addArchiveToCategory(categoryId):
                 return .run { [state] send in
@@ -219,25 +190,40 @@ struct ArchiveDetailsV2: View {
     private static let sourceTag = "source"
     private static let dateTag = "date_added"
 
+    @Query<ThumbnailRequest> var thumbnailObj: ArchiveThumbnail?
+
     @Environment(\.openURL) var openURL
 
     @Bindable var store: StoreOf<ArchiveDetailsFeature>
     let onDelete: () -> Void
     let onTagNavigation: (StoreOf<SearchFeature>) -> Void
 
+    init(
+        store: StoreOf<ArchiveDetailsFeature>,
+        onDelete: @escaping () -> Void,
+        onTagNavigation: @escaping (StoreOf<SearchFeature>) -> Void
+    ) {
+        self.store = store
+        self.onDelete = onDelete
+        self.onTagNavigation = onTagNavigation
+        self._thumbnailObj = Query(ThumbnailRequest(id: store.archive.id))
+    }
+
     var body: some View {
         ScrollView {
             titleView(store: store)
-            AsyncImage(url: store.thumbnailPath) { image in
-                image
-                    .resizable()
-                    .scaledToFit()
-                    .padding()
-                    .frame(width: 200, height: 250)
-            } placeholder: {
-                Image(systemName: "photo")
-                    .foregroundStyle(Color.primary)
-                    .frame(width: 200, height: 250)
+            ZStack {
+                if let thumbnailData = thumbnailObj?.thumbnail, let uiImage = UIImage(data: thumbnailData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .padding()
+                        .frame(width: 200, height: 250)
+                } else {
+                    Image(systemName: "photo")
+                        .foregroundStyle(Color.primary)
+                        .frame(width: 200, height: 250)
+                }
             }
             tagsView(store: store)
             Button(

@@ -56,22 +56,22 @@ struct ReadSettings: View {
             }
             .padding()
         }
-//        if store.readDirection != ReadDirection.upDown.rawValue {
-//            Toggle(isOn: self.$store.doublePageLayout) {
-//                Text("settings.read.double.page")
-//            }
-//            .padding()
-//        }
-        Toggle(isOn: self.$store.splitWideImage) {
-            Text("settings.read.split.page")
-        }
-        .padding()
-        if self.store.splitWideImage {
-            Toggle(isOn: self.$store.splitPiorityLeft) {
-                Text("settings.read.split.page.priority.left")
+        if store.readDirection != ReadDirection.upDown.rawValue {
+            Toggle(isOn: self.$store.doublePageLayout) {
+                Text("settings.read.double.page")
             }
             .padding()
         }
+//        Toggle(isOn: self.$store.splitWideImage) {
+//            Text("settings.read.split.page")
+//        }
+//        .padding()
+//        if self.store.splitWideImage {
+//            Toggle(isOn: self.$store.splitPiorityLeft) {
+//                Text("settings.read.split.page.priority.left")
+//            }
+//            .padding()
+//        }
     }
 
     var pageControlSelectionView: some View = Group {
