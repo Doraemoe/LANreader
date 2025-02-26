@@ -62,16 +62,16 @@ struct ReadSettings: View {
             }
             .padding()
         }
-//        Toggle(isOn: self.$store.splitWideImage) {
-//            Text("settings.read.split.page")
-//        }
-//        .padding()
-//        if self.store.splitWideImage {
-//            Toggle(isOn: self.$store.splitPiorityLeft) {
-//                Text("settings.read.split.page.priority.left")
-//            }
-//            .padding()
-//        }
+        Toggle(isOn: self.$store.splitWideImage) {
+            Text("settings.read.split.page")
+        }
+        .padding()
+        if self.store.splitWideImage {
+            Toggle(isOn: self.$store.splitPiorityLeft) {
+                Text("settings.read.split.page.priority.left")
+            }
+            .padding()
+        }
     }
 
     var pageControlSelectionView: some View = Group {

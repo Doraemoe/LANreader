@@ -17,8 +17,8 @@ import OrderedCollections
         @SharedReader(.appStorage(SettingsKey.tapRightKey)) var tapRight = PageControl.previous.rawValue
         @SharedReader(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
         @SharedReader(.appStorage(SettingsKey.serverProgress)) var serverProgress = false
-//        @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
-//        @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
+        @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
+        @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
         @SharedReader(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
         @SharedReader(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
         @Shared var archive: ArchiveItem

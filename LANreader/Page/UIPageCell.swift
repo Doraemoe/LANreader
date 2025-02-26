@@ -11,6 +11,8 @@ class UIPageCell: UICollectionViewCell {
 
     private let logger = Logger(label: "UIPageCell")
 
+    private var cancellables: Set<AnyCancellable> = []
+
     private let scrollView: UIScrollView = {
         let view = UIScrollView()
         view.minimumZoomScale = 1.0
@@ -105,43 +107,47 @@ class UIPageCell: UICollectionViewCell {
     }
 
     func setupObserve(store: StoreOf<PageFeature>) {
-        observe { [weak self] in
-            guard let self else { return }
+        store.publisher.imageLoaded
+            .sink { [weak self] loaded in
+                guard let self else { return }
 
-            if store.pageMode == .loading {
-                imageView.isHidden = true
-                progressView.isHidden = false
-                progressViewLabel.isHidden = false
-                progressView.progress = Float(store.progress)
-                progressViewLabel.text = String(
-                    format: "%.2f%%", store.progress * 100)
-            } else {
-                imageView.isHidden = false
-                progressView.isHidden = true
-                progressViewLabel.isHidden = true
-                let contentPath = {
-                    switch store.pageMode {
-                    case .left:
-                        return store.pathLeft
-                    case .right:
-                        return store.pathRight
-                    default:
-                        return store.path
-                    }
-                }()
-                if let uiImage = UIImage(
-                    contentsOfFile: contentPath?.path(percentEncoded: false)
-                        ?? "") {
-                    imageView.image = uiImage
+                if !loaded {
+                    imageView.isHidden = true
+                    progressView.isHidden = false
+                    progressViewLabel.isHidden = false
+                    progressView.progress = Float(store.progress)
+                    progressViewLabel.text = String(
+                        format: "%.2f%%", store.progress * 100)
                 } else {
-                    imageView.image = UIImage(systemName: "rectangle.slash")
+                    imageView.isHidden = false
+                    progressView.isHidden = true
+                    progressViewLabel.isHidden = true
+                    let contentPath = {
+                        switch store.pageMode {
+                        case .left:
+                            return store.pathLeft
+                        case .right:
+                            return store.pathRight
+                        default:
+                            return store.path
+                        }
+                    }()
+                    if let uiImage = UIImage(
+                        contentsOfFile: contentPath?.path(percentEncoded: false)
+                            ?? "") {
+                        imageView.image = uiImage
+                    } else {
+                        imageView.image = UIImage(systemName: "rectangle.slash")
+                    }
                 }
             }
-        }
+            .store(in: &cancellables)
     }
 
     override func prepareForReuse() {
         super.prepareForReuse()
+        print("reused \(store!.pageNumber):\(store!.pageMode)")
+        store = nil
         imageView.image = nil
         progressView.progress = 0
         progressView.isHidden = true
