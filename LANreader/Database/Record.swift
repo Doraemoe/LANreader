@@ -83,7 +83,6 @@ extension Archive {
         let tagString = tags.joined(separator: ",")
         return ArchiveItem(id: id,
                 name: title,
-                normalizedName: "",
                 extension: `extension`,
                 tags: tagString,
                 isNew: isNew,

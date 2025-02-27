@@ -63,7 +63,6 @@
 		E98B8B902A0BA9D1004CBBC0 /* UploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E98B8B8F2A0BA9D1004CBBC0 /* UploadView.swift */; };
 		E9965AAA2D6830DB00114E32 /* UICacheView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9965AA92D6830D800114E32 /* UICacheView.swift */; };
 		E997D8002AF20EE2007C91F1 /* ArchiveGridV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E997D7FF2AF20EE2007C91F1 /* ArchiveGridV2.swift */; };
-		E997D8042AF3C9BA007C91F1 /* LibraryListV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E997D8032AF3C9BA007C91F1 /* LibraryListV2.swift */; };
 		E998836C2CBCE76A00A81F60 /* UIArchiveDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = E998836B2CBCE76300A81F60 /* UIArchiveDetails.swift */; };
 		E99D2B412B0176410029FDEC /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E99D2B402B0176410029FDEC /* InfoPlist.xcstrings */; };
 		E9A4DD0E2D558D1E00E16FEC /* UIAppTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A4DD0D2D558D1E00E16FEC /* UIAppTabView.swift */; };
@@ -71,7 +70,6 @@
 		E9A4DD122D5ACEA300E16FEC /* UINavigationHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A4DD112D5ACE9B00E16FEC /* UINavigationHelper.swift */; };
 		E9A8612D2BF31534003534FA /* AutomaticPageConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A8612C2BF31534003534FA /* AutomaticPageConfig.swift */; };
 		E9AAC1352CBC8FC600E5E89A /* UIPageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AAC1342CBC8FC600E5E89A /* UIPageCell.swift */; };
-		E9B39A6E2B21E7A800700FE4 /* RandomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9B39A6D2B21E7A800700FE4 /* RandomView.swift */; };
 		E9BE57B22942CFEC00A3AEA0 /* LockScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */; };
 		E9BFA2052AF51DB500DDE107 /* ArchiveReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BFA2042AF51DB500DDE107 /* ArchiveReader.swift */; };
 		E9BFA2072AF52C3300DDE107 /* PageImageV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BFA2062AF52C3300DDE107 /* PageImageV2.swift */; };
@@ -81,8 +79,6 @@
 		E9CBC0F02A3DD62F00CCD592 /* LogFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */; };
 		E9DA93612C16960E003272B9 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E9DA93602C16960E003272B9 /* Localizable.xcstrings */; };
 		E9DAEC552B07295D00ADC215 /* ArchiveDetailsV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9DAEC542B07295D00ADC215 /* ArchiveDetailsV2.swift */; };
-		E9DCE8992AF0665900C17236 /* ArchiveListV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9DCE8982AF0665900C17236 /* ArchiveListV2.swift */; };
-		E9DCE8A22AF0795600C17236 /* SearchViewV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9DCE8A12AF0795600C17236 /* SearchViewV2.swift */; };
 		E9E3631426F463F800C58D01 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CD024F1390400617F4A /* Alamofire */; };
 		E9E3631626F463F800C58D01 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 7D354CE124F15F1800617F4A /* Logging */; };
 		E9E3631726F463F800C58D01 /* NotificationBannerSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7D7A6842250239750051F232 /* NotificationBannerSwift */; };
@@ -92,7 +88,6 @@
 		E9EACA7B2D64517000229508 /* GRDBQuery in Frameworks */ = {isa = PBXBuildFile; productRef = E9EACA7A2D64517000229508 /* GRDBQuery */; };
 		E9EB422B2C05BE0B00E49AE1 /* EditCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9EB422A2C05BE0B00E49AE1 /* EditCategory.swift */; };
 		E9F3B0122B01A21C00F60F62 /* CategoryListV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F3B0112B01A21C00F60F62 /* CategoryListV2.swift */; };
-		E9F3B0142B01D2DB00F60F62 /* CategoryArchiveListV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F3B0132B01D2DB00F60F62 /* CategoryArchiveListV2.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -186,7 +181,6 @@
 		E98B8B8F2A0BA9D1004CBBC0 /* UploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadView.swift; sourceTree = "<group>"; };
 		E9965AA92D6830D800114E32 /* UICacheView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICacheView.swift; sourceTree = "<group>"; };
 		E997D7FF2AF20EE2007C91F1 /* ArchiveGridV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveGridV2.swift; sourceTree = "<group>"; };
-		E997D8032AF3C9BA007C91F1 /* LibraryListV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryListV2.swift; sourceTree = "<group>"; };
 		E998836B2CBCE76300A81F60 /* UIArchiveDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIArchiveDetails.swift; sourceTree = "<group>"; };
 		E99D2B3F2B0176400029FDEC /* mul */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = mul; path = mul.lproj/LaunchScreen.xcstrings; sourceTree = "<group>"; };
 		E99D2B402B0176410029FDEC /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
@@ -195,7 +189,6 @@
 		E9A4DD112D5ACE9B00E16FEC /* UINavigationHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UINavigationHelper.swift; sourceTree = "<group>"; };
 		E9A8612C2BF31534003534FA /* AutomaticPageConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticPageConfig.swift; sourceTree = "<group>"; };
 		E9AAC1342CBC8FC600E5E89A /* UIPageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIPageCell.swift; sourceTree = "<group>"; };
-		E9B39A6D2B21E7A800700FE4 /* RandomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomView.swift; sourceTree = "<group>"; };
 		E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreen.swift; path = LANreader/Common/LockScreen.swift; sourceTree = SOURCE_ROOT; };
 		E9BFA2042AF51DB500DDE107 /* ArchiveReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveReader.swift; sourceTree = "<group>"; };
 		E9BFA2062AF52C3300DDE107 /* PageImageV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageImageV2.swift; sourceTree = "<group>"; };
@@ -205,12 +198,9 @@
 		E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogFormatter.swift; sourceTree = "<group>"; };
 		E9DA93602C16960E003272B9 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		E9DAEC542B07295D00ADC215 /* ArchiveDetailsV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveDetailsV2.swift; sourceTree = "<group>"; };
-		E9DCE8982AF0665900C17236 /* ArchiveListV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveListV2.swift; sourceTree = "<group>"; };
-		E9DCE8A12AF0795600C17236 /* SearchViewV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewV2.swift; sourceTree = "<group>"; };
 		E9E3631E26F471E400C58D01 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
 		E9EB422A2C05BE0B00E49AE1 /* EditCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditCategory.swift; sourceTree = "<group>"; };
 		E9F3B0112B01A21C00F60F62 /* CategoryListV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryListV2.swift; sourceTree = "<group>"; };
-		E9F3B0132B01D2DB00F60F62 /* CategoryArchiveListV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryArchiveListV2.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -270,8 +260,6 @@
 				E9965AA92D6830D800114E32 /* UICacheView.swift */,
 				E9A4DD0F2D59BAE600E16FEC /* UIRandomView.swift */,
 				E9C354E32CA646D3004C10CD /* UILibraryList.swift */,
-				E997D8032AF3C9BA007C91F1 /* LibraryListV2.swift */,
-				E9B39A6D2B21E7A800700FE4 /* RandomView.swift */,
 				E9623E6C2BF583FD005FD609 /* CacheView.swift */,
 			);
 			path = Library;
@@ -311,7 +299,6 @@
 				E9C354E12CA6415E004C10CD /* UIArchiveList.swift */,
 				E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */,
 				6DA71C5CFBC9FDA5C1244254 /* LoadingView.swift */,
-				E9DCE8982AF0665900C17236 /* ArchiveListV2.swift */,
 				E997D7FF2AF20EE2007C91F1 /* ArchiveGridV2.swift */,
 			);
 			path = Common;
@@ -336,7 +323,6 @@
 			isa = PBXGroup;
 			children = (
 				E902FC4F2CD87A710071106B /* UICategoryArchiveGrid.swift */,
-				E9F3B0132B01D2DB00F60F62 /* CategoryArchiveListV2.swift */,
 				E9F3B0112B01A21C00F60F62 /* CategoryListV2.swift */,
 				E902FC4D2CD8704E0071106B /* UICategoryList.swift */,
 				E926CE792B1B5474000E0B10 /* NewCategory.swift */,
@@ -349,7 +335,6 @@
 			isa = PBXGroup;
 			children = (
 				E902FC512CD887DA0071106B /* UISearchView.swift */,
-				E9DCE8A12AF0795600C17236 /* SearchViewV2.swift */,
 			);
 			path = Search;
 			sourceTree = "<group>";
@@ -687,9 +672,7 @@
 				E9F3B0122B01A21C00F60F62 /* CategoryListV2.swift in Sources */,
 				7DF7EA742564E1D2003B5A5A /* AppDatabase.swift in Sources */,
 				E9623E6D2BF583FD005FD609 /* CacheView.swift in Sources */,
-				E9F3B0142B01D2DB00F60F62 /* CategoryArchiveListV2.swift in Sources */,
 				E902FC522CD887DD0071106B /* UISearchView.swift in Sources */,
-				E9DCE8A22AF0795600C17236 /* SearchViewV2.swift in Sources */,
 				E91EE6832CAB78ED0046853C /* UIArchiveReader.swift in Sources */,
 				E926CE7A2B1B5474000E0B10 /* NewCategory.swift in Sources */,
 				7D3DFF16251777B200686612 /* LANreaderApp.swift in Sources */,
@@ -704,7 +687,6 @@
 				E9DAEC552B07295D00ADC215 /* ArchiveDetailsV2.swift in Sources */,
 				E9A8612D2BF31534003534FA /* AutomaticPageConfig.swift in Sources */,
 				E9A4DD102D59BAEC00E16FEC /* UIRandomView.swift in Sources */,
-				E9B39A6E2B21E7A800700FE4 /* RandomView.swift in Sources */,
 				4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */,
 				E9A4DD122D5ACEA300E16FEC /* UINavigationHelper.swift in Sources */,
 				4BD821C3FDF1FC3B60AB4823 /* AppModels.swift in Sources */,
@@ -723,12 +705,10 @@
 				E9C3550F2CA65101004C10CD /* UIArchiveCell.swift in Sources */,
 				E90576B629F6BF8700C3CE3F /* WrappingHStack.swift in Sources */,
 				E9BE57B22942CFEC00A3AEA0 /* LockScreen.swift in Sources */,
-				E9DCE8992AF0665900C17236 /* ArchiveListV2.swift in Sources */,
 				E9BFA2072AF52C3300DDE107 /* PageImageV2.swift in Sources */,
 				7DE399892578FB34003DC5F7 /* DatabaseSettings.swift in Sources */,
 				7DF7EA7F2564E5D1003B5A5A /* Persistence.swift in Sources */,
 				E902FC4E2CD870530071106B /* UICategoryList.swift in Sources */,
-				E997D8042AF3C9BA007C91F1 /* LibraryListV2.swift in Sources */,
 				E9AAC1352CBC8FC600E5E89A /* UIPageCell.swift in Sources */,
 				E9E3631F26F471E400C58D01 /* LogView.swift in Sources */,
 				6DA713301F56AA72BA0B4BE3 /* ServerSettings.swift in Sources */,
@@ -913,7 +893,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 115;
+				CURRENT_PROJECT_VERSION = 116;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -941,7 +921,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 115;
+				CURRENT_PROJECT_VERSION = 116;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -1018,7 +998,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 115;
+				CURRENT_PROJECT_VERSION = 116;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1047,7 +1027,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 115;
+				CURRENT_PROJECT_VERSION = 116;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;

@@ -2,6 +2,49 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 
+@Reducer public struct CategoryArchiveListFeature {
+    @ObservableState
+    public struct State: Equatable {
+        @Shared(.inMemory(SettingsKey.tabBarHidden)) var tabBarHidden = false
+
+        var id: String
+        var name: String
+
+        var archiveList: ArchiveListFeature.State
+    }
+
+    public enum Action: Equatable, BindableAction {
+        case binding(BindingAction<State>)
+
+        case archiveList(ArchiveListFeature.Action)
+        case toggleSelectMode
+    }
+
+    public var body: some ReducerOf<Self> {
+        BindingReducer()
+
+        Scope(state: \.archiveList, action: \.archiveList) {
+            ArchiveListFeature()
+        }
+
+        Reduce {state, action in
+            switch action {
+            case .toggleSelectMode:
+                if state.archiveList.selectMode == .inactive {
+                    state.archiveList.selectMode = .active
+                } else {
+                    state.archiveList.selectMode = .inactive
+                }
+                return .none
+            case .binding:
+                return .none
+            case .archiveList:
+                return .none
+            }
+        }
+    }
+}
+
 public struct UICategoryArchiveGrid: UIViewControllerRepresentable {
     let store: StoreOf<CategoryArchiveListFeature>
 

@@ -2,6 +2,77 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 
+@Reducer public struct SearchFeature {
+    @ObservableState
+    public struct State: Equatable {
+        var keyword = ""
+        var suggestedTag = [String]()
+        var archiveList = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: nil),
+            loadOnAppear: false,
+            currentTab: .search
+        )
+    }
+
+    public enum Action: Equatable, BindableAction {
+        case binding(BindingAction<State>)
+        case generateSuggestion(String)
+        case suggestionTapped(String)
+        case searchSubmit(String)
+        case archiveList(ArchiveListFeature.Action)
+    }
+
+    @Dependency(\.lanraragiService) var service
+    @Dependency(\.appDatabase) var database
+
+    enum CancelId { case search }
+
+    public var body: some ReducerOf<Self> {
+
+        Scope(state: \.archiveList, action: \.archiveList) {
+            ArchiveListFeature()
+        }
+
+        BindingReducer()
+        Reduce { state, action in
+            switch action {
+            case let .generateSuggestion(searchText):
+                let lastToken = searchText.split(
+                    separator: " ",
+                    omittingEmptySubsequences: false
+                ).last.map(String.init) ?? ""
+                guard !lastToken.isEmpty else {
+                    state.suggestedTag = .init()
+                    return .none
+                }
+                do {
+                    let result = try database.searchTag(keyword: lastToken)
+                    state.suggestedTag = result.map {
+                        $0.tag
+                    }
+                } catch {
+                    state.suggestedTag = .init()
+                }
+                return .none
+            case let .suggestionTapped(tag):
+                let validKeyword = state.keyword.split(separator: " ").dropLast(1).joined(separator: " ")
+                state.keyword = "\(validKeyword) \(tag)$,"
+                return .none
+            case let .searchSubmit(keyword):
+                guard !keyword.isEmpty else {
+                    return .none
+                }
+                state.archiveList.filter = SearchFilter(category: nil, filter: keyword)
+                return .none
+            case .binding:
+                return .none
+            case .archiveList:
+                return .none
+            }
+        }
+    }
+}
+
 class UISearchViewController: UIViewController {
     private let store: StoreOf<SearchFeature>
 
@@ -77,21 +148,11 @@ class UISearchViewController: UIViewController {
         suggestionsTableView.register(UITableViewCell.self, forCellReuseIdentifier: "SuggestionCell")
     }
 
-    private func setupObserve() {
-        observe { [weak self] in
-            guard let self else { return }
-            if store.archiveList.filter.filter?.isEmpty == false {
-                self.view.layoutIfNeeded()
-            }
-        }
-    }
-
     override func viewDidLoad() {
         super.viewDidLoad()
 
         setupLayout()
         setupDelegates()
-//        setupObserve()
 
         navigationItem.title = String(localized: "search")
     }

@@ -6,13 +6,11 @@ import SwiftUI
 public struct ArchiveItem: Identifiable, Equatable, Hashable {
     public let id: String
     var name: String
-    let normalizedName: String
     let `extension`: String
     var tags: String
     var isNew: Bool
     var progress: Int
     let pagecount: Int
-    var refresh: Bool = false
     let dateAdded: Int?
 }
 

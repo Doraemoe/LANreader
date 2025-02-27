@@ -216,11 +216,12 @@ import OrderedCollections
                     let thumbnailUrl = try await service.retrieveArchiveThumbnail(id: id)
                         .serializingDownloadedFileURL()
                         .value
-                    imageService.processThumbnail(
-                        thumbnailUrl: thumbnailUrl,
-                        destinationUrl: LANraragiService.thumbnailPath!
-                            .appendingPathComponent("\(id).heic", conformingTo: .heic)
+                    var archiveThumbnail = ArchiveThumbnail(
+                        id: id,
+                        thumbnail: imageService.heicDataOfImage(url: thumbnailUrl) ?? Data(),
+                        lastUpdate: Date()
                     )
+                    try database.saveArchiveThumbnail(&archiveThumbnail)
                     let successMessage = String(localized: "archive.thumbnail.set")
                     await send(.setSuccess(successMessage))
                     await send(.finishThumbnailLoading)
@@ -231,9 +232,6 @@ import OrderedCollections
                 }
             case .finishThumbnailLoading:
                 state.settingThumbnail = false
-                state.$archive.withLock {
-                    $0.refresh = true
-                }
                 return .none
             case let .setSuccess(message):
                 state.successMessage = message

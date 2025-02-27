@@ -22,7 +22,6 @@ import GRDBQuery
 
     public enum Action: Equatable {
         case load(Bool)
-        case finishRefreshArchive
     }
 
     @Dependency(\.lanraragiService) var service
@@ -50,11 +49,6 @@ import GRDBQuery
                 } catch: { error, _ in
                     logger.error("failed to fetch thumbnail. \(error)")
                 }
-            case .finishRefreshArchive:
-                state.$archive.withLock {
-                    $0.refresh = false
-                }
-                return .none
             }
         }
     }
@@ -91,12 +85,6 @@ struct ArchiveGridV2: View {
                         }
                 }
             }
-            .onChange(of: store.archive.refresh) { _, newValue in
-                if newValue {
-                    store.send(.load(true))
-                    store.send(.finishRefreshArchive)
-                }
-            }
         }
         .frame(maxHeight: .infinity, alignment: .top)
         .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -105,6 +93,7 @@ struct ArchiveGridV2: View {
                 .stroke(Color.secondary, lineWidth: 2)
                 .opacity(0.9)
         )
+        .queryObservation(.onAppear)
     }
 
     func buildTitle(archive: ArchiveItem) -> String {

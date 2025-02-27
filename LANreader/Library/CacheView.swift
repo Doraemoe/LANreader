@@ -37,7 +37,6 @@ import NotificationBannerSwift
                         let item = ArchiveItem(
                             id: cache.id,
                             name: cache.title,
-                            normalizedName: cache.title,
                             extension: "",
                             tags: cache.tags,
                             isNew: false,

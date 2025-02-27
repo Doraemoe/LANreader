@@ -120,31 +120,6 @@ struct CategoryListV2: View {
                 categoryItem(store: store, item: item)
             }
         }
-//        .toolbar {
-//            ToolbarItemGroup(placement: .topBarTrailing) {
-//                Image(systemName: "plus.circle")
-//                    .onTapGesture {
-//                        store.send(.showAddCategory)
-//                    }
-//                    .foregroundStyle(Color.accentColor)
-//                    .popover(
-//                        item: $store.scope(state: \.destination?.add, action: \.destination.add)
-//                    ) { store in
-//                        NewCategory(store: store)
-//                    }
-//                    .opacity(store.editMode == .active ? 1 : 0)
-//                EditButton()
-//            }
-//        }
-//        .sheet(item: $store.scope(state: \.destination?.edit, action: \.destination.edit), content: { store in
-//            EditCategory(store: store)
-//        })
-//        .toolbar(store.editMode == .active ? .hidden : .visible, for: .tabBar)
-//        .environment(\.editMode, $store.editMode)
-//        .navigationTitle("category")
-//        .navigationBarTitleDisplayMode(.inline)
-//        .toolbar(store.tabBarHidden ? .hidden : .visible, for: .tabBar)
-//        .toolbar(.hidden, for: .navigationBar)
         .task {
             if store.categoryItems.isEmpty {
                 store.send(.loadCategory(true))

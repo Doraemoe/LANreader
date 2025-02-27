@@ -107,38 +107,44 @@ class UIPageCell: UICollectionViewCell {
     }
 
     func setupObserve(store: StoreOf<PageFeature>) {
+        store.publisher.progress
+            .sink { [weak self] _ in
+                guard let self else { return }
+                guard !store.imageLoaded else { return }
+
+                imageView.isHidden = true
+                progressView.isHidden = false
+                progressViewLabel.isHidden = false
+                progressView.progress = Float(store.progress)
+                progressViewLabel.text = String(
+                    format: "%.2f%%", store.progress * 100)
+            }
+            .store(in: &cancellables)
+
         store.publisher.imageLoaded
             .sink { [weak self] loaded in
                 guard let self else { return }
+                guard loaded else { return }
 
-                if !loaded {
-                    imageView.isHidden = true
-                    progressView.isHidden = false
-                    progressViewLabel.isHidden = false
-                    progressView.progress = Float(store.progress)
-                    progressViewLabel.text = String(
-                        format: "%.2f%%", store.progress * 100)
-                } else {
-                    imageView.isHidden = false
-                    progressView.isHidden = true
-                    progressViewLabel.isHidden = true
-                    let contentPath = {
-                        switch store.pageMode {
-                        case .left:
-                            return store.pathLeft
-                        case .right:
-                            return store.pathRight
-                        default:
-                            return store.path
-                        }
-                    }()
-                    if let uiImage = UIImage(
-                        contentsOfFile: contentPath?.path(percentEncoded: false)
-                            ?? "") {
-                        imageView.image = uiImage
-                    } else {
-                        imageView.image = UIImage(systemName: "rectangle.slash")
+                imageView.isHidden = false
+                progressView.isHidden = true
+                progressViewLabel.isHidden = true
+                let contentPath = {
+                    switch store.pageMode {
+                    case .left:
+                        return store.pathLeft
+                    case .right:
+                        return store.pathRight
+                    default:
+                        return store.path
                     }
+                }()
+                if let uiImage = UIImage(
+                    contentsOfFile: contentPath?.path(percentEncoded: false)
+                    ?? "") {
+                    imageView.image = uiImage
+                } else {
+                    imageView.image = UIImage(systemName: "rectangle.slash")
                 }
             }
             .store(in: &cancellables)
@@ -146,7 +152,6 @@ class UIPageCell: UICollectionViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
-        print("reused \(store!.pageNumber):\(store!.pageMode)")
         store = nil
         imageView.image = nil
         progressView.progress = 0

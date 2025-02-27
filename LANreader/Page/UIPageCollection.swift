@@ -308,7 +308,6 @@ extension UIPageCollectionController: UICollectionViewDataSourcePrefetching {
     ) {
         if let pageCell = cell as? UIPageCell {
             Task {
-                print("will display \(pageCell.store!.pageNumber):\(pageCell.store!.pageMode)")
                 await pageCell.store?.send(.load(false)).finish()
                 if store.readDirection == ReadDirection.upDown.rawValue {
                     collectionView.performBatchUpdates { }

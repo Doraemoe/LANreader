@@ -9,7 +9,6 @@ import Logging
 
     @ObservableState
     public struct State: Equatable {
-        var path = StackState<AppFeature.Path.State>()
         @Presents var destination: Destination.State?
 
         @SharedReader(.appStorage(SettingsKey.lanraragiUrl)) var lanraragiUrl = ""
@@ -27,7 +26,6 @@ import Logging
     }
 
     public enum Action: BindableAction {
-        case path(StackAction<AppFeature.Path.State, AppFeature.Path.Action>)
         case destination(PresentationAction<Destination.Action>)
 
         case binding(BindingAction<State>)
@@ -109,18 +107,7 @@ import Logging
                 return .none
             }
         }
-        .forEach(\.path, action: \.path)
         .ifLet(\.$destination, action: \.destination)
-    }
-
-    @Reducer(state: .equatable)
-    public enum Path {
-        case reader(ArchiveReaderFeature)
-        case details(ArchiveDetailsFeature)
-        case categoryArchiveList(CategoryArchiveListFeature)
-        case search(SearchFeature)
-        case random(RandomFeature)
-        case cache(CacheFeature)
     }
 
     @Reducer(state: .equatable)

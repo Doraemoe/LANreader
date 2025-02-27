@@ -2,6 +2,50 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 
+@Reducer public struct LibraryFeature {
+    @ObservableState
+    public struct State: Equatable {
+        var archiveList = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: nil),
+            currentTab: .library
+        )
+    }
+
+    public enum Action: Equatable, BindableAction {
+        case binding(BindingAction<State>)
+
+        case archiveList(ArchiveListFeature.Action)
+        case toggleSelectMode
+    }
+
+    @Dependency(\.lanraragiService) var service
+    @Dependency(\.appDatabase) var database
+
+    public var body: some ReducerOf<Self> {
+        BindingReducer()
+
+        Scope(state: \.archiveList, action: \.archiveList) {
+            ArchiveListFeature()
+        }
+
+        Reduce { state, action in
+            switch action {
+            case .toggleSelectMode:
+                if state.archiveList.selectMode == .inactive {
+                    state.archiveList.selectMode = .active
+                } else {
+                    state.archiveList.selectMode = .inactive
+                }
+                return .none
+            case .archiveList:
+                return .none
+            case .binding:
+                return .none
+            }
+        }
+    }
+}
+
 class UILibraryListViewController: UIViewController {
     let store: StoreOf<LibraryFeature>
     let navigationHelper: NavigationHelper
