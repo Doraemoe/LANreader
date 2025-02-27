@@ -1,6 +1,86 @@
 import ComposableArchitecture
 import SwiftUI
 import UIKit
+import Logging
+
+@Reducer struct RandomFeature {
+    private let logger = Logger(label: "RandomFeature")
+
+    @ObservableState
+    struct State: Equatable {
+        var archives: IdentifiedArrayOf<GridFeature.State> = []
+
+        @Shared(.archive) var archiveItems: IdentifiedArrayOf<ArchiveItem> = []
+
+        var loading: Bool = false
+        var showLoading: Bool = false
+        var errorMessage = ""
+    }
+
+    enum Action: Equatable {
+        case grid(IdentifiedActionOf<GridFeature>)
+        case load(Bool)
+        case populateArchives([ArchiveItem])
+        case setErrorMessage(String)
+        case refreshDisplayArchives
+    }
+
+    @Dependency(\.lanraragiService) var service
+
+    var body: some ReducerOf<Self> {
+        Reduce { state, action in
+            switch action {
+            case let .load(showLoading):
+                guard state.loading == false else {
+                    return .none
+                }
+                state.loading = true
+                state.showLoading = showLoading
+                return .run { send in
+                    let response = try await service.randomArchives().value
+                    let archives = response.data.map {
+                        $0.toArchiveItem()
+                    }
+                    await send(.populateArchives(archives))
+                } catch: { error, send in
+                    logger.error("failed to get random archives \(error)")
+                    await send(.setErrorMessage(error.localizedDescription))
+                }
+            case let .populateArchives(archives):
+                archives.forEach { item in
+                    state.$archiveItems.withLock {
+                        _ = $0.updateOrAppend(item)
+                    }
+                }
+                let gridFeatureState = archives.compactMap { item in
+                    Shared(state.$archiveItems[id: item.id])
+                }.map {
+                    GridFeature.State(archive: $0)
+                }
+                state.archives = IdentifiedArray(uniqueElements: gridFeatureState)
+                state.loading = false
+                state.showLoading = false
+                return .none
+            case let .setErrorMessage(message):
+                state.loading = false
+                state.showLoading = false
+                state.errorMessage = message
+                return .none
+            case .refreshDisplayArchives:
+                let filteredGridFeatureState = state.archives.filter { gridState in
+                    state.archiveItems[id: gridState.archive.id] != nil
+                }
+                state.archives = filteredGridFeatureState
+                return .none
+            default:
+                return .none
+            }
+        }
+        .forEach(\.archives, action: \.grid) {
+            GridFeature()
+        }
+    }
+}
 
 class UIRandomViewController: UIViewController, UICollectionViewDelegate {
 

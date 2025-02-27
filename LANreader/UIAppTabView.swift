@@ -37,8 +37,14 @@ class UITabViewController: UITabBarController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let libraryView = UILibraryListViewController(store: store.scope(state: \.library, action: \.library))
-        let libraryNav = UINavigationController(rootViewController: libraryView)
+        let libraryNav = UINavigationController()
+        let libraryNavHelper = NavigationHelper()
+        libraryNavHelper.navigationController = libraryNav
+        let libraryView = UILibraryListViewController(
+            store: store.scope(state: \.library, action: \.library),
+            navigationHelper: libraryNavHelper
+        )
+        libraryNav.viewControllers = [libraryView]
         libraryNav.tabBarItem = UITabBarItem(
             title: String(localized: "library"),
             image: UIImage(systemName: "books.vertical"),
@@ -62,17 +68,20 @@ class UITabViewController: UITabBarController {
             tag: 2
         )
 
-        let settingsView = UIHostingController(
-            rootView: SettingsView(
-                store: store.scope(state: \.settings, action: \.settings)
-            )
+        let settingsNav = UINavigationController()
+        let settingsNavHelper = NavigationHelper()
+        settingsNavHelper.navigationController = settingsNav
+        let settingsView = UISettingsViewController(
+            store: store.scope(state: \.settings, action: \.settings),
+            navigationHelper: settingsNavHelper
         )
-        let settingsNav = UINavigationController(rootViewController: settingsView)
+        settingsNav.viewControllers = [settingsView]
         settingsNav.tabBarItem = UITabBarItem(
             title: String(localized: "settings"),
             image: UIImage(systemName: "gearshape"),
             tag: 3
         )
+        settingsView.navigationItem.title = String(localized: "settings")
 
         self.viewControllers = [libraryNav, categoryNav, searchNav, settingsNav]
     }

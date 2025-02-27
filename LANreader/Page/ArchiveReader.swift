@@ -38,6 +38,7 @@ import OrderedCollections
         var autoDate = Date()
         var cached = false
         var inCache = false
+        var removeCacheSuccess = false
 
         init(archive: Shared<ArchiveItem>, fromStart: Bool = false, cached: Bool = false) {
             self._archive = archive
@@ -70,6 +71,7 @@ import OrderedCollections
         case finishDownloadPages
         case removeCache
         case loadCached
+        case removeCacheSuccess
 
         public enum Alert {
             case confirmDelete
@@ -173,9 +175,8 @@ import OrderedCollections
                 } else {
                     state.controlUiHidden.toggle()
                 }
-                return .none
+                return .cancel(id: CancelId.autoPage)
             case let .setJumpIndex(jumpIndex):
-                logger.info("jump from page \(state.jumpIndex) to page \(jumpIndex)")
                 state.jumpIndex = jumpIndex
                 return .none
             case let .setSliderIndex(index):
@@ -215,11 +216,12 @@ import OrderedCollections
                     let thumbnailUrl = try await service.retrieveArchiveThumbnail(id: id)
                         .serializingDownloadedFileURL()
                         .value
-                    imageService.processThumbnail(
-                        thumbnailUrl: thumbnailUrl,
-                        destinationUrl: LANraragiService.thumbnailPath!
-                            .appendingPathComponent("\(id).heic", conformingTo: .heic)
+                    var archiveThumbnail = ArchiveThumbnail(
+                        id: id,
+                        thumbnail: imageService.heicDataOfImage(url: thumbnailUrl) ?? Data(),
+                        lastUpdate: Date()
                     )
+                    try database.saveArchiveThumbnail(&archiveThumbnail)
                     let successMessage = String(localized: "archive.thumbnail.set")
                     await send(.setSuccess(successMessage))
                     await send(.finishThumbnailLoading)
@@ -230,9 +232,6 @@ import OrderedCollections
                 }
             case .finishThumbnailLoading:
                 state.settingThumbnail = false
-                state.$archive.withLock {
-                    $0.refresh = true
-                }
                 return .none
             case let .setSuccess(message):
                 state.successMessage = message
@@ -324,6 +323,7 @@ import OrderedCollections
                 }
                 return .none
             case .alert(.presented(.confirmDelete)):
+                state.removeCacheSuccess = false
                 return .run { [id = state.archive.id] send in
                     let deleted = try database.deleteCache(id)
                     if deleted != true {
@@ -333,12 +333,15 @@ import OrderedCollections
                         let cacheFolder = LANraragiService.cachePath!
                             .appendingPathComponent(id, conformingTo: .folder)
                         try? FileManager.default.removeItem(at: cacheFolder)
-                        await self.dismiss()
+                        await send(.removeCacheSuccess)
                     }
                 } catch: { [id = state.archive.id] error, send in
                     logger.error("failed to remove archive cache, id=\(id) \(error)")
                     await send(.setError(error.localizedDescription))
                 }
+            case .removeCacheSuccess:
+                state.removeCacheSuccess = true
+                return .none
             case .alert:
                 return .none
             }
@@ -351,9 +354,8 @@ import OrderedCollections
 }
 
 struct ArchiveReader: View {
-    @FocusState private var isFocused: Bool
-
     @Bindable var store: StoreOf<ArchiveReaderFeature>
+    let navigationHelper: NavigationHelper?
 
     var body: some View {
         let flip = store.readDirection == ReadDirection.rightLeft.rawValue
@@ -374,18 +376,9 @@ struct ArchiveReader: View {
                 }
             }
         }
-        .focusable()
-        .focused($isFocused)
-        .focusEffectDisabled()
-        .onAppear {
-            isFocused = true
-        }
         .alert(
             $store.scope(state: \.alert, action: \.alert)
         )
-        .navigationBarTitle(store.archive.name)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
         .overlay(content: {
             store.showAutoPageConfig ? AutomaticPageConfig(
                 store: store.scope(state: \.autoPage, action: \.autoPage)
@@ -431,11 +424,11 @@ struct ArchiveReader: View {
                 store.send(.setSuccess(""))
             }
         }
-//        .onChange(of: store.autoDate) {
-//            if store.startAutoPage {
-//                store.send(.tapAction(PageControl.next.rawValue), animation: .linear)
-//            }
-//        }
+        .onChange(of: store.removeCacheSuccess) {
+            if store.removeCacheSuccess {
+                navigationHelper?.pop()
+            }
+        }
     }
 
     @MainActor

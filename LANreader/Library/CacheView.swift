@@ -37,7 +37,6 @@ import NotificationBannerSwift
                         let item = ArchiveItem(
                             id: cache.id,
                             name: cache.title,
-                            normalizedName: cache.title,
                             extension: "",
                             tags: cache.tags,
                             isNew: false,
@@ -118,6 +117,8 @@ import NotificationBannerSwift
 }
 
 struct CacheView: View {
+    @Environment(NavigationHelper.self) private var navigation
+
     let store: StoreOf<CacheFeature>
 
     let columns = [
@@ -145,9 +146,6 @@ struct CacheView: View {
         .task {
             store.send(.load)
         }
-        .toolbar(.hidden, for: .tabBar)
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationTitle("cached")
         .onChange(of: store.errorMessage) {
             if !store.errorMessage.isEmpty {
                 let banner = NotificationBanner(
@@ -175,50 +173,49 @@ struct CacheView: View {
         gridStore: StoreOf<GridFeature>,
         inProgress: Bool
     ) -> some View {
-        Group {
-            if inProgress {
-                let progress = if let progressItem = store.downloading[gridStore.state.id] {
-                    Double(progressItem.current) / Double(progressItem.total)
-                } else {
-                    0.0
-                }
-                ArchiveGridV2(store: gridStore)
+        let progress = if let progressItem = store.downloading[gridStore.state.id] {
+            Double(progressItem.current) / Double(progressItem.total)
+        } else {
+            0.0
+        }
+        return ArchiveGridV2(store: gridStore)
+            .overlay {
+                inProgress ?
+                RoundedRectangle(cornerRadius: 8)
+                    .foregroundStyle(Color.black.opacity(0.5))
                     .overlay {
-                        RoundedRectangle(cornerRadius: 8)
-                            .foregroundStyle(Color.black.opacity(0.5))
-                            .overlay {
-                                ProgressView(value: progress) {
-                                    EmptyView()
-                                } currentValueLabel: {
-                                    Text(String(format: "%.2f%%", progress * 100))
-                                        .fontWeight(.bold)
-                                        .font(.caption)
-                                        .foregroundStyle(.white)
-                                }
-                                    .progressViewStyle(.linear)
-                                    .tint(.white)
-                                    .padding(.horizontal, 10)
-                            }
-                    }
-                    .contextMenu {
-                        contextMenu(gridStore: gridStore)
-                    }
-            } else {
-                NavigationLink(
-                    state: AppFeature.Path.State.reader(
-                        ArchiveReaderFeature.State.init(
-                            archive: gridStore.$archive,
-                            cached: true
-                        )
-                    )
-                ) {
-                    ArchiveGridV2(store: gridStore)
-                        .contextMenu {
-                            contextMenu(gridStore: gridStore)
+                        ProgressView(value: progress) {
+                            EmptyView()
+                        } currentValueLabel: {
+                            Text(String(format: "%.2f%%", progress * 100))
+                                .fontWeight(.bold)
+                                .font(.caption)
+                                .foregroundStyle(.white)
                         }
+                        .progressViewStyle(.linear)
+                        .tint(.white)
+                        .padding(.horizontal, 10)
+                    }
+                : nil
+            }
+            .contextMenu {
+                contextMenu(gridStore: gridStore)
+            }
+            .onTapGesture {
+                if !inProgress {
+                    let readerStore = Store(
+                        initialState: ArchiveReaderFeature.State.init(
+                            archive: gridStore.$archive, cached: true)
+                    ) {
+                        ArchiveReaderFeature()
+                    }
+                    let readerController = UIArchiveReaderController(
+                        store: readerStore, navigationHelper: navigation
+                    )
+                    readerController.hidesBottomBarWhenPushed = true
+                    navigation.push(readerController)
                 }
             }
-        }
     }
 }
 

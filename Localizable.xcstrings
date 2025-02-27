@@ -118,13 +118,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Remove archive from cache?\\nThis will not remove archive from server"
+            "value" : "Remove archive from cache?\nThis will not remove archive from server"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从缓存中删除文档?\\n这不会从服务器上删除文档"
+            "value" : "从缓存中删除文档?\n这不会从服务器上删除文档"
           }
         }
       }

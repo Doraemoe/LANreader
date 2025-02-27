@@ -291,7 +291,7 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let metadata = ArchiveItem(id: "id", name: "name", normalizedName: "normalName", extension: "zip",
+        let metadata = ArchiveItem(id: "id", name: "name", extension: "zip",
                                    tags: "tags", isNew: true,
                                    progress: 0, pagecount: 10, dateAdded: 1234)
         let actual = try await service.updateArchive(archive: metadata).value
@@ -310,7 +310,7 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
-        let metadata = ArchiveItem(id: "id", name: "name", normalizedName: "normalName", extension: "zip",
+        let metadata = ArchiveItem(id: "id", name: "name", extension: "zip",
                                    tags: "tags", isNew: true,
                                    progress: 0, pagecount: 10, dateAdded: 1234)
         let actual = try? await service.updateArchive(archive: metadata).value

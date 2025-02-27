@@ -56,12 +56,12 @@ struct ReadSettings: View {
             }
             .padding()
         }
-//        if store.readDirection != ReadDirection.upDown.rawValue {
-//            Toggle(isOn: self.$store.doublePageLayout) {
-//                Text("settings.read.double.page")
-//            }
-//            .padding()
-//        }
+        if store.readDirection != ReadDirection.upDown.rawValue {
+            Toggle(isOn: self.$store.doublePageLayout) {
+                Text("settings.read.double.page")
+            }
+            .padding()
+        }
         Toggle(isOn: self.$store.splitWideImage) {
             Text("settings.read.split.page")
         }

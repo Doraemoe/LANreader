@@ -2,30 +2,57 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 
-public struct UILibraryList: UIViewControllerRepresentable {
-    let store: StoreOf<LibraryFeature>
-
-    public init(store: StoreOf<LibraryFeature>) {
-        self.store = store
+@Reducer public struct LibraryFeature {
+    @ObservableState
+    public struct State: Equatable {
+        var archiveList = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: nil),
+            currentTab: .library
+        )
     }
 
-    public func makeUIViewController(context: Context) -> UIViewController {
-        UINavigationController(rootViewController: UILibraryListViewController(store: store))
+    public enum Action: Equatable, BindableAction {
+        case binding(BindingAction<State>)
+
+        case archiveList(ArchiveListFeature.Action)
+        case toggleSelectMode
     }
 
-    public func updateUIViewController(
-        _ uiViewController: UIViewController,
-        context: Context
-    ) {
-        // Nothing to do
+    @Dependency(\.lanraragiService) var service
+    @Dependency(\.appDatabase) var database
+
+    public var body: some ReducerOf<Self> {
+        BindingReducer()
+
+        Scope(state: \.archiveList, action: \.archiveList) {
+            ArchiveListFeature()
+        }
+
+        Reduce { state, action in
+            switch action {
+            case .toggleSelectMode:
+                if state.archiveList.selectMode == .inactive {
+                    state.archiveList.selectMode = .active
+                } else {
+                    state.archiveList.selectMode = .inactive
+                }
+                return .none
+            case .archiveList:
+                return .none
+            case .binding:
+                return .none
+            }
+        }
     }
 }
 
 class UILibraryListViewController: UIViewController {
     let store: StoreOf<LibraryFeature>
+    let navigationHelper: NavigationHelper
 
-    init(store: StoreOf<LibraryFeature>) {
+    init(store: StoreOf<LibraryFeature>, navigationHelper: NavigationHelper) {
         self.store = store
+        self.navigationHelper = navigationHelper
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -33,19 +60,31 @@ class UILibraryListViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        let archiveListView = UIArchiveListViewController(
-            store: store.scope(state: \.archiveList, action: \.archiveList)
-        )
+    private func setupNavigationBar() {
         let randomButton = UIBarButtonItem(
             image: UIImage(systemName: "shuffle"),
             style: .plain,
             target: self,
             action: #selector(tapRandomButton)
         )
-        navigationItem.leftBarButtonItem = randomButton
+        let cachedButton = UIBarButtonItem(
+            image: UIImage(systemName: "arrowshape.down"),
+            style: .plain,
+            target: self,
+            action: #selector(tapCachedButton)
+        )
+        navigationItem.leftBarButtonItems = [randomButton, cachedButton]
+        navigationItem.title = String(localized: "library")
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        setupNavigationBar()
+
+        let archiveListView = UIArchiveListViewController(
+            store: store.scope(state: \.archiveList, action: \.archiveList)
+        )
         add(archiveListView)
         NSLayoutConstraint.activate([
             archiveListView.view.topAnchor.constraint(equalTo: view.topAnchor),
@@ -72,5 +111,15 @@ class UILibraryListViewController: UIViewController {
             randomController,
             animated: true
         )
+    }
+
+    @objc private func tapCachedButton() {
+        let cacheStore = Store(initialState: CacheFeature.State.init()) {
+            CacheFeature()
+        }
+        let cacheController = UICacheViewController(store: cacheStore, navigationHelper: navigationHelper)
+        cacheController.hidesBottomBarWhenPushed = true
+        navigationController?.pushViewController(cacheController, animated: true)
+
     }
 }

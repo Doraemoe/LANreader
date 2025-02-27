@@ -20,6 +20,7 @@ import Logging
         var errorMessage = ""
         var pageMode: PageMode
         let cached: Bool
+        var imageLoaded = false
 
         public var id: String {
             "\(pageId)-\(suffix)"
@@ -101,19 +102,24 @@ import Logging
                                 atPath: state.pathLeft?.path(percentEncoded: false) ?? ""
                             ) {
                             state.pageMode = .left
+                            state.imageLoaded = true
                             return .send(.insertPage(.right))
                         } else if FileManager.default.fileExists(
                             atPath: state.pathRight?.path(percentEncoded: false) ?? ""
                         ) {
                             state.pageMode = .right
+                            state.imageLoaded = true
                             return .send(.insertPage(.left))
                         }
                     }
                     if FileManager.default.fileExists(atPath: state.path?.path(percentEncoded: false) ?? "") {
                         state.pageMode = .normal
+                        state.imageLoaded = true
                         return .none
                     }
                 } else {
+                    state.loading = false
+                    state.imageLoaded = true
                     return .none
                 }
 
@@ -146,6 +152,7 @@ import Logging
                     }
                 }
                 state.loading = false
+                state.imageLoaded = true
                 return .none
             case let .setIsLoading(loading):
                 state.loading = loading
@@ -156,6 +163,7 @@ import Logging
             case let .setImage(previousPageMode, splitted):
                 state.progress = 0
                 state.loading = false
+                state.imageLoaded = true
                 if splitted {
                     if previousPageMode == .left || previousPageMode == .right {
                         state.pageMode = previousPageMode

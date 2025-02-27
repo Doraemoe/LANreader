@@ -9,6 +9,11 @@ class ImageService {
         try? image.heicData()?.write(to: destinationUrl)
     }
 
+    func heicDataOfImage(url: URL) -> Data? {
+        guard let image = UIImage(contentsOfFile: url.path(percentEncoded: false)) else { return nil }
+        return image.heicData()
+    }
+
     func resizeImage(imageUrl: URL, destinationUrl: URL, pageNumber: String, split: Bool) -> Bool {
         try? FileManager.default.createDirectory(at: destinationUrl, withIntermediateDirectories: true)
         let mainPath = destinationUrl.appendingPathComponent("\(pageNumber).heic", conformingTo: .heic)

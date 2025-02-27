@@ -112,7 +112,6 @@ extension ArchiveIndexResponse {
     func toArchiveItem() -> ArchiveItem {
         ArchiveItem(id: arcid,
                 name: title,
-                normalizedName: "",
                 extension: `extension`,
                 tags: tags ?? "",
                 isNew: isnew == "true",

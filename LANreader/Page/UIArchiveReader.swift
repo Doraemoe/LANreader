@@ -8,9 +8,14 @@ class UIArchiveReaderController: UIViewController {
     private var hostingController: UIHostingController<ArchiveReader>!
     private var cancellables: Set<AnyCancellable> = []
 
-    init(store: StoreOf<ArchiveReaderFeature>) {
+    init(
+        store: StoreOf<ArchiveReaderFeature>,
+        navigationHelper: NavigationHelper? = nil
+    ) {
         self.store = store
-        self.hostingController = UIHostingController(rootView: ArchiveReader(store: store))
+        self.hostingController = UIHostingController(rootView: ArchiveReader(
+            store: store, navigationHelper: navigationHelper
+        ))
         super.init(nibName: nil, bundle: nil)
     }
 
