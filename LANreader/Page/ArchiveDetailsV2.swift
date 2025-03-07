@@ -14,7 +14,6 @@ import GRDBQuery
         @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
         @Shared var archive: ArchiveItem
 
-        var thumbnailPath: URL?
         var editMode: EditMode = .inactive
         var title = ""
         var tags = ""
@@ -26,8 +25,6 @@ import GRDBQuery
 
         init(archive: Shared<ArchiveItem>, cached: Bool = false) {
             self._archive = archive
-            self.thumbnailPath = LANraragiService.thumbnailPath?
-                .appendingPathComponent("\(archive.id).heic", conformingTo: .heic)
             self.cached = cached
         }
     }
