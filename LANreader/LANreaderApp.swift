@@ -38,10 +38,6 @@ struct LANreaderApp: App {
                     }
                 }
             }
-            try? FileManager.default.createDirectory(
-                at: LANraragiService.thumbnailPath!,
-                withIntermediateDirectories: true
-            )
 
             let console = ConsoleLogger("com.jif.LANreader.console")
             let fileLogger = try FileLogger(

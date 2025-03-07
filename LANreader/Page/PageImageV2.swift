@@ -90,6 +90,7 @@ import Logging
                     return .none
                 }
                 state.loading = true
+                state.imageLoaded = false
 
                 let previousPageMode = state.pageMode
 

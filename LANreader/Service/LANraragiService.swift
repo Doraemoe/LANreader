@@ -16,14 +16,6 @@ class LANraragiService: NSObject {
     )
     .appendingPathComponent("current session", conformingTo: .folder)
 
-    public static let thumbnailPath = try? FileManager.default.url(
-        for: .documentDirectory,
-        in: .userDomainMask,
-        appropriateFor: .picturesDirectory,
-        create: true
-    )
-    .appendingPathComponent("thumbnail", conformingTo: .folder)
-
     public static let cachePath = try? FileManager.default.url(
         for: .documentDirectory,
         in: .userDomainMask,
