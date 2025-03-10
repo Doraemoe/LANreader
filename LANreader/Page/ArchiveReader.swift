@@ -232,6 +232,9 @@ import OrderedCollections
                 }
             case .finishThumbnailLoading:
                 state.settingThumbnail = false
+                state.$archive.withLock {
+                    $0.refresh = true
+                }
                 return .none
             case let .setSuccess(message):
                 state.successMessage = message

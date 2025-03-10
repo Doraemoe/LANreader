@@ -12,6 +12,7 @@ public struct ArchiveItem: Identifiable, Equatable, Hashable {
     var progress: Int
     let pagecount: Int
     let dateAdded: Int?
+    var refresh: Bool = false
 }
 
 public struct CategoryItem: Identifiable, Equatable, Hashable {

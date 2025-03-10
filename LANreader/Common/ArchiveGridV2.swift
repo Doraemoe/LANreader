@@ -10,6 +10,7 @@ import GRDBQuery
     @ObservableState
     public struct State: Equatable, Identifiable {
         @Shared var archive: ArchiveItem
+        var nonce = 0
 
         public var id: String { self.archive.id }
         let cached: Bool
@@ -22,6 +23,8 @@ import GRDBQuery
 
     public enum Action: Equatable {
         case load(Bool)
+        case increaseNonce
+        case finishRefreshArchive
     }
 
     @Dependency(\.lanraragiService) var service
@@ -36,19 +39,28 @@ import GRDBQuery
                 if !force && exists == true {
                     return .none
                 }
-                return .run(priority: .utility) { [id = state.id] _ in
-                    let thumbnailUrl = try await service.retrieveArchiveThumbnail(id: id)
-                        .serializingDownloadedFileURL()
+                return .run(priority: .utility) { [id = state.id] send in
+                    let thumbnailData = try await service.retrieveArchiveThumbnail(id: id)
+                        .serializingData()
                         .value
                     var archiveThumbnail = ArchiveThumbnail(
                         id: id,
-                        thumbnail: imageService.heicDataOfImage(url: thumbnailUrl) ?? Data(),
+                        thumbnail: thumbnailData,
                         lastUpdate: Date()
                     )
                     try database.saveArchiveThumbnail(&archiveThumbnail)
+                    await send(.increaseNonce)
                 } catch: { error, _ in
                     logger.error("failed to fetch thumbnail. \(error)")
                 }
+            case .increaseNonce:
+                state.nonce += 1
+                return .none
+            case .finishRefreshArchive:
+                state.$archive.withLock {
+                    $0.refresh = false
+                }
+                return .none
             }
         }
     }
@@ -57,14 +69,14 @@ import GRDBQuery
 struct ArchiveGridV2: View {
     let store: StoreOf<GridFeature>
 
-    @Query<ThumbnailRequest> var thumbnailObj: ArchiveThumbnail?
+    @Dependency(\.appDatabase) var database
 
     init(store: StoreOf<GridFeature>) {
         self.store = store
-        self._thumbnailObj = Query(ThumbnailRequest(id: store.id))
     }
 
     var body: some View {
+        let thumbnailObj = try? database.readArchiveThumbnail(store.id)
         VStack(alignment: HorizontalAlignment.center, spacing: 2) {
             Text(buildTitle(archive: store.archive))
                 .lineLimit(2)
@@ -85,6 +97,7 @@ struct ArchiveGridV2: View {
                         }
                 }
             }
+            .id(store.nonce)
         }
         .frame(maxHeight: .infinity, alignment: .top)
         .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -93,7 +106,12 @@ struct ArchiveGridV2: View {
                 .stroke(Color.secondary, lineWidth: 2)
                 .opacity(0.9)
         )
-        .queryObservation(.onAppear)
+        .onChange(of: store.archive.refresh) { _, newValue in
+            if newValue {
+                store.send(.increaseNonce)
+                store.send(.finishRefreshArchive)
+            }
+        }
     }
 
     func buildTitle(archive: ArchiveItem) -> String {
