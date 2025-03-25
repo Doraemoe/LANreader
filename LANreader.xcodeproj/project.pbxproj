@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 60;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -65,6 +65,9 @@
 		E997D8002AF20EE2007C91F1 /* ArchiveGridV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E997D7FF2AF20EE2007C91F1 /* ArchiveGridV2.swift */; };
 		E998836C2CBCE76A00A81F60 /* UIArchiveDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = E998836B2CBCE76300A81F60 /* UIArchiveDetails.swift */; };
 		E99D2B412B0176410029FDEC /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E99D2B402B0176410029FDEC /* InfoPlist.xcstrings */; };
+		E9A452222D90E35B0010CEE3 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A452212D90E35B0010CEE3 /* StoreKit.framework */; };
+		E9A452242D90F0D60010CEE3 /* SupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A452232D90F0D60010CEE3 /* SupportView.swift */; };
+		E9A452262D90F1A60010CEE3 /* SupportSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A452252D90F1A60010CEE3 /* SupportSettings.swift */; };
 		E9A4DD0E2D558D1E00E16FEC /* UIAppTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A4DD0D2D558D1E00E16FEC /* UIAppTabView.swift */; };
 		E9A4DD102D59BAEC00E16FEC /* UIRandomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A4DD0F2D59BAE600E16FEC /* UIRandomView.swift */; };
 		E9A4DD122D5ACEA300E16FEC /* UINavigationHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A4DD112D5ACE9B00E16FEC /* UINavigationHelper.swift */; };
@@ -184,6 +187,11 @@
 		E998836B2CBCE76300A81F60 /* UIArchiveDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIArchiveDetails.swift; sourceTree = "<group>"; };
 		E99D2B3F2B0176400029FDEC /* mul */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = mul; path = mul.lproj/LaunchScreen.xcstrings; sourceTree = "<group>"; };
 		E99D2B402B0176410029FDEC /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		E9A4521F2D90E3060010CEE3 /* LANreader.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LANreader.entitlements; sourceTree = "<group>"; };
+		E9A452202D90E3270010CEE3 /* LANreaderRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LANreaderRelease.entitlements; sourceTree = "<group>"; };
+		E9A452212D90E35B0010CEE3 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		E9A452232D90F0D60010CEE3 /* SupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportView.swift; sourceTree = "<group>"; };
+		E9A452252D90F1A60010CEE3 /* SupportSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportSettings.swift; sourceTree = "<group>"; };
 		E9A4DD0D2D558D1E00E16FEC /* UIAppTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIAppTabView.swift; sourceTree = "<group>"; };
 		E9A4DD0F2D59BAE600E16FEC /* UIRandomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIRandomView.swift; sourceTree = "<group>"; };
 		E9A4DD112D5ACE9B00E16FEC /* UINavigationHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UINavigationHelper.swift; sourceTree = "<group>"; };
@@ -203,6 +211,10 @@
 		E9F3B0112B01A21C00F60F62 /* CategoryListV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryListV2.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		E9A452292D9248340010CEE3 /* ci_scripts */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = ci_scripts; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		7D354C9924F1316800617F4A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -211,6 +223,7 @@
 				E9E3631626F463F800C58D01 /* Logging in Frameworks */,
 				E9E3631826F463F800C58D01 /* GRDB in Frameworks */,
 				E9EACA7B2D64517000229508 /* GRDBQuery in Frameworks */,
+				E9A452222D90E35B0010CEE3 /* StoreKit.framework in Frameworks */,
 				E90C26CB2C1A7A6D00BE87D9 /* ComposableArchitecture in Frameworks */,
 				E9E3631726F463F800C58D01 /* NotificationBannerSwift in Frameworks */,
 				E90576BF29F8C10700C3CE3F /* Puppy in Frameworks */,
@@ -314,7 +327,9 @@
 				7DE399882578FB34003DC5F7 /* DatabaseSettings.swift */,
 				E9E3631E26F471E400C58D01 /* LogView.swift */,
 				6DA719F864E9AE9543831EFD /* ServerSettings.swift */,
+				E9A452252D90F1A60010CEE3 /* SupportSettings.swift */,
 				E98B8B8F2A0BA9D1004CBBC0 /* UploadView.swift */,
+				E9A452232D90F0D60010CEE3 /* SupportView.swift */,
 			);
 			path = Setting;
 			sourceTree = "<group>";
@@ -342,6 +357,7 @@
 		7D354C9324F1316800617F4A = {
 			isa = PBXGroup;
 			children = (
+				E9A452292D9248340010CEE3 /* ci_scripts */,
 				E9DA93602C16960E003272B9 /* Localizable.xcstrings */,
 				7D7B26A124F4D13600149341 /* LICENSE.md */,
 				7D354CF224F222FC00617F4A /* README.md */,
@@ -367,6 +383,8 @@
 		7D354C9E24F1316800617F4A /* LANreader */ = {
 			isa = PBXGroup;
 			children = (
+				E9A452202D90E3270010CEE3 /* LANreaderRelease.entitlements */,
+				E9A4521F2D90E3060010CEE3 /* LANreader.entitlements */,
 				7DF7EA832564E64B003B5A5A /* Database */,
 				7D354D0324F2383A00617F4A /* Views */,
 				7D354CA524F1316D00617F4A /* Assets.xcassets */,
@@ -456,6 +474,7 @@
 		E98B8B702A0A7B67004CBBC0 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E9A452212D90E35B0010CEE3 /* StoreKit.framework */,
 				E98B8B712A0A7B67004CBBC0 /* UniformTypeIdentifiers.framework */,
 			);
 			name = Frameworks;
@@ -490,6 +509,9 @@
 			);
 			dependencies = (
 				E98B8B7C2A0A7B68004CBBC0 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				E9A452292D9248340010CEE3 /* ci_scripts */,
 			);
 			name = LANreader;
 			packageProductDependencies = (
@@ -670,6 +692,7 @@
 			files = (
 				E91EE6852CAB94FC0046853C /* UIPageCollection.swift in Sources */,
 				E9F3B0122B01A21C00F60F62 /* CategoryListV2.swift in Sources */,
+				E9A452262D90F1A60010CEE3 /* SupportSettings.swift in Sources */,
 				7DF7EA742564E1D2003B5A5A /* AppDatabase.swift in Sources */,
 				E9623E6D2BF583FD005FD609 /* CacheView.swift in Sources */,
 				E902FC522CD887DD0071106B /* UISearchView.swift in Sources */,
@@ -699,6 +722,7 @@
 				E998836C2CBCE76A00A81F60 /* UIArchiveDetails.swift in Sources */,
 				4BD82C7F9CB71CAF8F33C171 /* ViewSettings.swift in Sources */,
 				E9965AAA2D6830DB00114E32 /* UICacheView.swift in Sources */,
+				E9A452242D90F0D60010CEE3 /* SupportView.swift in Sources */,
 				4BD82CED54A4C9689B0E9E55 /* ContentView.swift in Sources */,
 				E997D8002AF20EE2007C91F1 /* ArchiveGridV2.swift in Sources */,
 				E9C354E22CA64161004C10CD /* UIArchiveList.swift in Sources */,
@@ -891,21 +915,22 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = LANreader/LANreader.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 118;
+				CURRENT_PROJECT_VERSION = 119;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = LANreader/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.0.2;
+				MARKETING_VERSION = 3.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -919,21 +944,22 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = LANreader/LANreaderRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 118;
+				CURRENT_PROJECT_VERSION = 119;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = LANreader/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.0.2;
+				MARKETING_VERSION = 3.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -998,19 +1024,19 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 118;
+				CURRENT_PROJECT_VERSION = 119;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Download from URL";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2023 Jin Yifan. All rights reserved.";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.0.2;
+				MARKETING_VERSION = 3.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1027,19 +1053,19 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 118;
+				CURRENT_PROJECT_VERSION = 119;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Download from URL";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2023 Jin Yifan. All rights reserved.";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.0.2;
+				MARKETING_VERSION = 3.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

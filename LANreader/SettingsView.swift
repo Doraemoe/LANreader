@@ -97,6 +97,9 @@ struct SettingsView: View {
                 LabeledContent("version", value: "\(version)-\(build)")
                     .padding()
             }
+            Section(header: Text("settings.support")) {
+                SupportSettings()
+            }
         }
     }
 }
