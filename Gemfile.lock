@@ -10,13 +10,14 @@ GEM
     artifactory (3.0.17)
     atomos (0.1.3)
     aws-eventstream (1.3.2)
-    aws-partitions (1.1062.0)
-    aws-sdk-core (3.220.1)
+    aws-partitions (1.1073.0)
+    aws-sdk-core (3.221.0)
       aws-eventstream (~> 1, >= 1.3.0)
       aws-partitions (~> 1, >= 1.992.0)
       aws-sigv4 (~> 1.9)
       base64
       jmespath (~> 1, >= 1.6.1)
+      logger
     aws-sdk-kms (1.99.0)
       aws-sdk-core (~> 3, >= 3.216.0)
       aws-sigv4 (~> 1.5)
@@ -69,7 +70,7 @@ GEM
     faraday_middleware (1.2.1)
       faraday (~> 1.0)
     fastimage (2.4.0)
-    fastlane (2.226.0)
+    fastlane (2.227.0)
       CFPropertyList (>= 2.3, < 4.0.0)
       addressable (>= 2.8, < 3.0.0)
       artifactory (~> 3.0)
@@ -130,7 +131,7 @@ GEM
       google-apis-core (>= 0.11.0, < 2.a)
     google-apis-storage_v1 (0.31.0)
       google-apis-core (>= 0.11.0, < 2.a)
-    google-cloud-core (1.7.1)
+    google-cloud-core (1.8.0)
       google-cloud-env (>= 1.0, < 3.a)
       google-cloud-errors (~> 1.0)
     google-cloud-env (1.6.0)
@@ -156,9 +157,10 @@ GEM
     httpclient (2.9.0)
       mutex_m
     jmespath (1.6.2)
-    json (2.10.1)
+    json (2.10.2)
     jwt (2.10.1)
       base64
+    logger (1.6.6)
     mini_magick (4.13.2)
     mini_mime (1.1.5)
     multi_json (1.15.0)
@@ -221,4 +223,4 @@ DEPENDENCIES
   fastlane
 
 BUNDLED WITH
-   2.6.3
+   2.6.6
