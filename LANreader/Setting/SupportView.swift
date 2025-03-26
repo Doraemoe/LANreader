@@ -89,8 +89,14 @@ struct SupportView: View {
                     }
                     .onInAppPurchaseCompletion { _, result in
                         store.send(.finishedPurchase)
-                        if case .success(.success(let transaction)) = result {
-                            store.send(.setPurchaseSuccess)
+                        if case .success(.success(let verificationResult)) = result {
+                            switch verificationResult {
+                            case .verified(let transaction):
+                                await transaction.finish()
+                                store.send(.setPurchaseSuccess)
+                            case .unverified:
+                                break
+                            }
                         }
                     }
                 } else {
@@ -112,8 +118,14 @@ struct SupportView: View {
                     }
                     .onInAppPurchaseCompletion { _, result in
                         store.send(.finishedPurchase)
-                        if case .success(.success(let transaction)) = result {
-                            store.send(.setPurchaseSuccess)
+                        if case .success(.success(let verificationResult)) = result {
+                            switch verificationResult {
+                            case .verified(let transaction):
+                                await transaction.finish()
+                                store.send(.setPurchaseSuccess)
+                            case .unverified:
+                                break
+                            }
                         }
                     }
                 }

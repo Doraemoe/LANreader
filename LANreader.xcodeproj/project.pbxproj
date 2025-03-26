@@ -52,7 +52,7 @@
 		E91EE6832CAB78ED0046853C /* UIArchiveReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E91EE6822CAB78E80046853C /* UIArchiveReader.swift */; };
 		E91EE6852CAB94FC0046853C /* UIPageCollection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E91EE6842CAB94F60046853C /* UIPageCollection.swift */; };
 		E926CE7A2B1B5474000E0B10 /* NewCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = E926CE792B1B5474000E0B10 /* NewCategory.swift */; };
-		E93C0F7D2D938B5200B030AE /* TestStoreKit.storekit in Resources */ = {isa = PBXBuildFile; fileRef = E93C0F7C2D938B5200B030AE /* TestStoreKit.storekit */; };
+		E93C0F872D93ACF400B030AE /* TransactionObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = E93C0F862D93ACF400B030AE /* TransactionObserver.swift */; };
 		E94C1DDC2A204DDA00552ABD /* ImageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E94C1DDB2A204DDA00552ABD /* ImageService.swift */; };
 		E9623E6D2BF583FD005FD609 /* CacheView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9623E6C2BF583FD005FD609 /* CacheView.swift */; };
 		E98B23022942110100AE30C6 /* ArchiveIndexResponseNullTags.json in Resources */ = {isa = PBXBuildFile; fileRef = E98B23012942110100AE30C6 /* ArchiveIndexResponseNullTags.json */; };
@@ -173,7 +173,7 @@
 		E91EE6822CAB78E80046853C /* UIArchiveReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIArchiveReader.swift; sourceTree = "<group>"; };
 		E91EE6842CAB94F60046853C /* UIPageCollection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIPageCollection.swift; sourceTree = "<group>"; };
 		E926CE792B1B5474000E0B10 /* NewCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewCategory.swift; sourceTree = "<group>"; };
-		E93C0F7C2D938B5200B030AE /* TestStoreKit.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestStoreKit.storekit; sourceTree = "<group>"; };
+		E93C0F862D93ACF400B030AE /* TransactionObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionObserver.swift; sourceTree = "<group>"; };
 		E94C1DDB2A204DDA00552ABD /* ImageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageService.swift; sourceTree = "<group>"; };
 		E9623E6C2BF583FD005FD609 /* CacheView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheView.swift; sourceTree = "<group>"; };
 		E98B23012942110100AE30C6 /* ArchiveIndexResponseNullTags.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ArchiveIndexResponseNullTags.json; sourceTree = "<group>"; };
@@ -265,6 +265,7 @@
 			children = (
 				E94C1DDB2A204DDA00552ABD /* ImageService.swift */,
 				4BD824A308A90B5740411016 /* LANraragiService.swift */,
+				E93C0F862D93ACF400B030AE /* TransactionObserver.swift */,
 			);
 			path = Service;
 			sourceTree = "<group>";
@@ -359,7 +360,6 @@
 		7D354C9324F1316800617F4A = {
 			isa = PBXGroup;
 			children = (
-				E93C0F7C2D938B5200B030AE /* TestStoreKit.storekit */,
 				E9A452292D9248340010CEE3 /* ci_scripts */,
 				E9DA93602C16960E003272B9 /* Localizable.xcstrings */,
 				7D7B26A124F4D13600149341 /* LICENSE.md */,
@@ -632,7 +632,6 @@
 				7D354CAC24F1316D00617F4A /* LaunchScreen.storyboard in Resources */,
 				7D354CA924F1316D00617F4A /* Preview Assets.xcassets in Resources */,
 				7D354CF324F222FC00617F4A /* README.md in Resources */,
-				E93C0F7D2D938B5200B030AE /* TestStoreKit.storekit in Resources */,
 				7D354CA624F1316D00617F4A /* Assets.xcassets in Resources */,
 				4BD824056C5E892F44BE2D24 /* .swiftlint.yml in Resources */,
 			);
@@ -716,6 +715,7 @@
 				E9A4DD102D59BAEC00E16FEC /* UIRandomView.swift in Sources */,
 				4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */,
 				E9A4DD122D5ACEA300E16FEC /* UINavigationHelper.swift in Sources */,
+				E93C0F872D93ACF400B030AE /* TransactionObserver.swift in Sources */,
 				4BD821C3FDF1FC3B60AB4823 /* AppModels.swift in Sources */,
 				4BD82C152E77BFD137EC03DD /* LANraragiConfigView.swift in Sources */,
 				E9EB422B2C05BE0B00E49AE1 /* EditCategory.swift in Sources */,
@@ -922,7 +922,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreader.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 121;
+				CURRENT_PROJECT_VERSION = 122;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -951,7 +951,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreaderRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 121;
+				CURRENT_PROJECT_VERSION = 122;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				ENABLE_PREVIEWS = YES;
@@ -1028,7 +1028,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 121;
+				CURRENT_PROJECT_VERSION = 122;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1057,7 +1057,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 121;
+				CURRENT_PROJECT_VERSION = 122;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;

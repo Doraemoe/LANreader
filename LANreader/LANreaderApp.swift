@@ -56,6 +56,8 @@ struct LANreaderApp: App {
                 handler.logLevel = .info
                 return handler
             }
+
+            _ = TransactionObserver()
         } catch {
             fatalError("Unresolved error \(error)")
         }
