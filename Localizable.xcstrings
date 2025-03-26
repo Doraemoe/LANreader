@@ -2198,6 +2198,23 @@
         }
       }
     },
+    "support.and" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "and"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "和"
+          }
+        }
+      }
+    },
     "support.intro" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2249,6 +2266,23 @@
         }
       }
     },
+    "support.privacy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy Policy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐私政策"
+          }
+        }
+      }
+    },
     "support.snack.details" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2262,6 +2296,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "很棒的糖果，谢谢 ☺️"
+          }
+        }
+      }
+    },
+    "support.thank" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "THANK YOU ❤️"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "感激不尽 ❤️"
+          }
+        }
+      }
+    },
+    "support.tos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms of Service"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务条款"
           }
         }
       }

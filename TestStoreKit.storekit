@@ -1,0 +1,212 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "D94070A6",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "EC900DD6",
+      "localizations" : [
+        {
+          "description" : "Thank you for your kindness",
+          "displayName" : "Supporter",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "lanreader.onetime.low",
+      "referenceName" : "low",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "2AE40F28",
+      "localizations" : [
+        {
+          "description" : "Legendary supporter unlocked",
+          "displayName" : "Mighty Supporter",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "lanreader.onetime.high",
+      "referenceName" : "high",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "A9647319",
+      "localizations" : [
+        {
+          "description" : "Thank you for keeping the app going forward",
+          "displayName" : "Power Supporter",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "lanreader.onetime.median",
+      "referenceName" : "median",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "E0A8F72F",
+      "localizations" : [
+
+      ],
+      "name" : "Supporter",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "1.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "0504577D",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Thank you for your kindness",
+              "displayName" : "Supporter",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "lanreader.yearly.low",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "snack",
+          "subscriptionGroupID" : "E0A8F72F",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "DC1A4DCA",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Thank you for keeping the app going forward",
+              "displayName" : "Power Supporter",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "lanreader.yearly.median",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "tea",
+          "subscriptionGroupID" : "E0A8F72F",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "9.99",
+          "familyShareable" : false,
+          "groupNumber" : 3,
+          "internalID" : "CFE1E5DA",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Legendary supporter unlocked",
+              "displayName" : "Mighty Supporter",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "lanreader.yearly.high",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "dinner",
+          "subscriptionGroupID" : "E0A8F72F",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
