@@ -5,18 +5,52 @@ import StoreKit
 @Reducer struct SupportFeature {
     @ObservableState
     struct State: Equatable {
+        var loading = false
         var selectedSupportType: SupportType = .yearly
+        var purchaseSuccess = false
     }
 
     enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
+
+        case startPurchase
+        case finishedPurchase
+        case setPurchaseSuccess
+        case resetPurchaseSuccess
+        case openTos
+        case openPrivacy
     }
+
+    @Dependency(\.openURL) var openURL
 
     var body: some ReducerOf<Self> {
         BindingReducer()
 
-        Reduce { _, action in
+        Reduce { state, action in
             switch action {
+            case .startPurchase:
+                state.loading = true
+                return .none
+            case .finishedPurchase:
+                state.loading = false
+                return .none
+            case .setPurchaseSuccess:
+                state.purchaseSuccess = true
+                return .run { send in
+                    try await Task.sleep(for: .seconds(2))
+                    await send(.resetPurchaseSuccess)
+                }
+            case .resetPurchaseSuccess:
+                state.purchaseSuccess = false
+                return .none
+            case .openTos:
+                return .run { _ in
+                    await openURL(URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula")!)
+                }
+            case .openPrivacy:
+                return .run { _ in
+                    await openURL(URL(string: "https://github.com/Doraemoe/LANreader/blob/master/PRIVACY.md")!)
+                }
             case .binding:
                 return .none
             }
@@ -29,40 +63,92 @@ struct SupportView: View {
     @Bindable var store: StoreOf<SupportFeature>
 
     var body: some View {
-        VStack {
-            Text("support.intro")
-                .multilineTextAlignment(.leading)
+        ZStack {
+            VStack {
+                Text("support.intro")
+                    .multilineTextAlignment(.leading)
+                    .padding()
+                Picker("support.type", selection: $store.selectedSupportType) {
+                    Text("support.yearly")
+                        .tag(SupportType.yearly)
+                    Text("support.one-time")
+                        .tag(SupportType.oneTime)
+                }
+                .pickerStyle(.segmented)
                 .padding()
-            Picker("support.type", selection: $store.selectedSupportType) {
-                Text("support.yearly")
-                    .tag(SupportType.yearly)
-                Text("support.one-time")
-                    .tag(SupportType.oneTime)
-            }
-            .pickerStyle(.segmented)
-            .padding()
 
-            if store.selectedSupportType == .yearly {
-                SubscriptionStoreView(
-                    productIDs: [IAP.yearlySnack.rawValue, IAP.yearlyTea.rawValue, IAP.yearlyDinner.rawValue]
-                )
+                if store.selectedSupportType == .yearly {
+                    SubscriptionStoreView(
+                        productIDs: [IAP.yearlySnack.rawValue, IAP.yearlyTea.rawValue, IAP.yearlyDinner.rawValue]
+                    )
                     .storeButton(.visible, for: .restorePurchases)
                     .storeButton(.hidden, for: .cancellation)
                     .subscriptionStoreControlStyle(.prominentPicker)
-            } else {
-                StoreView(
-                    ids: [IAP.oneTimeSnack.rawValue, IAP.oneTimeTea.rawValue, IAP.oneTimeDinner.rawValue]
-                ) { product in
-                    if product.id == IAP.oneTimeSnack.rawValue {
-                        Text("🍬")
-                    } else if product.id == IAP.oneTimeTea.rawValue {
-                        Text("🍵")
-                    } else {
-                        Text("🤯")
+                    .onInAppPurchaseStart { _ in
+                        store.send(.startPurchase)
                     }
-                }
+                    .onInAppPurchaseCompletion { _, result in
+                        store.send(.finishedPurchase)
+                        if case .success(.success(let transaction)) = result {
+                            store.send(.setPurchaseSuccess)
+                        }
+                    }
+                } else {
+                    StoreView(
+                        ids: [IAP.oneTimeSnack.rawValue, IAP.oneTimeTea.rawValue, IAP.oneTimeDinner.rawValue]
+                    ) { product in
+                        if product.id == IAP.oneTimeSnack.rawValue {
+                            Text("🍬")
+                        } else if product.id == IAP.oneTimeTea.rawValue {
+                            Text("🍵")
+                        } else {
+                            Text("🤯")
+                        }
+                    }
                     .storeButton(.hidden, for: .cancellation)
                     .productViewStyle(.compact)
+                    .onInAppPurchaseStart { _ in
+                        store.send(.startPurchase)
+                    }
+                    .onInAppPurchaseCompletion { _, result in
+                        store.send(.finishedPurchase)
+                        if case .success(.success(let transaction)) = result {
+                            store.send(.setPurchaseSuccess)
+                        }
+                    }
+                }
+                HStack {
+                    Button("support.tos") {
+                        store.send(.openTos)
+                    }
+                    .font(.caption)
+                    Text("support.and")
+                        .font(.caption)
+                    Button("support.privacy") {
+                        store.send(.openPrivacy)
+                    }
+                    .font(.caption)
+                }
+            }
+            if store.loading {
+                Color.black.opacity(0.5)
+                    .ignoresSafeArea()
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .tint(.white)
+            }
+            if store.purchaseSuccess {
+                Color.green.opacity(0.9)
+                    .ignoresSafeArea()
+                VStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.largeTitle)
+                        .foregroundStyle(.white)
+                    Text("support.thank")
+                        .font(.title)
+                        .bold()
+                        .foregroundStyle(.white)
+                }
             }
         }
     }
