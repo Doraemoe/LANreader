@@ -5,12 +5,12 @@
     "targetName" : "CasePathsMacros"
   },
   {
-    "fingerprint" : "76c4411e02cc7768a3f27ca058bd2143c342e5b2",
+    "fingerprint" : "fd409c79ea8ba378bd3997e2719dcf74f4ed909b",
     "packageIdentity" : "swift-composable-architecture",
     "targetName" : "ComposableArchitectureMacros"
   },
   {
-    "fingerprint" : "ec2862d1364536fc22ec56a3094e7a034bbc7da8",
+    "fingerprint" : "fee6aa29908a75437506ddcbe7434c460605b7e6",
     "packageIdentity" : "swift-dependencies",
     "targetName" : "DependenciesMacrosPlugin"
   },

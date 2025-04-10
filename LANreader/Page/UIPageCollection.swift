@@ -268,9 +268,9 @@ extension UIPageCollectionController: UIGestureRecognizerDelegate {
             let indexPath = IndexPath(row: row, section: 0)
             collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
         case PageControl.previous.rawValue:
-            let row = store.sliderIndex.int - 1
+            let row = store.doublePageLayout ? store.sliderIndex.int - 2 : store.sliderIndex.int - 1
             guard row >= 0 else { break }
-            let indexPath = IndexPath(row: store.sliderIndex.int - 1, section: 0)
+            let indexPath = IndexPath(row: row, section: 0)
             collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
         case PageControl.navigation.rawValue:
             store.send(.toggleControlUi(nil))
