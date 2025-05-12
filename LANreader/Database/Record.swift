@@ -66,7 +66,7 @@ struct History: Identifiable, Equatable {
 }
 
 extension Archive: Codable, FetchableRecord, MutablePersistableRecord {
-    fileprivate enum Columns {
+    internal enum Columns {
         static let id = Column(CodingKeys.id)
         static let isNew = Column(CodingKeys.isNew)
         static let pageCount = Column(CodingKeys.pageCount)
@@ -94,13 +94,13 @@ extension Archive {
 
 extension TagItem: Codable, FetchableRecord, MutablePersistableRecord {
     static let databaseTableName = "tag"
-    fileprivate enum Columns {
+    internal enum Columns {
         static let tar = Column(CodingKeys.tag)
     }
 }
 
 extension ArchiveThumbnail: Codable, FetchableRecord, MutablePersistableRecord {
-    fileprivate enum Columns {
+    internal enum Columns {
         static let id = Column(CodingKeys.id)
         static let thumbnail = Column(CodingKeys.thumbnail)
         static let lastUpdate = Column(CodingKeys.lastUpdate)
@@ -108,7 +108,7 @@ extension ArchiveThumbnail: Codable, FetchableRecord, MutablePersistableRecord {
 }
 
 extension ArchiveCache: Codable, FetchableRecord, MutablePersistableRecord {
-    fileprivate enum Columns {
+    internal enum Columns {
         static let id = Column(CodingKeys.id)
         static let title = Column(CodingKeys.title)
         static let tags = Column(CodingKeys.tags)
@@ -120,7 +120,7 @@ extension ArchiveCache: Codable, FetchableRecord, MutablePersistableRecord {
 }
 
 extension ArchiveImage: Codable, FetchableRecord, MutablePersistableRecord {
-    fileprivate enum Columns {
+    internal enum Columns {
         static let id = Column(CodingKeys.id)
         static let image = Column(CodingKeys.image)
         static let lastUpdate = Column(CodingKeys.lastUpdate)
@@ -128,7 +128,7 @@ extension ArchiveImage: Codable, FetchableRecord, MutablePersistableRecord {
 }
 
 extension Category: Codable, FetchableRecord, MutablePersistableRecord {
-    fileprivate enum Columns {
+    internal enum Columns {
         static let id = Column(CodingKeys.id)
         static let name = Column(CodingKeys.name)
         static let archives = Column(CodingKeys.archives)
@@ -145,7 +145,7 @@ extension Category {
 }
 
 extension DownloadJob: Codable, FetchableRecord, MutablePersistableRecord {
-    fileprivate enum Columns {
+    public enum Columns {
         static let id = Column(CodingKeys.id)
         static let url = Column(CodingKeys.url)
         static let title = Column(CodingKeys.title)
@@ -158,7 +158,7 @@ extension DownloadJob: Codable, FetchableRecord, MutablePersistableRecord {
 }
 
 extension History: Codable, FetchableRecord, MutablePersistableRecord {
-    fileprivate enum Columns {
+    internal enum Columns {
         static let id = Column(CodingKeys.id)
         static let lastUpdate = Column(CodingKeys.lastUpdate)
     }
