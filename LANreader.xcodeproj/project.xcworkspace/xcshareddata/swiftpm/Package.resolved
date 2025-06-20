@@ -69,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sushichop/Puppy",
       "state" : {
-        "revision" : "b5af02a72a5a1f92a68e6eceee19cac804067ad9",
-        "version" : "0.7.0"
+        "revision" : "684d2dd2c9abe083b704fe5d109ea2fbc921ae43",
+        "version" : "0.8.0"
       }
     },
     {
@@ -105,8 +105,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-collections",
       "state" : {
-        "revision" : "671108c96644956dddcd89dd59c203dcdb36cec7",
-        "version" : "1.1.4"
+        "revision" : "c1805596154bb3a265fd91b8ac0c4433b4348fb0",
+        "version" : "1.2.0"
       }
     },
     {
@@ -114,8 +114,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-composable-architecture",
       "state" : {
-        "revision" : "b1d27a82b498b8e697acabd8cc01b585d26aab19",
-        "version" : "1.19.1"
+        "revision" : "6574de2396319a58e86e2178577268cb4aeccc30",
+        "version" : "1.20.2"
       }
     },
     {
@@ -159,8 +159,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-log.git",
       "state" : {
-        "revision" : "e97a6fcb1ab07462881ac165fdbb37f067e205d5",
-        "version" : "1.5.4"
+        "revision" : "3d8596ed08bd13520157f0355e35caed215ffbfa",
+        "version" : "1.6.3"
       }
     },
     {
@@ -168,8 +168,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-navigation",
       "state" : {
-        "revision" : "db6bc9dbfed001f21e6728fd36413d9342c235b4",
-        "version" : "2.3.0"
+        "revision" : "ae208d1a5cf33aee1d43734ea780a09ada6e2a21",
+        "version" : "2.3.1"
       }
     },
     {

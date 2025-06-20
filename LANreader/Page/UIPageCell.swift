@@ -116,7 +116,7 @@ class UIPageCell: UICollectionViewCell {
                 progressView.isHidden = false
                 progressViewLabel.isHidden = false
                 progressView.progress = Float(store.progress)
-                progressViewLabel.text = String(
+                progressViewLabel.text = store.progress > 1 ? String(localized: "translating") : String(
                     format: "%.2f%%", store.progress * 100)
             }
             .store(in: &cancellables)
@@ -126,25 +126,30 @@ class UIPageCell: UICollectionViewCell {
                 guard let self else { return }
                 guard loaded else { return }
 
-                imageView.isHidden = false
-                progressView.isHidden = true
-                progressViewLabel.isHidden = true
-                let contentPath = {
-                    switch store.pageMode {
-                    case .left:
-                        return store.pathLeft
-                    case .right:
-                        return store.pathRight
-                    default:
-                        return store.path
+                if store.errorMessage.isEmpty {
+                    imageView.isHidden = false
+                    progressView.isHidden = true
+                    progressViewLabel.isHidden = true
+                    let contentPath = {
+                        switch store.pageMode {
+                        case .left:
+                            return store.pathLeft
+                        case .right:
+                            return store.pathRight
+                        default:
+                            return store.path
+                        }
+                    }()
+                    if let uiImage = UIImage(
+                        contentsOfFile: contentPath?.path(percentEncoded: false)
+                        ?? "") {
+                        imageView.image = uiImage
+                    } else {
+                        imageView.image = UIImage(systemName: "rectangle.slash")
                     }
-                }()
-                if let uiImage = UIImage(
-                    contentsOfFile: contentPath?.path(percentEncoded: false)
-                    ?? "") {
-                    imageView.image = uiImage
                 } else {
-                    imageView.image = UIImage(systemName: "rectangle.slash")
+                    progressView.isHidden = true
+                    progressViewLabel.text = store.errorMessage
                 }
             }
             .store(in: &cancellables)

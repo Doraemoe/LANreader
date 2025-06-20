@@ -178,7 +178,11 @@ class LANraragiService: NSObject {
     }
 
     func fetchArchivePage(page: String, pageNumber: Int) -> DownloadRequest {
-        let request = URLRequest(url: URL(string: "\(url)/\(page)")!)
+        let baseURL = getDomainURL(from: self.url)
+            // Combine with the page path parameter
+        let fullURL = URL(string: page, relativeTo: baseURL)!
+
+        let request = URLRequest(url: fullURL)
         return session.download(request, to: { tempUrl, rsp in
             let destName: String
             if let filename = rsp.suggestedFilename {
@@ -257,6 +261,19 @@ class LANraragiService: NSObject {
         session.request("\(url)/api/database/stats", method: .get)
             .validate(statusCode: 200...200)
             .serializingDecodable([StatsResponse].self)
+    }
+
+    private func getDomainURL(from urlString: String) -> URL? {
+        guard let url = URL(string: urlString) else { return nil }
+
+        // Get components: scheme, host, port
+        guard let scheme = url.scheme, let host = url.host else { return nil }
+
+        // Reconstruct just domain part with optional port
+        let portPart = url.port != nil ? ":\(url.port!)" : ""
+        let domainString = "\(scheme)://\(host)\(portPart)"
+
+        return URL(string: domainString)
     }
 
     public static var shared: LANraragiService {

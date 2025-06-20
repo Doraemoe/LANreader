@@ -70,6 +70,11 @@ struct SettingsView: View {
             ) {
                 ViewSettings(store: self.store.scope(state: \.view, action: \.view))
             }
+            Section(
+                header: Text("settings.advanced"),
+            ) {
+                AdvancedSettings()
+            }
             Section(header: Text("settings.database")) {
                 DatabaseSettings(store: self.store.scope(state: \.database, action: \.database))
             }
