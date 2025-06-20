@@ -103,6 +103,11 @@ struct SettingsKey {
 
     static let lastTagRefresh = "lastTagRefresh"
     static let tabBarHidden = "tab:bar:hidden"
+
+    static let translationUrl = "settings:advanced:translation:url"
+    static let translationEnabled = "settings:advanced:translation:enabled"
+    static let translationService = "settings:advanced:translation:service"
+    static let translationTarget = "settings:advanced:translation:target"
 }
 
 extension Double {

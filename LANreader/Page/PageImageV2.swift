@@ -11,6 +11,9 @@ import Logging
         @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
         @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
         @SharedReader(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
+        @SharedReader(.appStorage(SettingsKey.translationEnabled)) var translationEnabled = false
+        @SharedReader(.appStorage(SettingsKey.translationService)) var translationService: TranslatorModel = .none
+        @SharedReader(.appStorage(SettingsKey.translationTarget)) var translationTarget: TargetLang = .CHS
 
         let pageId: String
         let suffix: String
@@ -65,6 +68,7 @@ import Logging
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.imageService) var imageService
+    @Dependency(\.translatorService) var translatorService
 
     public enum CancelId { case imageProgress }
 
@@ -90,6 +94,7 @@ import Logging
                     return .none
                 }
                 state.loading = true
+                state.errorMessage = ""
                 state.imageLoaded = false
 
                 let previousPageMode = state.pageMode
@@ -126,7 +131,6 @@ import Logging
 
                 if state.pageMode == .loading {
                     if state.cached {
-                        state.loading = false
                         return .send(.setError(String(localized: "archive.cache.page.load.failed")))
                     } else {
                         return .run { [state] send in
@@ -138,8 +142,18 @@ import Logging
                                     .value
                                 await send(.cancelSubscribeImageProgress)
 
+                                let translated: Data?
+                                if state.translationEnabled {
+                                    await send(.setProgress(2.0))
+                                    translated = try await translatorService.translatePage(original: imageUrl)
+                                        .serializingData().value
+                                } else {
+                                    translated = nil
+                                }
+
                                 let splitted = imageService.resizeImage(
                                     imageUrl: imageUrl,
+                                    imageData: translated,
                                     destinationUrl: state.folder!,
                                     pageNumber: String(state.pageNumber),
                                     split: state.splitImage
@@ -147,8 +161,8 @@ import Logging
                                 await send(.setImage(previousPageMode, splitted))
                             } catch {
                                 logger.error("failed to load image. \(error)")
+                                await send(.setError(error.localizedDescription))
                             }
-                            await send(.setIsLoading(false))
                         }
                     }
                 }
@@ -183,6 +197,7 @@ import Logging
                 return .none
             case let .setError(message):
                 state.loading = false
+                state.imageLoaded = true
                 state.errorMessage = message
                 return .none
             case .insertPage:
@@ -233,7 +248,7 @@ struct PageImageV2: View {
                             .draggableAndZoomable(contentSize: geometrySize)
                     } else {
                         Image(systemName: "rectangle.slash")
-                            .frame(height: geometrySize.height)
+                            .frame(height: geometrySize.height / 4)
                     }
                 }
         }
@@ -245,4 +260,5 @@ public enum PageMode: String {
     case left
     case right
     case normal
+    case error
 }
