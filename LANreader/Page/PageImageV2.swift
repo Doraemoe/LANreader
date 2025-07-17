@@ -24,6 +24,7 @@ import Logging
         var pageMode: PageMode
         let cached: Bool
         var imageLoaded = false
+        var translationStatus = ""
 
         public var id: String {
             "\(pageId)-\(suffix)"
@@ -64,6 +65,7 @@ import Logging
         case setImage(PageMode, Bool)
         case setError(String)
         case insertPage(PageMode)
+        case setTranslationStatus(String)
     }
 
     @Dependency(\.lanraragiService) var service
@@ -142,13 +144,49 @@ import Logging
                                     .value
                                 await send(.cancelSubscribeImageProgress)
 
-                                let translated: Data?
+                                var translated: Data?
                                 if state.translationEnabled {
                                     await send(.setProgress(2.0))
-                                    translated = try await translatorService.translatePage(original: imageUrl)
-                                        .serializingData().value
-                                } else {
-                                    translated = nil
+
+                                    guard let request = translatorService.translatePage(original: imageUrl) else {
+                                        await send(
+                                            .setError(
+                                                String(localized: "archive.page.translate.request.failed")
+                                            )
+                                        )
+                                        return
+                                    }
+
+                                    let handler = TranslationStreamHandler()
+                                    let statusStream = handler.processStreamResponse(request)
+                                    var lastCode = ""
+                                    for try await status in statusStream {
+                                        switch status {
+                                        case .progress(let code):
+                                            if code != lastCode {
+                                                let translationString = String(
+                                                    localized: "archive.page.translate.progress"
+                                                )
+                                                let progressString = handler.handleProgressCode(code: code)
+                                                lastCode = code
+                                                await send(
+                                                    .setTranslationStatus("\(translationString) \(progressString)")
+                                                )
+                                            }
+                                        case .pending(let queuePosition):
+                                            if let position = queuePosition {
+                                                let queueString = String(localized: "archive.page.translate.queue")
+                                                await send(.setTranslationStatus("\(queueString) \(position)"))
+                                            } else {
+                                                let pendingString = String(localized: "archive.page.translate.pending")
+                                                await send(.setTranslationStatus(pendingString))
+                                            }
+                                        case .error(let message):
+                                            await send(.setError(message))
+                                        case .completed(let data):
+                                            translated = data
+                                        }
+                                    }
                                 }
 
                                 let splitted = imageService.resizeImage(
@@ -201,6 +239,9 @@ import Logging
                 state.errorMessage = message
                 return .none
             case .insertPage:
+                return .none
+            case let .setTranslationStatus(status):
+                state.translationStatus = status
                 return .none
             }
         }
