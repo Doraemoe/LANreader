@@ -8,6 +8,15 @@ import SwiftUI
         @Shared(.appStorage(SettingsKey.translationUrl)) var translationUrl = ""
         @Shared(.appStorage(SettingsKey.translationService)) var translationService: TranslatorModel = .none
         @Shared(.appStorage(SettingsKey.translationTarget)) var translationLanguage: TargetLang = .CHS
+        @Shared(.appStorage(SettingsKey.translationUnclipRatio)) var unclipRatio = 2.3
+        @Shared(.appStorage(SettingsKey.translationBoxThreshold)) var boxThreshold = 0.7
+        @Shared(.appStorage(SettingsKey.translationMaskDilationOffset)) var maskDilationOffset = 30
+        @Shared(.appStorage(SettingsKey.translationDetectionResolution))
+        var detectionResolution: DetectionResolution = .res1536
+        @Shared(.appStorage(SettingsKey.translationTextDetector)) var textDetector: TextDetector = .default
+        @Shared(.appStorage(SettingsKey.translationRenderTextDirection)) var renderTextDirection: TextDirection = .auto
+        @Shared(.appStorage(SettingsKey.translationInpaintingSize)) var inpaintingSize: InpainterSize = .size2048
+        @Shared(.appStorage(SettingsKey.translationInpainter)) var inpainter: Inpainter = .lama_large
     }
     public enum Action: BindableAction {
         case binding(BindingAction<State>)
@@ -60,6 +69,80 @@ struct TranslationConfigView: View {
                         ForEach(TargetLang.allCases, id: \.self) { language in
                             Text(language.rawValue).tag(language)
                         }
+                    }
+                    .padding()
+
+                    Picker(
+                        "settings.advantaged.translation.detectionResolution", selection: $store.detectionResolution
+                    ) {
+                        ForEach(DetectionResolution.allCases, id: \.self) { resolution in
+                            Text("\(resolution.rawValue)").tag(resolution)
+                        }
+                    }
+                    .padding()
+
+                    Picker("settings.advantaged.translation.textDetector", selection: $store.textDetector) {
+                        ForEach(TextDetector.allCases, id: \.self) { detector in
+                            Text(detector.rawValue).tag(detector)
+                        }
+                    }
+                    .padding()
+
+                    Picker(
+                        "settings.advantaged.translation.renderTextDirection", selection: $store.renderTextDirection
+                    ) {
+                        ForEach(TextDirection.allCases, id: \.self) { direction in
+                            Text(direction.rawValue).tag(direction)
+                        }
+                    }
+                    .padding()
+
+                    Picker("settings.advantaged.translation.inpaintingSize", selection: $store.inpaintingSize) {
+                        ForEach(InpainterSize.allCases, id: \.self) { size in
+                            Text("\(size.rawValue)").tag(size)
+                        }
+                    }
+                    .padding()
+
+                    Picker("settings.advantaged.translation.inpainter", selection: $store.inpainter) {
+                        ForEach(Inpainter.allCases, id: \.self) { inpainter in
+                            Text(inpainter.rawValue).tag(inpainter)
+                        }
+                    }
+                    .padding()
+
+                    LabeledContent {
+                        TextField(
+                            "settings.advantaged.translation.unclipRatio", value: $store.unclipRatio, format: .number
+                        )
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    } label: {
+                        Text("settings.advantaged.translation.unclipRatio")
+                    }
+                    .padding()
+
+                    LabeledContent {
+                        TextField(
+                            "settings.advantaged.translation.boxThreshold", value: $store.boxThreshold, format: .number
+                        )
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                    } label: {
+                        Text("settings.advantaged.translation.boxThreshold")
+                    }
+                    .padding()
+
+                    LabeledContent {
+                        TextField(
+                            "settings.advantaged.translation.maskDilationOffset",
+                            value: $store.maskDilationOffset,
+                            format: .number
+                        )
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                    } label: {
+                        Text("settings.advantaged.translation.maskDilationOffset")
                     }
                     .padding()
                 }

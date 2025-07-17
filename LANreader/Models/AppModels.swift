@@ -108,6 +108,14 @@ struct SettingsKey {
     static let translationEnabled = "settings:advanced:translation:enabled"
     static let translationService = "settings:advanced:translation:service"
     static let translationTarget = "settings:advanced:translation:target"
+    static let translationUnclipRatio = "settings:advanced:translation:unclipRatio"
+    static let translationBoxThreshold = "settings:advanced:translation:boxThreshold"
+    static let translationMaskDilationOffset = "settings:advanced:translation:maskDilationOffset"
+    static let translationDetectionResolution = "settings:advanced:translation:detectionResolution"
+    static let translationTextDetector = "settings:advanced:translation:textDetector"
+    static let translationRenderTextDirection = "settings:advanced:translation:renderTextDirection"
+    static let translationInpaintingSize = "settings:advanced:translation:inpaintingSize"
+    static let translationInpainter = "settings:advanced:translation:inpainter"
 }
 
 extension Double {

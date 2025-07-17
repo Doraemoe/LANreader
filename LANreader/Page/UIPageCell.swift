@@ -121,6 +121,15 @@ class UIPageCell: UICollectionViewCell {
             }
             .store(in: &cancellables)
 
+        store.publisher.translationStatus
+            .sink { [weak self] status in
+                guard let self else { return }
+                guard !status.isEmpty else { return }
+
+                progressViewLabel.text = status
+            }
+            .store(in: &cancellables)
+
         store.publisher.imageLoaded
             .sink { [weak self] loaded in
                 guard let self else { return }

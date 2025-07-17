@@ -1,7 +1,11 @@
 import Foundation
 
 struct TranslatorConfig: Encodable, Equatable {
+    let detector: Detector
+    let render: Render
     let translator: Translator
+    let inpainter: InpainterConfig
+    let maskDilationOffset: Int
 }
 
 struct Translator: Encodable, Equatable {
@@ -9,7 +13,58 @@ struct Translator: Encodable, Equatable {
     let targetLang: TargetLang
 }
 
+struct Detector: Encodable, Equatable {
+    let detector: TextDetector
+    let detectionSize: DetectionResolution
+    let boxThreshold: Double
+    let unclipRatio: Double
+}
+
+struct InpainterConfig: Encodable, Equatable {
+    let inpainter: Inpainter
+    let inpaintingSize: InpainterSize
+}
+
+struct Render: Encodable, Equatable {
+    let direction: TextDirection
+}
+
+enum TextDetector: String, CaseIterable, Encodable {
+    case `default`
+    case ctd
+    case paddle
+}
+
+enum DetectionResolution: Int, CaseIterable, Encodable {
+    case res1024 = 1024
+    case res1536 = 1536
+    case res2048 = 2048
+    case res2560 = 2560
+}
+
+enum TextDirection: String, CaseIterable, Encodable {
+    case auto
+    case horizontal
+    case vertical
+}
+
 // swiftlint:disable identifier_name
+enum Inpainter: String, CaseIterable, Encodable {
+    case `default`
+    case lama_large
+    case lama_mpe
+    case sd
+    case none
+    case original
+}
+
+enum InpainterSize: Int, CaseIterable, Encodable {
+    case size516 = 516
+    case size1024 = 1024
+    case size2048 = 2048
+    case size2560 = 2560
+}
+
 enum TranslatorModel: String, CaseIterable, Encodable {
     case none
     case sakura
