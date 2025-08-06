@@ -18,7 +18,6 @@ import OrderedCollections
         @SharedReader(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
         @SharedReader(.appStorage(SettingsKey.serverProgress)) var serverProgress = false
         @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
-        @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
         @SharedReader(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
         @SharedReader(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
         @Shared var archive: ArchiveItem
@@ -365,9 +364,9 @@ struct ArchiveReader: View {
         GeometryReader { geometry in
             ZStack {
                 if store.readDirection == ReadDirection.upDown.rawValue {
-                    vReader(store: store, geometry: geometry)
+                    UIPageCollection(store: store)
                 } else {
-                    hReader(store: store, geometry: geometry)
+                    UIPageCollection(store: store)
                         .environment(\.layoutDirection, flip ? .rightToLeft : .leftToRight)
                 }
                 if !store.controlUiHidden {
@@ -432,22 +431,6 @@ struct ArchiveReader: View {
                 navigationHelper?.pop()
             }
         }
-    }
-
-    @MainActor
-    private func vReader(
-        store: StoreOf<ArchiveReaderFeature>,
-        geometry: GeometryProxy
-    ) -> some View {
-        UIPageCollection(store: store)
-    }
-
-    @MainActor
-    private func hReader(
-        store: StoreOf<ArchiveReaderFeature>,
-        geometry: GeometryProxy
-    ) -> some View {
-        UIPageCollection(store: store)
     }
 
     // swiftlint:disable function_body_length

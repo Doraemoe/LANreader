@@ -68,6 +68,7 @@ enum InpainterSize: Int, CaseIterable, Encodable {
 enum TranslatorModel: String, CaseIterable, Encodable {
     case none
     case sakura
+    case sugoi
     case chatgpt
     case deepseek
     case deepl
@@ -81,7 +82,6 @@ enum TranslatorModel: String, CaseIterable, Encodable {
     case offline
     case nllb
     case nllb_big
-    case sugoi
     case jparacrawl
     case jparacrawl_big
     case m2m100

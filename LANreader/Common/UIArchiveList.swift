@@ -98,7 +98,7 @@ import Logging
                 let order = state.searchSortOrder
                 self.populateTags(state: &state)
                 return self.search(
-                    state: &state, searchFilter: state.filter, sortby: sortby, start: "0", order: order, append: false
+                    searchFilter: state.filter, sortby: sortby, start: "0", order: order, append: false
                 )
             case let .appendArchives(start):
                 guard state.loading == false else {
@@ -109,7 +109,7 @@ import Logging
                 let sortby = state.searchSort
                 let order = state.searchSortOrder
                 return self.search(
-                    state: &state, searchFilter: state.filter, sortby: sortby, start: start, order: order, append: true
+                    searchFilter: state.filter, sortby: sortby, start: start, order: order, append: true
                 )
             case let .removeArchive(id):
                 state.archivesToDisplay.remove(id: id)
@@ -283,7 +283,6 @@ import Logging
                 state.$searchSortOrder.withLock {
                     $0 = order
                 }
-//                state.searchSortOrder = order
                 return .none
             case let .setSearchSort(sort):
                 state.$searchSort.withLock {
@@ -450,9 +449,8 @@ import Logging
         }
     }
 
-    // swiftlint:disable function_parameter_count
     func search(
-        state: inout State, searchFilter: SearchFilter, sortby: String, start: String, order: String, append: Bool
+        searchFilter: SearchFilter, sortby: String, start: String, order: String, append: Bool
     ) -> Effect<Action> {
         return .run { send in
             do {
@@ -474,8 +472,6 @@ import Logging
         }
         .cancellable(id: CancelId.search)
     }
-    // swiftlint:enable function_parameter_count
-
 }
 
 class UIArchiveListViewController: UIViewController {

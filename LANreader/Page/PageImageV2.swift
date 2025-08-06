@@ -10,10 +10,7 @@ import Logging
     public struct State: Equatable, Identifiable {
         @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
         @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
-        @SharedReader(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
         @SharedReader(.appStorage(SettingsKey.translationEnabled)) var translationEnabled = false
-        @SharedReader(.appStorage(SettingsKey.translationService)) var translationService: TranslatorModel = .none
-        @SharedReader(.appStorage(SettingsKey.translationTarget)) var translationTarget: TargetLang = .CHS
 
         let pageId: String
         let suffix: String
@@ -244,54 +241,6 @@ import Logging
                 state.translationStatus = status
                 return .none
             }
-        }
-    }
-}
-
-struct PageImageV2: View {
-    let store: StoreOf<PageFeature>
-    let geometrySize: CGSize
-
-    var body: some View {
-        // If not wrapped in ZStack, TabView will render ALL pages when initial load
-        ZStack {
-                if store.pageMode == .loading {
-                    ProgressView(
-                        value: store.progress > 1 ? 1 : store.progress,
-                        total: 1
-                    ) {
-                        Text("loading")
-                    } currentValueLabel: {
-                        store.progress > 1 ?
-                        Text("downsampling") :
-                        Text(String(format: "%.2f%%", store.progress * 100))
-                    }
-                    .progressViewStyle(.linear)
-                    .frame(height: geometrySize.height)
-                    .padding(.horizontal, 20)
-                    .tint(.primary)
-                } else {
-                    let contentPath = {
-                        switch store.pageMode {
-                        case .left:
-                            return store.pathLeft
-                        case .right:
-                            return store.pathRight
-                        default:
-                            return store.path
-                        }
-                    }()
-
-                    if let uiImage = UIImage(contentsOfFile: contentPath?.path(percentEncoded: false) ?? "") {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .draggableAndZoomable(contentSize: geometrySize)
-                    } else {
-                        Image(systemName: "rectangle.slash")
-                            .frame(height: geometrySize.height / 4)
-                    }
-                }
         }
     }
 }

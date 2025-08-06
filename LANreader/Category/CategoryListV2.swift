@@ -8,26 +8,19 @@ import NotificationBannerSwift
 
     @ObservableState
     public struct State: Equatable {
-        @Presents var destination: Destination.State?
-
         @SharedReader(.appStorage(SettingsKey.lanraragiUrl)) var lanraragiUrl = ""
         @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
 
-        var editMode: EditMode = .inactive
         var showLoading = false
         var errorMessage = ""
     }
 
     public enum Action: BindableAction {
-        case destination(PresentationAction<Destination.Action>)
-
         case binding(BindingAction<State>)
 
         case loadCategory(Bool)
         case populateCategory([CategoryItem])
         case setErrorMessage(String)
-        case showAddCategory
-        case showEditCategory(CategoryItem)
     }
 
     @Dependency(\.lanraragiService) var service
@@ -64,48 +57,10 @@ import NotificationBannerSwift
             case let .setErrorMessage(message):
                 state.errorMessage = message
                 return .none
-            case .showAddCategory:
-                state.destination = .add(NewCategoryFeature.State())
-                return .none
-            case let .showEditCategory(item):
-                state.destination = .edit(
-                    EditCategoryFeature.State(
-                        id: item.id,
-                        name: item.name,
-                        filter: item.search,
-                        dynamic: !item.search.isEmpty,
-                        pinned: item.pinned
-                    )
-                )
-                return .none
             case .binding:
-                return .none
-            case .destination(.presented(.add(.addCategorySuccess))):
-                state.destination = nil
-                return .run { send in
-                    await send(.loadCategory(true))
-                }
-            case .destination(.presented(.edit(.editCategorySuccess))):
-                state.destination = nil
-                return .run { send in
-                    await send(.loadCategory(true))
-                }
-            case .destination(.presented(.edit(.deleteCategorySuccess))):
-                state.destination = nil
-                return .run { send in
-                    await send(.loadCategory(true))
-                }
-            default:
                 return .none
             }
         }
-        .ifLet(\.$destination, action: \.destination)
-    }
-
-    @Reducer(state: .equatable)
-    public enum Destination {
-        case add(NewCategoryFeature)
-        case edit(EditCategoryFeature)
     }
 }
 
@@ -123,7 +78,7 @@ struct CategoryListV2: View {
         }
         List {
             ForEach(store.categoryItems) { item in
-                categoryItem(store: store, item: item)
+                categoryItem(item: item)
             }
         }
         .task {
@@ -155,18 +110,15 @@ struct CategoryListV2: View {
         }
     }
 
-    private func categoryItem(store: StoreOf<CategoryFeature>, item: CategoryItem) -> some View {
+    private func categoryItem(item: CategoryItem) -> some View {
         HStack {
             Text(item.name)
                 .font(.title)
             Spacer()
-            Image(systemName: store.editMode == .active ? "square.and.pencil" : "chevron.right")
+            Image(systemName: "chevron.right")
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            if store.editMode == .active {
-                store.send(.showEditCategory(item))
-            } else {
                 let categoryArchiveListStore = Store(
                     initialState: CategoryArchiveListFeature.State.init(
                         id: item.id,
@@ -180,7 +132,7 @@ struct CategoryListV2: View {
                     CategoryArchiveListFeature()
                 }
                 onTapCategory(categoryArchiveListStore)
-            }
+
         }
     }
 }

@@ -9,7 +9,6 @@ final class ActionRequestHandler: NSObject, NSExtensionRequestHandling, Sendable
     case inputProviderNotFound
     case loadedItemHasWrongType
     case urlNotFound
-    case noHost
   }
 
   func beginRequest(with context: NSExtensionContext) {

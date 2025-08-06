@@ -208,10 +208,4 @@ struct Covers: ViewModifier {
         view.addSubview(child.view)
         child.didMove(toParent: self)
     }
-
-    func remove() {
-        willMove(toParent: nil)
-        view.removeFromSuperview()
-        removeFromParent()
-    }
 }
