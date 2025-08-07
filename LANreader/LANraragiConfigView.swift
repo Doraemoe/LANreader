@@ -164,7 +164,6 @@ struct LANraragiConfigView: View {
 class UILANraragiConfigViewController: UIViewController {
     private let store: StoreOf<LANraragiConfigFeature>
     private let navigation: NavigationHelper
-    private var hostingController: UIHostingController<LANraragiConfigView>!
 
     init(store: StoreOf<LANraragiConfigFeature>, navigation: NavigationHelper) {
         self.store = store

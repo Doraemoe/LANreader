@@ -45,25 +45,6 @@ import UIKit
     }
 }
 
-public struct UICategoryArchiveGrid: UIViewControllerRepresentable {
-    let store: StoreOf<CategoryArchiveListFeature>
-
-    public init(store: StoreOf<CategoryArchiveListFeature>) {
-        self.store = store
-    }
-
-    public func makeUIViewController(context: Context) -> UIViewController {
-        UICategoryArchiveGridController(store: store)
-    }
-
-    public func updateUIViewController(
-        _ uiViewController: UIViewController,
-        context: Context
-    ) {
-        // Nothing to do
-    }
-}
-
 class UICategoryArchiveGridController: UIViewController {
     let store: StoreOf<CategoryArchiveListFeature>
 

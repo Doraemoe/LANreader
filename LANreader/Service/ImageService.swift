@@ -4,11 +4,6 @@ import Dependencies
 class ImageService {
     private static var _shared: ImageService?
 
-    func processThumbnail(thumbnailUrl: URL, destinationUrl: URL) {
-        guard let image = UIImage(contentsOfFile: thumbnailUrl.path(percentEncoded: false)) else { return }
-        try? image.heicData()?.write(to: destinationUrl)
-    }
-
     func heicDataOfImage(url: URL) -> Data? {
         guard let image = UIImage(contentsOfFile: url.path(percentEncoded: false)) else { return nil }
         return image.heicData()

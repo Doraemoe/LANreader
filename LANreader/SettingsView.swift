@@ -5,15 +5,11 @@ import SwiftUI
 @Reducer public struct SettingsFeature {
     @ObservableState
     public struct State: Equatable {
-        var path = StackState<Path.State>()
-
         var read = ReadSettingsFeature.State()
         var view = ViewSettingsFeature.State()
         var database = DatabaseSettingsFeature.State()
     }
     public enum Action {
-        case path(StackAction<Path.State, Path.Action>)
-
         case read(ReadSettingsFeature.Action)
         case view(ViewSettingsFeature.Action)
         case database(DatabaseSettingsFeature.Action)
@@ -38,14 +34,6 @@ import SwiftUI
                 return .none
             }
         }
-        .forEach(\.path, action: \.path)
-    }
-
-    @Reducer(state: .equatable)
-    public enum Path {
-        case lanraragiSettings(LANraragiConfigFeature)
-        case upload(UploadFeature)
-        case log(LogFeature)
     }
 }
 

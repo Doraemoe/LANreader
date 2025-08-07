@@ -170,7 +170,6 @@ struct UploadView: View {
 
 class UIUploadViewController: UIViewController {
     private let store: StoreOf<UploadFeature>
-    private var hostingController: UIHostingController<UploadView>!
 
     init(store: StoreOf<UploadFeature>) {
         self.store = store

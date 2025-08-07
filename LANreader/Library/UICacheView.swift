@@ -5,7 +5,6 @@ import UIKit
 class UICacheViewController: UIViewController, UICollectionViewDelegate {
     private let store: StoreOf<CacheFeature>
     private let navigationHelper: NavigationHelper
-    private var hostingController: UIHostingController<CacheView>!
 
     init(store: StoreOf<CacheFeature>, navigationHelper: NavigationHelper) {
         self.store = store
