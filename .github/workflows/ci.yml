@@ -6,11 +6,11 @@ on:
 
 jobs:
   verify:
-    runs-on: macOS-15
+    runs-on: macOS-26
     
     strategy:
         matrix:
-          destination: ['platform=iOS Simulator,OS=18.5,name=iPad Pro 11-inch (M4)']
+          destination: ['platform=iOS Simulator,OS=26.0,name=iPad Pro 11-inch (M4)']
     steps:
       - uses: actions/checkout@v4
 
@@ -21,7 +21,7 @@ jobs:
         run: swiftlint --strict
 
       - name: Select Xcode version
-        run: sudo xcode-select -switch /Applications/Xcode_16.4.0.app
+        run: sudo xcode-select -switch /Applications/Xcode_26.0.app
       
       - name: Build and test
         run: xcodebuild clean test -project LANreader.xcodeproj -scheme LANreader -destination "${destination}" -skipMacroValidation
