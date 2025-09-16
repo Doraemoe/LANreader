@@ -65,7 +65,7 @@ class LANraragiService: NSObject {
             .serializingDecodable([ArchiveIndexResponse].self)
     }
 
-    func retrieveArchiveThumbnail(id: String, page: Int = 1) -> DownloadRequest {
+    func retrieveArchiveThumbnail(id: String, page: Int = 0) -> DownloadRequest {
         let query = ["page": page]
 
         // Create URL with query parameters

@@ -316,6 +316,7 @@ extension AppDatabase {
             _ = try ArchiveThumbnail.deleteAll(database)
             _ = try ArchiveImage.deleteAll(database)
             _ = try Category.deleteAll(database)
+            _ = try TagItem.deleteAll(database)
         }
         try dbWriter.vacuum()
     }
