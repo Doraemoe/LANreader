@@ -65,13 +65,12 @@ class LANraragiService: NSObject {
             .serializingDecodable([ArchiveIndexResponse].self)
     }
 
-    func retrieveArchiveThumbnail(id: String, page: Int = 1) -> DownloadRequest {
+    func retrieveArchiveThumbnail(id: String, page: Int = 0) -> DownloadRequest {
         let query = ["page": page]
 
         // Create URL with query parameters
         var components = URLComponents(string: "\(url)/api/archives/\(id)/thumbnail")!
         components.queryItems = query.map { URLQueryItem(name: $0.key, value: String($0.value)) }
-
         let request = URLRequest(url: components.url!)
         return session.download(request, to: { tempUrl, rsp in
             let destName: String
@@ -88,6 +87,13 @@ class LANraragiService: NSObject {
             return (destinationUrl, [.createIntermediateDirectories, .removePreviousFile])
         }).validate()
     }
+    
+    func queuePageThumbnails(id: String) async -> DataTask<String> {
+        return session.request("\(url)/api/archives/\(id)/files/thumbnails", method: .post)
+            .validate(statusCode: [200, 202])
+            .serializingString()
+    }
+            
 
     func queuePageThumbnails(id: String) async -> DataTask<String> {
         return session.request("\(url)/api/archives/\(id)/files/thumbnails", method: .post)
