@@ -1373,6 +1373,12 @@
     },
     "settings.advanced" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
