@@ -132,6 +132,8 @@ class UISettingsViewController: UIViewController {
         super.viewWillAppear(animated)
         if #available(iOS 18.0, *) {
             tabBarController?.setTabBarHidden(false, animated: false)
+        } else {
+            tabBarController?.tabBar.isHidden = false
         }
     }
 }

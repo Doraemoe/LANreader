@@ -98,6 +98,8 @@ class UILibraryListViewController: UIViewController {
         super.viewWillAppear(animated)
         if #available(iOS 18.0, *) {
             tabBarController?.setTabBarHidden(false, animated: false)
+        } else {
+            tabBarController?.tabBar.isHidden = false
         }
     }
 
@@ -106,7 +108,6 @@ class UILibraryListViewController: UIViewController {
             RandomFeature()
         }
         let randomController = UIRandomViewController(store: randomStore)
-        randomController.hidesBottomBarWhenPushed = true
         navigationController?.pushViewController(
             randomController,
             animated: true
@@ -118,7 +119,6 @@ class UILibraryListViewController: UIViewController {
             CacheFeature()
         }
         let cacheController = UICacheViewController(store: cacheStore, navigationHelper: navigationHelper)
-        cacheController.hidesBottomBarWhenPushed = true
         navigationController?.pushViewController(cacheController, animated: true)
 
     }

@@ -160,12 +160,10 @@ struct CacheView: View {
     }
 
     private func contextMenu(gridStore: StoreOf<GridFeature>) -> some View {
-        Group {
-            Button {
-                store.send(.removeCache(gridStore.state.id))
-            } label: {
-                Label("archive.cache.remove", systemImage: "trash")
-            }
+        Button {
+            store.send(.removeCache(gridStore.state.id))
+        } label: {
+            Label("archive.cache.remove", systemImage: "trash")
         }
     }
 
@@ -212,7 +210,6 @@ struct CacheView: View {
                     let readerController = UIArchiveReaderController(
                         store: readerStore, navigationHelper: navigation
                     )
-                    readerController.hidesBottomBarWhenPushed = true
                     navigation.push(readerController)
                 }
             }

@@ -18,7 +18,6 @@ class UICategoryListViewController: UIViewController {
     private func setupLayout() {
         self.hostingController = UIHostingController(rootView: CategoryListV2(store: store, onTapCategory: {store in
             let categoryController = UICategoryArchiveGridController(store: store)
-            categoryController.hidesBottomBarWhenPushed = true
             self.navigationController?.pushViewController(
                 categoryController,
                 animated: true
@@ -43,6 +42,8 @@ class UICategoryListViewController: UIViewController {
         super.viewWillAppear(animated)
         if #available(iOS 18.0, *) {
             tabBarController?.setTabBarHidden(false, animated: false)
+        } else {
+            tabBarController?.tabBar.isHidden = false
         }
     }
 }

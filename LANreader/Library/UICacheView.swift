@@ -38,6 +38,8 @@ class UICacheViewController: UIViewController, UICollectionViewDelegate {
         super.viewWillAppear(animated)
         if #available(iOS 18.0, *) {
             tabBarController?.setTabBarHidden(true, animated: false)
+        } else {
+            tabBarController?.tabBar.isHidden = true
         }
     }
 }

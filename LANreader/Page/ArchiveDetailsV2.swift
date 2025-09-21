@@ -215,19 +215,7 @@ struct ArchiveDetailsV2: View {
     var body: some View {
         ScrollView {
             titleView(store: store)
-            ZStack {
-                if let thumbnailData = thumbnailObj?.thumbnail, let uiImage = UIImage(data: thumbnailData) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFit()
-                        .padding()
-                        .frame(width: 200, height: 250)
-                } else {
-                    Image(systemName: "photo")
-                        .foregroundStyle(Color.primary)
-                        .frame(width: 200, height: 250)
-                }
-            }
+            thumbnailView()
             tagsView(store: store)
             Button(
                 role: .destructive,
@@ -323,46 +311,57 @@ struct ArchiveDetailsV2: View {
         }
     }
 
-    @MainActor
+    @ViewBuilder
     private func titleView(store: StoreOf<ArchiveDetailsFeature>) -> some View {
-        ZStack {
-            if store.editMode == .active {
-                TextField("", text: $store.title, axis: .vertical)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .textFieldStyle(.roundedBorder)
-                    .padding()
-            } else {
-                Text(store.title)
-                    .textFieldStyle(.roundedBorder)
-                    .textSelection(.enabled)
-                    .padding()
-            }
+        if store.editMode == .active {
+            TextField("", text: $store.title, axis: .vertical)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .textFieldStyle(.roundedBorder)
+                .padding()
+        } else {
+            Text(store.title)
+                .textFieldStyle(.roundedBorder)
+                .textSelection(.enabled)
+                .padding()
         }
     }
 
-    @MainActor
+    @ViewBuilder
     private func tagsView(store: StoreOf<ArchiveDetailsFeature>) -> some View {
-        ZStack {
-            if store.editMode == .active {
-                TextField("", text: $store.tags, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
-                    .textInputAutocapitalization(.never)
-                    .disableAutocorrection(true)
-                    .padding()
-            } else {
-                WrappingHStack(
-                    models: store.tags.split(separator: ","),
-                    viewGenerator: { tag in
-                        parseTag(tag: String(tag))
-                            .padding()
-                            .controlSize(.mini)
-                            .foregroundStyle(.white)
-                            .background(.blue)
-                            .clipShape(Capsule())
-                    })
+        if store.editMode == .active {
+            TextField("", text: $store.tags, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .textInputAutocapitalization(.never)
+                .disableAutocorrection(true)
                 .padding()
-            }
+        } else {
+            WrappingHStack(
+                models: store.tags.split(separator: ","),
+                viewGenerator: { tag in
+                    parseTag(tag: String(tag))
+                        .padding()
+                        .controlSize(.mini)
+                        .foregroundStyle(.white)
+                        .background(.blue)
+                        .clipShape(Capsule())
+                })
+            .padding()
+        }
+    }
+
+    @ViewBuilder
+    private func thumbnailView() -> some View {
+        if let thumbnailData = thumbnailObj?.thumbnail, let uiImage = UIImage(data: thumbnailData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFit()
+                .padding()
+                .frame(width: 200, height: 250)
+        } else {
+            Image(systemName: "photo")
+                .foregroundStyle(Color.primary)
+                .frame(width: 200, height: 250)
         }
     }
 

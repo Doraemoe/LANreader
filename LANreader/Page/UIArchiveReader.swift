@@ -85,6 +85,8 @@ class UIArchiveReaderController: UIViewController {
         navigationController?.setNavigationBarHidden(store.controlUiHidden, animated: animated)
         if #available(iOS 18.0, *) {
             tabBarController?.setTabBarHidden(true, animated: false)
+        } else {
+            tabBarController?.tabBar.isHidden = true
         }
     }
 

@@ -58,7 +58,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
         let groupSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),
-            heightDimension: .fractionalHeight(1.0)
+            heightDimension: heightDimension
         )
         let group = NSCollectionLayoutGroup.horizontal(
             layoutSize: groupSize, repeatingSubitem: item, count: store.doublePageLayout ? 2 : 1)

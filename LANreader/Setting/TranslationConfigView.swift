@@ -148,7 +148,7 @@ struct TranslationConfigView: View {
                 }
             }
         }
-        .padding(.top)
+        .toolbar(.hidden, for: .tabBar)
     }
 }
 
@@ -171,8 +171,7 @@ class UITranslationConfigController: UIViewController {
         super.viewDidLoad()
 
         hostingController = UIHostingController(rootView: TranslationConfigView(store: store, navigation: navigation))
-        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(hostingController.view)
+        add(hostingController)
         NSLayoutConstraint.activate([
             hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
             hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -185,6 +184,8 @@ class UITranslationConfigController: UIViewController {
         super.viewWillAppear(animated)
         if #available(iOS 18.0, *) {
             tabBarController?.setTabBarHidden(true, animated: false)
+        } else {
+            tabBarController?.tabBar.isHidden = true
         }
     }
 }
