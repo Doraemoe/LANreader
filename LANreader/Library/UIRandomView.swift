@@ -210,6 +210,8 @@ class UIRandomViewController: UIViewController, UICollectionViewDelegate {
     override func viewWillAppear(_ animated: Bool) {
         if #available(iOS 18.0, *) {
             tabBarController?.setTabBarHidden(true, animated: false)
+        } else {
+            tabBarController?.tabBar.isHidden = true
         }
     }
 
@@ -224,8 +226,7 @@ class UIRandomViewController: UIViewController, UICollectionViewDelegate {
     private func manualTriggerPullToRefresh() {
         guard collectionView.refreshControl?.isRefreshing == false else { return }
         collectionView.refreshControl?.beginRefreshing()
-        let offsetPoint = CGPoint.init(
-            x: 0, y: -refreshControl.frame.size.height)
+        let offsetPoint = CGPoint(x: 0, y: -collectionView.adjustedContentInset.top - refreshControl.frame.height)
         collectionView.setContentOffset(offsetPoint, animated: true)
         collectionView.refreshControl?.sendActions(for: .valueChanged)
     }
@@ -240,7 +241,6 @@ class UIRandomViewController: UIViewController, UICollectionViewDelegate {
             ArchiveReaderFeature()
         }
         let readerController = UIArchiveReaderController(store: readerStore)
-        readerController.hidesBottomBarWhenPushed = true
         navigationController?.pushViewController(
             readerController, animated: true)
     }

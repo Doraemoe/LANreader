@@ -50,7 +50,6 @@ class UITabViewController: UITabBarController {
             image: UIImage(systemName: "books.vertical"),
             tag: 0
         )
-        libraryNav.hidesBottomBarWhenPushed = true
 
         let categoryView = UICategoryListViewController(store: store.scope(state: \.category, action: \.category))
         let categoryNav = UINavigationController(rootViewController: categoryView)

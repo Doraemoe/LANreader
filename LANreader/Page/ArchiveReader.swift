@@ -362,17 +362,21 @@ struct ArchiveReader: View {
     var body: some View {
         let flip = store.readDirection == ReadDirection.rightLeft.rawValue
         GeometryReader { geometry in
-            ZStack {
+            Group {
                 if store.readDirection == ReadDirection.upDown.rawValue {
                     UIPageCollection(store: store)
                 } else {
                     UIPageCollection(store: store)
                         .environment(\.layoutDirection, flip ? .rightToLeft : .leftToRight)
                 }
+            }
+            .overlay(alignment: .bottom) {
                 if !store.controlUiHidden {
                     bottomToolbar(store: store)
                         .environment(\.layoutDirection, flip ? .rightToLeft : .leftToRight)
                 }
+            }
+            .overlay {
                 if store.extracting {
                     LoadingView(geometry: geometry)
                 }
@@ -439,7 +443,6 @@ struct ArchiveReader: View {
         store: StoreOf<ArchiveReaderFeature>
     ) -> some View {
         return VStack {
-            Spacer()
             Grid {
                 GridRow {
                     Button(action: {
@@ -492,8 +495,20 @@ struct ArchiveReader: View {
                 }
             }
             .padding()
-            .background(.thinMaterial)
+            .conditionalGlassEffect()
         }
     }
     // swiftlint:enable function_body_length
+}
+
+extension View {
+    @ViewBuilder
+    func conditionalGlassEffect() -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect()
+        } else {
+            self.background(.thinMaterial)
+
+        }
+    }
 }

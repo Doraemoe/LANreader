@@ -633,7 +633,9 @@ class UIArchiveListViewController: UIViewController {
 
         let hideReadAction = UIAction(
             title: String(localized: "settings.view.hideRead"),
-            image: store.hideRead ? UIImage(systemName: "checkmark") : nil
+            image: store.hideRead ?
+            UIImage(systemName: "checkmark") :
+                UIImage(systemName: "checkmark")?.withTintColor(.clear, renderingMode: .alwaysOriginal)
         ) { [weak self] _ in
             guard let self else { return }
             store.send(.toggleHideRead)
@@ -662,6 +664,7 @@ class UIArchiveListViewController: UIViewController {
 
         observe { [weak self] in
             guard let self else { return }
+            guard !store.archives.isEmpty else { return }
             setupToolbar()
         }
 
@@ -760,8 +763,7 @@ class UIArchiveListViewController: UIViewController {
     private func manualTriggerPullToRefresh() {
         guard collectionView.refreshControl?.isRefreshing == false else { return }
         collectionView.refreshControl?.beginRefreshing()
-        let offsetPoint = CGPoint.init(
-            x: 0, y: -refreshControl.frame.size.height)
+        let offsetPoint = CGPoint(x: 0, y: -collectionView.adjustedContentInset.top - refreshControl.frame.height)
         collectionView.setContentOffset(offsetPoint, animated: true)
         collectionView.refreshControl?.sendActions(for: .valueChanged)
     }
@@ -803,7 +805,6 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
             ArchiveReaderFeature()
         }
         let readerController = UIArchiveReaderController(store: readerStore)
-        readerController.hidesBottomBarWhenPushed = true
         navigationController?.pushViewController(
             readerController, animated: true)
     }

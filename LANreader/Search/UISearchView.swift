@@ -159,9 +159,11 @@ class UISearchViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        if #available(iOS 18.0, *) {
-            if navigationController?.viewControllers.count == 1 {
+        if navigationController?.viewControllers.count == 1 {
+            if #available(iOS 18.0, *) {
                 tabBarController?.setTabBarHidden(false, animated: false)
+            } else {
+                tabBarController?.tabBar.isHidden = false
             }
         }
     }

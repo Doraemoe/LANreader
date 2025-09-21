@@ -83,21 +83,8 @@ struct ArchiveGridV2: View {
                 .foregroundStyle(Color.primary)
                 .padding(4)
                 .font(.caption)
-            ZStack {
-                if let thumbnailData = thumbnailObj?.thumbnail, let uiImage = UIImage(data: thumbnailData) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFit()
-                } else {
-                    Image(systemName: "photo")
-                        .foregroundStyle(Color.primary)
-                        .frame(height: 240)
-                        .onAppear {
-                            store.send(.load(false))
-                        }
-                }
-            }
-            .id(store.nonce)
+            imageView(thumbnailObj: thumbnailObj)
+                .id(store.nonce)
         }
         .frame(maxHeight: .infinity, alignment: .top)
         .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -125,6 +112,22 @@ struct ArchiveGridV2: View {
             title = "🆕 " + title
         }
         return title
+    }
+
+    @ViewBuilder
+    private func imageView(thumbnailObj: ArchiveThumbnail?) -> some View {
+        if let thumbnailData = thumbnailObj?.thumbnail, let uiImage = UIImage(data: thumbnailData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFit()
+        } else {
+            Image(systemName: "photo")
+                .foregroundStyle(Color.primary)
+                .frame(height: 240)
+                .onAppear {
+                    store.send(.load(false))
+                }
+        }
     }
 }
 

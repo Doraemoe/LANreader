@@ -8,12 +8,10 @@ final class NavigationHelper {
 
     func push<Content: View>(_ view: Content) {
         let hostingVC = UIHostingController(rootView: view)
-        hostingVC.hidesBottomBarWhenPushed = true
         navigationController?.pushViewController(hostingVC, animated: true)
     }
 
     func push(_ viewController: UIViewController) {
-        viewController.hidesBottomBarWhenPushed = true
         navigationController?.pushViewController(viewController, animated: true)
     }
 
