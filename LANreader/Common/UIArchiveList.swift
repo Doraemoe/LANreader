@@ -633,7 +633,9 @@ class UIArchiveListViewController: UIViewController {
 
         let hideReadAction = UIAction(
             title: String(localized: "settings.view.hideRead"),
-            image: store.hideRead ? UIImage(systemName: "checkmark") : UIImage(systemName: "checkmark")?.withTintColor(.clear, renderingMode: .alwaysOriginal)
+            image: store.hideRead ?
+            UIImage(systemName: "checkmark") :
+                UIImage(systemName: "checkmark")?.withTintColor(.clear, renderingMode: .alwaysOriginal)
         ) { [weak self] _ in
             guard let self else { return }
             store.send(.toggleHideRead)
