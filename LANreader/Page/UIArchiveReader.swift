@@ -51,7 +51,8 @@ class UIArchiveReaderController: UIViewController {
                         self.navigationController?.popToViewController(destination, animated: true)
                     }
                 }, onTagNavigation: { store in
-                    self.navigationController?.pushViewController(UISearchViewController(store: store), animated: true)
+                    self.navigationController?
+                        .pushViewController(UISearchViewV2Controller(store: store), animated: true)
                 })),
                 animated: true
             )

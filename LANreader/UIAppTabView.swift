@@ -59,11 +59,10 @@ class UITabViewController: UITabBarController {
             tag: 1
         )
 
-        let searchView = UISearchViewController(store: store.scope(state: \.search, action: \.search))
+        let searchView = UISearchViewV2Controller(store: store.scope(state: \.search, action: \.search))
         let searchNav = UINavigationController(rootViewController: searchView)
         searchNav.tabBarItem = UITabBarItem(
-            title: String(localized: "search"),
-            image: UIImage(systemName: "magnifyingglass"),
+            tabBarSystemItem: .search,
             tag: 2
         )
 
