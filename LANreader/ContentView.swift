@@ -134,51 +134,52 @@ struct ContentView: View {
 
     var body: some View {
         UIAppTabView(store: store)
-        .modifier(Covers(store: store))
-        .onAppear {
-            if store.lanraragiUrl.isEmpty != false {
-                store.send(.showLogin)
-            }
-        }
-        .onAppear {
-            if !store.storedPasscode.isEmpty {
-                _ = withTransaction(self.noAnimationTransaction) {
-                    store.send(.showLockScreen)
+            .ignoresSafeArea()
+            .modifier(Covers(store: store))
+            .onAppear {
+                if store.lanraragiUrl.isEmpty != false {
+                    store.send(.showLogin)
                 }
             }
-        }
-        .onChange(of: scenePhase) {
-            if !store.storedPasscode.isEmpty && scenePhase != .active && store.destination == nil {
-                _ = withTransaction(self.noAnimationTransaction) {
-                    store.send(.showLockScreen)
+            .onAppear {
+                if !store.storedPasscode.isEmpty {
+                    _ = withTransaction(self.noAnimationTransaction) {
+                        store.send(.showLockScreen)
+                    }
                 }
             }
-        }
-        .onOpenURL { url in
-            store.send(.queueUrlDownload(url))
-        }
-        .onChange(of: store.errorMessage) {
-            if !store.errorMessage.isEmpty {
-                let banner = NotificationBanner(
-                    title: String(localized: "error"),
-                    subtitle: store.errorMessage,
-                    style: .danger
-                )
-                banner.show()
-                store.send(.setErrorMessage(""))
+            .onChange(of: scenePhase) {
+                if !store.storedPasscode.isEmpty && scenePhase != .active && store.destination == nil {
+                    _ = withTransaction(self.noAnimationTransaction) {
+                        store.send(.showLockScreen)
+                    }
+                }
             }
-        }
-        .onChange(of: store.successMessage) {
-            if !store.successMessage.isEmpty {
-                let banner = NotificationBanner(
-                    title: String(localized: "success"),
-                    subtitle: store.successMessage,
-                    style: .success
-                )
-                banner.show()
-                store.send(.setSuccessMessage(""))
+            .onOpenURL { url in
+                store.send(.queueUrlDownload(url))
             }
-        }
+            .onChange(of: store.errorMessage) {
+                if !store.errorMessage.isEmpty {
+                    let banner = NotificationBanner(
+                        title: String(localized: "error"),
+                        subtitle: store.errorMessage,
+                        style: .danger
+                    )
+                    banner.show()
+                    store.send(.setErrorMessage(""))
+                }
+            }
+            .onChange(of: store.successMessage) {
+                if !store.successMessage.isEmpty {
+                    let banner = NotificationBanner(
+                        title: String(localized: "success"),
+                        subtitle: store.successMessage,
+                        style: .success
+                    )
+                    banner.show()
+                    store.send(.setSuccessMessage(""))
+                }
+            }
     }
 }
 
