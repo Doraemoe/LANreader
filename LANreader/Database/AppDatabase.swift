@@ -93,6 +93,12 @@ struct AppDatabase {
             }
         }
 
+        migrator.registerMigration("tagCount") { database in
+            try database.alter(table: "tag") { table in
+                table.add(column: "count", .integer).notNull().defaults(to: 0)
+            }
+        }
+
         return migrator
     }
 
@@ -100,7 +106,6 @@ struct AppDatabase {
         try dbWriter.write { database in
             _ = try ArchiveImage.deleteAll(database)
         }
-        try dbWriter.vacuum()
     }
 }
 
@@ -175,7 +180,17 @@ extension AppDatabase {
 
     func searchTag(keyword: String) throws -> [TagItem] {
         return try dbReader.read { database in
-            try TagItem.filter(Column("tag").like("%\(keyword)%")).limit(10).fetchAll(database)
+            try TagItem
+                .filter(Column("tag").like("%\(keyword)%"))
+                .order(Column("count").desc)
+                .limit(20)
+                .fetchAll(database)
+        }
+    }
+
+    func popularTag() throws -> [TagItem] {
+        return try dbReader.read { database in
+            try TagItem.order(Column("count").desc).limit(50).fetchAll(database)
         }
     }
 
@@ -318,7 +333,6 @@ extension AppDatabase {
             _ = try Category.deleteAll(database)
             _ = try TagItem.deleteAll(database)
         }
-        try dbWriter.vacuum()
     }
 }
 

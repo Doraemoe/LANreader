@@ -433,10 +433,11 @@ import Logging
                     _ = try database.deleteAllTag()
                     response.forEach { tag in
                         if !excludeTags.contains(tag.namespace) {
+                            let count = Int(tag.weight) ?? 1
                             var tagItem = if tag.namespace.isEmpty {
-                                TagItem(tag: tag.text)
+                                TagItem(tag: tag.text, count: count)
                             } else {
-                                TagItem(tag: "\(tag.namespace):\(tag.text)")
+                                TagItem(tag: "\(tag.namespace):\(tag.text)", count: count)
                             }
                             try? database.saveTag(tagItem: &tagItem)
                         }

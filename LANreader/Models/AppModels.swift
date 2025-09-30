@@ -11,6 +11,16 @@ public struct SearchFilter: Equatable {
     let filter: String?
 }
 
+public struct TagWithType: Equatable {
+    let tag: String
+    let type: TagType
+}
+
+enum TagType {
+    case suggested
+    case popular
+}
+
 enum TabName: String, CaseIterable, Identifiable {
     case library
     case category

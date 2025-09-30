@@ -16,6 +16,7 @@ struct Archive: Identifiable {
 
 struct TagItem {
     var tag: String
+    var count: Int
 }
 
 struct ArchiveThumbnail: Identifiable, Equatable {
@@ -96,6 +97,7 @@ extension TagItem: Codable, FetchableRecord, MutablePersistableRecord {
     static let databaseTableName = "tag"
     internal enum Columns {
         static let tar = Column(CodingKeys.tag)
+        static let count = Column(CodingKeys.count)
     }
 }
 

@@ -2,6 +2,91 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 
+@Reducer public struct SearchFeature {
+    @ObservableState
+    public struct State: Equatable {
+        var keyword = ""
+        var suggestedTag = [TagWithType]()
+        var popularTag = [TagWithType]()
+        var archiveList = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: nil),
+            loadOnAppear: false,
+            currentTab: .search
+        )
+    }
+
+    public enum Action: Equatable, BindableAction {
+        case binding(BindingAction<State>)
+        case generateSuggestion(String)
+        case loadPopularTag
+        case suggestionTapped(TagWithType)
+        case searchSubmit(String)
+        case archiveList(ArchiveListFeature.Action)
+    }
+
+    @Dependency(\.lanraragiService) var service
+    @Dependency(\.appDatabase) var database
+
+    enum CancelId { case search }
+
+    public var body: some ReducerOf<Self> {
+
+        Scope(state: \.archiveList, action: \.archiveList) {
+            ArchiveListFeature()
+        }
+
+        BindingReducer()
+        Reduce { state, action in
+            switch action {
+            case let .generateSuggestion(searchText):
+                let lastToken = searchText.split(
+                    separator: " ",
+                    omittingEmptySubsequences: false
+                ).last.map(String.init) ?? ""
+                guard !lastToken.isEmpty else {
+                    state.suggestedTag = state.popularTag
+                    return .none
+                }
+                do {
+                    let result = try database.searchTag(keyword: lastToken)
+                    state.suggestedTag = result.map {
+                        TagWithType(tag: $0.tag, type: .suggested)
+                    }
+                } catch {
+                    state.suggestedTag = state.popularTag
+                }
+                return .none
+            case .loadPopularTag:
+                if let result = try? database.popularTag() {
+                    state.popularTag = result.map {
+                        TagWithType(tag: $0.tag, type: .popular)
+                    }
+                    state.suggestedTag = state.popularTag
+                }
+                return .none
+            case let .suggestionTapped(tagWithType):
+                let validKeyword = if tagWithType.type == .suggested {
+                    state.keyword.split(separator: " ").dropLast(1).joined(separator: " ")
+                } else {
+                    state.keyword.trimmingCharacters(in: .whitespaces)
+                }
+                state.keyword = "\(validKeyword) \(tagWithType.tag)$,"
+                return .none
+            case let .searchSubmit(keyword):
+                guard !keyword.isEmpty else {
+                    return .none
+                }
+                state.archiveList.filter = SearchFilter(category: nil, filter: keyword)
+                return .none
+            case .binding:
+                return .none
+            case .archiveList:
+                return .none
+            }
+        }
+    }
+}
+
 class UISearchViewV2Controller: UIViewController {
     private let store: StoreOf<SearchFeature>
 
@@ -63,6 +148,8 @@ class UISearchViewV2Controller: UIViewController {
         setupNavigationSearch()
         setupLayout()
         setupDelegates()
+        setupObserve()
+        store.send(.loadPopularTag)
         navigationItem.title = String(localized: "search")
     }
 
@@ -75,12 +162,6 @@ class UISearchViewV2Controller: UIViewController {
                 tabBarController?.tabBar.isHidden = false
             }
         }
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        self.suggestionsHeightConstraint?.constant = 0
-        suggestionsTableView.isHidden = true
     }
 
     // MARK: - Setup
@@ -153,9 +234,26 @@ class UISearchViewV2Controller: UIViewController {
         suggestionsTableView.register(UITableViewCell.self, forCellReuseIdentifier: "SuggestionCellV2")
     }
 
+    private func setupObserve() {
+        observe { [weak self] in
+            guard let self else { return }
+            var searchText: String?
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                searchText = searchController.searchBar.text
+            } else {
+                searchText = searchBar.text
+            }
+            if searchText?.isEmpty == true && !store.popularTag.isEmpty {
+                self.suggestionsHeightConstraint?.constant = maxSuggestionsHeight
+                self.suggestionsTableView.isHidden = false
+                self.view.layoutIfNeeded()
+            }
+        }
+    }
+
     // MARK: - Suggestions Handling
     private func updateSuggestionsVisibility(for searchText: String) {
-        if !searchText.isEmpty && !store.suggestedTag.isEmpty {
+        if !store.suggestedTag.isEmpty {
             let contentHeight = CGFloat(store.suggestedTag.count) * suggestionsRowHeight
             let newHeight = min(contentHeight, maxSuggestionsHeight)
             UIView.animate(withDuration: 0.25) {
@@ -203,8 +301,9 @@ extension UISearchViewV2Controller: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "SuggestionCellV2", for: indexPath)
         var content = cell.defaultContentConfiguration()
-        content.text = store.suggestedTag[indexPath.row]
-        content.image = UIImage(systemName: "tag")
+        let tagWithType = store.suggestedTag[indexPath.row]
+        content.text = tagWithType.tag
+        content.image = tagWithType.type == .popular ? UIImage(systemName: "flame") : UIImage(systemName: "tag")
         content.imageProperties.tintColor = .label
         cell.contentConfiguration = content
         return cell
