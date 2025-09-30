@@ -9,29 +9,31 @@ LANreader is an iOS manga reader for [LANraragi](https://github.com/Difegue/LANr
 <a href="https://apps.apple.com/au/app/lanreader/id6743684988?itscg=30200&itsct=apps_box_badge&mttnsubad=6743684988" style="display: inline-block;">
 <img src="https://toolbox.marketingtools.apple.com/api/v2/badges/download-on-the-app-store/black/en-us?releaseDate=1742774400" alt="Download on the App Store" style="width: 246px; height: 82px; vertical-align: middle; object-fit: contain;" />
 </a>
+
+Will be avaliable on App Store until March 23, 2026
     
 
 ## Interface
 
 ### Library View
 
-<img width="887" height="1246" alt="Screenshot 2025-07-17 at 8 35 23 pm" src="https://github.com/user-attachments/assets/6755eb15-ce79-4f33-ba81-a05512a8e9d7" />
+<img width="1049" height="1381" alt="Screenshot 2025-09-23 at 12 59 01 pm" src="https://github.com/user-attachments/assets/ad036018-2b78-4e7c-bff5-dc0f6f0d5bf9" />
 
 ### Archive Page View
 
-![Screenshot 2024-05-29 at 1 07 59 PM](https://github.com/Doraemoe/LANreader/assets/1129569/f6e2d613-2015-4ecd-b894-743a52ce4268)
+<img width="1049" height="1381" alt="Screenshot 2025-09-23 at 1 00 07 pm" src="https://github.com/user-attachments/assets/5bd0b753-7370-4c7b-b761-73d6989763a7" />
 
 ### Archive Details View
 
-![Screenshot 2024-05-29 at 1 08 27 PM](https://github.com/Doraemoe/LANreader/assets/1129569/5f763218-cc65-454d-9d85-8805d5af7029)
+<img width="1049" height="1381" alt="Screenshot 2025-09-23 at 12 59 50 pm" src="https://github.com/user-attachments/assets/57e1e3fd-389e-4c18-8e7a-a1c9e02e9303" />
 
 ### Category Page
 
-<img width="887" height="1246" alt="Screenshot 2025-07-17 at 8 35 29 pm" src="https://github.com/user-attachments/assets/c2ea01a6-75fa-4b09-aeab-c32ef3ce6e9b" />
+<img width="1049" height="1381" alt="Screenshot 2025-09-23 at 12 59 03 pm" src="https://github.com/user-attachments/assets/270575d1-2467-4cde-ba7d-78f775a4305f" />
 
 ### Settings Page
 
-<img width="887" height="1246" alt="Screenshot 2025-07-17 at 8 35 26 pm" src="https://github.com/user-attachments/assets/5bdfc87c-a92e-486c-8988-1f8c74d3caa8" />
+<img width="1049" height="1381" alt="Screenshot 2025-09-23 at 12 59 05 pm" src="https://github.com/user-attachments/assets/2bf05109-b1bd-4138-ba6d-c4801b41a4f3" />
 
 ### Save URL
 
