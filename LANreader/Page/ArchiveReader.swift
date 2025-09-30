@@ -23,7 +23,7 @@ import OrderedCollections
         @Shared var archive: ArchiveItem
 
         var sliderIndex: Double = 0
-        var jumpIndex: Int = 0
+        var jumpIndex: Int? = 0
         var pages: IdentifiedArrayOf<PageFeature.State> = []
         var fromStart = false
         var extracting = false
@@ -58,7 +58,7 @@ import OrderedCollections
         case loadProgress
         case finishExtracting([String])
         case toggleControlUi(Bool?)
-        case setJumpIndex(Int)
+        case setJumpIndex(Int?)
         case setSliderIndex(Double)
         case updateProgress(Int)
         case setIsNew(Bool)

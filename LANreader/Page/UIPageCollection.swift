@@ -133,8 +133,8 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             snapshot.appendItems(
                 Array(store.scope(state: \.pages, action: \.page)))
             dataSource.apply(snapshot, animatingDifferences: false)
-            if !didInitialJump {
-                let indexPath = IndexPath(row: store.jumpIndex, section: 0)
+            if !didInitialJump, let idx = store.jumpIndex {
+                let indexPath = IndexPath(row: idx, section: 0)
                 if store.readDirection == ReadDirection.upDown.rawValue {
                     if let attr = collectionView.layoutAttributesForItem(at: indexPath) {
                         collectionView.scrollRectToVisible(attr.frame, animated: false)
@@ -143,11 +143,13 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
                     collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: false)
                 }
                 didInitialJump = true
+                store.send(.setJumpIndex(nil))
             }
         }
 
         store.publisher.jumpIndex
             .dropFirst()
+            .compactMap { $0 }
             .sink { [weak self] idx in
                 guard let self else { return }
                 guard collectionView.numberOfSections > 0 else { return }
@@ -161,6 +163,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
                 } else {
                     collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: false)
                 }
+                store.send(.setJumpIndex(nil))
             }
             .store(in: &cancellables)
 
