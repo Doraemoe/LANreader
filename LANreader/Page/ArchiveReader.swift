@@ -495,20 +495,8 @@ struct ArchiveReader: View {
                 }
             }
             .padding()
-            .conditionalGlassEffect()
+            .background(.thinMaterial)
         }
     }
     // swiftlint:enable function_body_length
-}
-
-extension View {
-    @ViewBuilder
-    func conditionalGlassEffect() -> some View {
-        if #available(iOS 26.0, *) {
-            self.glassEffect()
-        } else {
-            self.background(.thinMaterial)
-
-        }
-    }
 }
