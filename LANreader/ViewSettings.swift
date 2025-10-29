@@ -44,7 +44,7 @@ import SwiftUI
         .ifLet(\.$destination, action: \.destination)
     }
 
-    @Reducer(state: .equatable)
+    @Reducer
     public enum Destination {
         case lockScreen(LockScreenFeature)
     }
@@ -95,3 +95,5 @@ struct ViewSettings: View {
         }
     }
 }
+
+extension ViewSettingsFeature.Destination.State: Equatable {}

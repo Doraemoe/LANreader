@@ -110,7 +110,7 @@ import Logging
         .ifLet(\.$destination, action: \.destination)
     }
 
-    @Reducer(state: .equatable)
+    @Reducer
     public enum Destination {
         case login(LANraragiConfigFeature)
         case lockScreen(LockScreenFeature)
@@ -210,3 +210,5 @@ struct Covers: ViewModifier {
         child.didMove(toParent: self)
     }
 }
+
+extension AppFeature.Destination.State: Equatable {}
