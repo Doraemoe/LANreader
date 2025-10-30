@@ -5,7 +5,7 @@
     "targetName" : "CasePathsMacros"
   },
   {
-    "fingerprint" : "2d60d4082dfb4978974307acf0f00dfa20e5f621",
+    "fingerprint" : "5b0890fabfd68a2d375d68502bc3f54a8548c494",
     "packageIdentity" : "swift-composable-architecture",
     "targetName" : "ComposableArchitectureMacros"
   },
@@ -15,7 +15,7 @@
     "targetName" : "DependenciesMacrosPlugin"
   },
   {
-    "fingerprint" : "30721accd0370d7c9cb5bd0f7cdf5a1a767b383d",
+    "fingerprint" : "4f47ebafed5f0b0172cf5c661454fa8e28fb2ac4",
     "packageIdentity" : "swift-perception",
     "targetName" : "PerceptionMacros"
   }

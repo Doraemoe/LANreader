@@ -61,19 +61,13 @@ class UILibraryListViewController: UIViewController {
     }
 
     private func setupNavigationBar() {
-        let randomButton = UIBarButtonItem(
-            image: UIImage(systemName: "shuffle"),
-            style: .plain,
-            target: self,
-            action: #selector(tapRandomButton)
-        )
         let cachedButton = UIBarButtonItem(
             image: UIImage(systemName: "arrowshape.down"),
             style: .plain,
             target: self,
             action: #selector(tapCachedButton)
         )
-        navigationItem.leftBarButtonItems = [randomButton, cachedButton]
+        navigationItem.leftBarButtonItems = [cachedButton]
         navigationItem.title = String(localized: "library")
     }
 
@@ -101,17 +95,6 @@ class UILibraryListViewController: UIViewController {
         } else {
             tabBarController?.tabBar.isHidden = false
         }
-    }
-
-    @objc private func tapRandomButton() {
-        let randomStore = Store(initialState: RandomFeature.State.init()) {
-            RandomFeature()
-        }
-        let randomController = UIRandomViewController(store: randomStore)
-        navigationController?.pushViewController(
-            randomController,
-            animated: true
-        )
     }
 
     @objc private func tapCachedButton() {

@@ -451,21 +451,36 @@ import Logging
     }
 
     func search(
-        searchFilter: SearchFilter, sortby: String, start: String, order: String, append: Bool
+        searchFilter: SearchFilter,
+        sortby: String,
+        start: String,
+        order: String,
+        append: Bool
     ) -> Effect<Action> {
         return .run { send in
             do {
-                let response = try await service.searchArchive(
-                    category: searchFilter.category,
-                    filter: searchFilter.filter,
-                    start: start,
-                    sortby: sortby,
-                    order: order
-                ).value
-                let archives = response.data.map {
-                    $0.toArchiveItem()
+                if sortby == SearchSort.random.rawValue {
+                    let response = try await service.randomArchives(
+                        category: searchFilter.category,
+                        filter: searchFilter.filter
+                    ).value
+                    let archives = response.data.map {
+                        $0.toArchiveItem()
+                    }
+                    await send(.populateArchives(archives, 100, false))
+                } else {
+                    let response = try await service.searchArchive(
+                        category: searchFilter.category,
+                        filter: searchFilter.filter,
+                        start: start,
+                        sortby: sortby,
+                        order: order
+                    ).value
+                    let archives = response.data.map {
+                        $0.toArchiveItem()
+                    }
+                    await send(.populateArchives(archives, response.recordsFiltered, append))
                 }
-                await send(.populateArchives(archives, response.recordsFiltered, append))
             } catch {
                 logger.error("failed to load archives. \(error)")
                 await send(.setErrorMessage(error.localizedDescription))
@@ -594,8 +609,9 @@ class UIArchiveListViewController: UIViewController {
         }
     }
 
+    // swiftlint:disable function_body_length
     func setupToolbar() {
-        let actions = SearchSort.allCases.map { sort in
+        let actions = SearchSort.allCases.filter { $0 != SearchSort.random }.map { sort in
             let localizedKey = "settings.archive.list.order.\(sort)"
             let label = NSLocalizedString(localizedKey, comment: "")
             let image: UIImage? =
@@ -608,7 +624,7 @@ class UIArchiveListViewController: UIViewController {
                         UIImage(systemName: "arrow.down")
                     }
                 } else {
-                    nil
+                    UIImage(systemName: "checkmark")?.withTintColor(.clear, renderingMode: .alwaysOriginal)
                 }
             return UIAction(title: label, image: image) { [weak self] _ in
                 guard let self else { return }
@@ -632,6 +648,17 @@ class UIArchiveListViewController: UIViewController {
         let sortGroup = UIMenu(
             title: "", options: .displayInline, children: actions)
 
+        let randomAction = UIAction(
+            title: String(localized: "settings.archive.list.order.random"),
+            image: store.searchSort == SearchSort.random.rawValue ?
+            UIImage(systemName: "checkmark") :
+                UIImage(systemName: "checkmark")?.withTintColor(.clear, renderingMode: .alwaysOriginal)
+        ) { [weak self] _ in
+            guard let self else { return }
+            guard store.searchSort != SearchSort.random.rawValue else { return }
+            store.send(.setSearchSort(SearchSort.random.rawValue))
+        }
+
         let hideReadAction = UIAction(
             title: String(localized: "settings.view.hideRead"),
             image: store.hideRead ?
@@ -642,13 +669,16 @@ class UIArchiveListViewController: UIViewController {
             store.send(.toggleHideRead)
         }
 
+        let otherGroup = UIMenu(title: "", options: .displayInline, children: [randomAction, hideReadAction])
+
         // Create a menu with the actions
-        let menu = UIMenu(title: "", children: [sortGroup, hideReadAction])
+        let menu = UIMenu(title: "", children: [sortGroup, otherGroup])
         let menuButton = UIBarButtonItem(
             image: UIImage(systemName: "arrow.up.arrow.down.circle"), menu: menu
         )
         parent?.navigationItem.rightBarButtonItem = menuButton
     }
+    // swiftlint:enable function_body_length
 
     // swiftlint:disable function_body_length
     func setupObserve() {
@@ -780,7 +810,9 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
         willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath
     ) {
         if indexPath.item == collectionView.numberOfItems(inSection: 0) - 1 {
-            if store.loading == false && store.archives.count < store.total {
+            if store.searchSort != SearchSort.random.rawValue
+                && store.loading == false
+                && store.archives.count < store.total {
                 Task {
                     self.isLoading = true
                     collectionView.performBatchUpdates { }

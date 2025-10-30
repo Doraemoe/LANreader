@@ -64,6 +64,7 @@ enum SearchSort: String, CaseIterable, Identifiable {
     case parody = "parody"
     case lastRead = "lastread"
     case custom = "custom"
+    case random = "random"
 
     var id: String { self.rawValue }
 }
