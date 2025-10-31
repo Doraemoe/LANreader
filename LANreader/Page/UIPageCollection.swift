@@ -64,9 +64,6 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             layoutSize: groupSize, repeatingSubitem: item, count: store.doublePageLayout ? 2 : 1)
 
         let section = NSCollectionLayoutSection(group: group)
-        if store.readDirection != ReadDirection.upDown.rawValue {
-            section.orthogonalScrollingBehavior = .paging
-        }
 
         section.visibleItemsInvalidationHandler = { [weak self] items, _, _ in
             guard let self else { return }
@@ -77,9 +74,15 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             }
         }
 
-        let layout = UICollectionViewCompositionalLayout(section: section)
+        let configuration = UICollectionViewCompositionalLayoutConfiguration()
+        configuration.scrollDirection = store.readDirection == ReadDirection.upDown.rawValue ? .vertical : .horizontal
+        let layout = UICollectionViewCompositionalLayout(section: section, configuration: configuration)
 
         collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
+        if store.readDirection != ReadDirection.upDown.rawValue {
+            collectionView.showsHorizontalScrollIndicator = false
+            collectionView.isPagingEnabled = true
+        }
         view.addSubview(collectionView)
     }
 
@@ -213,7 +216,6 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
                 }
             }
         }
-
     }
 
     enum Section {
@@ -229,12 +231,13 @@ extension UIPageCollectionController: UIGestureRecognizerDelegate {
     }
 
     @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
-        let location = gesture.location(in: collectionView)
-        let width = collectionView.bounds.width
+        let width = view.bounds.width
+        let locationInView = gesture.location(in: view)
+        // Clamp just in case (e.g. during interactive transitions)
+        let xAxis = max(0, min(width, locationInView.x))
 
-        // Determine which region was tapped
         let region: TapRegion
-        switch location.x {
+        switch xAxis {
         case ..<(width / 3):
             region = .left
         case (width / 3)..<(2 * width / 3):
@@ -244,7 +247,7 @@ extension UIPageCollectionController: UIGestureRecognizerDelegate {
         }
 
         // Handle the tap based on region
-        handleTapInRegion(region, atLocation: location)
+        handleTapInRegion(region, atLocation: locationInView)
     }
 
     private func handleTapInRegion(_ region: TapRegion, atLocation location: CGPoint) {
