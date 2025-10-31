@@ -123,8 +123,18 @@ class LANraragiService: NSObject {
             .serializingDecodable(ArchiveSearchResponse.self)
     }
 
-    func randomArchives() async -> DataTask<ArchiveRandomResponse> {
-        let query = ["count": 100]
+    func randomArchives(
+        category: String? = nil,
+        filter: String? = nil
+    ) async -> DataTask<ArchiveRandomResponse> {
+        var query = [String: String]()
+        query["count"] = "100"
+        if let category = category {
+            query["category"] = category
+        }
+        if let filter = filter {
+            query["filter"] = filter
+        }
         return session.request("\(url)/api/search/random", method: .get, parameters: query)
             .validate(statusCode: 200...200)
             .serializingDecodable(ArchiveRandomResponse.self)
