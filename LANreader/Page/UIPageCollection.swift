@@ -249,7 +249,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
     private func resnap(to indexPath: IndexPath?) {
         guard collectionView != nil else { return }
-        guard store.readDirection != ReadDirection.upDown.rawValue else { return } // Only horizontal paging needs resnap
+        guard store.readDirection != ReadDirection.upDown.rawValue else { return }
         guard let indexPath else { return }
         let numberOfItems = collectionView.numberOfItems(inSection: indexPath.section)
         guard indexPath.row < numberOfItems else { return }
