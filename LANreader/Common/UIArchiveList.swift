@@ -655,7 +655,6 @@ class UIArchiveListViewController: UIViewController {
                 UIImage(systemName: "checkmark")?.withTintColor(.clear, renderingMode: .alwaysOriginal)
         ) { [weak self] _ in
             guard let self else { return }
-            guard store.searchSort != SearchSort.random.rawValue else { return }
             store.send(.setSearchSort(SearchSort.random.rawValue))
         }
 
