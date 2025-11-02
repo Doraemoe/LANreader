@@ -203,6 +203,60 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         return true
     }
 
+    // MARK: - Rotation / Size Change Handling
+    private var pendingResnap = false
+
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        guard collectionView != nil else { return }
+        // Capture current visual page index before transition
+        let indexPathToRestore = currentVisualPageIndexPath()
+        pendingResnap = true
+        coordinator.animate(alongsideTransition: { _ in
+            self.collectionView.collectionViewLayout.invalidateLayout()
+        }, completion: { _ in
+            // On completion ensure we snap exactly to the intended page
+            self.resnap(to: indexPathToRestore)
+            self.pendingResnap = false
+        })
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // Safety snap if layout changed and coordinator completion hasn't fired yet
+        if pendingResnap {
+            resnap(to: currentVisualPageIndexPath())
+            pendingResnap = false
+        }
+    }
+
+    // Returns index path representing the start of the current visual page (accounts for double page layout)
+    private func currentVisualPageIndexPath() -> IndexPath? {
+        guard collectionView != nil else { return nil }
+        let visible = collectionView.indexPathsForVisibleItems
+        guard !visible.isEmpty else { return nil }
+        // Use the last (right-most) visible item for consistency with existing slider logic
+        let sorted = visible.sorted()
+        return startOfGroupIndexPath(for: sorted.last!)
+    }
+
+    // For double page layout treat a pair of items as one visual page; return left item index path
+    private func startOfGroupIndexPath(for indexPath: IndexPath) -> IndexPath {
+        guard store.doublePageLayout else { return indexPath }
+        let row = indexPath.row % 2 == 0 ? indexPath.row : indexPath.row - 1
+        return IndexPath(row: row, section: indexPath.section)
+    }
+
+    private func resnap(to indexPath: IndexPath?) {
+        guard collectionView != nil else { return }
+        guard store.readDirection != ReadDirection.upDown.rawValue else { return } // Only horizontal paging needs resnap
+        guard let indexPath else { return }
+        let numberOfItems = collectionView.numberOfItems(inSection: indexPath.section)
+        guard indexPath.row < numberOfItems else { return }
+        // Scroll without animation to avoid intermediate half pages
+        collectionView.scrollToItem(at: indexPath, at: .left, animated: false)
+    }
+
     override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         for press in presses {
             if let key = press.key {
@@ -272,12 +326,12 @@ extension UIPageCollectionController: UIGestureRecognizerDelegate {
             let row = store.sliderIndex.int + 1
             guard row < store.pages.count else { break }
             let indexPath = IndexPath(row: row, section: 0)
-            collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
+            collectionView.scrollToItem(at: indexPath, at: .left, animated: true)
         case PageControl.previous.rawValue:
             let row = store.doublePageLayout ? store.sliderIndex.int - 2 : store.sliderIndex.int - 1
             guard row >= 0 else { break }
             let indexPath = IndexPath(row: row, section: 0)
-            collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: true)
+            collectionView.scrollToItem(at: indexPath, at: .left, animated: true)
         case PageControl.navigation.rawValue:
             store.send(.toggleControlUi(nil))
         default:
