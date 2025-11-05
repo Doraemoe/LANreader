@@ -35,7 +35,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
     private var cancellables: Set<AnyCancellable> = []
 
-    // MARK: - Pull Navigation (UI only)
+    // MARK: - Pull Navigation
     private enum PullEdge {
         case previous, next
     }
@@ -46,7 +46,9 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     private var pullIndicatorContainer: UIView = UIView()
     private var pullArrowView: UIImageView = UIImageView()
     private var pullStatusLabel: UILabel = UILabel()
-    private var pullStatusBackground: UIVisualEffectView = UIVisualEffectView(effect: UIBlurEffect(style: .systemMaterial))
+    private var pullStatusBackground: UIVisualEffectView = UIVisualEffectView(
+        effect: UIBlurEffect(style: .systemMaterial)
+    )
     private var lastReportedProgressBucket: Int = -1 // for throttled updates
     private var pullThresholdCrossedHapticsFired = false
 
@@ -424,7 +426,12 @@ extension UIPageCollectionController {
         let lastIndex = store.pages.count - 1
         if store.readDirection == ReadDirection.upDown.rawValue {
             // Check if we've scrolled to (or beyond) bottom
-            let maxOffset = max(0, collectionView.contentSize.height - collectionView.bounds.height + collectionView.adjustedContentInset.bottom)
+            let maxOffset = max(
+                0,
+                collectionView.contentSize.height -
+                collectionView.bounds.height +
+                collectionView.adjustedContentInset.bottom
+            )
             return collectionView.contentOffset.y >= maxOffset - 1
         } else if store.doublePageLayout {
             // For double page layout treat last pair as last visual page
@@ -442,7 +449,8 @@ extension UIPageCollectionController {
 
     private func currentScrollMetrics() -> ScrollMetrics? {
         guard let collectionView else { return nil }
-        let axis: NSLayoutConstraint.Axis = store.readDirection == ReadDirection.upDown.rawValue ? .vertical : .horizontal
+        let axis: NSLayoutConstraint.Axis = store.readDirection == ReadDirection.upDown.rawValue ?
+            .vertical : .horizontal
         if axis == .horizontal {
             let maxOffset = max(0, collectionView.contentSize.width - collectionView.bounds.width)
             return ScrollMetrics(offset: collectionView.contentOffset.x, maxOffset: maxOffset, axis: axis)
@@ -453,7 +461,6 @@ extension UIPageCollectionController {
     }
 
     private func updatePullState(scroll metrics: ScrollMetrics) {
-        // Determine overscroll only if at boundary page for optimization
         let atFirst = isAtFirstVisualPage()
         let atLast = isAtLastVisualPage()
         guard atFirst || atLast else {
@@ -485,18 +492,39 @@ extension UIPageCollectionController {
         updatePullViews()
     }
 
+    // swiftlint:disable function_body_length
     private func layoutPullIndicator(overscroll: CGFloat, axis: NSLayoutConstraint.Axis) {
         guard let edge = pullEdge else { return }
         let maxVisualWidth: CGFloat = min(overscroll, pullThreshold * 1.25)
         let arrowSize: CGFloat = 32
 
         if axis == .horizontal {
+            let isRTLReading = store.readDirection == ReadDirection.rightLeft.rawValue
             let containerFrame: CGRect
-            switch edge {
-            case .previous:
-                containerFrame = CGRect(x: 0, y: 0, width: maxVisualWidth, height: view.bounds.height)
-            case .next:
-                containerFrame = CGRect(x: view.bounds.width - maxVisualWidth, y: 0, width: maxVisualWidth, height: view.bounds.height)
+            if isRTLReading {
+                switch edge {
+                case .previous:
+                    containerFrame = CGRect(
+                        x: view.bounds.width - maxVisualWidth,
+                        y: 0,
+                        width: maxVisualWidth,
+                        height: view.bounds.height
+                    )
+                case .next:
+                    containerFrame = CGRect(x: 0, y: 0, width: maxVisualWidth, height: view.bounds.height)
+                }
+            } else {
+                switch edge {
+                case .previous:
+                    containerFrame = CGRect(x: 0, y: 0, width: maxVisualWidth, height: view.bounds.height)
+                case .next:
+                    containerFrame = CGRect(
+                        x: view.bounds.width - maxVisualWidth,
+                        y: 0,
+                        width: maxVisualWidth,
+                        height: view.bounds.height
+                    )
+                }
             }
             pullIndicatorContainer.frame = containerFrame
             pullArrowView.frame = CGRect(
@@ -511,7 +539,12 @@ extension UIPageCollectionController {
             case .previous:
                 containerFrame = CGRect(x: 0, y: 0, width: view.bounds.width, height: maxVisualWidth)
             case .next:
-                containerFrame = CGRect(x: 0, y: view.bounds.height - maxVisualWidth, width: view.bounds.width, height: maxVisualWidth)
+                containerFrame = CGRect(
+                    x: 0,
+                    y: view.bounds.height - maxVisualWidth,
+                    width: view.bounds.width,
+                    height: maxVisualWidth
+                )
             }
             pullIndicatorContainer.frame = containerFrame
             pullArrowView.frame = CGRect(
@@ -522,6 +555,7 @@ extension UIPageCollectionController {
             )
         }
     }
+    // swiftlint:enable function_body_length
 
     private func layoutStatusLabel() {
         let maxWidth = min(view.bounds.width * 0.7, 360)
@@ -544,17 +578,35 @@ extension UIPageCollectionController {
     }
 
     private func symbolName(for edge: PullEdge, axis: NSLayoutConstraint.Axis, flipped: Bool) -> String {
+        let isRTLReading = store.readDirection == ReadDirection.rightLeft.rawValue
         if axis == .horizontal {
-            switch edge {
-            case .previous: return flipped ? "arrow.left" : "arrow.right"
-            case .next: return flipped ? "arrow.right" : "arrow.left"
+            if isRTLReading {
+                switch edge {
+                case .previous: return flipped ? "arrow.right" : "arrow.left"
+                case .next:     return flipped ? "arrow.left"  : "arrow.right"
+                }
+            } else {
+                switch edge {
+                case .previous: return flipped ? "arrow.left" : "arrow.right"
+                case .next:     return flipped ? "arrow.right" : "arrow.left"
+                }
             }
         } else {
             switch edge {
             case .previous: return flipped ? "arrow.up" : "arrow.down"
-            case .next: return flipped ? "arrow.down" : "arrow.up"
+            case .next:     return flipped ? "arrow.down" : "arrow.up"
             }
         }
+    }
+
+    private func isAtFirstArchive() -> Bool {
+        guard let first = store.allArchives.first else { return false }
+        return store.currentArchiveId == first.wrappedValue.id
+    }
+
+    private func isAtLastArchive() -> Bool {
+        guard let last = store.allArchives.last else { return false }
+        return store.currentArchiveId == last.wrappedValue.id
     }
 
     private func updatePullViews() {
@@ -562,9 +614,17 @@ extension UIPageCollectionController {
         pullIndicatorContainer.isHidden = false
         pullStatusBackground.isHidden = false
         pullStatusLabel.isHidden = false
-        let flipped = pullProgress >= 1
+        let atArchiveBoundary = (edge == .previous && isAtFirstArchive()) || (edge == .next && isAtLastArchive())
+        let flipped = !atArchiveBoundary && pullProgress >= 1
         pullArrowView.image = UIImage(systemName: symbolName(for: edge, axis: metrics.axis, flipped: flipped))
-        if flipped {
+
+        if atArchiveBoundary {
+            if edge == .previous {
+                pullStatusLabel.text = String(localized: "archive.read.first")
+            } else {
+                pullStatusLabel.text = String(localized: "archive.read.last")
+            }
+        } else if flipped {
             pullStatusLabel.text = String(localized: "archive.read.load")
         } else {
             switch edge {
@@ -579,10 +639,8 @@ extension UIPageCollectionController {
             generator.impactOccurred()
             pullThresholdCrossedHapticsFired = true
         } else if !flipped {
-            // Reset so next pull can trigger again
             pullThresholdCrossedHapticsFired = false
         }
-        // Simple fade-in proportional to progress
         let alpha = min(1, 0.3 + pullProgress * 0.7)
         pullArrowView.alpha = alpha
         pullStatusLabel.alpha = alpha
@@ -597,6 +655,7 @@ extension UIPageCollectionController {
         pullIndicatorContainer.isHidden = true
         pullStatusLabel.isHidden = true
         pullStatusBackground.isHidden = true
+        pullThresholdCrossedHapticsFired = false
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
@@ -605,18 +664,32 @@ extension UIPageCollectionController {
         updatePullState(scroll: metrics)
     }
 
+    func resetCollectionView() {
+        let snapshot = NSDiffableDataSourceSnapshot<
+            Section, StoreOf<PageFeature>
+        >()
+        dataSource.apply(snapshot, animatingDifferences: false)
+        collectionView.setContentOffset(.zero, animated: false)
+        lastPageIndexPath = nil
+        didInitialJump = false
+    }
+
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
         guard scrollView === collectionView else { return }
         if pullActive && pullProgress >= 1, let edge = pullEdge {
-            switch edge {
-            case .previous:
-                logger.info("Would trigger previous archive (UI only)")
-            case .next:
-                logger.info("Would trigger next archive (UI only)")
+            let atArchiveBoundary = (edge == .previous && isAtFirstArchive()) || (edge == .next && isAtLastArchive())
+            if !atArchiveBoundary {
+                resetCollectionView()
+                switch edge {
+                case .previous:
+                    store.send(.loadPreviousArchive)
+                case .next:
+                    store.send(.loadNextArchive)
+                }
+                let successGen = UINotificationFeedbackGenerator()
+                successGen.prepare()
+                successGen.notificationOccurred(.success)
             }
-            let successGen = UINotificationFeedbackGenerator()
-            successGen.prepare()
-            successGen.notificationOccurred(.success)
         }
 
         endPullInteraction()

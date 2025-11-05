@@ -830,9 +830,12 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
     ) {
         guard let selectedItemStore = dataSource.itemIdentifier(for: indexPath)
         else { return }
+        let allArchives = dataSource.snapshot().itemIdentifiers(inSection: .main).map { $0.$archive }
         let readerStore = Store(
             initialState: ArchiveReaderFeature.State.init(
-                archive: selectedItemStore.$archive)
+                currentArchiveId: selectedItemStore.archive.id,
+                allArchives: allArchives
+            )
         ) {
             ArchiveReaderFeature()
         }

@@ -201,9 +201,10 @@ struct CacheView: View {
             }
             .onTapGesture {
                 if !inProgress {
+                    let allArchives = store.archives.map { $0.$archive }
                     let readerStore = Store(
                         initialState: ArchiveReaderFeature.State.init(
-                            archive: gridStore.$archive, cached: true)
+                            currentArchiveId: gridStore.archive.id, allArchives: allArchives, cached: true)
                     ) {
                         ArchiveReaderFeature()
                     }

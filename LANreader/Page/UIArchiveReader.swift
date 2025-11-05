@@ -24,7 +24,9 @@ class UIArchiveReaderController: UIViewController {
     }
 
     private func setupLayout() {
-        navigationItem.title = store.archive.name
+        if let currentArchive = store.allArchives[id: store.currentArchiveId] {
+            navigationItem.title = currentArchive.wrappedValue.name
+        }
         navigationItem.largeTitleDisplayMode = .inline
         add(hostingController)
         NSLayoutConstraint.activate([
@@ -38,8 +40,9 @@ class UIArchiveReaderController: UIViewController {
     func setupToolbar() {
         let detailsAction = UIAction(image: UIImage(systemName: "info.circle")) { [weak self] _ in
             guard let self else { return }
+            guard let currentArchive = store.allArchives[id: store.currentArchiveId] else { return }
             let detailsStore = Store(
-                initialState: ArchiveDetailsFeature.State.init(archive: store.$archive, cached: store.cached)
+                initialState: ArchiveDetailsFeature.State.init(archive: currentArchive, cached: store.cached)
             ) {
                 ArchiveDetailsFeature()
             }
