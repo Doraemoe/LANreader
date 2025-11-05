@@ -42,6 +42,11 @@ class UIPageCell: UICollectionViewCell {
         return label
     }()
 
+    private func cancelSubscriptions() {
+        cancellables.forEach { $0.cancel() }
+        cancellables.removeAll()
+    }
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupImageView()
@@ -97,19 +102,25 @@ class UIPageCell: UICollectionViewCell {
     }
 
     func configure(with store: StoreOf<PageFeature>) {
+        // Tear down any existing observation from a previous page assignment
+        cancelSubscriptions()
         self.store = store
         imageView.image = nil
         progressView.progress = 0
         progressView.isHidden = true
         progressViewLabel.isHidden = true
+        progressViewLabel.isHidden = true
         scrollView.zoomScale = 1.0
         setupObserve(store: store)
     }
 
+    // swiftlint:disable function_body_length
     func setupObserve(store: StoreOf<PageFeature>) {
         store.publisher.progress
             .sink { [weak self] _ in
                 guard let self else { return }
+                // Ensure the cell is still showing this store (may have been reused)
+                guard self.store === store else { return }
                 guard !store.imageLoaded else { return }
 
                 imageView.isHidden = true
@@ -124,6 +135,7 @@ class UIPageCell: UICollectionViewCell {
         store.publisher.translationStatus
             .sink { [weak self] status in
                 guard let self else { return }
+                guard self.store === store else { return }
                 guard !status.isEmpty else { return }
 
                 progressViewLabel.text = status
@@ -133,6 +145,7 @@ class UIPageCell: UICollectionViewCell {
         store.publisher.imageLoaded
             .sink { [weak self] loaded in
                 guard let self else { return }
+                guard self.store === store else { return }
                 guard loaded else { return }
 
                 if store.errorMessage.isEmpty {
@@ -163,13 +176,16 @@ class UIPageCell: UICollectionViewCell {
             }
             .store(in: &cancellables)
     }
+    // swiftlint:enable function_body_length
 
     override func prepareForReuse() {
         super.prepareForReuse()
+        cancelSubscriptions()
         store = nil
         imageView.image = nil
         progressView.progress = 0
         progressView.isHidden = true
+        progressViewLabel.isHidden = true
         scrollView.zoomScale = 1.0
     }
 
