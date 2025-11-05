@@ -20,8 +20,8 @@ import OrderedCollections
         @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
         @SharedReader(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
         @SharedReader(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
-        @Shared var archive: ArchiveItem
 
+        var currentArchiveId = ""
         var sliderIndex: Double = 0
         var jumpIndex: Int? = 0
         var pages: IdentifiedArrayOf<PageFeature.State> = []
@@ -39,8 +39,16 @@ import OrderedCollections
         var inCache = false
         var removeCacheSuccess = false
 
-        init(archive: Shared<ArchiveItem>, fromStart: Bool = false, cached: Bool = false) {
-            self._archive = archive
+        var allArchives: IdentifiedArrayOf<Shared<ArchiveItem>> = []
+
+        init(
+            currentArchiveId: String,
+            allArchives: [Shared<ArchiveItem>],
+            fromStart: Bool = false,
+            cached: Bool = false
+        ) {
+            self.currentArchiveId = currentArchiveId
+            self.allArchives = IdentifiedArray(uniqueElements: allArchives)
             self.fromStart = fromStart
             self.cached = cached
         }
@@ -71,6 +79,8 @@ import OrderedCollections
         case removeCache
         case loadCached
         case removeCacheSuccess
+        case loadPreviousArchive
+        case loadNextArchive
 
         public enum Alert {
             case confirmDelete
@@ -97,38 +107,39 @@ import OrderedCollections
         Reduce { state, action in
             switch action {
             case .loadCached:
-                state.extracting = true
+               state.extracting = true
 
-                let id = state.archive.id
-                let cacheFolder = LANraragiService.cachePath!
-                    .appendingPathComponent(id, conformingTo: .folder)
-                if let content = try? FileManager.default.contentsOfDirectory(
-                    at: cacheFolder, includingPropertiesForKeys: []
-                ) {
-                    let pageState = content.compactMap { url in
-                        let page = url.deletingPathExtension().lastPathComponent
-                        if let pageNumber = Int(page) {
-                            return PageFeature.State(archiveId: id, pageId: page, pageNumber: pageNumber, cached: true)
-                        } else {
-                            return nil
-                        }
-                    }
-                        .sorted {
-                            $0.pageNumber < $1.pageNumber
-                        }
-                    state.pages.append(contentsOf: pageState)
-                    state.sliderIndex = 0.0
-                    state.controlUiHidden = true
-                    state.extracting = false
-                    return .none
-                } else {
-                    state.controlUiHidden = true
-                    state.extracting = false
-                    return .send(.setError(String(localized: "archive.cache.load.failed")))
-                }
+               let id = state.currentArchiveId
+               let cacheFolder = LANraragiService.cachePath!
+                   .appendingPathComponent(id, conformingTo: .folder)
+               if let content = try? FileManager.default.contentsOfDirectory(
+                   at: cacheFolder, includingPropertiesForKeys: []
+               ) {
+                   let pageState = content.compactMap { url in
+                       let page = url.deletingPathExtension().lastPathComponent
+                       if let pageNumber = Int(page) {
+                           return PageFeature.State(archiveId: id, pageId: page, pageNumber: pageNumber, cached: true)
+                       } else {
+                           return nil
+                       }
+                   }
+                       .sorted {
+                           $0.pageNumber < $1.pageNumber
+                       }
+                   state.pages.append(contentsOf: pageState)
+                   state.sliderIndex = 0.0
+                   state.controlUiHidden = true
+                   state.extracting = false
+                   return .none
+               } else {
+                   state.controlUiHidden = true
+                   state.extracting = false
+                   return .send(.setError(String(localized: "archive.cache.load.failed")))
+               }
+                return .none
             case .extractArchive:
                 state.extracting = true
-                let id = state.archive.id
+                let id = state.currentArchiveId
                 let isCached = try? database.existCache(id)
                 if isCached == true {
                     state.inCache = true
@@ -151,21 +162,29 @@ import OrderedCollections
                     let pageState = pages.enumerated().map { (index, page) in
                         let normalizedPage = String(page.dropFirst(1))
                         return PageFeature.State(
-                            archiveId: state.archive.id, pageId: normalizedPage, pageNumber: index + 1
+                            archiveId: state.currentArchiveId, pageId: normalizedPage, pageNumber: index + 1
                         )
                     }
                     state.pages.append(contentsOf: pageState)
-                    let progress = state.archive.progress > 0 ? state.archive.progress - 1 : 0
-                    let pageIndexToShow = state.fromStart ? 0 : progress
-                    state.sliderIndex = Double(pageIndexToShow)
-                    state.jumpIndex = pageIndexToShow
+                    if let currentArchive = state.allArchives[id: state.currentArchiveId] {
+                        let progress = currentArchive.wrappedValue.progress > 0 ?
+                        currentArchive.wrappedValue.progress - 1 :
+                        0
+                        let pageIndexToShow = state.fromStart ? 0 : progress
+                        state.sliderIndex = Double(pageIndexToShow)
+                        state.jumpIndex = pageIndexToShow
+                    }
                     state.controlUiHidden = true
                 }
                 state.extracting = false
                 return .none
             case .loadProgress:
-                let progress = state.archive.progress > 0 ? state.archive.progress - 1 : 0
-                state.sliderIndex = Double(progress)
+                if let currentArchive = state.allArchives[id: state.currentArchiveId] {
+                    let progress = currentArchive.wrappedValue.progress > 0 ?
+                    currentArchive.wrappedValue.progress - 1 :
+                    0
+                    state.sliderIndex = Double(progress)
+                }
                 state.controlUiHidden = true
                 return .none
             case let .toggleControlUi(show):
@@ -182,8 +201,10 @@ import OrderedCollections
                 state.sliderIndex = index
                 return .none
             case let .updateProgress(pageNumber):
-                state.$archive.withLock {
-                    $0.progress = pageNumber
+                if let currentArchive = state.allArchives[id: state.currentArchiveId] {
+                    currentArchive.withLock {
+                        $0.progress = pageNumber
+                    }
                 }
                 if state.cached {
                     return .none
@@ -191,26 +212,30 @@ import OrderedCollections
                 return .run(priority: .background) { [state] send in
                     if state.serverProgress {
                         _ = try await service.updateArchiveReadProgress(
-                            id: state.archive.id, progress: pageNumber
+                            id: state.currentArchiveId, progress: pageNumber
                         ).value
                     }
-                    if pageNumber > 1 && state.archive.isNew {
-                        _ = try await service.clearNewFlag(id: state.archive.id).value
-                        await send(.setIsNew(false))
+                    if let currentArchive = state.allArchives[id: state.currentArchiveId] {
+                        if pageNumber > 1 && currentArchive.wrappedValue.isNew {
+                            _ = try await service.clearNewFlag(id: state.currentArchiveId).value
+                            await send(.setIsNew(false))
+                        }
                     }
                 } catch: { [state] error, _ in
-                    logger.error("failed to update archive progress. id=\(state.archive.id) \(error)")
+                    logger.error("failed to update archive progress. id=\(state.currentArchiveId) \(error)")
                 }
                 .debounce(id: CancelId.updateProgress, for: .seconds(0.5), scheduler: DispatchQueue.main)
             case let .setIsNew(isNew):
-                state.$archive.withLock {
-                    $0.isNew = isNew
+                if let currentArchive = state.allArchives[id: state.currentArchiveId] {
+                    currentArchive.withLock {
+                        $0.isNew = isNew
+                    }
                 }
                 return .none
             case .setThumbnail:
                 state.settingThumbnail = true
                 let pageNumber = state.pages[state.sliderIndex.int].pageNumber
-                return .run { [id = state.archive.id] send in
+                return .run { [id = state.currentArchiveId] send in
                     _ = try await service.updateArchiveThumbnail(id: id, page: pageNumber).value
                     let thumbnailUrl = try await service.retrieveArchiveThumbnail(id: id)
                         .serializingDownloadedFileURL()
@@ -224,15 +249,17 @@ import OrderedCollections
                     let successMessage = String(localized: "archive.thumbnail.set")
                     await send(.setSuccess(successMessage))
                     await send(.finishThumbnailLoading)
-                } catch: { [id = state.archive.id] error, send in
+                } catch: { [id = state.currentArchiveId] error, send in
                     logger.error("Failed to set current page as thumbnail. id=\(id) \(error)")
                     await send(.setError(error.localizedDescription))
                     await send(.finishThumbnailLoading)
                 }
             case .finishThumbnailLoading:
                 state.settingThumbnail = false
-                state.$archive.withLock {
-                    $0.refresh = true
+                if let currentArchive = state.allArchives[id: state.currentArchiveId] {
+                    currentArchive.withLock {
+                        $0.refresh = true
+                    }
                 }
                 return .none
             case let .setSuccess(message):
@@ -248,7 +275,7 @@ import OrderedCollections
                 let currentIndex = state.pages.index(id: id)!
                 state.pages.insert(
                     PageFeature.State(
-                        archiveId: state.archive.id,
+                        archiveId: state.currentArchiveId,
                         pageId: current.pageId,
                         pageNumber: current.pageNumber,
                         pageMode: mode,
@@ -288,21 +315,23 @@ import OrderedCollections
                     }) {
                         service.backgroupFetchArchivePage(
                             page: page.pageId,
-                            archiveId: state.archive.id,
+                            archiveId: state.currentArchiveId,
                             pageNumber: page.pageNumber
                         )
                         requested.append(page.pageId)
                     }
-                    var cache = ArchiveCache(
-                        id: state.archive.id,
-                        title: state.archive.name,
-                        tags: state.archive.tags,
-                        thumbnail: Data(),
-                        cached: false,
-                        totalPages: requested.count,
-                        lastUpdate: Date()
-                    )
-                    try database.saveCache(&cache)
+                    if let currentArchive = state.allArchives[id: state.currentArchiveId] {
+                        var cache = ArchiveCache(
+                            id: state.currentArchiveId,
+                            title: currentArchive.wrappedValue.name,
+                            tags: currentArchive.wrappedValue.tags,
+                            thumbnail: Data(),
+                            cached: false,
+                            totalPages: requested.count,
+                            lastUpdate: Date()
+                        )
+                        try database.saveCache(&cache)
+                    }
                     await send(.finishDownloadPages)
                 } catch: { error, send in
                     logger.error("failed to cache archive \(error)")
@@ -326,7 +355,7 @@ import OrderedCollections
                 return .none
             case .alert(.presented(.confirmDelete)):
                 state.removeCacheSuccess = false
-                return .run { [id = state.archive.id] send in
+                return .run { [id = state.currentArchiveId] send in
                     let deleted = try database.deleteCache(id)
                     if deleted != true {
                         let errorMessage = String(localized: "archive.cache.remove.failed")
@@ -337,7 +366,7 @@ import OrderedCollections
                         try? FileManager.default.removeItem(at: cacheFolder)
                         await send(.removeCacheSuccess)
                     }
-                } catch: { [id = state.archive.id] error, send in
+                } catch: { [id = state.currentArchiveId] error, send in
                     logger.error("failed to remove archive cache, id=\(id) \(error)")
                     await send(.setError(error.localizedDescription))
                 }
@@ -346,12 +375,47 @@ import OrderedCollections
                 return .none
             case .alert:
                 return .none
+            case .loadPreviousArchive:
+                guard let currentIndex = state.allArchives.firstIndex(where: { $0.id == state.currentArchiveId }) else {
+                    return .none
+                }
+                guard currentIndex > 0 else { return .none }
+                let newShared = state.allArchives[currentIndex - 1]
+                state.currentArchiveId = newShared.wrappedValue.id
+                self.resetState(state: &state)
+                if state.cached {
+                    return .send(.loadCached)
+                } else {
+                    return .send(.extractArchive)
+                }
+            case .loadNextArchive:
+                guard let currentIndex = state.allArchives.firstIndex(where: { $0.id == state.currentArchiveId }) else {
+                    return .none
+                }
+                guard currentIndex < state.allArchives.count - 1 else { return .none }
+                let newShared = state.allArchives[currentIndex + 1]
+                state.currentArchiveId = newShared.wrappedValue.id
+                self.resetState(state: &state)
+                if state.cached {
+                    return .send(.loadCached)
+                } else {
+                    return .send(.extractArchive)
+                }
             }
         }
         .forEach(\.pages, action: \.page) {
             PageFeature()
         }
         .ifLet(\.$alert, action: \.alert)
+    }
+
+    func resetState(state: inout State) {
+        state.pages = []
+        state.sliderIndex = 0
+        state.jumpIndex = 0
+        state.inCache = false
+        state.errorMessage = ""
+        state.successMessage = ""
     }
 }
 
@@ -398,14 +462,17 @@ struct ArchiveReader: View {
                     store.send(.extractArchive)
                 }
             }
-            if store.archive.extension == "rar" || store.archive.extension == "cbr" {
-                let banner = NotificationBanner(
-                    title: String(localized: "warning"),
-                    subtitle: String(localized: "warning.file.type"),
-                    style: .warning
-                )
-                banner.show()
+            if let currentArchive = store.allArchives[id: store.currentArchiveId] {
+                if currentArchive.wrappedValue.extension == "rar" || currentArchive.wrappedValue.extension == "cbr" {
+                    let banner = NotificationBanner(
+                        title: String(localized: "warning"),
+                        subtitle: String(localized: "warning.file.type"),
+                        style: .warning
+                    )
+                    banner.show()
+                }
             }
+
         }
         .onChange(of: store.errorMessage) {
             if !store.errorMessage.isEmpty {

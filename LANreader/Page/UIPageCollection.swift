@@ -30,11 +30,27 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     var collectionView: UICollectionView!
     var lastPageIndexPath: IndexPath?
 
-    var dataSource:
-        UICollectionViewDiffableDataSource<Section, StoreOf<PageFeature>>!
+    var dataSource: UICollectionViewDiffableDataSource<Section, StoreOf<PageFeature>>!
     var didInitialJump = false
 
     private var cancellables: Set<AnyCancellable> = []
+
+    // MARK: - Pull Navigation
+    private enum PullEdge {
+        case previous, next
+    }
+    private let pullThreshold: CGFloat = 80
+    private var pullEdge: PullEdge?
+    private var pullProgress: CGFloat = 0 // 0..1
+    private var pullActive: Bool = false
+    private var pullIndicatorContainer: UIView = UIView()
+    private var pullArrowView: UIImageView = UIImageView()
+    private var pullStatusLabel: UILabel = UILabel()
+    private var pullStatusBackground: UIVisualEffectView = UIVisualEffectView(
+        effect: UIBlurEffect(style: .systemMaterial)
+    )
+    private var lastReportedProgressBucket: Int = -1 // for throttled updates
+    private var pullThresholdCrossedHapticsFired = false
 
     init(store: StoreOf<ArchiveReaderFeature>) {
         self.store = store
@@ -47,9 +63,9 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
     private func setupLayout() {
         let heightDimension =
-            store.readDirection == ReadDirection.upDown.rawValue
+        store.readDirection == ReadDirection.upDown.rawValue
         ? NSCollectionLayoutDimension.estimated(UIScreen.main.bounds.height)
-            : NSCollectionLayoutDimension.fractionalHeight(1)
+        : NSCollectionLayoutDimension.fractionalHeight(1)
         let itemSize = NSCollectionLayoutSize(
             widthDimension: NSCollectionLayoutDimension.fractionalWidth(store.doublePageLayout ? 0.5 : 1),
             heightDimension: heightDimension
@@ -87,7 +103,13 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     }
 
     private func setupCollectionView() {
-        collectionView.bounces = false
+        // Enable bounces so user can pull at first/last page for navigation UI
+        collectionView.bounces = true
+        if store.readDirection == ReadDirection.upDown.rawValue {
+            collectionView.alwaysBounceVertical = true
+        } else {
+            collectionView.alwaysBounceHorizontal = true
+        }
         collectionView.backgroundColor = .systemBackground
         collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         collectionView.translatesAutoresizingMaskIntoConstraints = false
@@ -110,9 +132,9 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
         let cellRegistration = UICollectionView
             .CellRegistration<UIPageCell, StoreOf<PageFeature>> { [weak self] cell, _, pageStore in
-            guard self != nil else { return }
-            cell.configure(with: pageStore)
-        }
+                guard self != nil else { return }
+                cell.configure(with: pageStore)
+            }
 
         dataSource = UICollectionViewDiffableDataSource<Section, StoreOf<PageFeature>>(
             collectionView: collectionView
@@ -195,6 +217,8 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
         collectionView.delegate = self
         collectionView.prefetchDataSource = self
+
+        setupPullNavigationUI()
 
         becomeFirstResponder()
     }
@@ -358,6 +382,317 @@ extension UIPageCollectionController: UIGestureRecognizerDelegate {
             }
         }
         return true
+    }
+}
+
+// MARK: - Pull Navigation UI Logic
+extension UIPageCollectionController {
+    private func setupPullNavigationUI() {
+        // Arrow container (initially hidden)
+        pullIndicatorContainer.isHidden = true
+        pullIndicatorContainer.clipsToBounds = false
+        view.addSubview(pullIndicatorContainer)
+
+        pullArrowView.contentMode = .scaleAspectFit
+        pullArrowView.tintColor = .secondaryLabel
+        pullIndicatorContainer.addSubview(pullArrowView)
+
+        pullStatusLabel.font = UIFont.preferredFont(forTextStyle: .headline)
+        pullStatusLabel.textColor = .label
+        pullStatusLabel.textAlignment = .center
+        pullStatusLabel.numberOfLines = 1
+        pullStatusLabel.isHidden = true
+
+        pullStatusBackground.isHidden = true
+        pullStatusBackground.clipsToBounds = true
+        pullStatusBackground.layer.cornerRadius = 14
+        pullStatusBackground.layer.cornerCurve = .continuous
+        // Add label inside contentView
+        pullStatusBackground.contentView.addSubview(pullStatusLabel)
+        view.addSubview(pullStatusBackground)
+    }
+
+    private func isAtFirstVisualPage() -> Bool {
+        if store.readDirection == ReadDirection.upDown.rawValue {
+            // For vertical reading rely on scroll position for accuracy; allow small epsilon
+            return collectionView.contentOffset.y <= -collectionView.adjustedContentInset.top + 1
+        } else if store.doublePageLayout {
+            return store.sliderIndex.int <= 1
+        }
+        return store.sliderIndex.int <= 0
+    }
+
+    private func isAtLastVisualPage() -> Bool {
+        let lastIndex = store.pages.count - 1
+        if store.readDirection == ReadDirection.upDown.rawValue {
+            // Check if we've scrolled to (or beyond) bottom
+            let maxOffset = max(
+                0,
+                collectionView.contentSize.height -
+                collectionView.bounds.height +
+                collectionView.adjustedContentInset.bottom
+            )
+            return collectionView.contentOffset.y >= maxOffset - 1
+        } else if store.doublePageLayout {
+            // For double page layout treat last pair as last visual page
+            return store.sliderIndex.int >= lastIndex - 1
+        } else {
+            return store.sliderIndex.int >= lastIndex
+        }
+    }
+
+    private struct ScrollMetrics {
+        let offset: CGFloat
+        let maxOffset: CGFloat
+        let axis: NSLayoutConstraint.Axis
+    }
+
+    private func currentScrollMetrics() -> ScrollMetrics? {
+        guard let collectionView else { return nil }
+        let axis: NSLayoutConstraint.Axis = store.readDirection == ReadDirection.upDown.rawValue ?
+            .vertical : .horizontal
+        if axis == .horizontal {
+            let maxOffset = max(0, collectionView.contentSize.width - collectionView.bounds.width)
+            return ScrollMetrics(offset: collectionView.contentOffset.x, maxOffset: maxOffset, axis: axis)
+        } else {
+            let maxOffset = max(0, collectionView.contentSize.height - collectionView.bounds.height)
+            return ScrollMetrics(offset: collectionView.contentOffset.y, maxOffset: maxOffset, axis: axis)
+        }
+    }
+
+    private func updatePullState(scroll metrics: ScrollMetrics) {
+        let atFirst = isAtFirstVisualPage()
+        let atLast = isAtLastVisualPage()
+        guard atFirst || atLast else {
+            endPullInteraction()
+            return
+        }
+
+        let offset = metrics.offset
+        let maxOffset = metrics.maxOffset
+        var overscroll: CGFloat = 0
+        if offset < 0 && atFirst {
+            overscroll = -offset
+            pullEdge = .previous
+        } else if offset > maxOffset && atLast {
+            overscroll = offset - maxOffset
+            pullEdge = .next
+        } else {
+            endPullInteraction()
+            return
+        }
+
+        pullActive = overscroll > 0
+        pullProgress = min(1, overscroll / pullThreshold)
+        // Throttle UI updates to avoid excessive layout work (bucket by 5%)
+        let bucket = Int(pullProgress * 20) // 0..20
+        guard bucket != lastReportedProgressBucket else { return }
+        lastReportedProgressBucket = bucket
+        layoutPullIndicator(overscroll: overscroll, axis: metrics.axis)
+        updatePullViews()
+    }
+
+    // swiftlint:disable function_body_length
+    private func layoutPullIndicator(overscroll: CGFloat, axis: NSLayoutConstraint.Axis) {
+        guard let edge = pullEdge else { return }
+        let maxVisualWidth: CGFloat = min(overscroll, pullThreshold * 1.25)
+        let arrowSize: CGFloat = 32
+
+        if axis == .horizontal {
+            let isRTLReading = store.readDirection == ReadDirection.rightLeft.rawValue
+            let containerFrame: CGRect
+            if isRTLReading {
+                switch edge {
+                case .previous:
+                    containerFrame = CGRect(
+                        x: view.bounds.width - maxVisualWidth,
+                        y: 0,
+                        width: maxVisualWidth,
+                        height: view.bounds.height
+                    )
+                case .next:
+                    containerFrame = CGRect(x: 0, y: 0, width: maxVisualWidth, height: view.bounds.height)
+                }
+            } else {
+                switch edge {
+                case .previous:
+                    containerFrame = CGRect(x: 0, y: 0, width: maxVisualWidth, height: view.bounds.height)
+                case .next:
+                    containerFrame = CGRect(
+                        x: view.bounds.width - maxVisualWidth,
+                        y: 0,
+                        width: maxVisualWidth,
+                        height: view.bounds.height
+                    )
+                }
+            }
+            pullIndicatorContainer.frame = containerFrame
+            pullArrowView.frame = CGRect(
+                x: (containerFrame.width - arrowSize) / 2,
+                y: (containerFrame.height - arrowSize) / 2,
+                width: arrowSize,
+                height: arrowSize
+            )
+        } else {
+            let containerFrame: CGRect
+            switch edge {
+            case .previous:
+                containerFrame = CGRect(x: 0, y: 0, width: view.bounds.width, height: maxVisualWidth)
+            case .next:
+                containerFrame = CGRect(
+                    x: 0,
+                    y: view.bounds.height - maxVisualWidth,
+                    width: view.bounds.width,
+                    height: maxVisualWidth
+                )
+            }
+            pullIndicatorContainer.frame = containerFrame
+            pullArrowView.frame = CGRect(
+                x: (containerFrame.width - arrowSize) / 2,
+                y: (containerFrame.height - arrowSize) / 2,
+                width: arrowSize,
+                height: arrowSize
+            )
+        }
+    }
+    // swiftlint:enable function_body_length
+
+    private func layoutStatusLabel() {
+        let maxWidth = min(view.bounds.width * 0.7, 360)
+        pullStatusLabel.sizeToFit()
+        let intrinsic = pullStatusLabel.bounds.size
+        let paddedWidth = min(maxWidth, intrinsic.width + 32)
+        let height: CGFloat = max(40, intrinsic.height + 16)
+        pullStatusBackground.frame = CGRect(
+            x: (view.bounds.width - paddedWidth)/2,
+            y: view.bounds.midY - height/2,
+            width: paddedWidth,
+            height: height
+        )
+        pullStatusLabel.frame = CGRect(
+            x: 0,
+            y: (height - pullStatusLabel.font.lineHeight)/2 - 1,
+            width: paddedWidth,
+            height: pullStatusLabel.font.lineHeight + 2
+        )
+    }
+
+    private func symbolName(for edge: PullEdge, axis: NSLayoutConstraint.Axis, flipped: Bool) -> String {
+        let isRTLReading = store.readDirection == ReadDirection.rightLeft.rawValue
+        if axis == .horizontal {
+            if isRTLReading {
+                switch edge {
+                case .previous: return flipped ? "arrow.right" : "arrow.left"
+                case .next:     return flipped ? "arrow.left"  : "arrow.right"
+                }
+            } else {
+                switch edge {
+                case .previous: return flipped ? "arrow.left" : "arrow.right"
+                case .next:     return flipped ? "arrow.right" : "arrow.left"
+                }
+            }
+        } else {
+            switch edge {
+            case .previous: return flipped ? "arrow.up" : "arrow.down"
+            case .next:     return flipped ? "arrow.down" : "arrow.up"
+            }
+        }
+    }
+
+    private func isAtFirstArchive() -> Bool {
+        guard let first = store.allArchives.first else { return false }
+        return store.currentArchiveId == first.wrappedValue.id
+    }
+
+    private func isAtLastArchive() -> Bool {
+        guard let last = store.allArchives.last else { return false }
+        return store.currentArchiveId == last.wrappedValue.id
+    }
+
+    private func updatePullViews() {
+        guard pullActive, let edge = pullEdge, let metrics = currentScrollMetrics() else { return }
+        pullIndicatorContainer.isHidden = false
+        pullStatusBackground.isHidden = false
+        pullStatusLabel.isHidden = false
+        let atArchiveBoundary = (edge == .previous && isAtFirstArchive()) || (edge == .next && isAtLastArchive())
+        let flipped = !atArchiveBoundary && pullProgress >= 1
+        pullArrowView.image = UIImage(systemName: symbolName(for: edge, axis: metrics.axis, flipped: flipped))
+
+        if atArchiveBoundary {
+            if edge == .previous {
+                pullStatusLabel.text = String(localized: "archive.read.first")
+            } else {
+                pullStatusLabel.text = String(localized: "archive.read.last")
+            }
+        } else if flipped {
+            pullStatusLabel.text = String(localized: "archive.read.load")
+        } else {
+            switch edge {
+            case .previous: pullStatusLabel.text = String(localized: "archive.read.previous")
+            case .next: pullStatusLabel.text = String(localized: "archive.read.next")
+            }
+        }
+        layoutStatusLabel()
+        if flipped && !pullThresholdCrossedHapticsFired {
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.prepare()
+            generator.impactOccurred()
+            pullThresholdCrossedHapticsFired = true
+        } else if !flipped {
+            pullThresholdCrossedHapticsFired = false
+        }
+        let alpha = min(1, 0.3 + pullProgress * 0.7)
+        pullArrowView.alpha = alpha
+        pullStatusLabel.alpha = alpha
+        pullStatusBackground.alpha = alpha
+    }
+
+    private func endPullInteraction() {
+        pullActive = false
+        pullEdge = nil
+        pullProgress = 0
+        lastReportedProgressBucket = -1
+        pullIndicatorContainer.isHidden = true
+        pullStatusLabel.isHidden = true
+        pullStatusBackground.isHidden = true
+        pullThresholdCrossedHapticsFired = false
+    }
+
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        guard scrollView === collectionView else { return }
+        guard let metrics = currentScrollMetrics() else { return }
+        updatePullState(scroll: metrics)
+    }
+
+    func resetCollectionView() {
+        let snapshot = NSDiffableDataSourceSnapshot<
+            Section, StoreOf<PageFeature>
+        >()
+        dataSource.apply(snapshot, animatingDifferences: false)
+        collectionView.setContentOffset(.zero, animated: false)
+        lastPageIndexPath = nil
+        didInitialJump = false
+    }
+
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        guard scrollView === collectionView else { return }
+        if pullActive && pullProgress >= 1, let edge = pullEdge {
+            let atArchiveBoundary = (edge == .previous && isAtFirstArchive()) || (edge == .next && isAtLastArchive())
+            if !atArchiveBoundary {
+                resetCollectionView()
+                switch edge {
+                case .previous:
+                    store.send(.loadPreviousArchive)
+                case .next:
+                    store.send(.loadNextArchive)
+                }
+                let successGen = UINotificationFeedbackGenerator()
+                successGen.prepare()
+                successGen.notificationOccurred(.success)
+            }
+        }
+
+        endPullInteraction()
     }
 }
 
