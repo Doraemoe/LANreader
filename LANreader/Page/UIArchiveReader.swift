@@ -24,9 +24,6 @@ class UIArchiveReaderController: UIViewController {
     }
 
     private func setupLayout() {
-        if let currentArchive = store.allArchives[id: store.currentArchiveId] {
-            navigationItem.title = currentArchive.wrappedValue.name
-        }
         navigationItem.largeTitleDisplayMode = .inline
         add(hostingController)
         NSLayoutConstraint.activate([
@@ -75,6 +72,12 @@ class UIArchiveReaderController: UIViewController {
                 }
             }
             .store(in: &cancellables)
+
+        observe { [weak self] in
+            guard let self else { return }
+            guard let currentArchive = store.allArchives[id: store.currentArchiveId] else { return }
+            navigationItem.title = currentArchive.wrappedValue.name
+        }
     }
 
     override func viewDidLoad() {
