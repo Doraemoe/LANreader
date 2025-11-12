@@ -32,9 +32,9 @@ import OrderedCollections
         var errorMessage = ""
         var successMessage = ""
         var showAutoPageConfig = false
-        var startAutoPage = false
         var autoPage = AutomaticPageFeature.State()
         var autoDate = Date()
+        var lastAutoPageIndex: Int?
         var cached = false
         var inCache = false
         var removeCacheSuccess = false
@@ -61,6 +61,8 @@ import OrderedCollections
         case autoPage(AutomaticPageFeature.Action)
         case showAutoPageConfig
         case setAutoDate(Date)
+        case autoPageTick
+        case setLastAutoPageIndex(Int?)
         case page(IdentifiedActionOf<PageFeature>)
         case extractArchive
         case loadProgress
@@ -188,6 +190,7 @@ import OrderedCollections
                 } else {
                     state.controlUiHidden.toggle()
                 }
+                state.lastAutoPageIndex = nil
                 return .cancel(id: CancelId.autoPage)
             case let .setJumpIndex(jumpIndex):
                 state.jumpIndex = jumpIndex
@@ -282,13 +285,7 @@ import OrderedCollections
             case .autoPage(.startAutoPage):
                 state.showAutoPageConfig = false
                 state.controlUiHidden = true
-                state.startAutoPage = true
-                return .run { [interval = state.autoPageInterval] send in
-                    for await timerDate in Timer.publish(every: interval, on: .main, in: .common).autoconnect().values {
-                        await send(.setAutoDate(timerDate))
-                    }
-                }
-                .cancellable(id: CancelId.autoPage)
+                return .send(.autoPageTick)
             case let .setAutoDate(date):
                 state.autoDate = date
                 return .none
@@ -296,6 +293,46 @@ import OrderedCollections
                 state.showAutoPageConfig = false
                 return .none
             case .autoPage:
+                return .none
+            case .autoPageTick:
+                let idx = state.sliderIndex.int
+                var canAdvance = true
+                if state.lastAutoPageIndex == idx {
+                    canAdvance = false
+                } else if idx == (state.pages.count - 1) {
+                    return .cancel(id: CancelId.autoPage)
+                } else {
+                    if idx >= 0 && idx < state.pages.count {
+                        let page = state.pages[idx]
+                        if !page.imageLoaded {
+                            canAdvance = false
+                        }
+                    } else {
+                        return .cancel(id: CancelId.autoPage)
+                    }
+                    if canAdvance && state.readDirection != ReadDirection.upDown.rawValue && state.doublePageLayout {
+                        let previousIdx = idx - 1
+                        if previousIdx >= 0 && previousIdx < state.pages.count {
+                            let page = state.pages[previousIdx]
+                            if !page.imageLoaded {
+                                canAdvance = false
+                            }
+                        }
+                    }
+                }
+
+                return .run { [idx, canAdvance, interval = state.autoPageInterval] send in
+                    if canAdvance {
+                        try? await Task.sleep(for: .seconds(interval))
+                        await send(.setAutoDate(Date()))
+                        await send(.setLastAutoPageIndex(idx))
+                    } else {
+                        try? await Task.sleep(for: .milliseconds(300))
+                    }
+                    await send(.autoPageTick)
+                }.cancellable(id: CancelId.autoPage)
+            case let .setLastAutoPageIndex(index):
+                state.lastAutoPageIndex = index
                 return .none
             case .downloadPages:
                 return .run { [state] send in
@@ -511,6 +548,7 @@ struct ArchiveReader: View {
                     } label: {
                         Image(systemName: "play")
                     }
+                    .disabled(store.readDirection == ReadDirection.upDown.rawValue)
                     Text(String(format: "%d/%d",
                                 store.sliderIndex.int + 1,
                                 store.pages.count))

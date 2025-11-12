@@ -66,8 +66,12 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         store.readDirection == ReadDirection.upDown.rawValue
         ? NSCollectionLayoutDimension.estimated(UIScreen.main.bounds.height)
         : NSCollectionLayoutDimension.fractionalHeight(1)
+        let widthDimension =
+        store.readDirection != ReadDirection.upDown.rawValue && store.doublePageLayout
+        ? NSCollectionLayoutDimension.fractionalWidth(0.5)
+        : NSCollectionLayoutDimension.fractionalWidth(1)
         let itemSize = NSCollectionLayoutSize(
-            widthDimension: NSCollectionLayoutDimension.fractionalWidth(store.doublePageLayout ? 0.5 : 1),
+            widthDimension: widthDimension,
             heightDimension: heightDimension
         )
         let item = NSCollectionLayoutItem(layoutSize: itemSize)
@@ -77,7 +81,10 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             heightDimension: heightDimension
         )
         let group = NSCollectionLayoutGroup.horizontal(
-            layoutSize: groupSize, repeatingSubitem: item, count: store.doublePageLayout ? 2 : 1)
+            layoutSize: groupSize,
+            repeatingSubitem: item,
+            count: store.readDirection != ReadDirection.upDown.rawValue && store.doublePageLayout ? 2 : 1
+        )
 
         let section = NSCollectionLayoutSection(group: group)
 
@@ -266,7 +273,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
     // For double page layout treat a pair of items as one visual page; return left item index path
     private func startOfGroupIndexPath(for indexPath: IndexPath) -> IndexPath {
-        guard store.doublePageLayout else { return indexPath }
+        guard store.readDirection != ReadDirection.upDown.rawValue && store.doublePageLayout else { return indexPath }
         let row = indexPath.row % 2 == 0 ? indexPath.row : indexPath.row - 1
         return IndexPath(row: row, section: indexPath.section)
     }
