@@ -3,11 +3,11 @@ import Alamofire
 import SwiftUI
 import Logging
 
-@Reducer public struct PageFeature {
+@Reducer public struct PageFeature: Sendable {
     private let logger = Logger(label: "PageFeature")
 
     @ObservableState
-    public struct State: Equatable, Identifiable {
+    public struct State: Equatable, Identifiable, Sendable {
         @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
         @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
         @SharedReader(.appStorage(SettingsKey.translationEnabled)) var translationEnabled = false
@@ -69,7 +69,7 @@ import Logging
     @Dependency(\.imageService) var imageService
     @Dependency(\.translatorService) var translatorService
 
-    public enum CancelId { case imageProgress }
+    public enum CancelId: Sendable { case imageProgress }
 
     public var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -134,7 +134,10 @@ import Logging
                     } else {
                         return .run { [state] send in
                             do {
-                                let task = service.fetchArchivePage(page: state.pageId, pageNumber: state.pageNumber)
+                                let task = await service.fetchArchivePage(
+                                    page: state.pageId,
+                                    pageNumber: state.pageNumber
+                                )
                                 await send(.subscribeToProgress(task))
                                 let imageUrl = try await task
                                     .serializingDownloadedFileURL()
@@ -145,7 +148,7 @@ import Logging
                                 if state.translationEnabled {
                                     await send(.setProgress(2.0))
 
-                                    guard let request = translatorService.translatePage(original: imageUrl) else {
+                                    guard let request = await translatorService.translatePage(original: imageUrl) else {
                                         await send(
                                             .setError(
                                                 String(localized: "archive.page.translate.request.failed")
@@ -155,7 +158,7 @@ import Logging
                                     }
 
                                     let handler = TranslationStreamHandler()
-                                    let statusStream = handler.processStreamResponse(request)
+                                    let statusStream = await handler.processStreamResponse(request)
                                     var lastCode = ""
                                     for try await status in statusStream {
                                         switch status {
@@ -245,7 +248,7 @@ import Logging
     }
 }
 
-public enum PageMode: String {
+public enum PageMode: String, Sendable {
     case loading
     case left
     case right

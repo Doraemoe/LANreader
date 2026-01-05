@@ -3,9 +3,9 @@ import SwiftUI
 import NotificationBannerSwift
 import LocalAuthentication
 
-@Reducer public struct LockScreenFeature {
+@Reducer public struct LockScreenFeature: Sendable {
     @ObservableState
-    public struct State: Equatable {
+    public struct State: Equatable, Sendable {
         @Shared(.appStorage(SettingsKey.passcode)) var passcode = ""
 
         var pin = ""

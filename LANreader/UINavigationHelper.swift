@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 import Observation
 
+@MainActor
 @Observable
 final class NavigationHelper {
     weak var navigationController: UINavigationController?

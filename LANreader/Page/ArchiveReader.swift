@@ -5,11 +5,11 @@ import Combine
 import NotificationBannerSwift
 import OrderedCollections
 
-@Reducer public struct ArchiveReaderFeature {
+@Reducer public struct ArchiveReaderFeature: Sendable {
     private let logger = Logger(label: "ArchiveReaderFeature")
 
     @ObservableState
-    public struct State: Equatable {
+    public struct State: Equatable, Sendable {
         @Presents var alert: AlertState<Action.Alert>?
 
         @SharedReader(.appStorage(SettingsKey.tapLeftKey)) var tapLeft = PageControl.next.rawValue
@@ -84,7 +84,7 @@ import OrderedCollections
         case loadPreviousArchive
         case loadNextArchive
 
-        public enum Alert {
+        public enum Alert: Sendable {
             case confirmDelete
         }
     }
@@ -94,7 +94,7 @@ import OrderedCollections
     @Dependency(\.appDatabase) var database
     @Dependency(\.dismiss) var dismiss
 
-    public enum CancelId {
+    public enum CancelId: Sendable {
         case updateProgress
         case autoPage
     }
@@ -340,7 +340,7 @@ import OrderedCollections
                     for page in state.pages where !requested.contains(where: { requestedId in
                         requestedId == page.pageId
                     }) {
-                        service.backgroupFetchArchivePage(
+                        await service.backgroupFetchArchivePage(
                             page: page.pageId,
                             archiveId: state.currentArchiveId,
                             pageNumber: page.pageNumber

@@ -65,10 +65,12 @@ class UIArchiveReaderController: UIViewController {
     private func setupObserve() {
         store.publisher.controlUiHidden
             .sink { [weak self] hidden in
+                guard let self,
+                      self.navigationController?.topViewController === self else { return }
                 if hidden {
-                    self?.navigationController?.setNavigationBarHidden(true, animated: false)
+                    self.navigationController?.setNavigationBarHidden(true, animated: false)
                 } else {
-                    self?.navigationController?.setNavigationBarHidden(false, animated: false)
+                    self.navigationController?.setNavigationBarHidden(false, animated: false)
                 }
             }
             .store(in: &cancellables)

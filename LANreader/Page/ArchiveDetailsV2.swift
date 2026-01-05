@@ -5,11 +5,11 @@ import NotificationBannerSwift
 import GRDB
 import GRDBQuery
 
-@Reducer public struct ArchiveDetailsFeature {
+@Reducer public struct ArchiveDetailsFeature: Sendable {
     private let logger = Logger(label: "ArchiveDetailsFeature")
 
     @ObservableState
-    public struct State: Equatable {
+    public struct State: Equatable, Sendable {
         @Shared(.archive) var archiveItems: IdentifiedArrayOf<ArchiveItem> = []
         @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
         @Shared var archive: ArchiveItem
@@ -336,16 +336,15 @@ struct ArchiveDetailsV2: View {
                 .disableAutocorrection(true)
                 .padding()
         } else {
-            WrappingHStack(
-                models: store.tags.split(separator: ","),
-                viewGenerator: { tag in
-                    parseTag(tag: String(tag))
-                        .padding()
-                        .controlSize(.mini)
-                        .foregroundStyle(.white)
-                        .background(.blue)
-                        .clipShape(Capsule())
-                })
+            let tags = store.tags.split(separator: ",")
+            WrappingHStack.ForEach(tags) { tag in
+                parseTag(tag: String(tag))
+                    .padding()
+                    .controlSize(.mini)
+                    .foregroundStyle(.white)
+                    .background(.blue)
+                    .clipShape(Capsule())
+            }
             .padding()
         }
     }

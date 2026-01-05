@@ -4,11 +4,11 @@ import SwiftUI
 import NotificationBannerSwift
 import Logging
 
-@Reducer public struct LANraragiConfigFeature {
+@Reducer public struct LANraragiConfigFeature: Sendable {
     private let logger = Logger(label: "LANraragiConfigFeature")
 
     @ObservableState
-    public struct State: Equatable {
+    public struct State: Equatable, Sendable {
         @Shared(.appStorage(SettingsKey.serverProgress)) var serverProgress = false
         @Shared(.appStorage(SettingsKey.lanraragiUrl)) var url = ""
         @Shared(.appStorage(SettingsKey.lanraragiApiKey)) var apiKey = ""

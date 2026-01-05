@@ -3,7 +3,7 @@ import ComposableArchitecture
 
 @Reducer public struct AutomaticPageFeature {
     @ObservableState
-    public struct State: Equatable {
+    public struct State: Equatable, Sendable {
         @Shared(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
 
         var showAutomaticPage: Bool = false

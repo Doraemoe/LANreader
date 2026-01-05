@@ -1,8 +1,8 @@
 import UIKit
 import Dependencies
 
-class ImageService {
-    private static var _shared: ImageService?
+final class ImageService: Sendable {
+    static let shared = ImageService()
 
     func heicDataOfImage(url: URL) -> Data? {
         guard let image = UIImage(contentsOfFile: url.path(percentEncoded: false)) else { return nil }
@@ -42,13 +42,6 @@ class ImageService {
             splitted = true
         }
         return splitted
-    }
-
-    public static var shared: ImageService {
-        if _shared == nil {
-            _shared = ImageService()
-        }
-        return _shared!
     }
 }
 

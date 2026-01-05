@@ -18,7 +18,6 @@ class LANraragiServiceTest: XCTestCase {
     override func setUpWithError() throws {
         UserDefaults.standard.set(url, forKey: SettingsKey.lanraragiUrl)
         UserDefaults.standard.set(apiKey, forKey: SettingsKey.lanraragiApiKey)
-        LANraragiService.resetService()
         service = LANraragiService.shared
     }
 
