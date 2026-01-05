@@ -6,7 +6,7 @@ import Foundation
 import Sharing
 import IdentifiedCollections
 
-public struct SearchFilter: Equatable {
+public struct SearchFilter: Equatable, Sendable {
     let category: String?
     let filter: String?
 }

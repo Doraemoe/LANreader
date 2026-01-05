@@ -29,7 +29,7 @@ struct ArchiveCategoriesResponse: Decodable {
 
 struct ArchiveSearchResponse: Decodable {
     let data: [ArchiveIndexResponse]
-    let draw: Int
+    let draw: Int?
     let recordsFiltered: Int
     let recordsTotal: Int
 }

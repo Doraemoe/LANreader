@@ -1,67 +1,87 @@
 import SwiftUI
 
-struct WrappingHStack<Model, V>: View where Model: Hashable, V: View {
-    typealias ViewGenerator = (Model) -> V
-
-    var models: [Model]
-    var viewGenerator: ViewGenerator
+struct WrappingHStack: Layout {
     var horizontalSpacing: CGFloat = 2
     var verticalSpacing: CGFloat = 2
 
-    @State private var totalHeight
-          = CGFloat.zero       // << variant for ScrollView/List
-    //    = CGFloat.infinity   // << variant for VStack
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let result = arrangeSubviews(proposal: proposal, subviews: subviews)
+        return result.size
+    }
 
-    var body: some View {
-        VStack {
-            GeometryReader { geometry in
-                self.generateContent(in: geometry)
-            }
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = arrangeSubviews(proposal: proposal, subviews: subviews)
+
+        for (index, position) in result.positions.enumerated() {
+            subviews[index].place(
+                at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y),
+                proposal: ProposedViewSize(subviews[index].sizeThatFits(.unspecified))
+            )
         }
-        .frame(height: totalHeight)// << variant for ScrollView/List
-        // .frame(maxHeight: totalHeight) // << variant for VStack
     }
 
-    private func generateContent(in geometry: GeometryProxy) -> some View {
-        var width = CGFloat.zero
-        var height = CGFloat.zero
+    private func arrangeSubviews(
+        proposal: ProposedViewSize,
+        subviews: Subviews
+    ) -> (size: CGSize, positions: [CGPoint]) {
+        let maxWidth = proposal.width ?? .infinity
+        var positions: [CGPoint] = []
+        var currentX: CGFloat = 0
+        var currentY: CGFloat = 0
+        var lineHeight: CGFloat = 0
+        var totalHeight: CGFloat = 0
+        var totalWidth: CGFloat = 0
 
-        return ZStack(alignment: .topLeading) {
-            ForEach(self.models, id: \.self) { models in
-                viewGenerator(models)
-                    .padding(.horizontal, horizontalSpacing)
-                    .padding(.vertical, verticalSpacing)
-                    .alignmentGuide(.leading, computeValue: { dimension in
-                        if abs(width - dimension.width) > geometry.size.width {
-                            width = 0
-                            height -= dimension.height
-                        }
-                        let result = width
-                        if models == self.models.last! {
-                            width = 0 // last item
-                        } else {
-                            width -= dimension.width
-                        }
-                        return result
-                    })
-                    .alignmentGuide(.top, computeValue: {_ in
-                        let result = height
-                        if models == self.models.last! {
-                            height = 0 // last item
-                        }
-                        return result
-                    })
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            let itemWidth = size.width + horizontalSpacing * 2
+            let itemHeight = size.height + verticalSpacing * 2
+
+            if currentX + itemWidth > maxWidth, currentX > 0 {
+                // Move to next line
+                currentX = 0
+                currentY += lineHeight
+                lineHeight = 0
             }
-        }.background(viewHeightReader($totalHeight))
+
+            positions.append(CGPoint(x: currentX + horizontalSpacing, y: currentY + verticalSpacing))
+
+            currentX += itemWidth
+            lineHeight = max(lineHeight, itemHeight)
+            totalWidth = max(totalWidth, currentX)
+            totalHeight = max(totalHeight, currentY + lineHeight)
+        }
+
+        return (CGSize(width: totalWidth, height: totalHeight), positions)
     }
+}
 
-    private func viewHeightReader(_ binding: Binding<CGFloat>) -> some View {
-        return GeometryReader { geometry -> Color in
-            let rect = geometry.frame(in: .local)
-            DispatchQueue.main.async {
-                binding.wrappedValue = rect.size.height
+// Convenience wrapper for generic content
+extension WrappingHStack {
+    struct ForEach<Model: Hashable, Content: View>: View {
+        let models: [Model]
+        let horizontalSpacing: CGFloat
+        let verticalSpacing: CGFloat
+        let content: (Model) -> Content
+
+        init(
+            _ models: [Model],
+            horizontalSpacing: CGFloat = 2,
+            verticalSpacing: CGFloat = 2,
+            @ViewBuilder content: @escaping (Model) -> Content
+        ) {
+            self.models = models
+            self.horizontalSpacing = horizontalSpacing
+            self.verticalSpacing = verticalSpacing
+            self.content = content
+        }
+
+        var body: some View {
+            WrappingHStack(horizontalSpacing: horizontalSpacing, verticalSpacing: verticalSpacing) {
+                SwiftUI.ForEach(models, id: \.self) { model in
+                    content(model)
+                }
             }
-            return .clear
         }
     }
 }

@@ -50,7 +50,7 @@ struct Category: Identifiable {
     var lastUpdate: Date
 }
 
-public struct DownloadJob: Identifiable, Equatable {
+public struct DownloadJob: Identifiable, Equatable, Sendable {
     public var id: Int
     var url: String
     var title: String

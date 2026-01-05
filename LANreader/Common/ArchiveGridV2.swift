@@ -4,11 +4,11 @@ import Logging
 import GRDB
 import GRDBQuery
 
-@Reducer public struct GridFeature {
+@Reducer public struct GridFeature: Sendable {
     private let logger = Logger(label: "GridFeature")
 
     @ObservableState
-    public struct State: Equatable, Identifiable {
+    public struct State: Equatable, Identifiable, Sendable {
         @Shared var archive: ArchiveItem
         var nonce = 0
 

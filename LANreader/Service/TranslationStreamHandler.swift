@@ -1,47 +1,53 @@
 import Alamofire
 import Foundation
 
-enum TranslationStatus: Equatable {
+enum TranslationStatus: Equatable, Sendable {
     case completed(Data)
     case progress(String)
     case error(String)
     case pending(queuePosition: String?)
 }
 
-class TranslationStreamHandler {
+actor TranslationStreamHandler {
     private var buffer = Data()
 
     func processStreamResponse(_ request: DataStreamRequest) -> AsyncThrowingStream<TranslationStatus, Error> {
         return AsyncThrowingStream { continuation in
-            request.responseStream { stream in
-                switch stream.event {
-                case .stream(let result):
-                    switch result {
-                    case .success(let data):
-                        let status = self.processChunk(data)
-                        continuation.yield(status)
+            request.responseStream { [weak self] stream in
+                guard let self = self else {
+                    continuation.finish()
+                    return
+                }
 
-                        // If we have a final result, we're done
-                        if case .completed = status {
-                            continuation.finish()
+                Task {
+                    switch stream.event {
+                    case .stream(let result):
+                        switch result {
+                        case .success(let data):
+                            let status = await self.processChunk(data)
+                            continuation.yield(status)
+
+                            if case .completed = status {
+                                continuation.finish()
+                            }
+
+                        case .failure(let error):
+                            continuation.finish(throwing: error)
                         }
 
-                    case .failure(let error):
-                        continuation.finish(throwing: error)
-                    }
-
-                case .complete(let response):
-                    if let error = response.error {
-                        continuation.finish(throwing: error)
-                    } else {
-                        continuation.finish()
+                    case .complete(let response):
+                        if let error = response.error {
+                            continuation.finish(throwing: error)
+                        } else {
+                            continuation.finish()
+                        }
                     }
                 }
             }
         }
     }
 
-    func handleProgressCode(code: String) -> String {
+    nonisolated func handleProgressCode(code: String) -> String {
         switch code {
         case "upload":
             return String(localized: "translation.progress.uploading")

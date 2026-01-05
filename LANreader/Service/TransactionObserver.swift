@@ -1,24 +1,23 @@
 import StoreKit
 
-final class TransactionObserver {
+actor TransactionObserver {
 
-    var updates: Task<Void, Never>?
+    private var updates: Task<Void, Never>?
 
-    init() {
-        updates = newTransactionListenerTask()
-    }
+    init() {}
 
-    deinit {
-        // Cancel the update handling task when you deinitialize the class.
-        updates?.cancel()
-    }
-
-    private func newTransactionListenerTask() -> Task<Void, Never> {
-        Task(priority: .background) {
+    func start() {
+        guard updates == nil else { return }
+        updates = Task(priority: .background) {
             for await verificationResult in Transaction.updates {
                 await self.handle(updatedTransaction: verificationResult)
             }
         }
+    }
+
+    func cancel() {
+        updates?.cancel()
+        updates = nil
     }
 
     private func handle(updatedTransaction verificationResult: VerificationResult<Transaction>) async {

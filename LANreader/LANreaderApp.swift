@@ -13,6 +13,8 @@ struct LANreaderApp: App {
         AppFeature()
     }
 
+    private let transactionObserver = TransactionObserver()
+
     init() {
         do {
             if let tmp = try? FileManager.default.contentsOfDirectory(
@@ -51,13 +53,11 @@ struct LANreaderApp: App {
             puppy.add(console)
             puppy.add(fileLogger)
 
-            LoggingSystem.bootstrap {
+            LoggingSystem.bootstrap { [puppy] in
                 var handler = PuppyLogHandler(label: $0, puppy: puppy)
                 handler.logLevel = .info
                 return handler
             }
-
-            _ = TransactionObserver()
         } catch {
             fatalError("Unresolved error \(error)")
         }
@@ -67,6 +67,7 @@ struct LANreaderApp: App {
         WindowGroup {
             ContentView(store: self.store)
                 .blur(radius: store.blurInterfaceWhenInactive && scenePhase != .active ? 200 : 0)
+                .task { await transactionObserver.start() }
         }
         .databaseContext(.readOnly { AppDatabase.shared.dbReader })
     }

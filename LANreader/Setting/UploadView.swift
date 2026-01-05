@@ -2,7 +2,7 @@ import ComposableArchitecture
 import SwiftUI
 import Logging
 
-@Reducer public struct UploadFeature {
+@Reducer public struct UploadFeature: Sendable {
     private let logger = Logger(label: "UploadFeature")
 
     @ObservableState
@@ -11,7 +11,7 @@ import Logging
         var jobDetails: [Int: DownloadJob] = .init()
     }
 
-    public enum Action: Equatable, BindableAction {
+    public enum Action: Equatable, BindableAction, Sendable {
         case binding(BindingAction<State>)
         case queueDownload(String)
         case addJobDetails([DownloadJob])

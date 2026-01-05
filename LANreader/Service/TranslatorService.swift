@@ -4,25 +4,18 @@ import Alamofire
 import Logging
 import Dependencies
 
-class TranslatorService: NSObject {
+actor TranslatorService {
     private static let logger = Logger(label: "TranslatorService")
 
-    private static var _shared: TranslatorService?
+    static let shared = TranslatorService()
 
     private var session: Session
     private let snakeCaseEncoder: JSONEncoder
 
-    private override init() {
+    private init() {
         self.session = Session()
         self.snakeCaseEncoder = JSONEncoder()
         self.snakeCaseEncoder.keyEncodingStrategy = .convertToSnakeCase
-    }
-
-    public static var shared: TranslatorService {
-        if _shared == nil {
-            _shared = TranslatorService()
-        }
-        return _shared!
     }
 
     func translatePage(original: URL) -> DataStreamRequest? {
@@ -92,10 +85,6 @@ class TranslatorService: NSObject {
             ),
             maskDilationOffset: maskDilationOffset
         )
-    }
-
-    static func resetService() {
-        _shared = nil
     }
 }
 

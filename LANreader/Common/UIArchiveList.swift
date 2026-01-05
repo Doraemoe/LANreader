@@ -5,11 +5,11 @@ import SwiftUI
 import UIKit
 import Logging
 
-@Reducer public struct ArchiveListFeature {
+@Reducer public struct ArchiveListFeature: Sendable {
     private let logger = Logger(label: "ArchiveListFeature")
 
     @ObservableState
-    public struct State: Equatable {
+    public struct State: Equatable, Sendable {
         @Presents var alert: AlertState<Action.Alert>?
 
         @SharedReader(.appStorage(SettingsKey.lanraragiUrl)) var lanraragiUrl = ""
@@ -65,7 +65,7 @@ import Logging
         case deleteSuccess(Set<String>)
         case removeFromCategoryButtonTapped
         case removeFromCategorySuccess(Set<String>)
-        public enum Alert {
+        public enum Alert: Sendable {
             case confirmDelete
             case confirmRemoveFromCategory
         }

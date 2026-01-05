@@ -2,7 +2,7 @@ import SwiftUI
 import ComposableArchitecture
 import NotificationBannerSwift
 
-@Reducer public struct CacheFeature {
+@Reducer public struct CacheFeature: Sendable {
     @ObservableState
     public struct State: Equatable {
         var archives: IdentifiedArrayOf<GridFeature.State> = []

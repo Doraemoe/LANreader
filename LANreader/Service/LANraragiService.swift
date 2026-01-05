@@ -7,7 +7,7 @@ import Alamofire
 import Logging
 import Dependencies
 
-class LANraragiService: NSObject {
+actor LANraragiService {
     public static let downloadPath = try? FileManager.default.url(
         for: .documentDirectory,
         in: .userDomainMask,
@@ -26,7 +26,7 @@ class LANraragiService: NSObject {
 
     private static let logger = Logger(label: "LANraragiService")
 
-    private static var _shared: LANraragiService?
+    static let shared = LANraragiService()
 
     private var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
     private var authInterceptor = AuthInterceptor(apiKey: nil)
@@ -34,17 +34,27 @@ class LANraragiService: NSObject {
     private let snakeCaseEncoder: JSONDecoder
     private let imageService = ImageService.shared
 
-    private lazy var urlSession: URLSession = {
-        let config = URLSessionConfiguration.background(withIdentifier: "com.jif.LANreader.download")
-        config.isDiscretionary = false
-        config.httpMaximumConnectionsPerHost = 5
-        return URLSession(configuration: config, delegate: self, delegateQueue: nil)
-    }()
+    private var urlSession: URLSession?
+    private var urlSessionDelegate: URLSessionDelegateHandler?
 
-    private override init() {
+    private init() {
         self.session = Session(interceptor: authInterceptor)
         self.snakeCaseEncoder = JSONDecoder()
         self.snakeCaseEncoder.keyDecodingStrategy = .convertFromSnakeCase
+    }
+
+    private func getURLSession() -> URLSession {
+        if let urlSession = urlSession {
+            return urlSession
+        }
+        let config = URLSessionConfiguration.background(withIdentifier: "com.jif.LANreader.download")
+        config.isDiscretionary = false
+        config.httpMaximumConnectionsPerHost = 5
+        let delegate = URLSessionDelegateHandler(imageService: imageService)
+        self.urlSessionDelegate = delegate
+        let session = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
+        self.urlSession = session
+        return session
     }
 
     func verifyClient(url: String, apiKey: String) async -> DataTask<ServerInfo> {
@@ -221,7 +231,7 @@ class LANraragiService: NSObject {
         request.setValue("Bearer \(authInterceptor.encodedApiKey())", forHTTPHeaderField: "Authorization")
         request.setValue(archiveId, forHTTPHeaderField: "X-Archive-Id")
         request.setValue("\(pageNumber)", forHTTPHeaderField: "X-Page-Number")
-        urlSession.downloadTask(with: request).resume()
+        getURLSession().downloadTask(with: request).resume()
     }
 
     func clearNewFlag(id: String) -> DataTask<String> {
@@ -291,20 +301,9 @@ class LANraragiService: NSObject {
 
         return URL(string: domainString)
     }
-
-    public static var shared: LANraragiService {
-        if _shared == nil {
-            _shared = LANraragiService()
-        }
-        return _shared!
-    }
-
-    static func resetService() {
-        _shared = nil
-    }
 }
 
-final class AuthInterceptor: RequestInterceptor {
+final class AuthInterceptor: RequestInterceptor, Sendable {
 
     private let apiKey: String
 
@@ -325,19 +324,14 @@ final class AuthInterceptor: RequestInterceptor {
     }
 }
 
-extension LANraragiService: DependencyKey {
-    static let liveValue = LANraragiService.shared
-    static let testValue = LANraragiService.shared
-}
+// Separate class to handle URLSession delegate callbacks since actors can't conform to @objc protocols
+final class URLSessionDelegateHandler: NSObject, URLSessionDelegate, URLSessionDownloadDelegate, Sendable {
+    private let imageService: ImageService
 
-extension DependencyValues {
-  var lanraragiService: LANraragiService {
-    get { self[LANraragiService.self] }
-    set { self[LANraragiService.self] = newValue }
-  }
-}
+    init(imageService: ImageService) {
+        self.imageService = imageService
+    }
 
-extension LANraragiService: URLSessionDelegate, URLSessionDownloadDelegate {
     func urlSession(_: URLSession, downloadTask task: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
         let splitImage = UserDefaults.standard.bool(forKey: SettingsKey.splitWideImage)
 
@@ -353,4 +347,16 @@ extension LANraragiService: URLSessionDelegate, URLSessionDownloadDelegate {
             )
         }
     }
+}
+
+extension LANraragiService: DependencyKey {
+    static let liveValue = LANraragiService.shared
+    static let testValue = LANraragiService.shared
+}
+
+extension DependencyValues {
+  var lanraragiService: LANraragiService {
+    get { self[LANraragiService.self] }
+    set { self[LANraragiService.self] = newValue }
+  }
 }

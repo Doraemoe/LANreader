@@ -3,7 +3,7 @@ import Logging
 import SwiftUI
 import NotificationBannerSwift
 
-@Reducer public struct CategoryFeature {
+@Reducer public struct CategoryFeature: Sendable {
     private let logger = Logger(label: "CategoryFeature")
 
     @ObservableState

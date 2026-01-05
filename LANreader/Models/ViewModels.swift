@@ -3,7 +3,7 @@
 import Foundation
 import SwiftUI
 
-public struct ArchiveItem: Identifiable, Equatable, Hashable {
+public struct ArchiveItem: Identifiable, Equatable, Hashable, Sendable {
     public let id: String
     var name: String
     let `extension`: String
@@ -15,7 +15,7 @@ public struct ArchiveItem: Identifiable, Equatable, Hashable {
     var refresh: Bool = false
 }
 
-public struct CategoryItem: Identifiable, Equatable, Hashable {
+public struct CategoryItem: Identifiable, Equatable, Hashable, Sendable {
     public let id: String
     let name: String
     var archives: [String]
