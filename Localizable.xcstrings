@@ -2512,6 +2512,23 @@
         }
       }
     },
+    "settings.support.reportIssue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report an issue on GitHub"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 GitHub 上反馈问题"
+          }
+        }
+      }
+    },
     "settings.view" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -66,30 +66,6 @@ struct SettingsView: View {
             Section(header: Text("settings.database")) {
                 DatabaseSettings(store: self.store.scope(state: \.database, action: \.database))
             }
-            Section(header: Text("settings.debug")) {
-                Button {
-                    let store = Store(initialState: LogFeature.State()) {
-                        LogFeature()
-                    }
-                    navigation.push(UILogViewController(store: store))
-                } label: {
-                    HStack {
-                        Text("settings.debug.log")
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundStyle(.secondary)
-                            .font(.footnote)
-                    }
-                }
-                .foregroundStyle(.primary)
-                .padding()
-                // swiftlint:disable force_cast
-                let version = Bundle.main.infoDictionary!["CFBundleShortVersionString"] as! String
-                let build = Bundle.main.infoDictionary!["CFBundleVersion"] as! String
-                // swiftlint:enable force_cast
-                LabeledContent("version", value: "\(version)-\(build)")
-                    .padding()
-            }
             Section(header: Text("settings.support")) {
                 SupportSettings()
             }
