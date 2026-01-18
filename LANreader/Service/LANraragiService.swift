@@ -26,6 +26,8 @@ actor LANraragiService {
 
     private static let logger = Logger(label: "LANraragiService")
 
+    private static let newAPIMinVersion = "0.9.70"
+
     static let shared = LANraragiService()
 
     private var url = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
@@ -36,6 +38,8 @@ actor LANraragiService {
 
     private var urlSession: URLSession?
     private var urlSessionDelegate: URLSessionDelegateHandler?
+
+    private(set) var useNewAPI: Bool = false
 
     private init() {
         self.session = Session(interceptor: authInterceptor)
@@ -67,6 +71,44 @@ actor LANraragiService {
             .cacheResponse(using: cacher)
             .validate(statusCode: 200...200)
             .serializingDecodable(ServerInfo.self, decoder: self.snakeCaseEncoder)
+    }
+
+    func checkServerVersionAtStartup() async {
+        let storedUrl = UserDefaults.standard.string(forKey: SettingsKey.lanraragiUrl) ?? ""
+        let storedApiKey = UserDefaults.standard.string(forKey: SettingsKey.lanraragiApiKey) ?? ""
+
+        guard !storedUrl.isEmpty else {
+            Self.logger.info("No server URL configured, skipping version check")
+            return
+        }
+
+        do {
+            let serverInfo = try await verifyClient(url: storedUrl, apiKey: storedApiKey).value
+            updateAPIVersionFlag(serverVersion: serverInfo.version)
+        } catch {
+            Self.logger.warning("Failed to check server version at startup: \(error.localizedDescription)")
+        }
+    }
+
+    func updateAPIVersionFlag(serverVersion: String) {
+        self.useNewAPI = Self.compareVersions(serverVersion, isAtLeast: Self.newAPIMinVersion)
+        Self.logger.info("Server version: \(serverVersion), using new API: \(self.useNewAPI)")
+    }
+
+    private static func compareVersions(_ version: String, isAtLeast minVersion: String) -> Bool {
+        let versionComponents = version.split(separator: ".").compactMap { Int($0) }
+        let minComponents = minVersion.split(separator: ".").compactMap { Int($0) }
+
+        // Pad arrays to same length with zeros
+        let maxLength = max(versionComponents.count, minComponents.count)
+        let paddedVersion = versionComponents + Array(repeating: 0, count: maxLength - versionComponents.count)
+        let paddedMin = minComponents + Array(repeating: 0, count: maxLength - minComponents.count)
+
+        for (version, minVersion) in zip(paddedVersion, paddedMin) {
+            if version > minVersion { return true }
+            if version < minVersion { return false }
+        }
+        return true // versions are equal
     }
 
     func retrieveArchiveIndex() async -> DataTask<[ArchiveIndexResponse]> {
@@ -198,9 +240,15 @@ actor LANraragiService {
     }
 
     func extractArchive(id: String) async -> DataTask<ArchiveExtractResponse> {
-        session.request("\(url)/api/archives/\(id)/extract", method: .post)
-            .validate()
-            .serializingDecodable(ArchiveExtractResponse.self)
+        if useNewAPI {
+            return session.request("\(url)/api/archives/\(id)/files", method: .get)
+                .validate()
+                .serializingDecodable(ArchiveExtractResponse.self)
+        } else {
+            return session.request("\(url)/api/archives/\(id)/extract", method: .post)
+                .validate()
+                .serializingDecodable(ArchiveExtractResponse.self)
+        }
     }
 
     func fetchArchivePage(page: String, pageNumber: Int) -> DownloadRequest {

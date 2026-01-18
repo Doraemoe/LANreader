@@ -15,10 +15,11 @@ class LANraragiServiceTest: XCTestCase {
 
     private var service: LANraragiService!
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         UserDefaults.standard.set(url, forKey: SettingsKey.lanraragiUrl)
         UserDefaults.standard.set(apiKey, forKey: SettingsKey.lanraragiApiKey)
         service = LANraragiService.shared
+        _ = await service.verifyClient(url: url, apiKey: apiKey)
     }
 
     override func tearDownWithError() throws {
