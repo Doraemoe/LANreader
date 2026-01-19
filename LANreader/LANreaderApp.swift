@@ -4,10 +4,12 @@ import SwiftUI
 import Logging
 import Puppy
 import GRDBQuery
+import Dependencies
 
 @main
 struct LANreaderApp: App {
     @Environment(\.scenePhase) var scenePhase
+    @Dependency(\.lanraragiService) var lanraragiService
 
     let store = Store(initialState: AppFeature.State()) {
         AppFeature()
@@ -68,6 +70,7 @@ struct LANreaderApp: App {
             ContentView(store: self.store)
                 .blur(radius: store.blurInterfaceWhenInactive && scenePhase != .active ? 200 : 0)
                 .task { await transactionObserver.start() }
+                .task { await lanraragiService.checkServerVersionAtStartup() }
         }
         .databaseContext(.readOnly { AppDatabase.shared.dbReader })
     }
