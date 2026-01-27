@@ -10,7 +10,7 @@
     "targetName" : "ComposableArchitectureMacros"
   },
   {
-    "fingerprint" : "a10f9feeb214bc72b5337b6ef6d5a029360db4cc",
+    "fingerprint" : "411297072220a96f1501211afebd3715316907d2",
     "packageIdentity" : "swift-dependencies",
     "targetName" : "DependenciesMacrosPlugin"
   },
