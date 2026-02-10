@@ -1,11 +1,13 @@
 import UIKit
 import Dependencies
+import ImageIO
+import UniformTypeIdentifiers
 
 final class ImageService: Sendable {
     static let shared = ImageService()
 
     func heicDataOfImage(url: URL) -> Data? {
-        guard let image = UIImage(contentsOfFile: url.path(percentEncoded: false)) else { return nil }
+        guard let image = previewImage(url: url) else { return nil }
         return image.heicData()
     }
 
@@ -18,6 +20,17 @@ final class ImageService: Sendable {
     ) -> Bool {
         try? FileManager.default.createDirectory(at: destinationUrl, withIntermediateDirectories: true)
         let mainPath = destinationUrl.appendingPathComponent("\(pageNumber).heic", conformingTo: .heic)
+        let mainGifPath = destinationUrl.appendingPathComponent("\(pageNumber).gif", conformingTo: .gif)
+        let leftPath = destinationUrl.appendingPathComponent("\(pageNumber)-left.heic", conformingTo: .heic)
+        let rightPath = destinationUrl.appendingPathComponent("\(pageNumber)-right.heic", conformingTo: .heic)
+
+        if imageData == nil, isGIF(url: imageUrl), let gifData = try? Data(contentsOf: imageUrl) {
+            try? gifData.write(to: mainGifPath, options: .atomic)
+            removeIfExists(mainPath)
+            removeIfExists(leftPath)
+            removeIfExists(rightPath)
+            return false
+        }
 
         let image: UIImage
         if imageData != nil {
@@ -30,18 +43,43 @@ final class ImageService: Sendable {
 
         var splitted = false
 
+        removeIfExists(mainGifPath)
         try? image.heicData()?.write(to: mainPath)
 
         if split && (image.size.width / image.size.height > 1.2) {
-            let leftPath = destinationUrl.appendingPathComponent("\(pageNumber)-left.heic", conformingTo: .heic)
-            let rightPath = destinationUrl.appendingPathComponent("\(pageNumber)-right.heic", conformingTo: .heic)
-
             try? image.leftHalf?.heicData()?.write(to: leftPath)
             try? image.rightHalf?.heicData()?.write(to: rightPath)
 
             splitted = true
+        } else {
+            removeIfExists(leftPath)
+            removeIfExists(rightPath)
         }
         return splitted
+    }
+
+    private func previewImage(url: URL) -> UIImage? {
+        if let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+            isGIF(source),
+            let frame = CGImageSourceCreateImageAtIndex(source, 0, nil) {
+            return UIImage(cgImage: frame)
+        }
+        return UIImage(contentsOfFile: url.path(percentEncoded: false))
+    }
+
+    private func isGIF(url: URL) -> Bool {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return false }
+        return isGIF(source)
+    }
+
+    private func isGIF(_ source: CGImageSource) -> Bool {
+        guard let type = CGImageSourceGetType(source) else { return false }
+        return UTType(type as String)?.conforms(to: .gif) == true
+    }
+
+    private func removeIfExists(_ url: URL) {
+        guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else { return }
+        try? FileManager.default.removeItem(at: url)
     }
 }
 

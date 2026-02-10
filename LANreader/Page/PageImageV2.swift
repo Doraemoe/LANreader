@@ -29,6 +29,7 @@ import Logging
 
         let folder: URL?
         let path: URL?
+        let gifPath: URL?
         let pathLeft: URL?
         let pathRight: URL?
 
@@ -46,6 +47,8 @@ import Logging
             self.folder = imagePath?.appendingPathComponent(archiveId, conformingTo: .folder)
             self.path = self.folder?
                 .appendingPathComponent("\(pageNumber).heic", conformingTo: .heic)
+            self.gifPath = self.folder?
+                .appendingPathComponent("\(pageNumber).gif", conformingTo: .gif)
             self.pathLeft = self.folder?
                 .appendingPathComponent("\(pageNumber)-left.heic", conformingTo: .heic)
             self.pathRight = self.folder?
@@ -101,7 +104,10 @@ import Logging
                 if force {
                     state.pageMode = .loading
                 } else if state.pageMode == .loading {
-                    if state.splitImage {
+                    let hasGif = FileManager.default.fileExists(
+                        atPath: state.gifPath?.path(percentEncoded: false) ?? ""
+                    )
+                    if state.splitImage && !hasGif {
                         if state.piorityLeft &&
                             FileManager.default.fileExists(
                                 atPath: state.pathLeft?.path(percentEncoded: false) ?? ""
@@ -117,7 +123,7 @@ import Logging
                             return .send(.insertPage(.left))
                         }
                     }
-                    if FileManager.default.fileExists(atPath: state.path?.path(percentEncoded: false) ?? "") {
+                    if hasGif || FileManager.default.fileExists(atPath: state.path?.path(percentEncoded: false) ?? "") {
                         state.pageMode = .normal
                         state.imageLoaded = true
                         return .none

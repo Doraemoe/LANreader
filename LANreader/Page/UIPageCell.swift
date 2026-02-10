@@ -3,6 +3,7 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 import Logging
+import ImageIO
 
 class UIPageCell: UICollectionViewCell {
     static let reuseIdentifier = "UIPageCell"
@@ -105,6 +106,7 @@ class UIPageCell: UICollectionViewCell {
         // Tear down any existing observation from a previous page assignment
         cancelSubscriptions()
         self.store = store
+        imageView.stopAnimating()
         imageView.image = nil
         progressView.progress = 0
         progressView.isHidden = true
@@ -162,11 +164,17 @@ class UIPageCell: UICollectionViewCell {
                             return store.path
                         }
                     }()
-                    if let uiImage = UIImage(
-                        contentsOfFile: contentPath?.path(percentEncoded: false)
-                        ?? "") {
+                    let selectedPath = resolvedContentPath(store: store, basePath: contentPath)
+                    if let path = selectedPath,
+                        let uiImage = loadImage(path: path) {
                         imageView.image = uiImage
+                        if path.pathExtension.lowercased() == "gif" {
+                            imageView.startAnimating()
+                        } else {
+                            imageView.stopAnimating()
+                        }
                     } else {
+                        imageView.stopAnimating()
                         imageView.image = UIImage(systemName: "rectangle.slash")
                     }
                 } else {
@@ -182,6 +190,7 @@ class UIPageCell: UICollectionViewCell {
         super.prepareForReuse()
         cancelSubscriptions()
         store = nil
+        imageView.stopAnimating()
         imageView.image = nil
         progressView.progress = 0
         progressView.isHidden = true
@@ -200,10 +209,73 @@ class UIPageCell: UICollectionViewCell {
         }
         return attributes
     }
+
+    private func resolvedContentPath(store: StoreOf<PageFeature>, basePath: URL?) -> URL? {
+        if let basePath,
+            FileManager.default.fileExists(atPath: basePath.path(percentEncoded: false)) {
+            return basePath
+        }
+        if store.pageMode == .normal,
+            let gifPath = store.gifPath,
+            FileManager.default.fileExists(atPath: gifPath.path(percentEncoded: false)) {
+            return gifPath
+        }
+        return basePath
+    }
+
+    private func loadImage(path: URL) -> UIImage? {
+        if path.pathExtension.lowercased() == "gif" {
+            return UIImage.animatedGif(path: path)
+        }
+        return UIImage(contentsOfFile: path.path(percentEncoded: false))
+    }
 }
 
 extension UIPageCell: UIScrollViewDelegate {
     func viewForZooming(in scrollView: UIScrollView) -> UIView? {
         return imageView
+    }
+}
+
+private extension UIImage {
+    static func animatedGif(path: URL) -> UIImage? {
+        guard let source = CGImageSourceCreateWithURL(path as CFURL, nil) else { return nil }
+        let count = CGImageSourceGetCount(source)
+        guard count > 0 else { return nil }
+
+        if count == 1, let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) {
+            return UIImage(cgImage: cgImage)
+        }
+
+        var frames: [UIImage] = []
+        frames.reserveCapacity(count)
+        var duration: Double = 0
+
+        for index in 0..<count {
+            guard let cgImage = CGImageSourceCreateImageAtIndex(source, index, nil) else { continue }
+            frames.append(UIImage(cgImage: cgImage))
+            duration += gifFrameDuration(source: source, at: index)
+        }
+
+        guard !frames.isEmpty else { return nil }
+        if duration <= 0 {
+            duration = Double(frames.count) * 0.1
+        }
+        return UIImage.animatedImage(with: frames, duration: duration)
+    }
+
+    static func gifFrameDuration(source: CGImageSource, at index: Int) -> Double {
+        let defaultDelay = 0.1
+        guard let frameProperties = CGImageSourceCopyPropertiesAtIndex(source, index, nil)
+            as? [CFString: Any],
+            let gifProperties = frameProperties[kCGImagePropertyGIFDictionary] as? [CFString: Any]
+        else { return defaultDelay }
+
+        let unclamped = gifProperties[kCGImagePropertyGIFUnclampedDelayTime] as? Double
+        let clamped = gifProperties[kCGImagePropertyGIFDelayTime] as? Double
+        let delay = unclamped ?? clamped ?? defaultDelay
+
+        // Some GIFs set tiny delays that cause excessive CPU usage and stutter.
+        return delay < 0.02 ? defaultDelay : delay
     }
 }
