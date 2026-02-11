@@ -161,6 +161,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         }
     }
 
+    // swiftlint:disable function_body_length
     private func setupObserve() {
         observe { [weak self] in
             guard let self else { return }
@@ -222,6 +223,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             }
             .store(in: &cancellables)
     }
+    // swiftlint:enable function_body_length
 
     private func setupGesture() {
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))

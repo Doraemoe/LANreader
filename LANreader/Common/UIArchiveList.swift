@@ -1,4 +1,3 @@
-// swiftlint:disable file_length
 import Combine
 import ComposableArchitecture
 import SwiftUI
@@ -877,4 +876,3 @@ class LoadingReusableView: UICollectionReusableView {
         activityIndicator.stopAnimating()
     }
 }
-// swiftlint:enable file_length

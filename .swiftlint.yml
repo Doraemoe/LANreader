@@ -17,5 +17,5 @@ type_body_length:
   - 800
 
 file_length:
-  warning: 800
+  warning: 900
   error: 1200

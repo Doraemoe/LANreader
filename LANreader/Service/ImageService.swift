@@ -55,6 +55,7 @@ final class ImageService: Sendable {
         return image.heicData()
     }
 
+    // swiftlint:disable function_body_length
     func resizeImage(
         imageUrl: URL,
         imageData: Data? = nil,
@@ -123,6 +124,7 @@ final class ImageService: Sendable {
         }
         return splitted
     }
+    // swiftlint:enable function_body_length
 
     private func previewImage(url: URL) -> UIImage? {
         if let source = CGImageSourceCreateWithURL(url as CFURL, nil),
