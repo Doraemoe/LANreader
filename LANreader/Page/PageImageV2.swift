@@ -29,9 +29,16 @@ import Logging
 
         let folder: URL?
         let path: URL?
-        let gifPath: URL?
         let pathLeft: URL?
         let pathRight: URL?
+
+        var existingMainPath: URL? {
+            PageImagePathResolver.existingMainPath(in: folder, pageNumber: pageNumber)
+        }
+
+        var hasAnimatedMainPath: Bool {
+            PageImagePathResolver.hasAnimatedMainPath(in: folder, pageNumber: pageNumber)
+        }
 
         init(archiveId: String, pageId: String, pageNumber: Int, pageMode: PageMode = .loading, cached: Bool = false) {
             self.pageId = pageId
@@ -45,10 +52,7 @@ import Logging
                 LANraragiService.downloadPath
             }
             self.folder = imagePath?.appendingPathComponent(archiveId, conformingTo: .folder)
-            self.path = self.folder?
-                .appendingPathComponent("\(pageNumber).heic", conformingTo: .heic)
-            self.gifPath = self.folder?
-                .appendingPathComponent("\(pageNumber).gif", conformingTo: .gif)
+            self.path = PageImagePathResolver.mainPath(in: self.folder, pageNumber: pageNumber, type: .heic)
             self.pathLeft = self.folder?
                 .appendingPathComponent("\(pageNumber)-left.heic", conformingTo: .heic)
             self.pathRight = self.folder?
@@ -104,10 +108,7 @@ import Logging
                 if force {
                     state.pageMode = .loading
                 } else if state.pageMode == .loading {
-                    let hasGif = FileManager.default.fileExists(
-                        atPath: state.gifPath?.path(percentEncoded: false) ?? ""
-                    )
-                    if state.splitImage && !hasGif {
+                    if state.splitImage && !state.hasAnimatedMainPath {
                         if state.piorityLeft &&
                             FileManager.default.fileExists(
                                 atPath: state.pathLeft?.path(percentEncoded: false) ?? ""
@@ -123,7 +124,7 @@ import Logging
                             return .send(.insertPage(.left))
                         }
                     }
-                    if hasGif || FileManager.default.fileExists(atPath: state.path?.path(percentEncoded: false) ?? "") {
+                    if state.existingMainPath != nil {
                         state.pageMode = .normal
                         state.imageLoaded = true
                         return .none

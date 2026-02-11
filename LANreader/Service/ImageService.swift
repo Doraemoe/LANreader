@@ -3,6 +3,50 @@ import Dependencies
 import ImageIO
 import UniformTypeIdentifiers
 
+enum PageMainImageType: String, CaseIterable, Sendable {
+    case heic
+    case gif
+    case webp
+
+    static let cacheLookupOrder: [PageMainImageType] = [.heic, .gif, .webp]
+
+    var isAnimatedContainer: Bool {
+        self == .gif || self == .webp
+    }
+}
+
+enum PageImagePathResolver {
+    static func mainPath(in folder: URL, pageNumber: String, type: PageMainImageType) -> URL {
+        folder.appendingPathComponent("\(pageNumber).\(type.rawValue)")
+    }
+
+    static func mainPath(in folder: URL?, pageNumber: Int, type: PageMainImageType) -> URL? {
+        guard let folder else { return nil }
+        return mainPath(in: folder, pageNumber: String(pageNumber), type: type)
+    }
+
+    static func existingMainPath(in folder: URL?, pageNumber: Int) -> URL? {
+        guard let folder else { return nil }
+        for type in PageMainImageType.cacheLookupOrder {
+            let path = mainPath(in: folder, pageNumber: String(pageNumber), type: type)
+            if FileManager.default.fileExists(atPath: path.path(percentEncoded: false)) {
+                return path
+            }
+        }
+        return nil
+    }
+
+    static func hasAnimatedMainPath(in folder: URL?, pageNumber: Int) -> Bool {
+        guard let existingPath = existingMainPath(in: folder, pageNumber: pageNumber) else {
+            return false
+        }
+        guard let type = PageMainImageType(rawValue: existingPath.pathExtension.lowercased()) else {
+            return false
+        }
+        return type.isAnimatedContainer
+    }
+}
+
 final class ImageService: Sendable {
     static let shared = ImageService()
 
@@ -19,16 +63,31 @@ final class ImageService: Sendable {
         split: Bool
     ) -> Bool {
         try? FileManager.default.createDirectory(at: destinationUrl, withIntermediateDirectories: true)
-        let mainPath = destinationUrl.appendingPathComponent("\(pageNumber).heic", conformingTo: .heic)
-        let mainGifPath = destinationUrl.appendingPathComponent("\(pageNumber).gif", conformingTo: .gif)
+        let mainPath = PageImagePathResolver.mainPath(in: destinationUrl, pageNumber: pageNumber, type: .heic)
         let leftPath = destinationUrl.appendingPathComponent("\(pageNumber)-left.heic", conformingTo: .heic)
         let rightPath = destinationUrl.appendingPathComponent("\(pageNumber)-right.heic", conformingTo: .heic)
 
-        if imageData == nil, isGIF(url: imageUrl), let gifData = try? Data(contentsOf: imageUrl) {
-            try? gifData.write(to: mainGifPath, options: .atomic)
+        if imageData == nil,
+            let animatedType = animatedContainerType(url: imageUrl),
+            let animatedData = try? Data(contentsOf: imageUrl) {
+            let destination = PageImagePathResolver.mainPath(
+                in: destinationUrl,
+                pageNumber: pageNumber,
+                type: animatedType
+            )
+            try? animatedData.write(to: destination, options: .atomic)
             removeIfExists(mainPath)
             removeIfExists(leftPath)
             removeIfExists(rightPath)
+
+            for type in PageMainImageType.allCases where type != animatedType {
+                let stalePath = PageImagePathResolver.mainPath(
+                    in: destinationUrl,
+                    pageNumber: pageNumber,
+                    type: type
+                )
+                removeIfExists(stalePath)
+            }
             return false
         }
 
@@ -43,7 +102,14 @@ final class ImageService: Sendable {
 
         var splitted = false
 
-        removeIfExists(mainGifPath)
+        for type in PageMainImageType.allCases where type != .heic {
+            let stalePath = PageImagePathResolver.mainPath(
+                in: destinationUrl,
+                pageNumber: pageNumber,
+                type: type
+            )
+            removeIfExists(stalePath)
+        }
         try? image.heicData()?.write(to: mainPath)
 
         if split && (image.size.width / image.size.height > 1.2) {
@@ -60,21 +126,25 @@ final class ImageService: Sendable {
 
     private func previewImage(url: URL) -> UIImage? {
         if let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-            isGIF(source),
+            CGImageSourceGetCount(source) > 1,
             let frame = CGImageSourceCreateImageAtIndex(source, 0, nil) {
             return UIImage(cgImage: frame)
         }
         return UIImage(contentsOfFile: url.path(percentEncoded: false))
     }
 
-    private func isGIF(url: URL) -> Bool {
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return false }
-        return isGIF(source)
-    }
-
-    private func isGIF(_ source: CGImageSource) -> Bool {
-        guard let type = CGImageSourceGetType(source) else { return false }
-        return UTType(type as String)?.conforms(to: .gif) == true
+    private func animatedContainerType(url: URL) -> PageMainImageType? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        guard CGImageSourceGetCount(source) > 1 else { return nil }
+        guard let type = CGImageSourceGetType(source) else { return nil }
+        let utType = UTType(type as String)
+        if utType?.conforms(to: .gif) == true {
+            return .gif
+        }
+        if utType?.conforms(to: .webP) == true {
+            return .webp
+        }
+        return nil
     }
 
     private func removeIfExists(_ url: URL) {

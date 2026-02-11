@@ -168,7 +168,7 @@ class UIPageCell: UICollectionViewCell {
                     if let path = selectedPath,
                         let uiImage = loadImage(path: path) {
                         imageView.image = uiImage
-                        if path.pathExtension.lowercased() == "gif" {
+                        if uiImage.images != nil {
                             imageView.startAnimating()
                         } else {
                             imageView.stopAnimating()
@@ -211,21 +211,21 @@ class UIPageCell: UICollectionViewCell {
     }
 
     private func resolvedContentPath(store: StoreOf<PageFeature>, basePath: URL?) -> URL? {
+        if store.pageMode == .normal,
+            let mainPath = store.existingMainPath {
+            return mainPath
+        }
         if let basePath,
             FileManager.default.fileExists(atPath: basePath.path(percentEncoded: false)) {
             return basePath
         }
-        if store.pageMode == .normal,
-            let gifPath = store.gifPath,
-            FileManager.default.fileExists(atPath: gifPath.path(percentEncoded: false)) {
-            return gifPath
-        }
-        return basePath
+        return nil
     }
 
     private func loadImage(path: URL) -> UIImage? {
-        if path.pathExtension.lowercased() == "gif" {
-            return UIImage.animatedGif(path: path)
+        if let type = PageMainImageType(rawValue: path.pathExtension.lowercased()),
+            type.isAnimatedContainer {
+            return UIImage.animatedImage(path: path)
         }
         return UIImage(contentsOfFile: path.path(percentEncoded: false))
     }
@@ -238,7 +238,7 @@ extension UIPageCell: UIScrollViewDelegate {
 }
 
 private extension UIImage {
-    static func animatedGif(path: URL) -> UIImage? {
+    static func animatedImage(path: URL) -> UIImage? {
         guard let source = CGImageSourceCreateWithURL(path as CFURL, nil) else { return nil }
         let count = CGImageSourceGetCount(source)
         guard count > 0 else { return nil }
@@ -254,7 +254,7 @@ private extension UIImage {
         for index in 0..<count {
             guard let cgImage = CGImageSourceCreateImageAtIndex(source, index, nil) else { continue }
             frames.append(UIImage(cgImage: cgImage))
-            duration += gifFrameDuration(source: source, at: index)
+            duration += frameDuration(source: source, at: index)
         }
 
         guard !frames.isEmpty else { return nil }
@@ -264,16 +264,29 @@ private extension UIImage {
         return UIImage.animatedImage(with: frames, duration: duration)
     }
 
-    static func gifFrameDuration(source: CGImageSource, at index: Int) -> Double {
+    static func frameDuration(source: CGImageSource, at index: Int) -> Double {
         let defaultDelay = 0.1
         guard let frameProperties = CGImageSourceCopyPropertiesAtIndex(source, index, nil)
-            as? [CFString: Any],
-            let gifProperties = frameProperties[kCGImagePropertyGIFDictionary] as? [CFString: Any]
+            as? [CFString: Any]
         else { return defaultDelay }
 
-        let unclamped = gifProperties[kCGImagePropertyGIFUnclampedDelayTime] as? Double
-        let clamped = gifProperties[kCGImagePropertyGIFDelayTime] as? Double
-        let delay = unclamped ?? clamped ?? defaultDelay
+        let gifDelay: Double? = {
+            guard let gifProperties = frameProperties[kCGImagePropertyGIFDictionary] as? [CFString: Any] else {
+                return nil
+            }
+            let unclamped = gifProperties[kCGImagePropertyGIFUnclampedDelayTime] as? Double
+            let clamped = gifProperties[kCGImagePropertyGIFDelayTime] as? Double
+            return unclamped ?? clamped
+        }()
+
+        let webpDelay: Double? = {
+            guard let webPProperties = frameProperties[kCGImagePropertyWebPDictionary] as? [CFString: Any] else {
+                return nil
+            }
+            return webPProperties[kCGImagePropertyWebPDelayTime] as? Double
+        }()
+
+        let delay = gifDelay ?? webpDelay ?? defaultDelay
 
         // Some GIFs set tiny delays that cause excessive CPU usage and stutter.
         return delay < 0.02 ? defaultDelay : delay
