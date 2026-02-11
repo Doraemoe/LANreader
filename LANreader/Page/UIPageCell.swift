@@ -7,8 +7,30 @@ import ImageIO
 
 class UIPageCell: UICollectionViewCell {
     static let reuseIdentifier = "UIPageCell"
+    private static let decodedImageCache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.name = "LANreader.UIPageCell.decodedImageCache"
+        cache.countLimit = 120
+        cache.totalCostLimit = 256 * 1024 * 1024
+        return cache
+    }()
+    private static let decodedAnimatedCache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.name = "LANreader.UIPageCell.decodedAnimatedCache"
+        cache.countLimit = 20
+        cache.totalCostLimit = 512 * 1024 * 1024
+        return cache
+    }()
+    private static let animatedDecodeQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "LANreader.UIPageCell.animatedDecode"
+        queue.qualityOfService = .userInitiated
+        queue.maxConcurrentOperationCount = 1
+        return queue
+    }()
 
     var store: StoreOf<PageFeature>?
+    private var useAspectHeight = false
 
     private let logger = Logger(label: "UIPageCell")
 
@@ -29,6 +51,7 @@ class UIPageCell: UICollectionViewCell {
         view.clipsToBounds = true
         return view
     }()
+    private lazy var animatedRenderer = AnimatedRenderer(imageView: imageView)
 
     private let progressView: UIProgressView = {
         let view = UIProgressView(progressViewStyle: .default)
@@ -102,15 +125,16 @@ class UIPageCell: UICollectionViewCell {
         ])
     }
 
-    func configure(with store: StoreOf<PageFeature>) {
+    func configure(with store: StoreOf<PageFeature>, useAspectHeight: Bool) {
         // Tear down any existing observation from a previous page assignment
         cancelSubscriptions()
+        animatedRenderer.reset()
         self.store = store
-        imageView.stopAnimating()
+        self.useAspectHeight = useAspectHeight
+        animatedRenderer.setAnimationActive(true)
         imageView.image = nil
         progressView.progress = 0
         progressView.isHidden = true
-        progressViewLabel.isHidden = true
         progressViewLabel.isHidden = true
         scrollView.zoomScale = 1.0
         setupObserve(store: store)
@@ -165,19 +189,19 @@ class UIPageCell: UICollectionViewCell {
                         }
                     }()
                     let selectedPath = resolvedContentPath(store: store, basePath: contentPath)
-                    if let path = selectedPath,
-                        let uiImage = loadImage(path: path) {
-                        imageView.image = uiImage
-                        if uiImage.images != nil {
-                            imageView.startAnimating()
+                    if let path = selectedPath {
+                        if Self.isAnimatedContainer(path: path) {
+                            loadAnimatedImage(path: path, store: store)
+                        } else if let uiImage = loadImage(path: path) {
+                            animatedRenderer.showStaticImage(uiImage)
                         } else {
-                            imageView.stopAnimating()
+                            animatedRenderer.showPlaceholder()
                         }
                     } else {
-                        imageView.stopAnimating()
-                        imageView.image = UIImage(systemName: "rectangle.slash")
+                        animatedRenderer.showPlaceholder()
                     }
                 } else {
+                    animatedRenderer.reset()
                     progressView.isHidden = true
                     progressViewLabel.text = store.errorMessage
                 }
@@ -189,8 +213,10 @@ class UIPageCell: UICollectionViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
         cancelSubscriptions()
+        animatedRenderer.reset()
         store = nil
-        imageView.stopAnimating()
+        useAspectHeight = false
+        animatedRenderer.setAnimationActive(true)
         imageView.image = nil
         progressView.progress = 0
         progressView.isHidden = true
@@ -202,6 +228,7 @@ class UIPageCell: UICollectionViewCell {
         _ layoutAttributes: UICollectionViewLayoutAttributes
     ) -> UICollectionViewLayoutAttributes {
         let attributes = super.preferredLayoutAttributesFitting(layoutAttributes)
+        guard useAspectHeight else { return attributes }
         if let image = imageView.image {
             let width = layoutAttributes.frame.width
             let height = width * (image.size.height / image.size.width)
@@ -225,9 +252,177 @@ class UIPageCell: UICollectionViewCell {
     private func loadImage(path: URL) -> UIImage? {
         if let type = PageMainImageType(rawValue: path.pathExtension.lowercased()),
             type.isAnimatedContainer {
-            return UIImage.animatedImage(path: path)
+            return nil
         }
-        return UIImage(contentsOfFile: path.path(percentEncoded: false))
+        let filePath = path.path(percentEncoded: false)
+        let cacheKey = filePath as NSString
+        if let image = Self.decodedImageCache.object(forKey: cacheKey) {
+            return image
+        }
+        guard let image = UIImage(contentsOfFile: filePath) else { return nil }
+        Self.decodedImageCache.setObject(image, forKey: cacheKey, cost: image.memoryCostEstimate)
+        return image
+    }
+
+    private func loadAnimatedImage(path: URL, store: StoreOf<PageFeature>) {
+        let filePath = path.path(percentEncoded: false)
+
+        if let cachedAnimated = Self.decodedAnimatedCache.object(forKey: filePath as NSString) {
+            animatedRenderer.showAnimatedFromCache(cachedAnimated)
+            return
+        }
+
+        let requestId = animatedRenderer.beginAnimatedLoad(poster: Self.animatedPoster(path: path))
+
+        let decodeOperation = BlockOperation()
+        decodeOperation.addExecutionBlock { [weak decodeOperation] in
+            guard let operation = decodeOperation,
+                !operation.isCancelled
+            else { return }
+
+            guard let animated = UIImage.animatedImage(path: path) else { return }
+            let memoryCost = animated.animatedMemoryCostEstimate
+            guard !operation.isCancelled else { return }
+
+            Task { @MainActor [weak self, weak decodeOperation] in
+                guard let self,
+                    let operation = decodeOperation,
+                    !operation.isCancelled
+                else { return }
+                guard self.store === store else { return }
+                guard self.animatedRenderer.canApplyDecodeResult(requestId: requestId) else { return }
+
+                let cacheKey = filePath as NSString
+                Self.decodedAnimatedCache.setObject(animated, forKey: cacheKey, cost: memoryCost)
+                self.animatedRenderer.finishAnimatedLoad(with: animated)
+            }
+        }
+
+        animatedRenderer.setDecodeOperation(decodeOperation)
+        Self.animatedDecodeQueue.addOperation(decodeOperation)
+    }
+
+    func setAnimationActive(_ active: Bool) {
+        animatedRenderer.setAnimationActive(active)
+    }
+
+    private nonisolated static func isAnimatedContainer(path: URL) -> Bool {
+        guard let type = PageMainImageType(rawValue: path.pathExtension.lowercased()) else {
+            return false
+        }
+        return type.isAnimatedContainer
+    }
+
+    private nonisolated static func animatedPoster(path: URL) -> UIImage? {
+        guard let source = CGImageSourceCreateWithURL(path as CFURL, nil),
+            let frame = CGImageSourceCreateImageAtIndex(source, 0, nil)
+        else {
+            guard let fallback = UIImage(contentsOfFile: path.path(percentEncoded: false)) else {
+                return nil
+            }
+            if let cgImage = fallback.cgImage {
+                return UIImage(cgImage: cgImage)
+            }
+            return fallback.images?.first ?? fallback
+        }
+        return UIImage(cgImage: frame)
+    }
+}
+
+@MainActor
+private final class AnimatedRenderer {
+    private weak var imageView: UIImageView?
+    private var decodeRequestId: UInt = 0
+    private var decodeOperation: Operation?
+    private var isAnimationActive = true
+    private var posterImage: UIImage?
+    private var playbackImage: UIImage?
+
+    init(imageView: UIImageView) {
+        self.imageView = imageView
+    }
+
+    func reset() {
+        cancelDecode()
+        posterImage = nil
+        playbackImage = nil
+        imageView?.stopAnimating()
+    }
+
+    func setAnimationActive(_ active: Bool) {
+        guard isAnimationActive != active else { return }
+        isAnimationActive = active
+        applyAnimationState()
+    }
+
+    func showStaticImage(_ image: UIImage) {
+        reset()
+        imageView?.image = image
+    }
+
+    func showPlaceholder() {
+        reset()
+        imageView?.image = UIImage(systemName: "rectangle.slash")
+    }
+
+    func showAnimatedFromCache(_ image: UIImage) {
+        cancelDecode()
+        playbackImage = image
+        posterImage = image.images?.first ?? image
+        applyAnimationState()
+    }
+
+    @discardableResult
+    func beginAnimatedLoad(poster: UIImage?) -> UInt {
+        cancelDecode()
+        playbackImage = nil
+        posterImage = poster
+        if let poster {
+            imageView?.image = poster
+        } else {
+            imageView?.image = UIImage(systemName: "rectangle.slash")
+        }
+        imageView?.stopAnimating()
+        return decodeRequestId
+    }
+
+    func setDecodeOperation(_ operation: Operation) {
+        decodeOperation = operation
+    }
+
+    func canApplyDecodeResult(requestId: UInt) -> Bool {
+        requestId == decodeRequestId
+    }
+
+    func finishAnimatedLoad(with image: UIImage) {
+        playbackImage = image
+        if posterImage == nil {
+            posterImage = image.images?.first ?? image
+        }
+        applyAnimationState()
+        decodeOperation = nil
+    }
+
+    private func cancelDecode() {
+        decodeRequestId &+= 1
+        decodeOperation?.cancel()
+        decodeOperation = nil
+    }
+
+    private func applyAnimationState() {
+        guard let imageView else { return }
+        guard let animated = playbackImage else {
+            imageView.stopAnimating()
+            return
+        }
+
+        if isAnimationActive {
+            imageView.image = animated
+            imageView.startAnimating()
+        } else {
+            imageView.image = posterImage ?? animated.images?.first ?? animated
+            imageView.stopAnimating()
+        }
     }
 }
 
@@ -238,6 +433,17 @@ extension UIPageCell: UIScrollViewDelegate {
 }
 
 private extension UIImage {
+    var memoryCostEstimate: Int {
+        Int(size.width * size.height * scale * scale * 4)
+    }
+
+    var animatedMemoryCostEstimate: Int {
+        guard let frames = images, !frames.isEmpty else { return memoryCostEstimate }
+        return frames.reduce(0) { partial, frame in
+            partial + frame.memoryCostEstimate
+        }
+    }
+
     static func animatedImage(path: URL) -> UIImage? {
         guard let source = CGImageSourceCreateWithURL(path as CFURL, nil) else { return nil }
         let count = CGImageSourceGetCount(source)

@@ -25,6 +25,8 @@ public struct UIPageCollection: UIViewControllerRepresentable {
 
 class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     private let logger = Logger(label: "UIPageCollectionController")
+    private let fullVisibilityThreshold: CGFloat = 0.98
+    private var isProgrammaticPaging = false
 
     let store: StoreOf<ArchiveReaderFeature>
     var collectionView: UICollectionView!
@@ -32,6 +34,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
     var dataSource: UICollectionViewDiffableDataSource<Section, StoreOf<PageFeature>>!
     var didInitialJump = false
+    private var lastSnapshotPageIds: [String] = []
 
     private var cancellables: Set<AnyCancellable> = []
 
@@ -140,7 +143,11 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         let cellRegistration = UICollectionView
             .CellRegistration<UIPageCell, StoreOf<PageFeature>> { [weak self] cell, _, pageStore in
                 guard self != nil else { return }
-                cell.configure(with: pageStore)
+                let useAspectHeight = self?.store.readDirection == ReadDirection.upDown.rawValue
+                cell.configure(with: pageStore, useAspectHeight: useAspectHeight)
+                if self?.store.readDirection != ReadDirection.upDown.rawValue {
+                    cell.setAnimationActive(false)
+                }
             }
 
         dataSource = UICollectionViewDiffableDataSource<Section, StoreOf<PageFeature>>(
@@ -158,13 +165,20 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         observe { [weak self] in
             guard let self else { return }
             guard !store.pages.isEmpty else { return }
-            var snapshot = NSDiffableDataSourceSnapshot<
-                Section, StoreOf<PageFeature>
-            >()
-            snapshot.appendSections([.main])
-            snapshot.appendItems(
-                Array(store.scope(state: \.pages, action: \.page)))
-            dataSource.apply(snapshot, animatingDifferences: false)
+            let pageIds = store.pages.map(\.id)
+            if pageIds != lastSnapshotPageIds {
+                var snapshot = NSDiffableDataSourceSnapshot<
+                    Section, StoreOf<PageFeature>
+                >()
+                snapshot.appendSections([.main])
+                snapshot.appendItems(
+                    Array(store.scope(state: \.pages, action: \.page)))
+                dataSource.apply(snapshot, animatingDifferences: false)
+                lastSnapshotPageIds = pageIds
+                DispatchQueue.main.async { [weak self] in
+                    self?.updateAnimatedPlaybackForVisibleCells()
+                }
+            }
             if !didInitialJump, let idx = store.jumpIndex {
                 let indexPath = IndexPath(row: idx, section: 0)
                 if store.readDirection == ReadDirection.upDown.rawValue {
@@ -176,6 +190,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
                 }
                 didInitialJump = true
                 store.send(.setJumpIndex(nil))
+                updateAnimatedPlaybackForVisibleCells()
             }
         }
 
@@ -196,6 +211,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
                     collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: false)
                 }
                 store.send(.setJumpIndex(nil))
+                updateAnimatedPlaybackForVisibleCells()
             }
             .store(in: &cancellables)
 
@@ -259,6 +275,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             resnap(to: currentVisualPageIndexPath())
             pendingResnap = false
         }
+        updateAnimatedPlaybackForVisibleCells()
     }
 
     // Returns index path representing the start of the current visual page (accounts for double page layout)
@@ -286,6 +303,69 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         guard indexPath.row < numberOfItems else { return }
         // Scroll without animation to avoid intermediate half pages
         collectionView.scrollToItem(at: indexPath, at: .left, animated: false)
+    }
+
+    private func updateAnimatedPlaybackForVisibleCells() {
+        guard collectionView != nil else { return }
+        guard store.readDirection != ReadDirection.upDown.rawValue else { return }
+
+        guard isPagingSettled() else {
+            for case let pageCell as UIPageCell in collectionView.visibleCells {
+                pageCell.setAnimationActive(false)
+            }
+            return
+        }
+
+        let activeIndexPaths = fullyVisibleHorizontalPageIndexPaths()
+        for case let pageCell as UIPageCell in collectionView.visibleCells {
+            guard let indexPath = collectionView.indexPath(for: pageCell) else { continue }
+            pageCell.setAnimationActive(activeIndexPaths.contains(indexPath))
+        }
+    }
+
+    private func isPagingSettled() -> Bool {
+        !collectionView.isDragging && !collectionView.isDecelerating && !isProgrammaticPaging
+    }
+
+    private func fullyVisibleHorizontalPageIndexPaths() -> Set<IndexPath> {
+        let visibleIndexPaths = collectionView.indexPathsForVisibleItems.sorted()
+        guard !visibleIndexPaths.isEmpty else { return [] }
+
+        let fullyVisible = visibleIndexPaths.filter { indexPath in
+            visibleRatio(for: indexPath) >= fullVisibilityThreshold
+        }
+        guard !fullyVisible.isEmpty else { return [] }
+
+        guard store.doublePageLayout else {
+            guard let target = fullyVisible.last else { return [] }
+            return [target]
+        }
+
+        let grouped = Dictionary(grouping: fullyVisible) { indexPath in
+            startOfGroupIndexPath(for: indexPath)
+        }
+        let sortedStarts = grouped.keys.sorted()
+        for start in sortedStarts.reversed() {
+            guard let groupItems = grouped[start] else { continue }
+            let itemCount = collectionView.numberOfItems(inSection: start.section)
+            let remaining = max(0, itemCount - start.row)
+            let expectedCount = min(2, remaining)
+            if groupItems.count == expectedCount {
+                return Set(groupItems)
+            }
+        }
+
+        return []
+    }
+
+    private func visibleRatio(for indexPath: IndexPath) -> CGFloat {
+        guard let attrs = collectionView.layoutAttributesForItem(at: indexPath) else { return 0 }
+        let visibleRect = CGRect(origin: collectionView.contentOffset, size: collectionView.bounds.size)
+        let intersection = attrs.frame.intersection(visibleRect)
+        guard !intersection.isNull else { return 0 }
+        let totalArea = attrs.frame.width * attrs.frame.height
+        guard totalArea > 0 else { return 0 }
+        return (intersection.width * intersection.height) / totalArea
     }
 
     override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
@@ -357,11 +437,15 @@ extension UIPageCollectionController: UIGestureRecognizerDelegate {
             let row = store.sliderIndex.int + 1
             guard row < store.pages.count else { break }
             let indexPath = IndexPath(row: row, section: 0)
+            isProgrammaticPaging = true
+            updateAnimatedPlaybackForVisibleCells()
             collectionView.scrollToItem(at: indexPath, at: .left, animated: true)
         case PageControl.previous.rawValue:
             let row = store.doublePageLayout ? store.sliderIndex.int - 2 : store.sliderIndex.int - 1
             guard row >= 0 else { break }
             let indexPath = IndexPath(row: row, section: 0)
+            isProgrammaticPaging = true
+            updateAnimatedPlaybackForVisibleCells()
             collectionView.scrollToItem(at: indexPath, at: .left, animated: true)
         case PageControl.navigation.rawValue:
             store.send(.toggleControlUi(nil))
@@ -669,6 +753,7 @@ extension UIPageCollectionController {
         guard scrollView === collectionView else { return }
         guard let metrics = currentScrollMetrics() else { return }
         updatePullState(scroll: metrics)
+        updateAnimatedPlaybackForVisibleCells()
     }
 
     func resetCollectionView() {
@@ -676,6 +761,7 @@ extension UIPageCollectionController {
             Section, StoreOf<PageFeature>
         >()
         dataSource.apply(snapshot, animatingDifferences: false)
+        lastSnapshotPageIds = []
         collectionView.setContentOffset(.zero, animated: false)
         lastPageIndexPath = nil
         didInitialJump = false
@@ -700,6 +786,22 @@ extension UIPageCollectionController {
         }
 
         endPullInteraction()
+        if !decelerate {
+            isProgrammaticPaging = false
+            updateAnimatedPlaybackForVisibleCells()
+        }
+    }
+
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        guard scrollView === collectionView else { return }
+        isProgrammaticPaging = false
+        updateAnimatedPlaybackForVisibleCells()
+    }
+
+    func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
+        guard scrollView === collectionView else { return }
+        isProgrammaticPaging = false
+        updateAnimatedPlaybackForVisibleCells()
     }
 }
 
@@ -709,12 +811,16 @@ extension UIPageCollectionController: UICollectionViewDataSourcePrefetching {
         willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath
     ) {
         if let pageCell = cell as? UIPageCell {
-            Task {
-                await pageCell.store?.send(.load(false)).finish()
-                if store.readDirection == ReadDirection.upDown.rawValue {
-                    collectionView.performBatchUpdates { }
+            if let pageStore = pageCell.store,
+                pageStore.pageMode == .loading || !pageStore.imageLoaded {
+                Task {
+                    await pageStore.send(.load(false)).finish()
+                    if store.readDirection == ReadDirection.upDown.rawValue {
+                        collectionView.performBatchUpdates { }
+                    }
                 }
             }
+            updateAnimatedPlaybackForVisibleCells()
         }
     }
 
@@ -724,7 +830,7 @@ extension UIPageCollectionController: UICollectionViewDataSourcePrefetching {
     ) {
         indexPaths.forEach { path in
             if let pageStore = dataSource.itemIdentifier(for: path) {
-                if pageStore.pageMode == .loading {
+                if pageStore.pageMode == .loading || !pageStore.imageLoaded {
                     Task {
                         await pageStore.send(.load(false)).finish()
                     }

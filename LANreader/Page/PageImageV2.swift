@@ -130,6 +130,11 @@ import Logging
                         return .none
                     }
                 } else {
+                    // Already resolved page (normal/left/right): avoid rewriting state on repeated load(false)
+                    // calls from willDisplay/prefetch, which can cause heavy UI churn while scrolling.
+                    guard state.loading || !state.imageLoaded else {
+                        return .none
+                    }
                     state.loading = false
                     state.imageLoaded = true
                     return .none
