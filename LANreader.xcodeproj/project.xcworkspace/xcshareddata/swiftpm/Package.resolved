@@ -1,13 +1,22 @@
 {
-  "originHash" : "6c3cca5bf3b02874469f405975f091b80741859e17d12ce38136f5efc74b28f7",
+  "originHash" : "7e341d062ae321d0b7511d39391d10022519f6c548083611039d770240b04c09",
   "pins" : [
     {
       "identity" : "alamofire",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Alamofire/Alamofire.git",
       "state" : {
-        "revision" : "7be73f6c2b5cd90e40798b06ebd5da8f9f79cf88",
-        "version" : "5.11.0"
+        "revision" : "3f99050e75bbc6fe71fc323adabb039756680016",
+        "version" : "5.11.1"
+      }
+    },
+    {
+      "identity" : "animatedimage",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/noppefoxwolf/AnimatedImage",
+      "state" : {
+        "revision" : "1aab1442149b76acf786b3c1e9cd6837638c954b",
+        "version" : "0.2.3"
       }
     },
     {
@@ -132,8 +141,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-custom-dump",
       "state" : {
-        "revision" : "93a8aa4937030b606de42f44b17870249f49af0b",
-        "version" : "1.3.4"
+        "revision" : "2a2a938798236b8fa0bc57c453ee9de9f9ec3ab0",
+        "version" : "1.4.1"
       }
     },
     {
@@ -141,8 +150,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-dependencies",
       "state" : {
-        "revision" : "411297072220a96f1501211afebd3715316907d2",
-        "version" : "1.10.1"
+        "revision" : "c79f72b3e67a1eb64f66f76704c22ed6a5c1ed84",
+        "version" : "1.11.0"
       }
     },
     {

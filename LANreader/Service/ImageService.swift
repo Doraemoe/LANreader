@@ -1,8 +1,35 @@
 import UIKit
 import Dependencies
+import ImageIO
+import UniformTypeIdentifiers
 
 final class ImageService: Sendable {
     static let shared = ImageService()
+
+    func isAnimatedImage(imageUrl: URL, imageData: Data? = nil) -> Bool {
+        guard let imageSource = makeImageSource(imageUrl: imageUrl, imageData: imageData) else { return false }
+        return CGImageSourceGetCount(imageSource) > 1
+    }
+
+    func storedImagePath(folderUrl: URL?, pageNumber: String) -> URL? {
+        guard let folderUrl else { return nil }
+        let heicPath = folderUrl.appendingPathComponent("\(pageNumber).heic", conformingTo: .heic)
+        if FileManager.default.fileExists(atPath: heicPath.path(percentEncoded: false)) {
+            return heicPath
+        }
+
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: folderUrl,
+            includingPropertiesForKeys: nil
+        ) else {
+            return nil
+        }
+
+        let matched = files.filter {
+            !$0.hasDirectoryPath && $0.deletingPathExtension().lastPathComponent == pageNumber
+        }
+        return matched.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }).first
+    }
 
     func heicDataOfImage(url: URL) -> Data? {
         guard let image = UIImage(contentsOfFile: url.path(percentEncoded: false)) else { return nil }
@@ -17,7 +44,19 @@ final class ImageService: Sendable {
         split: Bool
     ) -> Bool {
         try? FileManager.default.createDirectory(at: destinationUrl, withIntermediateDirectories: true)
-        let mainPath = destinationUrl.appendingPathComponent("\(pageNumber).heic", conformingTo: .heic)
+
+        if isAnimatedImage(imageUrl: imageUrl, imageData: imageData) {
+            guard let originalData = imageData ?? (try? Data(contentsOf: imageUrl)) else { return false }
+            let fileExt = preferredFileExtension(imageUrl: imageUrl, imageData: originalData)
+            let mainPath = destinationUrl.appendingPathComponent("\(pageNumber).\(fileExt)")
+
+            removeStoredImages(
+                at: destinationUrl,
+                pageNames: [pageNumber, "\(pageNumber)-left", "\(pageNumber)-right"]
+            )
+            try? originalData.write(to: mainPath, options: .atomic)
+            return false
+        }
 
         let image: UIImage
         if imageData != nil {
@@ -27,6 +66,12 @@ final class ImageService: Sendable {
             guard let convertImage = UIImage(contentsOfFile: imageUrl.path(percentEncoded: false)) else { return false }
             image = convertImage
         }
+
+        let mainPath = destinationUrl.appendingPathComponent("\(pageNumber).heic", conformingTo: .heic)
+        removeStoredImages(
+            at: destinationUrl,
+            pageNames: [pageNumber, "\(pageNumber)-left", "\(pageNumber)-right"]
+        )
 
         var splitted = false
 
@@ -42,6 +87,39 @@ final class ImageService: Sendable {
             splitted = true
         }
         return splitted
+    }
+
+    private func makeImageSource(imageUrl: URL, imageData: Data? = nil) -> CGImageSource? {
+        if let imageData {
+            return CGImageSourceCreateWithData(imageData as CFData, nil)
+        }
+        return CGImageSourceCreateWithURL(imageUrl as CFURL, nil)
+    }
+
+    private func preferredFileExtension(imageUrl: URL, imageData: Data? = nil) -> String {
+        let pathExtension = imageUrl.pathExtension.lowercased()
+        if !pathExtension.isEmpty, UTType(filenameExtension: pathExtension) != nil {
+            return pathExtension
+        }
+
+        if let imageSource = makeImageSource(imageUrl: imageUrl, imageData: imageData),
+           let imageType = CGImageSourceGetType(imageSource),
+           let type = UTType(imageType as String),
+           let preferredExtension = type.preferredFilenameExtension {
+            return preferredExtension.lowercased()
+        }
+
+        return pathExtension.isEmpty ? "img" : pathExtension
+    }
+
+    private func removeStoredImages(at folderUrl: URL, pageNames: [String]) {
+        guard let files = try? FileManager.default.contentsOfDirectory(at: folderUrl, includingPropertiesForKeys: nil) else {
+            return
+        }
+        let pageNameSet = Set(pageNames)
+        files
+            .filter { pageNameSet.contains($0.deletingPathExtension().lastPathComponent) }
+            .forEach { try? FileManager.default.removeItem(at: $0) }
     }
 }
 

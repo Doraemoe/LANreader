@@ -72,6 +72,7 @@
 		E9A452262D90F1A60010CEE3 /* SupportSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A452252D90F1A60010CEE3 /* SupportSettings.swift */; };
 		E9A4DD0E2D558D1E00E16FEC /* UIAppTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A4DD0D2D558D1E00E16FEC /* UIAppTabView.swift */; };
 		E9A4DD122D5ACEA300E16FEC /* UINavigationHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A4DD112D5ACE9B00E16FEC /* UINavigationHelper.swift */; };
+		E9A4E0D42F3EE6010099BE6C /* AnimatedImage in Frameworks */ = {isa = PBXBuildFile; productRef = E9A4E0D32F3EE6010099BE6C /* AnimatedImage */; };
 		E9A8612D2BF31534003534FA /* AutomaticPageConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A8612C2BF31534003534FA /* AutomaticPageConfig.swift */; };
 		E9AAC1352CBC8FC600E5E89A /* UIPageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AAC1342CBC8FC600E5E89A /* UIPageCell.swift */; };
 		E9BE57B22942CFEC00A3AEA0 /* LockScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */; };
@@ -227,6 +228,7 @@
 				E9EACA7B2D64517000229508 /* GRDBQuery in Frameworks */,
 				E9A452222D90E35B0010CEE3 /* StoreKit.framework in Frameworks */,
 				E90C26CB2C1A7A6D00BE87D9 /* ComposableArchitecture in Frameworks */,
+				E9A4E0D42F3EE6010099BE6C /* AnimatedImage in Frameworks */,
 				E9E3631726F463F800C58D01 /* NotificationBannerSwift in Frameworks */,
 				E90576BF29F8C10700C3CE3F /* Puppy in Frameworks */,
 				E9E3631426F463F800C58D01 /* Alamofire in Frameworks */,
@@ -525,6 +527,7 @@
 				E90576BE29F8C10700C3CE3F /* Puppy */,
 				E90C26CA2C1A7A6D00BE87D9 /* ComposableArchitecture */,
 				E9EACA7A2D64517000229508 /* GRDBQuery */,
+				E9A4E0D32F3EE6010099BE6C /* AnimatedImage */,
 			);
 			productName = DuManga;
 			productReference = 7D354C9C24F1316800617F4A /* LANreader.app */;
@@ -610,6 +613,7 @@
 				E90576BD29F8C10700C3CE3F /* XCRemoteSwiftPackageReference "Puppy" */,
 				E90C26C92C1A7A6D00BE87D9 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
 				E9EACA792D64517000229508 /* XCRemoteSwiftPackageReference "GRDBQuery" */,
+				E9A4E0D22F3EE6010099BE6C /* XCRemoteSwiftPackageReference "AnimatedImage" */,
 			);
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
 			projectDirPath = "";
@@ -928,7 +932,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreader.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 146;
+				CURRENT_PROJECT_VERSION = 149;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -939,7 +943,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.5.1;
+				MARKETING_VERSION = 3.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -956,7 +960,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreaderRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 146;
+				CURRENT_PROJECT_VERSION = 149;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -967,7 +971,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.5.1;
+				MARKETING_VERSION = 3.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1030,7 +1034,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 146;
+				CURRENT_PROJECT_VERSION = 149;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Download from URL";
@@ -1041,7 +1045,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.5.1;
+				MARKETING_VERSION = 3.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1058,7 +1062,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 146;
+				CURRENT_PROJECT_VERSION = 149;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Download from URL";
@@ -1069,7 +1073,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.5.1;
+				MARKETING_VERSION = 3.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1177,6 +1181,14 @@
 				minimumVersion = 1.11.1;
 			};
 		};
+		E9A4E0D22F3EE6010099BE6C /* XCRemoteSwiftPackageReference "AnimatedImage" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/noppefoxwolf/AnimatedImage";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.2.3;
+			};
+		};
 		E9EACA792D64517000229508 /* XCRemoteSwiftPackageReference "GRDBQuery" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDBQuery";
@@ -1222,6 +1234,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E90C26C92C1A7A6D00BE87D9 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;
 			productName = ComposableArchitecture;
+		};
+		E9A4E0D32F3EE6010099BE6C /* AnimatedImage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E9A4E0D22F3EE6010099BE6C /* XCRemoteSwiftPackageReference "AnimatedImage" */;
+			productName = AnimatedImage;
 		};
 		E9EACA7A2D64517000229508 /* GRDBQuery */ = {
 			isa = XCSwiftPackageProductDependency;
