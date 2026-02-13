@@ -113,7 +113,9 @@ final class ImageService: Sendable {
     }
 
     private func removeStoredImages(at folderUrl: URL, pageNames: [String]) {
-        guard let files = try? FileManager.default.contentsOfDirectory(at: folderUrl, includingPropertiesForKeys: nil) else {
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: folderUrl, includingPropertiesForKeys: nil
+        ) else {
             return
         }
         let pageNameSet = Set(pageNames)

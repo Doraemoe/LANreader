@@ -167,7 +167,6 @@ class UIPageCell: UICollectionViewCell {
         renderCurrentState(store: store)
     }
 
-    // swiftlint:disable function_body_length
     func setupObserve(store: StoreOf<PageFeature>) {
         store.publisher.progress
             .sink { [weak self] _ in
@@ -215,8 +214,8 @@ class UIPageCell: UICollectionViewCell {
             }
             .store(in: &cancellables)
     }
-    // swiftlint:enable function_body_length
 
+    // swiftlint:disable function_body_length
     private func renderImage(store: StoreOf<PageFeature>) {
         animatedImageView.resetFirstFrameState()
 
@@ -251,7 +250,10 @@ class UIPageCell: UICollectionViewCell {
                 }
                 imageView.isHidden = false
 
-                let image = try AnimatedImage(contentsOf: contentPath, withConfiguration: Self.animatedImageConfiguration)
+                let image = try AnimatedImage(
+                    contentsOf: contentPath,
+                    withConfiguration: Self.animatedImageConfiguration
+                )
                 animatedImageView.image = image
                 animatedImageView.isHidden = false
             } catch {
@@ -276,6 +278,7 @@ class UIPageCell: UICollectionViewCell {
             animatedImageView.isHidden = true
         }
     }
+    // swiftlint:enable function_body_length
 
     private func renderCurrentState(store: StoreOf<PageFeature>) {
         if store.errorMessage.isEmpty {
