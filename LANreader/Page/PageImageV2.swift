@@ -28,9 +28,6 @@ import Logging
         }
 
         let folder: URL?
-        let path: URL?
-        let pathLeft: URL?
-        let pathRight: URL?
 
         init(archiveId: String, pageId: String, pageNumber: Int, pageMode: PageMode = .loading, cached: Bool = false) {
             self.pageId = pageId
@@ -44,12 +41,6 @@ import Logging
                 LANraragiService.downloadPath
             }
             self.folder = imagePath?.appendingPathComponent(archiveId, conformingTo: .folder)
-            self.path = self.folder?
-                .appendingPathComponent("\(pageNumber).heic", conformingTo: .heic)
-            self.pathLeft = self.folder?
-                .appendingPathComponent("\(pageNumber)-left.heic", conformingTo: .heic)
-            self.pathRight = self.folder?
-                .appendingPathComponent("\(pageNumber)-right.heic", conformingTo: .heic)
         }
     }
 
@@ -101,23 +92,31 @@ import Logging
                 if force {
                     state.pageMode = .loading
                 } else if state.pageMode == .loading {
+                    let leftPath = imageService.storedImagePath(
+                        folderUrl: state.folder,
+                        pageNumber: "\(state.pageNumber)-left"
+                    )
+                    let rightPath = imageService.storedImagePath(
+                        folderUrl: state.folder,
+                        pageNumber: "\(state.pageNumber)-right"
+                    )
+                    let normalPath = imageService.storedImagePath(
+                        folderUrl: state.folder,
+                        pageNumber: String(state.pageNumber)
+                    )
+
                     if state.splitImage {
-                        if state.piorityLeft &&
-                            FileManager.default.fileExists(
-                                atPath: state.pathLeft?.path(percentEncoded: false) ?? ""
-                            ) {
+                        if state.piorityLeft && leftPath != nil {
                             state.pageMode = .left
                             state.imageLoaded = true
                             return .send(.insertPage(.right))
-                        } else if FileManager.default.fileExists(
-                            atPath: state.pathRight?.path(percentEncoded: false) ?? ""
-                        ) {
+                        } else if rightPath != nil {
                             state.pageMode = .right
                             state.imageLoaded = true
                             return .send(.insertPage(.left))
                         }
                     }
-                    if FileManager.default.fileExists(atPath: state.path?.path(percentEncoded: false) ?? "") {
+                    if normalPath != nil {
                         state.pageMode = .normal
                         state.imageLoaded = true
                         return .none
@@ -144,8 +143,9 @@ import Logging
                                     .value
                                 await send(.cancelSubscribeImageProgress)
 
+                                let animated = imageService.isAnimatedImage(imageUrl: imageUrl)
                                 var translated: Data?
-                                if state.translationEnabled {
+                                if state.translationEnabled && !animated {
                                     await send(.setProgress(2.0))
 
                                     guard let request = await translatorService.translatePage(original: imageUrl) else {
