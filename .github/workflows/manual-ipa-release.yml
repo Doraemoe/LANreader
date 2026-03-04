@@ -22,7 +22,7 @@ jobs:
       - name: Resolve app versions
         id: versions
         run: |
-          settings="$(s
+          settings="$(
             xcodebuild \
               -project LANreader.xcodeproj \
               -scheme LANreader \
