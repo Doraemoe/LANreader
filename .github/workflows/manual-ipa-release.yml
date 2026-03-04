@@ -1,0 +1,106 @@
+name: Manual IPA Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v6
+
+      - name: Select Xcode version
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.2.app
+          xcodebuild -version
+
+      - name: Resolve app versions
+        id: versions
+        run: |
+          settings="$(s
+            xcodebuild \
+              -project LANreader.xcodeproj \
+              -scheme LANreader \
+              -configuration Release \
+              -destination 'generic/platform=iOS' \
+              -showBuildSettings
+          )"
+
+          marketing_version="$(echo "$settings" | awk -F' = ' '/MARKETING_VERSION/{print $2; exit}')"
+          current_project_version="$(echo "$settings" | awk -F' = ' '/CURRENT_PROJECT_VERSION/{print $2; exit}')"
+          tag="${marketing_version}-${current_project_version}"
+
+          if [ -z "$marketing_version" ] || [ -z "$current_project_version" ]; then
+            echo "Failed to resolve MARKETING_VERSION or CURRENT_PROJECT_VERSION."
+            exit 1
+          fi
+
+          echo "marketing_version=$marketing_version" >> "$GITHUB_OUTPUT"
+          echo "current_project_version=$current_project_version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        run: |
+          tag="${{ steps.versions.outputs.tag }}"
+
+          if git show-ref --tags --verify --quiet "refs/tags/$tag"; then
+            echo "Tag $tag already exists locally."
+            exit 1
+          fi
+
+          if git ls-remote --tags origin "refs/tags/$tag" | grep -q .; then
+            echo "Tag $tag already exists on origin."
+            exit 1
+          fi
+
+          git tag "$tag"
+          git push origin "$tag"
+
+      - name: Build unsigned Release app for Any iOS Device (arm64)
+        run: |
+          xcodebuild \
+            -project LANreader.xcodeproj \
+            -scheme LANreader \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            clean build
+
+      - name: Package IPA
+        id: package
+        run: |
+          app_path="$RUNNER_TEMP/DerivedData/Build/Products/Release-iphoneos/LANreader.app"
+          payload_dir="$RUNNER_TEMP/Payload"
+          ipa_path="$RUNNER_TEMP/LANreader.ipa"
+
+          if [ ! -d "$app_path" ]; then
+            echo "Expected app not found at $app_path"
+            exit 1
+          fi
+
+          rm -rf "$payload_dir"
+          mkdir -p "$payload_dir"
+          cp -R "$app_path" "$payload_dir/LANreader.app"
+
+          (
+            cd "$RUNNER_TEMP"
+            zip -qry "$ipa_path" Payload
+          )
+
+          echo "ipa_path=$ipa_path" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release and upload IPA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.versions.outputs.tag }}" "${{ steps.package.outputs.ipa_path }}#LANreader.ipa" \
+            --title "v${{ steps.versions.outputs.marketing_version }}" \
+            --generate-notes

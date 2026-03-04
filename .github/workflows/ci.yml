@@ -12,7 +12,7 @@ jobs:
         matrix:
           destination: ['platform=iOS Simulator,OS=26.2,name=iPad Pro 11-inch (M5)']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: install
         run: brew install swiftlint
