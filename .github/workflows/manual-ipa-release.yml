@@ -61,6 +61,10 @@ jobs:
           git tag "$tag"
           git push origin "$tag"
 
+      - name: Trust Swift macros
+        working-directory: ci_scripts
+        run: zsh ci_post_clone.sh
+
       - name: Build unsigned Release app for Any iOS Device (arm64)
         run: |
           xcodebuild \
