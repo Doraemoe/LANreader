@@ -10,7 +10,7 @@ LANreader is an iOS manga reader for [LANraragi](https://github.com/Difegue/LANr
 <img src="https://toolbox.marketingtools.apple.com/api/v2/badges/download-on-the-app-store/black/en-us?releaseDate=1742774400" alt="Download on the App Store" style="width: 246px; height: 82px; vertical-align: middle; object-fit: contain;" />
 </a>
 
-Will be avaliable on App Store until March 23, 2026
+The AppStore version is a paid app. You can still follow [Test on your device](#test-on-your-device) section to install it on your device for free.
     
 
 ## Interface
@@ -43,8 +43,8 @@ Will be avaliable on App Store until March 23, 2026
 
 ### AltStore
 
-- Downlaod .ipa file from [releases](https://github.com/Doraemoe/DuReader/releases)
-- Use [AltStore](https://altstore.io/) to install on your device
+- Downlaod .ipa file from [releases](https://github.com/Doraemoe/LANReader/releases)
+- Use [AltStore Classic](https://altstore.io/) to install on your device
 
 ### Source Code
 
