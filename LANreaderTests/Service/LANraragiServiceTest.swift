@@ -19,7 +19,6 @@ class LANraragiServiceTest: XCTestCase {
         UserDefaults.standard.set(url, forKey: SettingsKey.lanraragiUrl)
         UserDefaults.standard.set(apiKey, forKey: SettingsKey.lanraragiApiKey)
         service = LANraragiService.shared
-        _ = await service.verifyClient(url: url, apiKey: apiKey)
     }
 
     override func tearDownWithError() throws {
@@ -37,7 +36,7 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let actual = try await service.verifyClient(url: url, apiKey: apiKey).value
+        let actual = try await service.verifyClient(url: url, apiKey: apiKey)
         XCTAssertEqual(actual.archivesPerPage, 100)
         XCTAssertEqual(actual.debugMode, false)
         XCTAssertEqual(actual.hasPassword, true)
@@ -53,11 +52,13 @@ class LANraragiServiceTest: XCTestCase {
                     statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
-        let actual = try? await service.verifyClient(url: url, apiKey: apiKey).value
+        let actual = try? await service.verifyClient(url: url, apiKey: apiKey)
         XCTAssertNil(actual)
     }
 
     func testRetrieveArchiveIndex() async throws {
+        try await configureVerifiedClient()
+
         stub(condition: isHost("localhost")
                 && isPath("/api/archives")
                 && isMethodGET()
@@ -78,6 +79,8 @@ class LANraragiServiceTest: XCTestCase {
     }
 
     func testRetrieveArchiveIndexUnauthorized() async throws {
+        try await configureVerifiedClient()
+
         stub(condition: isHost("localhost")
                 && isPath("/api/archives")
                 && isMethodGET()
@@ -92,6 +95,8 @@ class LANraragiServiceTest: XCTestCase {
     }
 
     func testRetrieveArchiveIndexNullTags() async throws {
+        try await configureVerifiedClient()
+
         stub(condition: isHost("localhost")
                 && isPath("/api/archives")
                 && isMethodGET()
@@ -111,6 +116,8 @@ class LANraragiServiceTest: XCTestCase {
     }
 
     func testSearchArchive() async throws {
+        try await configureVerifiedClient()
+
         stub(condition: isHost("localhost")
                 && isPath("/api/search")
                 && containsQueryParams(["category": "SET_12345678"])
@@ -130,6 +137,8 @@ class LANraragiServiceTest: XCTestCase {
     }
 
     func testSearchArchiveIndexUnauthorized() async throws {
+        try await configureVerifiedClient()
+
         stub(condition: isHost("localhost")
                 && isPath("/api/search")
                 && containsQueryParams(["category": "SET_12345678"])
@@ -145,6 +154,8 @@ class LANraragiServiceTest: XCTestCase {
     }
 
     func testRetrieveCategories() async throws {
+        try await configureVerifiedClient()
+
         stub(condition: isHost("localhost")
                 && isPath("/api/categories")
                 && isMethodGET()
@@ -173,6 +184,8 @@ class LANraragiServiceTest: XCTestCase {
     }
 
     func testRetrieveCategoriesUnauthorized() async throws {
+        try await configureVerifiedClient()
+
         stub(condition: isHost("localhost")
                 && isPath("/api/categories")
                 && isMethodGET()
@@ -187,6 +200,8 @@ class LANraragiServiceTest: XCTestCase {
     }
 
     func testUpdateCategory() async throws {
+        try await configureVerifiedClient()
+
         stub(condition: isHost("localhost")
                 && isPath("/api/categories/SET_12345678")
                 && isMethodPUT()
@@ -205,6 +220,8 @@ class LANraragiServiceTest: XCTestCase {
     }
 
     func testUpdateCategoryUnauthorized() async throws {
+        try await configureVerifiedClient()
+
         stub(condition: isHost("localhost")
                 && isPath("/api/categories/SET_12345678")
                 && isMethodPUT()
@@ -222,6 +239,8 @@ class LANraragiServiceTest: XCTestCase {
     }
 
     func testExtractArchive() async throws {
+        try await configureVerifiedClient()
+
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/1/extract")
                 && isMethodPOST()
@@ -238,6 +257,8 @@ class LANraragiServiceTest: XCTestCase {
     }
 
     func testExtractArchiveUnauthorized() async throws {
+        try await configureVerifiedClient()
+
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/1/extract")
                 && isMethodPOST()
@@ -252,6 +273,8 @@ class LANraragiServiceTest: XCTestCase {
     }
 
     func testClearNewFlag() async throws {
+        try await configureVerifiedClient()
+
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/isnew")
                 && isMethodDELETE()
@@ -267,6 +290,8 @@ class LANraragiServiceTest: XCTestCase {
     }
 
     func testClearNewFlagUnauthorized() async throws {
+        try await configureVerifiedClient()
+
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/isnew")
                 && isMethodDELETE()
@@ -281,6 +306,8 @@ class LANraragiServiceTest: XCTestCase {
     }
 
     func testUpdateArchiveMetadata() async throws {
+        try await configureVerifiedClient()
+
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/metadata")
                 && isMethodPUT()
@@ -300,6 +327,8 @@ class LANraragiServiceTest: XCTestCase {
     }
 
     func testUpdateArchiveMetadataUnauthorized() async throws {
+        try await configureVerifiedClient()
+
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/metadata")
                 && isMethodPUT()
@@ -315,6 +344,19 @@ class LANraragiServiceTest: XCTestCase {
                                    progress: 0, pagecount: 10, dateAdded: 1234)
         let actual = try? await service.updateArchive(archive: metadata).value
         XCTAssertNil(actual)
+    }
+
+    private func configureVerifiedClient() async throws {
+        stub(condition: isHost("localhost")
+                && isPath("/api/info")
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    fileAtPath: OHPathForFile("ServerInfoResponse.json", type(of: self))!,
+                    statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+
+        _ = try await service.verifyClient(url: url, apiKey: apiKey)
     }
 
 }
