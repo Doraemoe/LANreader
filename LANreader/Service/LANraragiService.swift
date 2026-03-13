@@ -61,16 +61,26 @@ actor LANraragiService {
         return session
     }
 
-    func verifyClient(url: String, apiKey: String) async -> DataTask<ServerInfo> {
-        self.url = url
+    private func makeSession(apiKey: String) -> (AuthInterceptor, Session) {
         let interceptor = AuthInterceptor(apiKey: apiKey)
-        self.authInterceptor = interceptor
-        self.session = Session(interceptor: interceptor)
+        let session = Session(interceptor: interceptor)
+        return (interceptor, session)
+    }
+
+    func verifyClient(url: String, apiKey: String) async throws -> ServerInfo {
+        let (interceptor, session) = makeSession(apiKey: apiKey)
         let cacher = ResponseCacher(behavior: .doNotCache)
-        return session.request("\(self.url)/api/info")
+        let serverInfo = try await session.request("\(url)/api/info")
             .cacheResponse(using: cacher)
             .validate(statusCode: 200...200)
             .serializingDecodable(ServerInfo.self, decoder: self.snakeCaseEncoder)
+            .value
+
+        self.url = url
+        self.authInterceptor = interceptor
+        self.session = session
+        updateAPIVersionFlag(serverVersion: serverInfo.version)
+        return serverInfo
     }
 
     func checkServerVersionAtStartup() async {
@@ -83,8 +93,7 @@ actor LANraragiService {
         }
 
         do {
-            let serverInfo = try await verifyClient(url: storedUrl, apiKey: storedApiKey).value
-            updateAPIVersionFlag(serverVersion: serverInfo.version)
+            _ = try await verifyClient(url: storedUrl, apiKey: storedApiKey)
         } catch {
             Self.logger.warning("Failed to check server version at startup: \(error.localizedDescription)")
         }
