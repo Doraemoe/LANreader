@@ -260,12 +260,13 @@ actor LANraragiService {
         }
     }
 
-    func fetchArchivePage(page: String, pageNumber: Int) -> DownloadRequest {
+    private func resolveArchivePageURL(page: String) -> URL {
         let baseURL = getDomainURL(from: self.url)
-            // Combine with the page path parameter
-        let fullURL = URL(string: page, relativeTo: baseURL)!
+        return URL(string: page, relativeTo: baseURL)!.absoluteURL
+    }
 
-        let request = URLRequest(url: fullURL)
+    func fetchArchivePage(page: String, pageNumber: Int) -> DownloadRequest {
+        let request = URLRequest(url: resolveArchivePageURL(page: page))
         return session.download(request, to: { tempUrl, rsp in
             let destName: String
             if let filename = rsp.suggestedFilename {
@@ -284,7 +285,7 @@ actor LANraragiService {
     }
 
     func backgroupFetchArchivePage(page: String, archiveId: String, pageNumber: Int) {
-        var request = URLRequest(url: URL(string: "\(url)/\(page)")!)
+        var request = URLRequest(url: resolveArchivePageURL(page: page))
         request.setValue("Bearer \(authInterceptor.encodedApiKey())", forHTTPHeaderField: "Authorization")
         request.setValue(archiveId, forHTTPHeaderField: "X-Archive-Id")
         request.setValue("\(pageNumber)", forHTTPHeaderField: "X-Page-Number")
