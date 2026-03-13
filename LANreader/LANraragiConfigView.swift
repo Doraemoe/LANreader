@@ -46,9 +46,7 @@ import Logging
                 return .run { [state] send in
                     let serverInfo = try await lanraragiService.verifyClient(
                         url: state.formUrl, apiKey: state.formKey
-                    ).value
-                    // Update API version flag based on server version
-                    await lanraragiService.updateAPIVersionFlag(serverVersion: serverInfo.version)
+                    )
                     if serverInfo.serverTracksProgress {
                         await send(.setServerProgress(true))
                     } else {
