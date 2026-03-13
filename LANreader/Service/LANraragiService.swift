@@ -67,7 +67,7 @@ actor LANraragiService {
         return (interceptor, session)
     }
 
-    func verifyClient(url: String, apiKey: String) async throws -> ServerInfo {
+    private func fetchServerInfo(url: String, apiKey: String) async throws -> (AuthInterceptor, Session, ServerInfo) {
         let (interceptor, session) = makeSession(apiKey: apiKey)
         let cacher = ResponseCacher(behavior: .doNotCache)
         let serverInfo = try await session.request("\(url)/api/info")
@@ -75,6 +75,12 @@ actor LANraragiService {
             .validate(statusCode: 200...200)
             .serializingDecodable(ServerInfo.self, decoder: self.snakeCaseEncoder)
             .value
+
+        return (interceptor, session, serverInfo)
+    }
+
+    func verifyClient(url: String, apiKey: String) async throws -> ServerInfo {
+        let (interceptor, session, serverInfo) = try await fetchServerInfo(url: url, apiKey: apiKey)
 
         self.url = url
         self.authInterceptor = interceptor
@@ -93,7 +99,8 @@ actor LANraragiService {
         }
 
         do {
-            _ = try await verifyClient(url: storedUrl, apiKey: storedApiKey)
+            let (_, _, serverInfo) = try await fetchServerInfo(url: storedUrl, apiKey: storedApiKey)
+            updateAPIVersionFlag(serverVersion: serverInfo.version)
         } catch {
             Self.logger.warning("Failed to check server version at startup: \(error.localizedDescription)")
         }
