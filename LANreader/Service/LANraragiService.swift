@@ -67,7 +67,7 @@ actor LANraragiService {
         return (interceptor, session)
     }
 
-    private func fetchServerInfo(url: String, apiKey: String) async throws -> (AuthInterceptor, Session, ServerInfo) {
+    private func fetchServerInfo(url: String, apiKey: String) async throws -> VerificationResult {
         let (interceptor, session) = makeSession(apiKey: apiKey)
         let cacher = ResponseCacher(behavior: .doNotCache)
         let serverInfo = try await session.request("\(url)/api/info")
@@ -76,17 +76,17 @@ actor LANraragiService {
             .serializingDecodable(ServerInfo.self, decoder: self.snakeCaseEncoder)
             .value
 
-        return (interceptor, session, serverInfo)
+        return VerificationResult(interceptor: interceptor, session: session, serverInfo: serverInfo)
     }
 
     func verifyClient(url: String, apiKey: String) async throws -> ServerInfo {
-        let (interceptor, session, serverInfo) = try await fetchServerInfo(url: url, apiKey: apiKey)
+        let result = try await fetchServerInfo(url: url, apiKey: apiKey)
 
         self.url = url
-        self.authInterceptor = interceptor
-        self.session = session
-        updateAPIVersionFlag(serverVersion: serverInfo.version)
-        return serverInfo
+        self.authInterceptor = result.interceptor
+        self.session = result.session
+        updateAPIVersionFlag(serverVersion: result.serverInfo.version)
+        return result.serverInfo
     }
 
     func checkServerVersionAtStartup() async {
@@ -99,8 +99,8 @@ actor LANraragiService {
         }
 
         do {
-            let (_, _, serverInfo) = try await fetchServerInfo(url: storedUrl, apiKey: storedApiKey)
-            updateAPIVersionFlag(serverVersion: serverInfo.version)
+            let result = try await fetchServerInfo(url: storedUrl, apiKey: storedApiKey)
+            updateAPIVersionFlag(serverVersion: result.serverInfo.version)
         } catch {
             Self.logger.warning("Failed to check server version at startup: \(error.localizedDescription)")
         }
@@ -424,4 +424,10 @@ extension DependencyValues {
     get { self[LANraragiService.self] }
     set { self[LANraragiService.self] = newValue }
   }
+}
+
+private struct VerificationResult {
+    let interceptor: AuthInterceptor
+    let session: Session
+    let serverInfo: ServerInfo
 }
