@@ -10,6 +10,27 @@ struct ArchiveIndexResponse: Decodable, Equatable {
     let title: String
     let pagecount: Int
     let progress: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case arcid
+        case `extension`
+        case isnew
+        case tags
+        case title
+        case pagecount
+        case progress
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.arcid = try container.decode(String.self, forKey: .arcid)
+        self.extension = try container.decode(String.self, forKey: .extension)
+        self.isnew = try container.decodeBooleanString(forKey: .isnew)
+        self.tags = try container.decodeIfPresent(String.self, forKey: .tags)
+        self.title = try container.decode(String.self, forKey: .title)
+        self.pagecount = try container.decode(Int.self, forKey: .pagecount)
+        self.progress = try container.decode(Int.self, forKey: .progress)
+    }
 }
 
 struct ArchiveExtractResponse: Decodable {
@@ -25,6 +46,27 @@ struct ArchiveCategoriesResponse: Decodable {
     let name: String
     let pinned: String
     let search: String
+
+    private enum CodingKeys: String, CodingKey {
+        case archives
+        case id
+        // swiftlint:disable identifier_name
+        case last_used
+        // swiftlint:enable identifier_name
+        case name
+        case pinned
+        case search
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.archives = try container.decodeIfPresent([String].self, forKey: .archives) ?? []
+        self.id = try container.decode(String.self, forKey: .id)
+        self.last_used = try container.decodeIfPresent(String.self, forKey: .last_used)
+        self.name = try container.decode(String.self, forKey: .name)
+        self.pinned = try container.decodePinnedString(forKey: .pinned)
+        self.search = try container.decodeIfPresent(String.self, forKey: .search) ?? ""
+    }
 }
 
 struct ArchiveSearchResponse: Decodable {
@@ -42,6 +84,19 @@ struct StatsResponse: Decodable {
     let namespace: String
     let text: String
     let weight: String
+
+    private enum CodingKeys: String, CodingKey {
+        case namespace
+        case text
+        case weight
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.namespace = try container.decode(String.self, forKey: .namespace)
+        self.text = try container.decode(String.self, forKey: .text)
+        self.weight = try container.decodeNumericString(forKey: .weight)
+    }
 }
 
 struct GenericSuccessResponse: Decodable {
@@ -159,5 +214,63 @@ func extractDateAdded(tags: String) -> Int? {
         return Int(date)
     } else {
         return nil
+    }
+}
+
+private extension KeyedDecodingContainer {
+    func decodeBooleanString(forKey key: Key) throws -> String {
+        if let stringValue = try? decodeIfPresent(String.self, forKey: key) {
+            return stringValue
+        }
+
+        if let boolValue = try? decodeIfPresent(Bool.self, forKey: key) {
+            return boolValue ? "true" : "false"
+        }
+
+        if try decodeNil(forKey: key) {
+            return "false"
+        }
+
+        throw DecodingError.typeMismatch(
+            String.self,
+            .init(
+                codingPath: codingPath + [key],
+                debugDescription: "Expected String, Bool, or null for boolean-like field"
+            )
+        )
+    }
+
+    func decodePinnedString(forKey key: Key) throws -> String {
+        if let stringValue = try? decodeIfPresent(String.self, forKey: key) {
+            return stringValue
+        }
+
+        if let intValue = try? decodeIfPresent(Int.self, forKey: key) {
+            return String(intValue)
+        }
+
+        throw DecodingError.typeMismatch(
+            String.self,
+            .init(codingPath: codingPath + [key], debugDescription: "Expected String or Int for pinned field")
+        )
+    }
+
+    func decodeNumericString(forKey key: Key) throws -> String {
+        if let stringValue = try? decodeIfPresent(String.self, forKey: key) {
+            return stringValue
+        }
+
+        if let intValue = try? decodeIfPresent(Int.self, forKey: key) {
+            return String(intValue)
+        }
+
+        if let doubleValue = try? decodeIfPresent(Double.self, forKey: key) {
+            return doubleValue.formatted(.number.precision(.fractionLength(0...16)))
+        }
+
+        throw DecodingError.typeMismatch(
+            String.self,
+            .init(codingPath: codingPath + [key], debugDescription: "Expected String, Int, or Double for numeric field")
+        )
     }
 }
