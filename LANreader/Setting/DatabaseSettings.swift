@@ -18,26 +18,28 @@ import Logging
 
     @Dependency(\.appDatabase) var database
 
-    public func reduce(into state: inout State, action: Action) -> Effect<Action> {
-        switch action {
-        case .setDatabaseSize:
-            do {
-                let dbSize = try database.databaseSize()!
-                let bcf = ByteCountFormatter()
-                bcf.allowedUnits = [.useMB]
-                state.size = bcf.string(fromByteCount: Int64(dbSize))
-            } catch {
-                state.size = String(localized: "settings.database.error")
-            }
-            return .none
-        case .clearDatabase:
-            do {
-                try database.clearDatabase()
-            } catch {
-                logger.error("failed to clear database. \(error)")
-            }
-            return .run { send in
-                await send(.setDatabaseSize)
+    public var body: some Reducer<State, Action> {
+        Reduce { state, action in
+            switch action {
+            case .setDatabaseSize:
+                do {
+                    let dbSize = try database.databaseSize()!
+                    let bcf = ByteCountFormatter()
+                    bcf.allowedUnits = [.useMB]
+                    state.size = bcf.string(fromByteCount: Int64(dbSize))
+                } catch {
+                    state.size = String(localized: "settings.database.error")
+                }
+                return .none
+            case .clearDatabase:
+                do {
+                    try database.clearDatabase()
+                } catch {
+                    logger.error("failed to clear database. \(error)")
+                }
+                return .run { send in
+                    await send(.setDatabaseSize)
+                }
             }
         }
     }
