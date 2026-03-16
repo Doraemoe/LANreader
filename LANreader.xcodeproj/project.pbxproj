@@ -101,7 +101,7 @@
 			containerPortal = 7D354C9424F1316800617F4A /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 7D354C9B24F1316800617F4A;
-			remoteInfo = DuManga;
+			remoteInfo = LANreader;
 		};
 		E98B8B7B2A0A7B68004CBBC0 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -529,7 +529,7 @@
 				E9EACA7A2D64517000229508 /* GRDBQuery */,
 				E9A4E0D32F3EE6010099BE6C /* AnimatedImage */,
 			);
-			productName = DuManga;
+			productName = LANreader;
 			productReference = 7D354C9C24F1316800617F4A /* LANreader.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -550,7 +550,7 @@
 			packageProductDependencies = (
 				7D354CE924F1660200617F4A /* OHHTTPStubsSwift */,
 			);
-			productName = DuMangaTests;
+			productName = LANreaderTests;
 			productReference = 7D354CB224F1316E00617F4A /* LANreaderTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};

@@ -1,3 +1,0 @@
-git_url("https://github.com/Doraemoe/certificates")
-storage_mode("git")
-type("appstore")

@@ -1,7 +1,6 @@
 import ComposableArchitecture
 import SwiftUI
 import Logging
-import Combine
 import NotificationBannerSwift
 import OrderedCollections
 
@@ -93,6 +92,7 @@ import OrderedCollections
     @Dependency(\.imageService) var imageService
     @Dependency(\.appDatabase) var database
     @Dependency(\.dismiss) var dismiss
+    @Dependency(\.continuousClock) var clock
 
     public enum CancelId: Sendable {
         case updateProgress
@@ -207,6 +207,7 @@ import OrderedCollections
                     return .none
                 }
                 return .run(priority: .background) { [state] send in
+                    try await clock.sleep(for: .seconds(0.5))
                     if state.serverProgress {
                         _ = try await service.updateArchiveReadProgress(
                             id: state.currentArchiveId, progress: pageNumber
@@ -219,7 +220,7 @@ import OrderedCollections
                 } catch: { [state] error, _ in
                     logger.error("failed to update archive progress. id=\(state.currentArchiveId) \(error)")
                 }
-                .debounce(id: CancelId.updateProgress, for: .seconds(0.5), scheduler: DispatchQueue.main)
+                .cancellable(id: CancelId.updateProgress, cancelInFlight: true)
             case let .setIsNew(isNew):
                 guard let currentArchive = state.allArchives[id: state.currentArchiveId] else { return .none }
                 currentArchive.withLock {

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck source=scripts/_xcode_env.sh
+source "$SCRIPT_DIR/_xcode_env.sh"
+
+prepare_xcode_environment
+trust_swift_macros
+
+DESTINATION="${LANREADER_DESTINATION:-platform=iOS Simulator,OS=26.2,name=iPad Pro 11-inch (M5)}"
+RESULT_BUNDLE_PATH="$LANREADER_RESULTS_DIR/LANreader-tests.xcresult"
+
+rm -rf "$RESULT_BUNDLE_PATH"
+cd "$REPO_ROOT"
+
+XCODEBUILD_ARGS=(
+  clean
+  test
+  -project LANreader.xcodeproj
+  -scheme LANreader
+  -destination "$DESTINATION"
+  -resultBundlePath "$RESULT_BUNDLE_PATH"
+  -skipMacroValidation
+)
+
+if [[ -n "$LANREADER_DERIVED_DATA_PATH" ]]; then
+  XCODEBUILD_ARGS+=(-derivedDataPath "$LANREADER_DERIVED_DATA_PATH")
+fi
+if [[ -n "$LANREADER_SOURCE_PACKAGES_DIR" ]]; then
+  XCODEBUILD_ARGS+=(-clonedSourcePackagesDirPath "$LANREADER_SOURCE_PACKAGES_DIR")
+fi
+
+xcodebuild "${XCODEBUILD_ARGS[@]}" "$@"
