@@ -1,6 +1,6 @@
-[<img src="https://img.shields.io/github/downloads/doraemoe/dureader/total.svg">](https://github.com/Doraemoe/DuReader/releases)
-[<img src="https://img.shields.io/github/release/doraemoe/dureader.svg?display_name=tag">](https://github.com/Doraemoe/DuReader/releases/latest)
-[![Continuous Integration](https://github.com/Doraemoe/DuReader/actions/workflows/ci.yml/badge.svg)](https://github.com/Doraemoe/DuReader/actions/workflows/ci.yml)
+[<img src="https://img.shields.io/github/downloads/doraemoe/lanreader/total.svg">](https://github.com/Doraemoe/LANreader/releases)
+[<img src="https://img.shields.io/github/release/doraemoe/lanreader.svg?display_name=tag">](https://github.com/Doraemoe/LANreader/releases/latest)
+[![Continuous Integration](https://github.com/Doraemoe/LANreader/actions/workflows/ci.yml/badge.svg)](https://github.com/Doraemoe/LANreader/actions/workflows/ci.yml)
 
 # LANreader
 
@@ -37,13 +37,13 @@ The AppStore version is a paid app. You can still follow [Test on your device](#
 
 ### Save URL
 
-![237701532-4518935c-ca93-43a8-b190-064c6424aea5](https://github.com/Doraemoe/DuReader/assets/1129569/e8dab3ba-8eb0-49e6-930e-2c8b2fbd5cad)
+![237701532-4518935c-ca93-43a8-b190-064c6424aea5](https://github.com/Doraemoe/LANreader/assets/1129569/e8dab3ba-8eb0-49e6-930e-2c8b2fbd5cad)
 
 ## Test on your device
 
 ### AltStore
 
-- Downlaod .ipa file from [releases](https://github.com/Doraemoe/LANReader/releases)
+- Download .ipa file from [releases](https://github.com/Doraemoe/LANreader/releases)
 - Use [AltStore Classic](https://altstore.io/) to install on your device
 
 ### Source Code

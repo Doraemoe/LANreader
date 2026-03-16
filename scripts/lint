@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+cd "$REPO_ROOT"
+
+if ! command -v swiftlint >/dev/null 2>&1; then
+  echo "swiftlint is not installed. Install it with Homebrew or your preferred package manager." >&2
+  exit 1
+fi
+
+swiftlint --strict "$@"

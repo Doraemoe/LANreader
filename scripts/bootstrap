@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/_xcode_env.sh
+source "$SCRIPT_DIR/_xcode_env.sh"
+
+trust_swift_macros
+
+cat <<EOF
+Prepared Xcode environment:
+  HOME=$HOME
+  LocalCacheMode=$LANREADER_USE_LOCAL_XCODE_ENV
+  DerivedData=${LANREADER_DERIVED_DATA_PATH:-default}
+  SourcePackages=${LANREADER_SOURCE_PACKAGES_DIR:-default}
+  Results=$LANREADER_RESULTS_DIR
+EOF
