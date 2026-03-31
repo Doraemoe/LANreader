@@ -474,7 +474,7 @@ struct ArchiveReader: View {
             }
         }
         .alert(
-            $store.scope(state: \.alert, action: \.alert)
+            $store.scope(state: \.$alert, action: \.alert)
         )
         .overlay(content: {
             store.showAutoPageConfig ? AutomaticPageConfig(

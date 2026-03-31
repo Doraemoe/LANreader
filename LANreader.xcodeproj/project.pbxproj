@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 100;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -115,14 +115,12 @@
 /* Begin PBXCopyFilesBuildPhase section */
 		E98B8B672A0A7661004CBBC0 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
 			dstPath = "";
-			dstSubfolderSpec = 13;
+			dstSubfolder = PlugIns;
 			files = (
 				E98B8B7D2A0A7B68004CBBC0 /* Action.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
@@ -215,13 +213,16 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		E9A452292D9248340010CEE3 /* ci_scripts */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = ci_scripts; sourceTree = "<group>"; };
+		E9A452292D9248340010CEE3 /* ci_scripts */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ci_scripts;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		7D354C9924F1316800617F4A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				E9E3631626F463F800C58D01 /* Logging in Frameworks */,
 				E9E3631826F463F800C58D01 /* GRDB in Frameworks */,
@@ -233,23 +234,18 @@
 				E90576BF29F8C10700C3CE3F /* Puppy in Frameworks */,
 				E9E3631426F463F800C58D01 /* Alamofire in Frameworks */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		7D354CAF24F1316E00617F4A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				E9E3631926F463F800C58D01 /* OHHTTPStubsSwift in Frameworks */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		E98B8B6C2A0A7B67004CBBC0 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				E98B8B722A0A7B68004CBBC0 /* UniformTypeIdentifiers.framework in Frameworks */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
@@ -564,8 +560,6 @@
 			);
 			buildRules = (
 			);
-			dependencies = (
-			);
 			name = Action;
 			productName = Action;
 			productReference = E98B8B6F2A0A7B67004CBBC0 /* Action.appex */;
@@ -595,7 +589,6 @@
 				};
 			};
 			buildConfigurationList = 7D354C9724F1316800617F4A /* Build configuration list for PBXProject "LANreader" */;
-			compatibilityVersion = "Xcode 15.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -615,6 +608,7 @@
 				E9EACA792D64517000229508 /* XCRemoteSwiftPackageReference "GRDBQuery" */,
 				E9A4E0D22F3EE6010099BE6C /* XCRemoteSwiftPackageReference "AnimatedImage" */,
 			);
+			preferredProjectObjectVersion = 60;
 			productRefGroup = 7D354C9D24F1316800617F4A /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -629,7 +623,6 @@
 /* Begin PBXResourcesBuildPhase section */
 		7D354C9A24F1316800617F4A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				7D7B26A224F4D13600149341 /* LICENSE.md in Resources */,
 				E9DA93612C16960E003272B9 /* Localizable.xcstrings in Resources */,
@@ -639,11 +632,9 @@
 				7D354CA624F1316D00617F4A /* Assets.xcassets in Resources */,
 				4BD824056C5E892F44BE2D24 /* .swiftlint.yml in Resources */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		7D354CB024F1316E00617F4A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				E98B23022942110100AE30C6 /* ArchiveIndexResponseNullTags.json in Resources */,
 				7D354CED24F1FC3000617F4A /* ArchiveIndexResponse.json in Resources */,
@@ -657,17 +648,14 @@
 				7D80326E24F68F6900AA8BD2 /* ArchiveSearchResponse.json in Resources */,
 				7DF2E89D24F7D30700689A6D /* ArchiveMetadataResponse.json in Resources */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		E98B8B6D2A0A7B67004CBBC0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				E98B8B792A0A7B68004CBBC0 /* Action.js in Resources */,
 				E98B8B8E2A0B12F3004CBBC0 /* Assets.xcassets in Resources */,
 				E99D2B412B0176410029FDEC /* InfoPlist.xcstrings in Resources */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
@@ -675,27 +663,20 @@
 		E997D7FE2AF1F99D007C91F1 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nif which swiftlint >/dev/null; then\n  swiftlint\nfi\n";
+			shellScript = (
+				"# Type a script or drag a script file from your workspace to insert its path.",
+				"if which swiftlint >/dev/null; then",
+				"  swiftlint",
+				"fi",
+				"",
+			);
 		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		7D354C9824F1316800617F4A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				E91EE6852CAB94FC0046853C /* UIPageCollection.swift in Sources */,
 				E9F3B0122B01A21C00F60F62 /* CategoryListV2.swift in Sources */,
@@ -747,25 +728,20 @@
 				E9BFA2052AF51DB500DDE107 /* ArchiveReader.swift in Sources */,
 				6DA711FA92BEE61419224BB4 /* LoadingView.swift in Sources */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		7D354CAE24F1316E00617F4A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				7D354CB724F1316E00617F4A /* LANreaderTests.swift in Sources */,
 				4BD82555CE41A0467CCC6411 /* LANraragiServiceTest.swift in Sources */,
 				7DF6FFAA252DC3BB009280A5 /* FileUtils.swift in Sources */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		E98B8B6B2A0A7B67004CBBC0 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				E98B8B772A0A7B68004CBBC0 /* ActionRequestHandler.swift in Sources */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
@@ -795,7 +771,7 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		7D354CC424F1316E00617F4A /* Debug */ = {
+		7D354CC424F1316E00617F4A /* Debug configuration for PBXProject "LANreader" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -863,7 +839,7 @@
 			};
 			name = Debug;
 		};
-		7D354CC524F1316E00617F4A /* Release */ = {
+		7D354CC524F1316E00617F4A /* Release configuration for PBXProject "LANreader" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -925,14 +901,14 @@
 			};
 			name = Release;
 		};
-		7D354CC724F1316E00617F4A /* Debug */ = {
+		7D354CC724F1316E00617F4A /* Debug configuration for PBXNativeTarget "LANreader" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreader.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 153;
+				CURRENT_PROJECT_VERSION = 154;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -943,7 +919,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.6.2;
+				MARKETING_VERSION = 3.6.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -953,14 +929,14 @@
 			};
 			name = Debug;
 		};
-		7D354CC824F1316E00617F4A /* Release */ = {
+		7D354CC824F1316E00617F4A /* Release configuration for PBXNativeTarget "LANreader" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreaderRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 153;
+				CURRENT_PROJECT_VERSION = 154;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -971,7 +947,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.6.2;
+				MARKETING_VERSION = 3.6.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -981,7 +957,7 @@
 			};
 			name = Release;
 		};
-		7D354CCA24F1316E00617F4A /* Debug */ = {
+		7D354CCA24F1316E00617F4A /* Debug configuration for PBXNativeTarget "LANreaderTests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -1004,7 +980,7 @@
 			};
 			name = Debug;
 		};
-		7D354CCB24F1316E00617F4A /* Release */ = {
+		7D354CCB24F1316E00617F4A /* Release configuration for PBXNativeTarget "LANreaderTests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -1027,14 +1003,14 @@
 			};
 			name = Release;
 		};
-		E98B8B7F2A0A7B68004CBBC0 /* Debug */ = {
+		E98B8B7F2A0A7B68004CBBC0 /* Debug configuration for PBXNativeTarget "Action" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 153;
+				CURRENT_PROJECT_VERSION = 154;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1046,7 +1022,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.6.2;
+				MARKETING_VERSION = 3.6.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1057,14 +1033,14 @@
 			};
 			name = Debug;
 		};
-		E98B8B802A0A7B68004CBBC0 /* Release */ = {
+		E98B8B802A0A7B68004CBBC0 /* Release configuration for PBXNativeTarget "Action" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 153;
+				CURRENT_PROJECT_VERSION = 154;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1076,7 +1052,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.6.2;
+				MARKETING_VERSION = 3.6.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1093,37 +1069,33 @@
 		7D354C9724F1316800617F4A /* Build configuration list for PBXProject "LANreader" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				7D354CC424F1316E00617F4A /* Debug */,
-				7D354CC524F1316E00617F4A /* Release */,
+				7D354CC424F1316E00617F4A /* Debug configuration for PBXProject "LANreader" */,
+				7D354CC524F1316E00617F4A /* Release configuration for PBXProject "LANreader" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		7D354CC624F1316E00617F4A /* Build configuration list for PBXNativeTarget "LANreader" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				7D354CC724F1316E00617F4A /* Debug */,
-				7D354CC824F1316E00617F4A /* Release */,
+				7D354CC724F1316E00617F4A /* Debug configuration for PBXNativeTarget "LANreader" */,
+				7D354CC824F1316E00617F4A /* Release configuration for PBXNativeTarget "LANreader" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		7D354CC924F1316E00617F4A /* Build configuration list for PBXNativeTarget "LANreaderTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				7D354CCA24F1316E00617F4A /* Debug */,
-				7D354CCB24F1316E00617F4A /* Release */,
+				7D354CCA24F1316E00617F4A /* Debug configuration for PBXNativeTarget "LANreaderTests" */,
+				7D354CCB24F1316E00617F4A /* Release configuration for PBXNativeTarget "LANreaderTests" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		E98B8B7E2A0A7B68004CBBC0 /* Build configuration list for PBXNativeTarget "Action" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				E98B8B7F2A0A7B68004CBBC0 /* Debug */,
-				E98B8B802A0A7B68004CBBC0 /* Release */,
+				E98B8B7F2A0A7B68004CBBC0 /* Debug configuration for PBXNativeTarget "Action" */,
+				E98B8B802A0A7B68004CBBC0 /* Release configuration for PBXNativeTarget "Action" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
@@ -1184,6 +1156,10 @@
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.11.1;
 			};
+			traits = (
+				ComposableArchitecture2DeprecationOverloads,
+				ComposableArchitecture2Deprecations,
+			);
 		};
 		E9A4E0D22F3EE6010099BE6C /* XCRemoteSwiftPackageReference "AnimatedImage" */ = {
 			isa = XCRemoteSwiftPackageReference;

@@ -55,7 +55,7 @@ struct ViewSettings: View {
 
     var body: some View {
         LabeledContent {
-            TextField("settings.archive.list.order.custom.title", text: $store.searchSortCustom)
+            TextField("settings.archive.list.order.custom.title", text: Binding(store.$searchSortCustom))
                 .multilineTextAlignment(.trailing)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -63,11 +63,11 @@ struct ViewSettings: View {
             Text("settings.archive.list.order.custom.title")
         }
         .padding()
-        Toggle(isOn: self.$store.blurInterfaceWhenInactive, label: {
+        Toggle(isOn: Binding(self.store.$blurInterfaceWhenInactive), label: {
             Text("settings.view.blur.inactive")
         })
         .padding()
-        Toggle(isOn: self.$store.enablePasscode, label: {
+        Toggle(isOn: Binding(self.store.$enablePasscode), label: {
             Text("settings.view.passcode")
         })
         .padding()
@@ -89,7 +89,7 @@ struct ViewSettings: View {
             }
         }
         .fullScreenCover(
-            item: $store.scope(state: \.destination?.lockScreen, action: \.destination.lockScreen)
+            item: $store.scope(state: \.$destination, action: \.destination).lockScreen
         ) { store in
             LockScreen(store: store)
         }

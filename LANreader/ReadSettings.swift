@@ -34,40 +34,40 @@ struct ReadSettings: View {
     @Bindable var store: StoreOf<ReadSettingsFeature>
 
     var body: some View {
-        Picker("settings.read.direction", selection: self.$store.readDirection) {
+        Picker("settings.read.direction", selection: Binding(self.store.$readDirection)) {
             Text("settings.read.direction.leftRight").tag(ReadDirection.leftRight.rawValue)
             Text("settings.read.direction.rightLeft").tag(ReadDirection.rightLeft.rawValue)
             Text("settings.read.direction.upDown").tag(ReadDirection.upDown.rawValue)
         }
         .padding()
         if store.readDirection != ReadDirection.upDown.rawValue {
-            Picker("settings.read.tap.left", selection: self.$store.tapLeft) {
+            Picker("settings.read.tap.left", selection: Binding(self.store.$tapLeft)) {
                 pageControlSelectionView
             }
             .padding()
         }
         if store.readDirection != ReadDirection.upDown.rawValue {
-            Picker("settings.read.tap.middle", selection: self.$store.tapMiddle) {
+            Picker("settings.read.tap.middle", selection: Binding(self.store.$tapMiddle)) {
                 pageControlSelectionView
             }
             .padding()
-            Picker("settings.read.tap.right", selection: self.$store.tapRight) {
+            Picker("settings.read.tap.right", selection: Binding(self.store.$tapRight)) {
                 pageControlSelectionView
             }
             .padding()
         }
         if store.readDirection != ReadDirection.upDown.rawValue {
-            Toggle(isOn: self.$store.doublePageLayout) {
+            Toggle(isOn: Binding(self.store.$doublePageLayout)) {
                 Text("settings.read.double.page")
             }
             .padding()
         }
-        Toggle(isOn: self.$store.splitWideImage) {
+        Toggle(isOn: Binding(self.store.$splitWideImage)) {
             Text("settings.read.split.page")
         }
         .padding()
         if self.store.splitWideImage {
-            Toggle(isOn: self.$store.splitPiorityLeft) {
+            Toggle(isOn: Binding(self.store.$splitPiorityLeft)) {
                 Text("settings.read.split.page.priority.left")
             }
             .padding()

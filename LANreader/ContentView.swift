@@ -190,12 +190,12 @@ struct Covers: ViewModifier {
     func body(content: Content) -> some View {
         content
             .fullScreenCover(
-                item: $store.scope(state: \.destination?.login, action: \.destination.login)
+                item: $store.scope(state: \.$destination, action: \.destination).login
             ) { store in
                 LANraragiConfigView(store: store)
             }
             .fullScreenCover(
-                item: $store.scope(state: \.destination?.lockScreen, action: \.destination.lockScreen)
+                item: $store.scope(state: \.$destination, action: \.destination).lockScreen
             ) { store in
                 LockScreen(store: store)
             }

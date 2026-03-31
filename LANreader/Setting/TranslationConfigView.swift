@@ -47,25 +47,25 @@ struct TranslationConfigView: View {
                     .padding()
             }
             Section {
-                Toggle("settings.advantaged.translation.enabled", isOn: $store.translationEnabled)
+                Toggle("settings.advantaged.translation.enabled", isOn: Binding(store.$translationEnabled))
                     .padding()
 
                 if store.translationEnabled {
-                    TextField("settings.advantaged.translation.url", text: $store.translationUrl)
+                    TextField("settings.advantaged.translation.url", text: Binding(store.$translationUrl))
                         .textContentType(.URL)
                         .keyboardType(.URL)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                         .padding()
 
-                    Picker("settings.advantaged.translation.service", selection: $store.translationService) {
+                    Picker("settings.advantaged.translation.service", selection: Binding(store.$translationService)) {
                         ForEach(TranslatorModel.allCases, id: \.self) { model in
                             Text(model.rawValue).tag(model)
                         }
                     }
                     .padding()
 
-                    Picker("settings.advantaged.translation.language", selection: $store.translationLanguage) {
+                    Picker("settings.advantaged.translation.language", selection: Binding(store.$translationLanguage)) {
                         ForEach(TargetLang.allCases, id: \.self) { language in
                             Text(language.rawValue).tag(language)
                         }
@@ -73,7 +73,8 @@ struct TranslationConfigView: View {
                     .padding()
 
                     Picker(
-                        "settings.advantaged.translation.detectionResolution", selection: $store.detectionResolution
+                        "settings.advantaged.translation.detectionResolution",
+                        selection: Binding(store.$detectionResolution)
                     ) {
                         ForEach(DetectionResolution.allCases, id: \.self) { resolution in
                             Text("\(resolution.rawValue)").tag(resolution)
@@ -81,7 +82,7 @@ struct TranslationConfigView: View {
                     }
                     .padding()
 
-                    Picker("settings.advantaged.translation.textDetector", selection: $store.textDetector) {
+                    Picker("settings.advantaged.translation.textDetector", selection: Binding(store.$textDetector)) {
                         ForEach(TextDetector.allCases, id: \.self) { detector in
                             Text(detector.rawValue).tag(detector)
                         }
@@ -89,7 +90,8 @@ struct TranslationConfigView: View {
                     .padding()
 
                     Picker(
-                        "settings.advantaged.translation.renderTextDirection", selection: $store.renderTextDirection
+                        "settings.advantaged.translation.renderTextDirection",
+                        selection: Binding(store.$renderTextDirection)
                     ) {
                         ForEach(TextDirection.allCases, id: \.self) { direction in
                             Text(direction.rawValue).tag(direction)
@@ -97,14 +99,17 @@ struct TranslationConfigView: View {
                     }
                     .padding()
 
-                    Picker("settings.advantaged.translation.inpaintingSize", selection: $store.inpaintingSize) {
+                    Picker(
+                        "settings.advantaged.translation.inpaintingSize",
+                        selection: Binding(store.$inpaintingSize)
+                    ) {
                         ForEach(InpainterSize.allCases, id: \.self) { size in
                             Text("\(size.rawValue)").tag(size)
                         }
                     }
                     .padding()
 
-                    Picker("settings.advantaged.translation.inpainter", selection: $store.inpainter) {
+                    Picker("settings.advantaged.translation.inpainter", selection: Binding(store.$inpainter)) {
                         ForEach(Inpainter.allCases, id: \.self) { inpainter in
                             Text(inpainter.rawValue).tag(inpainter)
                         }
@@ -113,7 +118,9 @@ struct TranslationConfigView: View {
 
                     LabeledContent {
                         TextField(
-                            "settings.advantaged.translation.unclipRatio", value: $store.unclipRatio, format: .number
+                            "settings.advantaged.translation.unclipRatio",
+                            value: Binding(store.$unclipRatio),
+                            format: .number
                         )
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
@@ -124,7 +131,9 @@ struct TranslationConfigView: View {
 
                     LabeledContent {
                         TextField(
-                            "settings.advantaged.translation.boxThreshold", value: $store.boxThreshold, format: .number
+                            "settings.advantaged.translation.boxThreshold",
+                            value: Binding(store.$boxThreshold),
+                            format: .number
                         )
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
@@ -136,7 +145,7 @@ struct TranslationConfigView: View {
                     LabeledContent {
                         TextField(
                             "settings.advantaged.translation.maskDilationOffset",
-                            value: $store.maskDilationOffset,
+                            value: Binding(store.$maskDilationOffset),
                             format: .number
                         )
                             .keyboardType(.numberPad)

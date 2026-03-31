@@ -1,4 +1,3 @@
-import Combine
 import ComposableArchitecture
 import SwiftUI
 import UIKit
@@ -33,7 +32,8 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     var dataSource: UICollectionViewDiffableDataSource<Section, StoreOf<PageFeature>>!
     var didInitialJump = false
 
-    private var cancellables: Set<AnyCancellable> = []
+    private var lastObservedJumpIndex: Int?
+    private var lastObservedAutoDate: Date?
 
     // MARK: - Pull Navigation
     private enum PullEdge {
@@ -154,7 +154,25 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         }
     }
 
+    private func scrollToPage(at idx: Int) {
+        guard collectionView.numberOfSections > 0 else { return }
+        let numberOfItems = collectionView.numberOfItems(inSection: 0)
+        guard idx < numberOfItems else { return }
+
+        let indexPath = IndexPath(row: idx, section: 0)
+        if store.readDirection == ReadDirection.upDown.rawValue {
+            if let attr = collectionView.layoutAttributesForItem(at: indexPath) {
+                collectionView.scrollRectToVisible(attr.frame, animated: false)
+            }
+        } else {
+            collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: false)
+        }
+    }
+
     private func setupObserve() {
+        lastObservedJumpIndex = store.jumpIndex
+        lastObservedAutoDate = store.autoDate
+
         observe { [weak self] in
             guard let self else { return }
             guard !store.pages.isEmpty else { return }
@@ -166,45 +184,30 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
                 Array(store.scope(state: \.pages, action: \.page)))
             dataSource.apply(snapshot, animatingDifferences: false)
             if !didInitialJump, let idx = store.jumpIndex {
-                let indexPath = IndexPath(row: idx, section: 0)
-                if store.readDirection == ReadDirection.upDown.rawValue {
-                    if let attr = collectionView.layoutAttributesForItem(at: indexPath) {
-                        collectionView.scrollRectToVisible(attr.frame, animated: false)
-                    }
-                } else {
-                    collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: false)
-                }
+                scrollToPage(at: idx)
                 didInitialJump = true
                 store.send(.setJumpIndex(nil))
             }
         }
 
-        store.publisher.jumpIndex
-            .dropFirst()
-            .compactMap { $0 }
-            .sink { [weak self] idx in
-                guard let self else { return }
-                guard collectionView.numberOfSections > 0 else { return }
-                let numberOfItems = collectionView.numberOfItems(inSection: 0)
-                guard idx < numberOfItems else { return }
-                let indexPath = IndexPath(row: idx, section: 0)
-                if store.readDirection == ReadDirection.upDown.rawValue {
-                    if let attr = collectionView.layoutAttributesForItem(at: indexPath) {
-                        collectionView.scrollRectToVisible(attr.frame, animated: false)
-                    }
-                } else {
-                    collectionView.scrollToItem(at: indexPath, at: .centeredHorizontally, animated: false)
-                }
-                store.send(.setJumpIndex(nil))
-            }
-            .store(in: &cancellables)
+        observe { [weak self] in
+            guard let self else { return }
+            let jumpIndex = store.jumpIndex
+            defer { lastObservedJumpIndex = jumpIndex }
 
-        store.publisher.autoDate
-            .dropFirst()
-            .sink { [weak self] _ in
-                self?.handleTapAction(action: PageControl.next.rawValue)
-            }
-            .store(in: &cancellables)
+            guard jumpIndex != lastObservedJumpIndex, let jumpIndex else { return }
+            scrollToPage(at: jumpIndex)
+            store.send(.setJumpIndex(nil))
+        }
+
+        observe { [weak self] in
+            guard let self else { return }
+            let autoDate = self.store.autoDate
+            defer { lastObservedAutoDate = autoDate }
+
+            guard autoDate != lastObservedAutoDate else { return }
+            handleTapAction(action: PageControl.next.rawValue)
+        }
     }
 
     private func setupGesture() {

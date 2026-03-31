@@ -1,5 +1,4 @@
 // swiftlint:disable file_length
-import Combine
 import ComposableArchitecture
 import SwiftUI
 import UIKit
@@ -456,7 +455,7 @@ import Logging
         start: String,
         order: String,
         append: Bool
-    ) -> Effect<Action> {
+    ) -> EffectOf<ArchiveListFeature> {
         return .run { send in
             do {
                 if sortby == SearchSort.random.rawValue {
@@ -499,7 +498,10 @@ class UIArchiveListViewController: UIViewController {
     var isLoading = false
 
     private let refreshControl = UIRefreshControl()
-    private var cancellables: Set<AnyCancellable> = []
+    private var lastObservedLanraragiUrl: String?
+    private var lastObservedSearchSort: String?
+    private var lastObservedSearchSortOrder: String?
+    private var lastObservedFilter: SearchFilter?
 
     init(store: StoreOf<ArchiveListFeature>) {
         self.store = store
@@ -681,6 +683,11 @@ class UIArchiveListViewController: UIViewController {
 
     // swiftlint:disable function_body_length
     func setupObserve() {
+        lastObservedLanraragiUrl = store.lanraragiUrl
+        lastObservedSearchSort = store.searchSort
+        lastObservedSearchSortOrder = store.searchSortOrder
+        lastObservedFilter = store.filter
+
         observe { [weak self] in
             guard let self else { return }
             var snapshot = NSDiffableDataSourceSnapshot<
@@ -698,66 +705,51 @@ class UIArchiveListViewController: UIViewController {
             setupToolbar()
         }
 
-        store.publisher.lanraragiUrl
-            .scan((previous: nil as String?, current: nil as String?)) { tuple, newValue in
-                (previous: tuple.current, current: newValue)
-            }
-            .dropFirst()
-            .sink { [weak self] (previous, current) in
-                guard let self else { return }
-                if previous != current && current?.isEmpty == false {
-                    store.send(.cancelSearch)
-                    store.send(.resetArchives)
-                    manualTriggerPullToRefresh()
-                }
-            }
-            .store(in: &cancellables)
+        observe { [weak self] in
+            guard let self else { return }
+            let lanraragiUrl = store.lanraragiUrl
+            defer { lastObservedLanraragiUrl = lanraragiUrl }
 
-        store.publisher.searchSort
-            .scan((previous: nil as String?, current: nil as String?)) { tuple, newValue in
-                (previous: tuple.current, current: newValue)
-            }
-            .dropFirst()
-            .sink { [weak self] (previous, current) in
-                guard let self else { return }
-                if previous != current {
-                    store.send(.cancelSearch)
-                    store.send(.resetArchives)
-                    manualTriggerPullToRefresh()
-                }
-            }
-            .store(in: &cancellables)
+            guard lanraragiUrl != lastObservedLanraragiUrl, !lanraragiUrl.isEmpty else { return }
+            store.send(.cancelSearch)
+            store.send(.resetArchives)
+            manualTriggerPullToRefresh()
+        }
 
-        store.publisher.searchSortOrder
-            .scan((previous: nil as String?, current: nil as String?)) { tuple, newValue in
-                (previous: tuple.current, current: newValue)
-            }
-            .dropFirst()
-            .sink { [weak self] (previous, current) in
-                guard let self else { return }
-                if previous != current {
-                    store.send(.cancelSearch)
-                    store.send(.resetArchives)
-                    manualTriggerPullToRefresh()
-                }
-            }
-            .store(in: &cancellables)
+        observe { [weak self] in
+            guard let self else { return }
+            let searchSort = store.searchSort
+            defer { lastObservedSearchSort = searchSort }
 
-        store.publisher[dynamicMember: \ArchiveListFeature.State.filter]
-            .scan((previous: nil as SearchFilter?, current: nil as SearchFilter?)) { tuple, newValue in
-                (previous: tuple.current, current: newValue as SearchFilter?)
-            }
-            .dropFirst()
-            .sink { [weak self] (previous, current) in
-                guard let self else { return }
-                guard current?.filter?.isEmpty == false else { return }
-                if previous?.filter != current?.filter {
-                    store.send(.cancelSearch)
-                    store.send(.resetArchives)
-                    manualTriggerPullToRefresh()
-                }
-            }
-            .store(in: &cancellables)
+            guard searchSort != lastObservedSearchSort else { return }
+            store.send(.cancelSearch)
+            store.send(.resetArchives)
+            manualTriggerPullToRefresh()
+        }
+
+        observe { [weak self] in
+            guard let self else { return }
+            let searchSortOrder = store.searchSortOrder
+            defer { lastObservedSearchSortOrder = searchSortOrder }
+
+            guard searchSortOrder != lastObservedSearchSortOrder else { return }
+            store.send(.cancelSearch)
+            store.send(.resetArchives)
+            manualTriggerPullToRefresh()
+        }
+
+        observe { [weak self] in
+            guard let self else { return }
+            let filter = store.filter
+            let previousFilter = lastObservedFilter
+            defer { lastObservedFilter = filter }
+
+            guard filter.filter?.isEmpty == false else { return }
+            guard previousFilter?.filter != filter.filter else { return }
+            store.send(.cancelSearch)
+            store.send(.resetArchives)
+            manualTriggerPullToRefresh()
+        }
     }
     // swiftlint:enable function_body_length
 

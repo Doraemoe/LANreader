@@ -1,4 +1,3 @@
-import Combine
 import ComposableArchitecture
 import AnimatedImage
 import SwiftUI
@@ -39,7 +38,7 @@ class UIPageCell: UICollectionViewCell {
         return config
     }()
 
-    private var cancellables: Set<AnyCancellable> = []
+    private var observationTokens: Set<ObserveToken> = []
 
     private let scrollView: UIScrollView = {
         let view = UIScrollView()
@@ -78,8 +77,8 @@ class UIPageCell: UICollectionViewCell {
     }()
 
     private func cancelSubscriptions() {
-        cancellables.forEach { $0.cancel() }
-        cancellables.removeAll()
+        observationTokens.forEach { $0.cancel() }
+        observationTokens.removeAll()
     }
 
     override init(frame: CGRect) {
@@ -168,51 +167,50 @@ class UIPageCell: UICollectionViewCell {
     }
 
     func setupObserve(store: StoreOf<PageFeature>) {
-        store.publisher.progress
-            .sink { [weak self] _ in
-                guard let self else { return }
-                // Ensure the cell is still showing this store (may have been reused)
-                guard self.store === store else { return }
-                guard !store.imageLoaded else { return }
+        SwiftNavigation.observe { [weak self] in
+            guard let self else { return }
+            let progress = store.progress
+            guard self.store === store else { return }
+            guard !store.imageLoaded else { return }
 
+            imageView.isHidden = true
+            animatedImageView.isHidden = true
+            progressView.isHidden = false
+            progressViewLabel.isHidden = false
+            progressView.progress = Float(progress)
+            progressViewLabel.text = progress > 1 ? String(localized: "translating") : String(
+                format: "%.2f%%", progress * 100)
+        }
+        .store(in: &observationTokens)
+
+        SwiftNavigation.observe { [weak self] in
+            let status = store.translationStatus
+            guard let self else { return }
+            guard self.store === store else { return }
+            guard !status.isEmpty else { return }
+
+            progressViewLabel.text = status
+        }
+        .store(in: &observationTokens)
+
+        SwiftNavigation.observe { [weak self] in
+            let loaded = store.imageLoaded
+            guard let self else { return }
+            guard self.store === store else { return }
+            guard loaded else { return }
+
+            if store.errorMessage.isEmpty {
+                progressView.isHidden = true
+                progressViewLabel.isHidden = true
+                renderImage(store: store)
+            } else {
                 imageView.isHidden = true
                 animatedImageView.isHidden = true
-                progressView.isHidden = false
-                progressViewLabel.isHidden = false
-                progressView.progress = Float(store.progress)
-                progressViewLabel.text = store.progress > 1 ? String(localized: "translating") : String(
-                    format: "%.2f%%", store.progress * 100)
+                progressView.isHidden = true
+                progressViewLabel.text = store.errorMessage
             }
-            .store(in: &cancellables)
-
-        store.publisher.translationStatus
-            .sink { [weak self] status in
-                guard let self else { return }
-                guard self.store === store else { return }
-                guard !status.isEmpty else { return }
-
-                progressViewLabel.text = status
-            }
-            .store(in: &cancellables)
-
-        store.publisher.imageLoaded
-            .sink { [weak self] loaded in
-                guard let self else { return }
-                guard self.store === store else { return }
-                guard loaded else { return }
-
-                if store.errorMessage.isEmpty {
-                    progressView.isHidden = true
-                    progressViewLabel.isHidden = true
-                    renderImage(store: store)
-                } else {
-                    imageView.isHidden = true
-                    animatedImageView.isHidden = true
-                    progressView.isHidden = true
-                    progressViewLabel.text = store.errorMessage
-                }
-            }
-            .store(in: &cancellables)
+        }
+        .store(in: &observationTokens)
     }
 
     // swiftlint:disable function_body_length

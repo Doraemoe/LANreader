@@ -1,12 +1,10 @@
 import UIKit
 import SwiftUI
-import Combine
 import ComposableArchitecture
 
 class UIArchiveReaderController: UIViewController {
     private let store: StoreOf<ArchiveReaderFeature>
     private var hostingController: UIHostingController<ArchiveReader>!
-    private var cancellables: Set<AnyCancellable> = []
 
     init(
         store: StoreOf<ArchiveReaderFeature>,
@@ -63,17 +61,11 @@ class UIArchiveReaderController: UIViewController {
     }
 
     private func setupObserve() {
-        store.publisher.controlUiHidden
-            .sink { [weak self] hidden in
-                guard let self,
-                      self.navigationController?.topViewController === self else { return }
-                if hidden {
-                    self.navigationController?.setNavigationBarHidden(true, animated: false)
-                } else {
-                    self.navigationController?.setNavigationBarHidden(false, animated: false)
-                }
-            }
-            .store(in: &cancellables)
+        observe { [weak self] in
+            guard let self,
+                  self.navigationController?.topViewController === self else { return }
+            self.navigationController?.setNavigationBarHidden(store.controlUiHidden, animated: false)
+        }
 
         observe { [weak self] in
             guard let self else { return }

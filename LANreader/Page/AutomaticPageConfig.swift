@@ -50,7 +50,7 @@ struct AutomaticPageConfig: View {
                                     .padding()
                                 HStack {
                                     Slider(
-                                        value: $store.autoPageInterval,
+                                        value: Binding(store.$autoPageInterval),
                                         in: 1.0...20.0,
                                         step: 1
                                     )
