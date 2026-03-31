@@ -89,7 +89,6 @@ import OrderedCollections
     }
 
     @Dependency(\.lanraragiService) var service
-    @Dependency(\.imageService) var imageService
     @Dependency(\.appDatabase) var database
     @Dependency(\.dismiss) var dismiss
     @Dependency(\.continuousClock) var clock
@@ -232,12 +231,12 @@ import OrderedCollections
                 let pageNumber = state.pages[state.sliderIndex.int].pageNumber
                 return .run { [id = state.currentArchiveId] send in
                     _ = try await service.updateArchiveThumbnail(id: id, page: pageNumber).value
-                    let thumbnailUrl = try await service.retrieveArchiveThumbnail(id: id)
-                        .serializingDownloadedFileURL()
-                        .value
+                    guard let thumbnailData = try await service.retrieveArchiveThumbnail(id: id) else {
+                        throw ArchiveReaderError.thumbnailUnavailableAfterUpdate
+                    }
                     var archiveThumbnail = ArchiveThumbnail(
                         id: id,
-                        thumbnail: imageService.heicDataOfImage(url: thumbnailUrl) ?? Data(),
+                        thumbnail: thumbnailData,
                         lastUpdate: Date()
                     )
                     try database.saveArchiveThumbnail(&archiveThumbnail)
@@ -443,6 +442,17 @@ import OrderedCollections
         state.inCache = false
         state.errorMessage = ""
         state.successMessage = ""
+    }
+}
+
+private enum ArchiveReaderError: LocalizedError {
+    case thumbnailUnavailableAfterUpdate
+
+    var errorDescription: String? {
+        switch self {
+        case .thumbnailUnavailableAfterUpdate:
+            return "Thumbnail is not ready yet. Please try again in a moment."
+        }
     }
 }
 

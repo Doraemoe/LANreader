@@ -358,8 +358,10 @@ struct ArchiveDetailsV2: View {
                 .padding()
                 .frame(width: 200, height: 250)
         } else {
-            Image(systemName: "photo")
-                .foregroundStyle(Color.primary)
+            Image("noThumb")
+                .resizable()
+                .scaledToFit()
+                .padding()
                 .frame(width: 200, height: 250)
         }
     }

@@ -28,7 +28,6 @@ import GRDBQuery
     }
 
     @Dependency(\.lanraragiService) var service
-    @Dependency(\.imageService) var imageService
     @Dependency(\.appDatabase) var database
 
     public var body: some ReducerOf<Self> {
@@ -40,9 +39,9 @@ import GRDBQuery
                     return .none
                 }
                 return .run(priority: .utility) { [id = state.id] send in
-                    let thumbnailData = try await service.retrieveArchiveThumbnail(id: id)
-                        .serializingData()
-                        .value
+                    guard let thumbnailData = try await service.retrieveArchiveThumbnail(id: id) else {
+                        return
+                    }
                     var archiveThumbnail = ArchiveThumbnail(
                         id: id,
                         thumbnail: thumbnailData,
@@ -121,8 +120,9 @@ struct ArchiveGridV2: View {
                 .resizable()
                 .scaledToFit()
         } else {
-            Image(systemName: "photo")
-                .foregroundStyle(Color.primary)
+            Image("noThumb")
+                .resizable()
+                .scaledToFit()
                 .frame(height: 240)
                 .onAppear {
                     store.send(.load(false))

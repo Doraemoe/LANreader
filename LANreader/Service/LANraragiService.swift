@@ -133,28 +133,33 @@ actor LANraragiService {
             .serializingDecodable([ArchiveIndexResponse].self)
     }
 
-    func retrieveArchiveThumbnail(id: String, page: Int = 0) -> DownloadRequest {
-        let query = ["page": page]
+    func retrieveArchiveThumbnail(id: String, page: Int = 0) async throws -> Data? {
+        let query = [
+            "no_fallback": "true",
+            "page": String(page)
+        ]
 
-        // Create URL with query parameters
         var components = URLComponents(string: "\(url)/api/archives/\(id)/thumbnail")!
-        components.queryItems = query.map { URLQueryItem(name: $0.key, value: String($0.value)) }
+        components.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
 
-        let request = URLRequest(url: components.url!)
-        return session.download(request, to: { tempUrl, rsp in
-            let destName: String
-            if let filename = rsp.suggestedFilename {
-                let fileExt = (filename as NSString).pathExtension
-                destName = "\(id).\(fileExt)"
-            } else {
-                destName = id
+        let response = await session.request(components.url!).serializingData().response
+
+        guard let statusCode = response.response?.statusCode else {
+            throw response.error ?? URLError(.badServerResponse)
+        }
+
+        switch statusCode {
+        case 200:
+            guard let data = response.data else {
+                throw AFError.responseSerializationFailed(reason: .inputDataNilOrZeroLength)
             }
-            let destinationUrl = LANraragiService.downloadPath?
-                .appendingPathComponent("thumbnail", conformingTo: .folder)
-                .appendingPathComponent(destName, conformingTo: .image)
-            ?? tempUrl
-            return (destinationUrl, [.createIntermediateDirectories, .removePreviousFile])
-        }).validate()
+            return data
+        case 202:
+            return nil
+        default:
+            throw response.error
+                ?? AFError.responseValidationFailed(reason: .unacceptableStatusCode(code: statusCode))
+        }
     }
 
     func queuePageThumbnails(id: String) async -> DataTask<String> {

@@ -115,6 +115,47 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(actual[0].title, "title")
     }
 
+    func testRetrieveArchiveThumbnailReturnsImageData() async throws {
+        try await configureVerifiedClient()
+
+        let expected = Data([0xFF, 0xD8, 0xFF, 0xDB])
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/id/thumbnail")
+                && containsQueryParams(["no_fallback": "true", "page": "3"])
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(data: expected, statusCode: 200, headers: ["Content-Type": "image/jpeg"])
+        }
+
+        let actual = try await service.retrieveArchiveThumbnail(id: "id", page: 3)
+        XCTAssertEqual(actual, expected)
+    }
+
+    func testRetrieveArchiveThumbnailReturnsNilWhenQueued() async throws {
+        try await configureVerifiedClient()
+
+        let queuedResponse = Data("""
+        {
+          "operation": "serve_thumbnail",
+          "id": 42
+        }
+        """.utf8)
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/id/thumbnail")
+                && containsQueryParams(["no_fallback": "true", "page": "0"])
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                data: queuedResponse,
+                statusCode: 202,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+
+        let actual = try await service.retrieveArchiveThumbnail(id: "id")
+        XCTAssertNil(actual)
+    }
+
     func testSearchArchive() async throws {
         try await configureVerifiedClient()
 
