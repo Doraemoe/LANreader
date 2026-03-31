@@ -1,3 +1,6 @@
+excluded:
+  - .codex
+
 disabled_rules:
   - todo
   - statement_position
