@@ -93,7 +93,7 @@ struct StatsResponse: Decodable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.namespace = try container.decode(String.self, forKey: .namespace)
+        self.namespace = try container.decodeIfPresent(String.self, forKey: .namespace) ?? ""
         self.text = try container.decode(String.self, forKey: .text)
         self.weight = try container.decodeNumericString(forKey: .weight)
     }
@@ -115,6 +115,21 @@ struct JobStatus: Decodable {
     let state: String
     let task: String
     let result: JobResult?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case state
+        case task
+        case result
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decodeNumericString(forKey: .id)
+        self.state = try container.decode(String.self, forKey: .state)
+        self.task = try container.decode(String.self, forKey: .task)
+        self.result = try container.decodeIfPresent(JobResult.self, forKey: .result)
+    }
 }
 
 struct JobResult: Decodable {

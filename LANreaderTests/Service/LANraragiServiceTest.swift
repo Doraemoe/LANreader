@@ -346,6 +346,109 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertNil(actual)
     }
 
+    func testDatabaseStatsAllowsNullNamespace() async throws {
+        try await configureVerifiedClient()
+
+        let body = Data("""
+        [
+          {
+            "namespace": null,
+            "text": "artbook",
+            "weight": 3
+          }
+        ]
+        """.utf8)
+
+        stub(condition: isHost("localhost")
+                && isPath("/api/database/stats")
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                data: body,
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+
+        let actual = try await service.databaseStats().value
+        XCTAssertEqual(actual.count, 1)
+        XCTAssertEqual(actual[0].namespace, "")
+        XCTAssertEqual(actual[0].text, "artbook")
+        XCTAssertEqual(actual[0].weight, "3")
+    }
+
+    func testCheckJobStatusAllowsStringId() async throws {
+        try await configureVerifiedClient()
+
+        let body = Data("""
+        {
+          "id": "7",
+          "state": "finished",
+          "task": "download_url",
+          "result": {
+            "success": 1,
+            "url": "https://example.com/archive.zip",
+            "title": "Archive Title",
+            "message": "Done"
+          }
+        }
+        """.utf8)
+
+        stub(condition: isHost("localhost")
+                && isPath("/api/minion/7/detail")
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                data: body,
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+
+        let actual = try await service.checkJobStatus(id: 7).value
+        XCTAssertEqual(actual.id, "7")
+        XCTAssertEqual(actual.state, "finished")
+        XCTAssertEqual(actual.task, "download_url")
+        XCTAssertEqual(actual.result?.title, "Archive Title")
+        XCTAssertEqual(actual.result?.message, "Done")
+    }
+
+    func testCheckJobStatusAllowsNumericId() async throws {
+        try await configureVerifiedClient()
+
+        let body = Data("""
+        {
+          "id": 7,
+          "state": "finished",
+          "task": "download_url",
+          "result": {
+            "success": 1,
+            "url": "https://example.com/archive.zip",
+            "title": "Archive Title",
+            "message": "Done"
+          }
+        }
+        """.utf8)
+
+        stub(condition: isHost("localhost")
+                && isPath("/api/minion/7/detail")
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                data: body,
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+
+        let actual = try await service.checkJobStatus(id: 7).value
+        XCTAssertEqual(actual.id, "7")
+        XCTAssertEqual(actual.state, "finished")
+        XCTAssertEqual(actual.task, "download_url")
+        XCTAssertEqual(actual.result?.title, "Archive Title")
+        XCTAssertEqual(actual.result?.message, "Done")
+    }
+
     private func configureVerifiedClient() async throws {
         stub(condition: isHost("localhost")
                 && isPath("/api/info")
