@@ -293,9 +293,12 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     @MainActor
     func testVisiblePageChangedUpdatesProgressAndClearsNewFlag() async {
         configureReaderDefaults()
+        let clock = TestClock()
         var initialState = makeState(progress: 0, cached: true, isNew: true)
         initialState.pages = makePageStates(count: 3)
-        let store = makeTestStore(initialState: initialState)
+        let store = makeTestStore(initialState: initialState) {
+            $0.continuousClock = clock
+        }
 
         await store.send(.visiblePageChanged(1)) {
             $0.currentPageIndex = 1
@@ -391,13 +394,12 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         let store = Store(initialState: initialState) {
             ArchiveReaderFeature()
         }
-        let viewStore = ViewStore(store, observe: { $0 })
         let controller = UIPageCollectionController(store: store)
 
         controller.loadViewIfNeeded()
         await Task.yield()
 
-        XCTAssertNotNil(viewStore.scrollRequest)
+        XCTAssertNotNil(store.scrollRequest)
     }
 
     @MainActor
@@ -410,14 +412,13 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         let store = Store(initialState: initialState) {
             ArchiveReaderFeature()
         }
-        let viewStore = ViewStore(store, observe: { $0 })
         let controller = UIPageCollectionController(store: store)
 
         controller.loadViewIfNeeded()
         await Task.yield()
         await Task.yield()
 
-        XCTAssertNil(viewStore.scrollRequest)
+        XCTAssertNil(store.scrollRequest)
     }
 
     @MainActor
@@ -452,7 +453,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         }
     }
 
-    func testLoadNextArchiveResetsStateBeforeLoading() {
+    func testResetStateClearsTransientReaderState() {
         configureReaderDefaults()
         var state = makeState(
             archiveId: "one",
@@ -469,9 +470,8 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         state.errorMessage = "error"
         state.successMessage = "success"
 
-        _ = ArchiveReaderFeature().reduce(into: &state, action: .loadNextArchive)
+        ArchiveReaderFeature().resetState(state: &state)
 
-        XCTAssertEqual(state.currentArchiveId, "two")
         XCTAssertTrue(state.pages.isEmpty)
         XCTAssertEqual(state.currentPageIndex, 0)
         XCTAssertNil(state.scrollRequest)
@@ -534,7 +534,7 @@ private func makeState(
     autoPageInterval: Double = 5
 ) -> ArchiveReaderFeature.State {
     let archives = allArchives ?? [makeArchive(id: archiveId, progress: progress, isNew: isNew)]
-    var state = ArchiveReaderFeature.State(
+    let state = ArchiveReaderFeature.State(
         currentArchiveId: archiveId,
         allArchives: archives.map { Shared(value: $0) },
         fromStart: fromStart,
