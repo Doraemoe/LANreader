@@ -361,6 +361,44 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testUIPageCollectionKeepsPendingScrollRequestWhenPagesAreNotLoaded() async {
+        configureReaderDefaults()
+        var initialState = makeState(progress: 2)
+        initialState.scrollRequest = ScrollRequest(targetPageIndex: 1, source: .slider, animated: false)
+
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        }
+        let viewStore = ViewStore(store, observe: { $0 })
+        let controller = UIPageCollectionController(store: store)
+
+        controller.loadViewIfNeeded()
+        await Task.yield()
+
+        XCTAssertNotNil(viewStore.scrollRequest)
+    }
+
+    @MainActor
+    func testUIPageCollectionConsumesPendingScrollRequestAfterPagesLoad() async {
+        configureReaderDefaults()
+        var initialState = makeState(progress: 2)
+        initialState.pages = makePageStates(count: 4)
+        initialState.scrollRequest = ScrollRequest(targetPageIndex: 1, source: .slider, animated: false)
+
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        }
+        let viewStore = ViewStore(store, observe: { $0 })
+        let controller = UIPageCollectionController(store: store)
+
+        controller.loadViewIfNeeded()
+        await Task.yield()
+        await Task.yield()
+
+        XCTAssertNil(viewStore.scrollRequest)
+    }
+
+    @MainActor
     func testAutoPageTickRequestsNextPage() async {
         configureReaderDefaults(autoPageInterval: 1)
         let clock = TestClock()

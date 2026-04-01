@@ -4,15 +4,12 @@ import UIKit
 
 public struct UIPageCollection: UIViewControllerRepresentable {
     let store: StoreOf<ArchiveReaderFeature>
-
     public init(store: StoreOf<ArchiveReaderFeature>) {
         self.store = store
     }
-
     public func makeUIViewController(context: Context) -> UIViewController {
         return UIPageCollectionController(store: store)
     }
-
     public func updateUIViewController(
         _ uiViewController: UIViewController,
         context: Context
@@ -145,7 +142,6 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     private var resolvedReadDirection: ReadDirection {
         ReadDirection(rawValue: store.readDirection) ?? .leftRight
     }
-
     private func scrollPosition(for request: ScrollRequest) -> UICollectionView.ScrollPosition {
         switch request.source {
         case .initialRestore, .slider:
@@ -155,34 +151,39 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         }
     }
 
-    private func scrollToPage(for request: ScrollRequest) {
-        guard collectionView.numberOfSections > 0 else { return }
+    @discardableResult
+    private func scrollToPage(for request: ScrollRequest) -> Bool {
+        guard collectionView.numberOfSections > 0 else { return false }
         let numberOfItems = collectionView.numberOfItems(inSection: 0)
-        guard numberOfItems > 0 else { return }
-
+        guard numberOfItems > 0 else { return false }
         let idx = ReaderPositioning.scrollAnchorIndex(
             forPageIndex: request.targetPageIndex,
             pageCount: numberOfItems,
             readDirection: resolvedReadDirection,
             doublePageLayout: store.doublePageLayout
         )
-
         let indexPath = IndexPath(row: idx, section: 0)
         if store.readDirection == ReadDirection.upDown.rawValue {
-            if let attr = collectionView.layoutAttributesForItem(at: indexPath) {
-                collectionView.scrollRectToVisible(attr.frame, animated: request.animated)
+            collectionView.layoutIfNeeded()
+            guard let attr = collectionView.layoutAttributesForItem(at: indexPath) else {
+                return false
             }
+            collectionView.scrollRectToVisible(attr.frame, animated: request.animated)
         } else {
             collectionView.scrollToItem(at: indexPath, at: scrollPosition(for: request), animated: request.animated)
         }
-
         if !request.animated {
             DispatchQueue.main.async { [weak self] in
                 self?.reportVisiblePageIfNeeded()
             }
         }
+        return true
     }
-
+    private func consumePendingScrollRequestIfPossible() {
+        guard let scrollRequest = store.scrollRequest else { return }
+        guard scrollToPage(for: scrollRequest) else { return }
+        store.send(.scrollRequestHandled(scrollRequest.id))
+    }
     private func setupObserve() {
         observe { [weak self] in
             guard let self else { return }
@@ -193,17 +194,16 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             snapshot.appendSections([.main])
             snapshot.appendItems(
                 Array(store.scope(state: \.pages, action: \.page)))
-            dataSource.apply(snapshot, animatingDifferences: false)
+            dataSource.apply(snapshot, animatingDifferences: false) { [weak self] in
+                self?.consumePendingScrollRequestIfPossible()
+            }
         }
-
         observe { [weak self] in
             guard let self else { return }
-            guard let scrollRequest = store.scrollRequest else { return }
-            scrollToPage(for: scrollRequest)
-            store.send(.scrollRequestHandled(scrollRequest.id))
+            guard store.scrollRequest != nil else { return }
+            consumePendingScrollRequestIfPossible()
         }
     }
-
     private func setupGesture() {
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
         tapGesture.numberOfTapsRequired = 1
@@ -256,6 +256,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             resnap(to: currentVisualPageIndexPath())
             pendingResnap = false
         }
+        consumePendingScrollRequestIfPossible()
     }
 
     private func reportVisiblePageIfNeeded() {
