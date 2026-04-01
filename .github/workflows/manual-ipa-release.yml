@@ -19,6 +19,31 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_26.4.app
           xcodebuild -version
 
+      - name: Install iOS 26.4 platform components
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo xcodebuild -runFirstLaunch
+
+          if xcrun simctl list runtimes | grep -Fq "iOS 26.4"; then
+            echo "iOS 26.4 runtime already installed"
+          else
+            export_path="$RUNNER_TEMP/platforms"
+            mkdir -p "$export_path"
+            if ! xcodebuild -downloadPlatform iOS -buildVersion 26.4 -exportPath "$export_path"; then
+              xcodebuild -downloadPlatform iOS -exportPath "$export_path"
+            fi
+
+            runtime_dmg="$(find "$export_path" -name '*.dmg' -print -quit)"
+            if [[ -z "$runtime_dmg" ]]; then
+              echo "Failed to find downloaded iOS 26.4 runtime DMG"
+              exit 1
+            fi
+
+            sudo xcodebuild -importPlatform "$runtime_dmg"
+          fi
+
       - name: Resolve app versions
         id: versions
         run: |
