@@ -151,7 +151,6 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         }
     }
 
-    @discardableResult
     private func scrollToPage(for request: ScrollRequest) -> Bool {
         guard collectionView.numberOfSections > 0 else { return false }
         let numberOfItems = collectionView.numberOfItems(inSection: 0)
