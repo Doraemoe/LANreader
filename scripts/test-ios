@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/_xcode_env.sh"
 prepare_xcode_environment
 trust_swift_macros
 
-DESTINATION="${LANREADER_DESTINATION:-platform=iOS Simulator,OS=26.2,name=iPad Pro 11-inch (M5)}"
+DESTINATION="${LANREADER_DESTINATION:-platform=iOS Simulator,OS=26.4,name=iPad Pro 11-inch (M5)}"
 RESULT_BUNDLE_PATH="$LANREADER_RESULTS_DIR/LANreader-tests.xcresult"
 
 rm -rf "$RESULT_BUNDLE_PATH"

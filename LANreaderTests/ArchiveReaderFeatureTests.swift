@@ -132,6 +132,101 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         )
     }
 
+    func testReaderPositioningVerticalModeMath() {
+        // In vertical (upDown) mode double-page layout has no effect on positioning math
+        XCTAssertEqual(
+            ReaderPositioning.initialPageIndex(
+                progress: 3,
+                pageCount: 5,
+                fromStart: false,
+                readDirection: .upDown,
+                doublePageLayout: false
+            ),
+            2
+        )
+        XCTAssertEqual(
+            ReaderPositioning.canonicalPageIndex(
+                forVisibleIndex: 2,
+                pageCount: 5,
+                readDirection: .upDown,
+                doublePageLayout: true
+            ),
+            2
+        )
+        XCTAssertEqual(
+            ReaderPositioning.scrollAnchorIndex(
+                forPageIndex: 3,
+                pageCount: 5,
+                readDirection: .upDown,
+                doublePageLayout: true
+            ),
+            3
+        )
+    }
+
+    func testReaderPositioningVerticalModeAdjacentMath() {
+        XCTAssertEqual(
+            ReaderPositioning.adjacentPageIndex(
+                from: 2,
+                direction: .next,
+                pageCount: 5,
+                readDirection: .upDown,
+                doublePageLayout: true
+            ),
+            3
+        )
+        XCTAssertEqual(
+            ReaderPositioning.adjacentPageIndex(
+                from: 2,
+                direction: .previous,
+                pageCount: 5,
+                readDirection: .upDown,
+                doublePageLayout: true
+            ),
+            1
+        )
+        XCTAssertNil(
+            ReaderPositioning.adjacentPageIndex(
+                from: 0,
+                direction: .previous,
+                pageCount: 5,
+                readDirection: .upDown,
+                doublePageLayout: false
+            )
+        )
+        XCTAssertNil(
+            ReaderPositioning.adjacentPageIndex(
+                from: 4,
+                direction: .next,
+                pageCount: 5,
+                readDirection: .upDown,
+                doublePageLayout: false
+            )
+        )
+    }
+
+    @MainActor
+    func testFinishExtractingVerticalModeIgnoresDoublePageLayout() async {
+        configureReaderDefaults(readDirection: .upDown, doublePageLayout: true)
+        let store = TestStore(
+            initialState: makeState(
+                progress: 3,
+                readDirection: .upDown,
+                doublePageLayout: true
+            )
+        ) {
+            ArchiveReaderFeature()
+        }
+        store.exhaustivity = .off
+
+        await store.send(.finishExtracting(makeExtractedPages(count: 5)))
+        // Vertical mode should use simple index (progress 3 → index 2), ignoring double-page
+        XCTAssertEqual(store.state.currentPageIndex, 2)
+
+        await store.receive(.requestJump(2, source: .initialRestore))
+        XCTAssertEqual(store.state.scrollRequest?.targetPageIndex, 2)
+    }
+
     @MainActor
     func testFinishExtractingRestoresSavedProgressAndQueuesInitialScroll() async {
         configureReaderDefaults()

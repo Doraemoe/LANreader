@@ -76,6 +76,10 @@ enum ReaderPositioning {
         return min(max(index, 0), pageCount - 1)
     }
 
+    /// Returns the canonical page index for a given visible item index.
+    /// In double-page (spread) layout the canonical index is the trailing (right) page of the spread,
+    /// e.g. visible index 0 maps to canonical index 1 for spread [0, 1].
+    /// In single-page or vertical layout the canonical index equals the visible index.
     static func canonicalPageIndex(
         forVisibleIndex visibleIndex: Int,
         pageCount: Int,

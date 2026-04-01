@@ -18,7 +18,7 @@ Use this file as the source of truth for Codex-style work in this repository.
 - Main app scheme: `LANreader`
 - Secondary scheme: `Action`
 - Test target: `LANreaderTests`
-- CI simulator destination: `platform=iOS Simulator,OS=26.2,name=iPad Pro 11-inch (M5)`
+- CI simulator destination: `platform=iOS Simulator,OS=26.4,name=iPad Pro 11-inch (M5)`
 - CI lint command: `swiftlint --strict`
 - CI test command: `xcodebuild clean test -project LANreader.xcodeproj -scheme LANreader ... -skipMacroValidation`
 - Current active GitHub workflows are `ci.yml` and `manual-ipa-release.yml`.
@@ -60,6 +60,7 @@ Use this file as the source of truth for Codex-style work in this repository.
 - Keep changes aligned with existing TCA and dependency-injection patterns. Do not rewrite features into a different architecture as a drive-by cleanup.
 - Do not replace UIKit-backed collection views with pure SwiftUI `LazyVStack`, `LazyHStack`, or similar containers unless the task explicitly asks for that change and performance has been re-validated.
 - When changing reader, archive grid, or cache-list behavior, inspect the SwiftUI wrapper and the UIKit controller/cell together before deciding where the fix belongs.
+- When implementing or changing `LANreader/Service/LANraragiService.swift`, keep the client behavior and request/response shapes aligned with the upstream LANraragi OpenAPI spec at `https://github.com/Difegue/LANraragi/blob/dev/tools/openapi.yaml`.
 - Prefer narrow fixes. This repo has some legacy naming and release automation debt; do not normalize unrelated names unless the task is explicitly about release tooling or rebranding.
 - If you need a local build, use the scripts in `scripts/`. They use the normal Xcode folders by default and support repo-local cache overrides when needed.
 - Before commit, push, or PR creation, run `./scripts/lint` and verify it passes. Treat lint as a required pre-PR gate.

@@ -583,28 +583,26 @@ struct ArchiveReader: View {
 
     // swiftlint:disable function_body_length
     @MainActor
+    @ViewBuilder
     private func bottomToolbar(
         store: StoreOf<ArchiveReaderFeature>
     ) -> some View {
-        guard !store.pages.isEmpty else {
-            return AnyView(EmptyView())
-        }
+        if !store.pages.isEmpty {
+            let sliderDisplayValue = sliderDraftIndex ?? Double(store.currentPageIndex)
+            let displayIndex = ReaderPositioning.clampedPageIndex(
+                Int(sliderDisplayValue.rounded()),
+                pageCount: store.pages.count
+            )
+            let sliderBinding = Binding(
+                get: {
+                    sliderDisplayValue
+                },
+                set: { newValue in
+                    sliderDraftIndex = newValue
+                }
+            )
 
-        let sliderDisplayValue = sliderDraftIndex ?? Double(store.currentPageIndex)
-        let displayIndex = ReaderPositioning.clampedPageIndex(
-            Int(sliderDisplayValue.rounded()),
-            pageCount: store.pages.count
-        )
-        let sliderBinding = Binding(
-            get: {
-                sliderDisplayValue
-            },
-            set: { newValue in
-                sliderDraftIndex = newValue
-            }
-        )
-
-        return AnyView(VStack {
+            VStack {
             Grid {
                 GridRow {
                     Button(action: {
@@ -666,7 +664,8 @@ struct ArchiveReader: View {
             }
             .padding()
             .background(.thinMaterial)
-        })
+            }
+        }
     }
     // swiftlint:enable function_body_length
 }
