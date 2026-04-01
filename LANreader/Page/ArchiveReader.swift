@@ -21,8 +21,8 @@ import OrderedCollections
         @SharedReader(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
 
         var currentArchiveId = ""
-        var sliderIndex: Double = 0
-        var jumpIndex: Int? = 0
+        var currentPageIndex = 0
+        var scrollRequest: ScrollRequest?
         var pages: IdentifiedArrayOf<PageFeature.State> = []
         var fromStart = false
         var extracting = false
@@ -32,7 +32,6 @@ import OrderedCollections
         var successMessage = ""
         var showAutoPageConfig = false
         var autoPage = AutomaticPageFeature.State()
-        var autoDate = Date()
         var lastAutoPageIndex: Int?
         var cached = false
         var inCache = false
@@ -51,6 +50,19 @@ import OrderedCollections
             self.fromStart = fromStart
             self.cached = cached
         }
+
+        var resolvedReadDirection: ReadDirection {
+            ReadDirection(rawValue: readDirection) ?? .leftRight
+        }
+
+        var safeCurrentPageIndex: Int {
+            ReaderPositioning.clampedPageIndex(currentPageIndex, pageCount: pages.count)
+        }
+
+        var currentPage: PageFeature.State? {
+            guard !pages.isEmpty else { return nil }
+            return pages[safeCurrentPageIndex]
+        }
     }
 
     public enum Action: Equatable, BindableAction {
@@ -59,18 +71,16 @@ import OrderedCollections
 
         case autoPage(AutomaticPageFeature.Action)
         case showAutoPageConfig
-        case setAutoDate(Date)
         case autoPageTick
         case setLastAutoPageIndex(Int?)
         case page(IdentifiedActionOf<PageFeature>)
         case extractArchive
-        case loadProgress
         case finishExtracting([String])
         case toggleControlUi(Bool?)
-        case setJumpIndex(Int?)
-        case setSliderIndex(Double)
-        case updateProgress(Int)
-        case setIsNew(Bool)
+        case visiblePageChanged(Int)
+        case requestJump(Int, source: ReaderNavigationSource)
+        case navigate(ReaderNavigationDirection, source: ReaderNavigationSource)
+        case scrollRequestHandled(UUID)
         case setThumbnail
         case finishThumbnailLoading
         case setError(String)
@@ -83,14 +93,13 @@ import OrderedCollections
         case loadPreviousArchive
         case loadNextArchive
 
-        public enum Alert: Sendable {
+        public enum Alert: Equatable, Sendable {
             case confirmDelete
         }
     }
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
-    @Dependency(\.dismiss) var dismiss
     @Dependency(\.continuousClock) var clock
 
     public enum CancelId: Sendable {
@@ -128,10 +137,14 @@ import OrderedCollections
                            $0.pageNumber < $1.pageNumber
                        }
                    state.pages.append(contentsOf: pageState)
-                   state.sliderIndex = 0.0
+                   state.currentPageIndex = ReaderPositioning.defaultStartPageIndex(
+                       pageCount: state.pages.count,
+                       readDirection: state.resolvedReadDirection,
+                       doublePageLayout: state.doublePageLayout
+                   )
                    state.controlUiHidden = true
                    state.extracting = false
-                   return .none
+                   return .send(.requestJump(state.currentPageIndex, source: .initialRestore))
                } else {
                    state.controlUiHidden = true
                    state.extracting = false
@@ -167,22 +180,19 @@ import OrderedCollections
                     }
                     state.pages.append(contentsOf: pageState)
                     guard let currentArchive = state.allArchives[id: state.currentArchiveId] else { return .none }
-                    let progress = currentArchive.wrappedValue.progress > 0 ?
-                    currentArchive.wrappedValue.progress - 1 : 0
-                    let pageIndexToShow = state.fromStart ? 0 : progress
-                    state.sliderIndex = Double(pageIndexToShow)
-                    state.jumpIndex = pageIndexToShow
+                    let pageIndexToShow = ReaderPositioning.initialPageIndex(
+                        progress: currentArchive.wrappedValue.progress,
+                        pageCount: state.pages.count,
+                        fromStart: state.fromStart,
+                        readDirection: state.resolvedReadDirection,
+                        doublePageLayout: state.doublePageLayout
+                    )
+                    state.currentPageIndex = pageIndexToShow
                     state.controlUiHidden = true
                 }
                 state.extracting = false
-                return .none
-            case .loadProgress:
-                guard let currentArchive = state.allArchives[id: state.currentArchiveId] else { return .none }
-                let progress = currentArchive.wrappedValue.progress > 0 ?
-                currentArchive.wrappedValue.progress - 1 : 0
-                state.sliderIndex = Double(progress)
-                state.controlUiHidden = true
-                return .none
+                guard !state.pages.isEmpty else { return .none }
+                return .send(.requestJump(state.currentPageIndex, source: .initialRestore))
             case let .toggleControlUi(show):
                 if let shouldShow = show {
                     state.controlUiHidden = shouldShow
@@ -191,44 +201,75 @@ import OrderedCollections
                 }
                 state.lastAutoPageIndex = nil
                 return .cancel(id: CancelId.autoPage)
-            case let .setJumpIndex(jumpIndex):
-                state.jumpIndex = jumpIndex
-                return .none
-            case let .setSliderIndex(index):
-                state.sliderIndex = index
-                return .none
-            case let .updateProgress(pageNumber):
-                guard let currentArchive = state.allArchives[id: state.currentArchiveId] else { return .none }
+            case let .visiblePageChanged(index):
+                guard !state.pages.isEmpty else { return .none }
+                let clampedIndex = ReaderPositioning.clampedPageIndex(index, pageCount: state.pages.count)
+                guard clampedIndex != state.currentPageIndex else { return .none }
+                state.currentPageIndex = clampedIndex
+                guard let currentArchive = state.allArchives[id: state.currentArchiveId],
+                      let page = state.currentPage else { return .none }
+
+                let pageNumber = page.pageNumber
+                let shouldClearNewFlag = pageNumber > 1 && currentArchive.wrappedValue.isNew
                 currentArchive.withLock {
                     $0.progress = pageNumber
+                    if shouldClearNewFlag {
+                        $0.isNew = false
+                    }
                 }
                 if state.cached {
                     return .none
                 }
-                return .run(priority: .background) { [state] send in
+                return .run(priority: .background) { [state] _ in
                     try await clock.sleep(for: .seconds(0.5))
                     if state.serverProgress {
                         _ = try await service.updateArchiveReadProgress(
                             id: state.currentArchiveId, progress: pageNumber
                         ).value
                     }
-                    if pageNumber > 1 && currentArchive.wrappedValue.isNew {
+                    if shouldClearNewFlag {
                         _ = try await service.clearNewFlag(id: state.currentArchiveId).value
-                        await send(.setIsNew(false))
                     }
                 } catch: { [state] error, _ in
                     logger.error("failed to update archive progress. id=\(state.currentArchiveId) \(error)")
                 }
                 .cancellable(id: CancelId.updateProgress, cancelInFlight: true)
-            case let .setIsNew(isNew):
-                guard let currentArchive = state.allArchives[id: state.currentArchiveId] else { return .none }
-                currentArchive.withLock {
-                    $0.isNew = isNew
+            case let .requestJump(index, source):
+                guard !state.pages.isEmpty else { return .none }
+                let clampedIndex = ReaderPositioning.clampedPageIndex(index, pageCount: state.pages.count)
+                state.scrollRequest = ScrollRequest(
+                    targetPageIndex: clampedIndex,
+                    source: source,
+                    animated: source != .slider && source != .initialRestore
+                )
+                return .none
+            case let .navigate(direction, source):
+                guard let targetIndex = ReaderPositioning.adjacentPageIndex(
+                    from: state.currentPageIndex,
+                    direction: direction,
+                    pageCount: state.pages.count,
+                    readDirection: state.resolvedReadDirection,
+                    doublePageLayout: state.doublePageLayout
+                ) else {
+                    return .none
                 }
+                state.scrollRequest = ScrollRequest(
+                    targetPageIndex: targetIndex,
+                    source: source,
+                    animated: true
+                )
+                return .none
+            case let .scrollRequestHandled(id):
+                guard state.scrollRequest?.id == id else { return .none }
+                state.scrollRequest = nil
                 return .none
             case .setThumbnail:
                 state.settingThumbnail = true
-                let pageNumber = state.pages[state.sliderIndex.int].pageNumber
+                guard let currentPage = state.currentPage else {
+                    state.settingThumbnail = false
+                    return .none
+                }
+                let pageNumber = currentPage.pageNumber
                 return .run { [id = state.currentArchiveId] send in
                     _ = try await service.updateArchiveThumbnail(id: id, page: pageNumber).value
                     guard let thumbnailData = try await service.retrieveArchiveThumbnail(id: id) else {
@@ -286,16 +327,13 @@ import OrderedCollections
                 state.showAutoPageConfig = false
                 state.controlUiHidden = true
                 return .send(.autoPageTick)
-            case let .setAutoDate(date):
-                state.autoDate = date
-                return .none
             case .autoPage(.cancelAutoPage):
                 state.showAutoPageConfig = false
                 return .none
             case .autoPage:
                 return .none
             case .autoPageTick:
-                let idx = state.sliderIndex.int
+                let idx = state.currentPageIndex
                 var canAdvance = true
                 if state.lastAutoPageIndex == idx {
                     canAdvance = false
@@ -323,11 +361,11 @@ import OrderedCollections
 
                 return .run { [idx, canAdvance, interval = state.autoPageInterval] send in
                     if canAdvance {
-                        try? await Task.sleep(for: .seconds(interval))
-                        await send(.setAutoDate(Date()))
+                        try? await clock.sleep(for: .seconds(interval))
+                        await send(.navigate(.next, source: .autoPage))
                         await send(.setLastAutoPageIndex(idx))
                     } else {
-                        try? await Task.sleep(for: .milliseconds(300))
+                        try? await clock.sleep(for: .milliseconds(300))
                     }
                     await send(.autoPageTick)
                 }.cancellable(id: CancelId.autoPage)
@@ -437,8 +475,8 @@ import OrderedCollections
 
     func resetState(state: inout State) {
         state.pages = []
-        state.sliderIndex = 0
-        state.jumpIndex = 0
+        state.currentPageIndex = 0
+        state.scrollRequest = nil
         state.inCache = false
         state.errorMessage = ""
         state.successMessage = ""
@@ -458,6 +496,7 @@ private enum ArchiveReaderError: LocalizedError {
 
 struct ArchiveReader: View {
     @Bindable var store: StoreOf<ArchiveReaderFeature>
+    @State private var sliderDraftIndex: Double?
     let navigationHelper: NavigationHelper?
 
     var body: some View {
@@ -537,6 +576,9 @@ struct ArchiveReader: View {
                 navigationHelper?.pop()
             }
         }
+        .onChange(of: store.currentArchiveId) {
+            sliderDraftIndex = nil
+        }
     }
 
     // swiftlint:disable function_body_length
@@ -544,11 +586,29 @@ struct ArchiveReader: View {
     private func bottomToolbar(
         store: StoreOf<ArchiveReaderFeature>
     ) -> some View {
-        return VStack {
+        guard !store.pages.isEmpty else {
+            return AnyView(EmptyView())
+        }
+
+        let sliderDisplayValue = sliderDraftIndex ?? Double(store.currentPageIndex)
+        let displayIndex = ReaderPositioning.clampedPageIndex(
+            Int(sliderDisplayValue.rounded()),
+            pageCount: store.pages.count
+        )
+        let sliderBinding = Binding(
+            get: {
+                sliderDisplayValue
+            },
+            set: { newValue in
+                sliderDraftIndex = newValue
+            }
+        )
+
+        return AnyView(VStack {
             Grid {
                 GridRow {
                     Button(action: {
-                        let indexString = store.pages[store.sliderIndex.int].id
+                        let indexString = store.pages[store.safeCurrentPageIndex].id
                         store.send(.page(.element(id: indexString, action: .load(true))))
                     }, label: {
                         Image(systemName: "arrow.clockwise")
@@ -561,7 +621,7 @@ struct ArchiveReader: View {
                     }
                     .disabled(store.readDirection == ReadDirection.upDown.rawValue)
                     Text(String(format: "%d/%d",
-                                store.sliderIndex.int + 1,
+                                displayIndex + 1,
                                 store.pages.count))
                     .bold()
                     Button {
@@ -585,12 +645,19 @@ struct ArchiveReader: View {
                 }
                 GridRow {
                     Slider(
-                        value: $store.sliderIndex,
+                        value: sliderBinding,
                         in: 0...Double(store.pages.count <= 1 ? 1 : store.pages.count - 1),
                         step: 1
                     ) { onSlider in
                         if !onSlider {
-                            store.send(.setJumpIndex(store.sliderIndex.int))
+                            let targetIndex = ReaderPositioning.clampedPageIndex(
+                                Int((sliderDraftIndex ?? Double(store.currentPageIndex)).rounded()),
+                                pageCount: store.pages.count
+                            )
+                            store.send(.requestJump(targetIndex, source: .slider))
+                            DispatchQueue.main.async {
+                                sliderDraftIndex = nil
+                            }
                         }
                     }
                     .padding(.horizontal)
@@ -599,7 +666,7 @@ struct ArchiveReader: View {
             }
             .padding()
             .background(.thinMaterial)
-        }
+        })
     }
     // swiftlint:enable function_body_length
 }
