@@ -101,6 +101,7 @@ import OrderedCollections
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
     @Dependency(\.continuousClock) var clock
+    @Dependency(\.uuid) var uuid
 
     public enum CancelId: Sendable {
         case updateProgress
@@ -238,6 +239,7 @@ import OrderedCollections
                 guard !state.pages.isEmpty else { return .none }
                 let clampedIndex = ReaderPositioning.clampedPageIndex(index, pageCount: state.pages.count)
                 state.scrollRequest = ScrollRequest(
+                    id: uuid(),
                     targetPageIndex: clampedIndex,
                     source: source,
                     animated: source != .slider && source != .initialRestore
@@ -254,6 +256,7 @@ import OrderedCollections
                     return .none
                 }
                 state.scrollRequest = ScrollRequest(
+                    id: uuid(),
                     targetPageIndex: targetIndex,
                     source: source,
                     animated: true
