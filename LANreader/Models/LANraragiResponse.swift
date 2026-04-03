@@ -110,6 +110,61 @@ struct QueueUrlDownloadResponse: Decodable {
     let url: String
 }
 
+public struct PageThumbnailQueueResponse: Decodable, Equatable, Sendable {
+    let job: Int?
+    let message: String?
+    let operation: String
+    let success: Int
+}
+
+public enum MinionNoteValue: Decodable, Equatable, Sendable {
+    case string(String)
+    case int(Int)
+    case double(Double)
+    case bool(Bool)
+    case null
+
+    public init(from decoder: Decoder) throws {
+        let singleValueContainer = try decoder.singleValueContainer()
+        if singleValueContainer.decodeNil() {
+            self = .null
+        } else if let intValue = try? singleValueContainer.decode(Int.self) {
+            self = .int(intValue)
+        } else if let doubleValue = try? singleValueContainer.decode(Double.self) {
+            self = .double(doubleValue)
+        } else if let boolValue = try? singleValueContainer.decode(Bool.self) {
+            self = .bool(boolValue)
+        } else {
+            self = .string(try singleValueContainer.decode(String.self))
+        }
+    }
+
+    var stringValue: String? {
+        if case let .string(value) = self {
+            return value
+        }
+        return nil
+    }
+}
+
+public struct BasicJobStatus: Decodable, Equatable, Sendable {
+    let task: String?
+    let state: String
+    let notes: [String: MinionNoteValue]?
+    let error: String?
+
+    var processedPages: Set<Int> {
+        Set(
+            (notes ?? [:]).compactMap { key, value in
+                guard value.stringValue == "processed", let pageNumber = Int(key) else {
+                    return nil
+                }
+                return pageNumber
+            }
+        )
+    }
+}
+
 struct JobStatus: Decodable {
     let id: String
     let state: String

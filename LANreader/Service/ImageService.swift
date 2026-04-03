@@ -43,7 +43,11 @@ final class ImageService: Sendable {
         pageNumber: String,
         split: Bool
     ) -> Bool {
-        try? FileManager.default.createDirectory(at: destinationUrl, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(
+            at: destinationUrl,
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
 
         if isAnimatedImage(imageUrl: imageUrl, imageData: imageData) {
             guard let originalData = imageData ?? (try? Data(contentsOf: imageUrl)) else { return false }
@@ -87,6 +91,201 @@ final class ImageService: Sendable {
             splitted = true
         }
         return splitted
+    }
+
+    func generatePreviewImage(
+        sourceUrl: URL,
+        destinationUrl: URL,
+        maxPixelSize: CGFloat = 1024
+    ) -> Bool {
+        guard let imageSource = CGImageSourceCreateWithURL(sourceUrl as CFURL, nil) else {
+            return false
+        }
+        return writePreviewImage(
+            from: imageSource,
+            destinationUrl: destinationUrl,
+            maxPixelSize: maxPixelSize
+        )
+    }
+
+    func storePreviewImage(
+        imageData: Data,
+        destinationUrl: URL,
+    ) -> Bool {
+        guard hasCompleteEncodedPayload(imageData) else {
+            return false
+        }
+
+        try? FileManager.default.createDirectory(
+            at: destinationUrl.deletingLastPathComponent(),
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
+
+        do {
+            try imageData.write(to: destinationUrl, options: .atomic)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private func writePreviewImage(
+        from imageSource: CGImageSource,
+        destinationUrl: URL,
+        maxPixelSize: CGFloat
+    ) -> Bool {
+        guard CGImageSourceGetCount(imageSource) > 0,
+              CGImageSourceGetStatus(imageSource) == .statusComplete,
+              CGImageSourceGetStatusAtIndex(imageSource, 0) == .statusComplete else {
+            return false
+        }
+
+        let options = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize
+        ] as CFDictionary
+        let previewImage = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, options)
+
+        guard let previewImage else {
+            return false
+        }
+
+        let outputImage = if cgImageHasAlpha(previewImage) {
+            flattenedImageForJPEG(previewImage)
+        } else {
+            previewImage
+        }
+
+        guard let outputImage else {
+            return false
+        }
+
+        return writeJPEGImage(outputImage, destinationUrl: destinationUrl)
+    }
+
+    private func hasCompleteEncodedPayload(_ imageData: Data) -> Bool {
+        guard imageData.count > 4 else {
+            return false
+        }
+
+        if imageData.starts(with: [0xFF, 0xD8]) {
+            return hasJPEGEndMarker(imageData)
+        }
+
+        let pngSignature = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+        if imageData.starts(with: pngSignature) {
+            let pngTrailer = Data([0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82])
+            return imageData.suffix(12) == pngTrailer
+        }
+
+        return true
+    }
+
+    private func hasJPEGEndMarker(_ imageData: Data) -> Bool {
+        let trailingSkippableBytes = Set([UInt8(0x00), 0x09, 0x0A, 0x0D, 0x20])
+        var endIndex = imageData.endIndex
+
+        while endIndex > imageData.startIndex {
+            let indexBeforeEnd = imageData.index(before: endIndex)
+            if trailingSkippableBytes.contains(imageData[indexBeforeEnd]) {
+                endIndex = indexBeforeEnd
+            } else {
+                break
+            }
+        }
+
+        guard endIndex >= imageData.index(imageData.startIndex, offsetBy: 2) else {
+            return false
+        }
+
+        let markerEnd = imageData.index(before: endIndex)
+        let markerStart = imageData.index(before: markerEnd)
+        return imageData[markerStart] == 0xFF && imageData[markerEnd] == 0xD9
+    }
+
+    private func cgImageHasAlpha(_ image: CGImage) -> Bool {
+        switch image.alphaInfo {
+        case .alphaOnly, .first, .last, .premultipliedFirst, .premultipliedLast:
+            return true
+        case .none, .noneSkipFirst, .noneSkipLast:
+            return false
+        @unknown default:
+            return true
+        }
+    }
+
+    private func flattenedImageForJPEG(_ image: CGImage) -> CGImage? {
+        guard image.width > 0, image.height > 0 else {
+            return nil
+        }
+
+        let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+        let bitmapInfo = CGImageAlphaInfo.noneSkipLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
+
+        guard let context = CGContext(
+            data: nil,
+            width: image.width,
+            height: image.height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo
+        ) else {
+            return nil
+        }
+
+        context.setFillColor(UIColor.systemBackground.cgColor)
+        context.fill(CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        return context.makeImage()
+    }
+
+    private func writeJPEGImage(_ image: CGImage, destinationUrl: URL) -> Bool {
+        let destinationDirectory = destinationUrl.deletingLastPathComponent()
+        let tempURL = destinationDirectory.appendingPathComponent(
+            "\(UUID().uuidString).jpg",
+            isDirectory: false
+        )
+
+        try? FileManager.default.createDirectory(
+            at: destinationDirectory,
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
+
+        guard let destination = CGImageDestinationCreateWithURL(
+            tempURL as CFURL,
+            UTType.jpeg.identifier as CFString,
+            1,
+            nil
+        ) else {
+            return false
+        }
+
+        let options = [
+            kCGImageDestinationLossyCompressionQuality: 0.9
+        ] as CFDictionary
+        CGImageDestinationAddImage(destination, image, options)
+
+        guard CGImageDestinationFinalize(destination) else {
+            try? FileManager.default.removeItem(at: tempURL)
+            return false
+        }
+
+        do {
+            if FileManager.default.fileExists(atPath: destinationUrl.path(percentEncoded: false)) {
+                _ = try FileManager.default.replaceItemAt(destinationUrl, withItemAt: tempURL)
+            } else {
+                try FileManager.default.moveItem(at: tempURL, to: destinationUrl)
+            }
+            return true
+        } catch {
+            try? FileManager.default.removeItem(at: tempURL)
+            return false
+        }
     }
 
     private func makeImageSource(imageUrl: URL, imageData: Data? = nil) -> CGImageSource? {

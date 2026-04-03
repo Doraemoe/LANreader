@@ -8,6 +8,7 @@ import OHHTTPStubsSwift
 import SwiftUI
 @testable import LANreader
 
+// swiftlint:disable type_body_length
 class LANraragiServiceTest: XCTestCase {
 
     private let url = "https://localhost"
@@ -154,6 +155,105 @@ class LANraragiServiceTest: XCTestCase {
 
         let actual = try await service.retrieveArchiveThumbnail(id: "id")
         XCTAssertNil(actual)
+    }
+
+    func testRetrieveGeneratedArchiveThumbnailReturnsImageData() async throws {
+        try await configureVerifiedClient()
+
+        let expected = Data([0x89, 0x50, 0x4E, 0x47])
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/id/thumbnail")
+                && containsQueryParams([
+                    "cachebust": "99",
+                    "no_fallback": "true",
+                    "page": "5"
+                ])
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(data: expected, statusCode: 200, headers: ["Content-Type": "image/png"])
+        }
+
+        let actual = try await service.retrieveGeneratedArchiveThumbnail(id: "id", page: 5, cacheBust: 99)
+        XCTAssertEqual(actual, expected)
+    }
+
+    func testRetrieveGeneratedArchiveThumbnailReturnsNilWhenNotReady() async throws {
+        try await configureVerifiedClient()
+
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/id/thumbnail")
+                && containsQueryParams([
+                    "cachebust": "100",
+                    "no_fallback": "true",
+                    "page": "5"
+                ])
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                data: Data(),
+                statusCode: 202,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+
+        let actual = try await service.retrieveGeneratedArchiveThumbnail(id: "id", page: 5, cacheBust: 100)
+        XCTAssertNil(actual)
+    }
+
+    func testQueuePageThumbnailsReturnsQueuedJob() async throws {
+        try await configureVerifiedClient()
+
+        let body = Data("""
+        {
+          "job": 42,
+          "operation": "generate_page_thumbnails",
+          "success": 1
+        }
+        """.utf8)
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/id/files/thumbnails")
+                && isMethodPOST()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                data: body,
+                statusCode: 202,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+
+        let actual = try await service.queuePageThumbnails(id: "id").value
+        XCTAssertEqual(actual.job, 42)
+        XCTAssertNil(actual.message)
+        XCTAssertEqual(actual.operation, "generate_page_thumbnails")
+        XCTAssertEqual(actual.success, 1)
+    }
+
+    func testQueuePageThumbnailsReturnsAlreadyGeneratedMessage() async throws {
+        try await configureVerifiedClient()
+
+        let body = Data("""
+        {
+          "message": "No job queued, all thumbnails already exist.",
+          "operation": "generate_page_thumbnails",
+          "success": 1
+        }
+        """.utf8)
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/id/files/thumbnails")
+                && isMethodPOST()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                data: body,
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+
+        let actual = try await service.queuePageThumbnails(id: "id").value
+        XCTAssertNil(actual.job)
+        XCTAssertEqual(actual.message, "No job queued, all thumbnails already exist.")
+        XCTAssertEqual(actual.operation, "generate_page_thumbnails")
+        XCTAssertEqual(actual.success, 1)
     }
 
     func testSearchArchive() async throws {
@@ -454,6 +554,40 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(actual.result?.message, "Done")
     }
 
+    func testCheckBasicJobStatusDecodesPageThumbnailProgress() async throws {
+        try await configureVerifiedClient()
+
+        let body = Data("""
+        {
+          "state": "active",
+          "task": "generate_page_thumbnails",
+          "notes": {
+            "1": "processed",
+            "3": "processed",
+            "total_pages": 10
+          },
+          "error": ""
+        }
+        """.utf8)
+
+        stub(condition: isHost("localhost")
+                && isPath("/api/minion/9")
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                data: body,
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+
+        let actual = try await service.checkBasicJobStatus(id: 9).value
+        XCTAssertEqual(actual.state, "active")
+        XCTAssertEqual(actual.task, "generate_page_thumbnails")
+        XCTAssertEqual(actual.processedPages, Set([1, 3]))
+        XCTAssertEqual(actual.error, "")
+    }
+
     func testCheckJobStatusAllowsNumericId() async throws {
         try await configureVerifiedClient()
 
@@ -504,3 +638,4 @@ class LANraragiServiceTest: XCTestCase {
     }
 
 }
+// swiftlint:enable type_body_length

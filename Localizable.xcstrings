@@ -2495,23 +2495,6 @@
         }
       }
     },
-    "settings.support.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "💰 Support development"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "💰 支持开发者"
-          }
-        }
-      }
-    },
     "settings.support.reportIssue" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2525,6 +2508,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在 GitHub 上反馈问题"
+          }
+        }
+      }
+    },
+    "settings.support.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "💰 Support development"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "💰 支持开发者"
           }
         }
       }
@@ -3076,5 +3076,5 @@
       }
     }
   },
-  "version" : "1.0"
+  "version" : "1.1"
 }

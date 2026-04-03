@@ -134,15 +134,41 @@ actor LANraragiService {
     }
 
     func retrieveArchiveThumbnail(id: String, page: Int = 0) async throws -> Data? {
+        try await fetchArchiveThumbnail(id: id, page: page)
+    }
+
+    func retrieveGeneratedArchiveThumbnail(
+        id: String,
+        page: Int,
+        cacheBust: Int
+    ) async throws -> Data? {
+        try await fetchArchiveThumbnail(id: id, page: page, cacheBust: cacheBust, disableResponseCache: true)
+    }
+
+    private func fetchArchiveThumbnail(
+        id: String,
+        page: Int,
+        cacheBust: Int? = nil,
+        disableResponseCache: Bool = false
+    ) async throws -> Data? {
         let query = [
             "no_fallback": "true",
             "page": String(page)
         ]
+        .merging(cacheBust.map { ["cachebust": String($0)] } ?? [:]) { _, new in new }
 
         var components = URLComponents(string: "\(url)/api/archives/\(id)/thumbnail")!
         components.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
 
-        let response = await session.request(components.url!).serializingData().response
+        let request = session.request(components.url!)
+        let response: DataResponse<Data, AFError>
+
+        if disableResponseCache {
+            let cacher = ResponseCacher(behavior: .doNotCache)
+            response = await request.cacheResponse(using: cacher).serializingData().response
+        } else {
+            response = await request.serializingData().response
+        }
 
         guard let statusCode = response.response?.statusCode else {
             throw response.error ?? URLError(.badServerResponse)
@@ -162,10 +188,10 @@ actor LANraragiService {
         }
     }
 
-    func queuePageThumbnails(id: String) async -> DataTask<String> {
+    func queuePageThumbnails(id: String) async -> DataTask<PageThumbnailQueueResponse> {
         return session.request("\(url)/api/archives/\(id)/files/thumbnails", method: .post)
             .validate(statusCode: [200, 202])
-            .serializingString()
+            .serializingDecodable(PageThumbnailQueueResponse.self)
     }
 
     func updateArchiveThumbnail(id: String, page: Int) -> DataTask<String> {
@@ -345,6 +371,12 @@ actor LANraragiService {
         session.request("\(url)/api/minion/\(id)/detail", method: .get)
                 .validate(statusCode: 200...200)
                 .serializingDecodable(JobStatus.self)
+    }
+
+    func checkBasicJobStatus(id: Int) async -> DataTask<BasicJobStatus> {
+        session.request("\(url)/api/minion/\(id)", method: .get)
+            .validate(statusCode: 200...200)
+            .serializingDecodable(BasicJobStatus.self)
     }
 
     func databaseBackup() async -> DataTask<DatabaseBackup> {
