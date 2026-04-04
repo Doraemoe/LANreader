@@ -39,13 +39,12 @@ import UIKit
         var cached = false
         var inCache = false
         var removeCacheSuccess = false
-        var sliderDraftIndex: Double?
+        var sliderDraftIndex: Int?
         var sliderDragging = false
         var sliderPreviewVisible = false
         var sliderPreviewPageIndex: Int?
         var sliderPreviewImageURL: URL?
         var sliderPreviewLoading = false
-        var sliderThumbnailQueueing = false
         var sliderThumbnailJobId: Int?
         var sliderReadyThumbnailPages: Set<Int> = []
 
@@ -103,12 +102,11 @@ import UIKit
         case scrollRequestHandled(UUID)
         case prepareSliderPreviewThumbnails
         case sliderPreviewThumbnailsQueued(PageThumbnailQueueResponse)
-        case sliderPreviewThumbnailQueueFailed
         case pollSliderPreviewThumbnailJob(Int)
         case sliderPreviewThumbnailJobStatus(BasicJobStatus)
         case sliderPreviewThumbnailPollingFailed
         case sliderDragStarted
-        case sliderDragChanged(Double)
+        case sliderDragChanged(Int)
         case sliderDragEnded
         case loadSliderPreview(Int)
         case sliderPreviewLoaded(Int, URL)
@@ -293,22 +291,18 @@ import UIKit
                 return .none
             case .prepareSliderPreviewThumbnails:
                 guard !state.cached, !state.pages.isEmpty else { return .none }
-                guard !state.sliderThumbnailQueueing,
-                      state.sliderThumbnailJobId == nil,
+                guard state.sliderThumbnailJobId == nil,
                       state.sliderReadyThumbnailPages.count < state.archivePageCount else {
                     return .none
                 }
-                state.sliderThumbnailQueueing = true
                 return .run { [archiveId = state.currentArchiveId] send in
                     let response = try await service.queuePageThumbnails(id: archiveId).value
                     await send(.sliderPreviewThumbnailsQueued(response))
-                } catch: { [archiveId = state.currentArchiveId] error, send in
+                } catch: { [archiveId = state.currentArchiveId] error, _ in
                     logger.warning("failed to queue slider preview thumbnails. id=\(archiveId) \(error)")
-                    await send(.sliderPreviewThumbnailQueueFailed)
                 }
                 .cancellable(id: CancelId.sliderPreviewThumbnailQueue, cancelInFlight: true)
             case let .sliderPreviewThumbnailsQueued(response):
-                state.sliderThumbnailQueueing = false
                 if let jobId = response.job {
                     state.sliderThumbnailJobId = jobId
                     return .send(.pollSliderPreviewThumbnailJob(jobId))
@@ -319,23 +313,12 @@ import UIKit
                     return .send(.loadSliderPreview(previewPageIndex))
                 }
                 return .none
-            case .sliderPreviewThumbnailQueueFailed:
-                state.sliderThumbnailQueueing = false
-                if let previewPageIndex = state.sliderPreviewPageIndex,
-                   let existingPreviewURL = self.previewFileURL(state: state, pageIndex: previewPageIndex),
-                   FileManager.default.fileExists(atPath: existingPreviewURL.path(percentEncoded: false)) {
-                    state.sliderPreviewImageURL = existingPreviewURL
-                } else {
-                    state.sliderPreviewImageURL = nil
-                }
-                state.sliderPreviewLoading = false
-                return .none
             case let .pollSliderPreviewThumbnailJob(jobId):
                 return .run { send in
                     while true {
                         let status = try await service.checkBasicJobStatus(id: jobId).value
                         await send(.sliderPreviewThumbnailJobStatus(status))
-                        if status.state != "active" {
+                        if status.state == "finished" || status.state == "failed" {
                             return
                         }
                         try await clock.sleep(for: .seconds(1))
@@ -350,10 +333,8 @@ import UIKit
                 if status.state == "finished" {
                     state.sliderReadyThumbnailPages.formUnion(state.archivePageNumbers)
                     state.sliderThumbnailJobId = nil
-                } else if status.state != "active" {
+                } else if status.state == "failed" {
                     state.sliderThumbnailJobId = nil
-                    state.sliderPreviewLoading = false
-                    return .none
                 }
                 if let previewPageIndex = state.sliderPreviewPageIndex {
                     return .send(.loadSliderPreview(previewPageIndex))
@@ -361,19 +342,14 @@ import UIKit
                 return .none
             case .sliderPreviewThumbnailPollingFailed:
                 state.sliderThumbnailJobId = nil
-                if let previewPageIndex = state.sliderPreviewPageIndex,
-                   let existingPreviewURL = self.previewFileURL(state: state, pageIndex: previewPageIndex),
-                   FileManager.default.fileExists(atPath: existingPreviewURL.path(percentEncoded: false)) {
-                    state.sliderPreviewImageURL = existingPreviewURL
-                } else if state.sliderPreviewPageIndex != nil {
-                    state.sliderPreviewImageURL = nil
+                if let previewPageIndex = state.sliderPreviewPageIndex {
+                    return .send(.loadSliderPreview(previewPageIndex))
                 }
-                state.sliderPreviewLoading = false
                 return .none
             case .sliderDragStarted:
                 state.sliderDragging = true
                 let previewIndex = ReaderPositioning.clampedPageIndex(
-                    Int((state.sliderDraftIndex ?? Double(state.currentPageIndex)).rounded()),
+                    state.sliderDraftIndex ?? state.currentPageIndex,
                     pageCount: state.pages.count
                 )
                 state.sliderPreviewVisible = !state.pages.isEmpty
@@ -383,7 +359,7 @@ import UIKit
                 guard state.sliderDragging else { return .none }
                 guard !state.pages.isEmpty else { return .none }
                 let targetIndex = ReaderPositioning.clampedPageIndex(
-                    Int(newValue.rounded()),
+                    newValue,
                     pageCount: state.pages.count
                 )
                 return self.updateSliderPreview(state: &state, pageIndex: targetIndex)
@@ -394,7 +370,7 @@ import UIKit
                     return .cancel(id: CancelId.sliderPreviewLoad)
                 }
                 let targetIndex = ReaderPositioning.clampedPageIndex(
-                    Int((state.sliderDraftIndex ?? Double(state.currentPageIndex)).rounded()),
+                    state.sliderDraftIndex ?? state.currentPageIndex,
                     pageCount: state.pages.count
                 )
                 self.resetSliderPreviewDisplayState(state: &state)
@@ -408,30 +384,13 @@ import UIKit
                 guard state.sliderPreviewVisible, state.sliderPreviewPageIndex == clampedIndex else { return .none }
 
                 let page = state.pages[clampedIndex]
-                let previewFileURL = Self.sliderPreviewFileURL(
-                    archiveId: state.currentArchiveId,
-                    pageNumber: page.pageNumber
-                )
-                let hasExistingPreviewFile = FileManager.default.fileExists(
-                    atPath: previewFileURL.path(percentEncoded: false)
-                )
-                if hasExistingPreviewFile {
-                    state.sliderPreviewImageURL = previewFileURL
-                    state.sliderPreviewLoading = false
+                if self.restoreExistingSliderPreviewIfAvailable(state: &state, pageIndex: clampedIndex) {
                     return .none
                 }
 
                 guard state.cached || state.sliderReadyThumbnailPages.contains(page.pageNumber) else {
-                    let shouldRetryThumbnailPreparation = !state.cached
-                        && state.sliderThumbnailJobId == nil
-                        && !state.sliderThumbnailQueueing
                     state.sliderPreviewImageURL = nil
-                    state.sliderPreviewLoading = shouldRetryThumbnailPreparation
-                        || state.sliderThumbnailQueueing
-                        || state.sliderThumbnailJobId != nil
-                    if shouldRetryThumbnailPreparation {
-                        return .send(.prepareSliderPreviewThumbnails)
-                    }
+                    state.sliderPreviewLoading = state.sliderThumbnailJobId != nil
                     return .none
                 }
 
@@ -501,21 +460,14 @@ import UIKit
                 return .none
             case let .sliderPreviewUnavailable(pageIndex):
                 guard state.sliderPreviewPageIndex == pageIndex else { return .none }
-                if let existingPreviewURL = self.previewFileURL(state: state, pageIndex: pageIndex),
-                   FileManager.default.fileExists(atPath: existingPreviewURL.path(percentEncoded: false)) {
-                    state.sliderPreviewImageURL = existingPreviewURL
-                    state.sliderPreviewLoading = false
-                } else {
+                if !self.restoreExistingSliderPreviewIfAvailable(state: &state, pageIndex: pageIndex) {
                     state.sliderPreviewLoading = state.sliderThumbnailJobId != nil
                     state.sliderPreviewImageURL = nil
                 }
                 return .none
             case let .sliderPreviewFailed(pageIndex):
                 guard state.sliderPreviewPageIndex == pageIndex else { return .none }
-                if let existingPreviewURL = self.previewFileURL(state: state, pageIndex: pageIndex),
-                   FileManager.default.fileExists(atPath: existingPreviewURL.path(percentEncoded: false)) {
-                    state.sliderPreviewImageURL = existingPreviewURL
-                } else {
+                if !self.restoreExistingSliderPreviewIfAvailable(state: &state, pageIndex: pageIndex) {
                     state.sliderPreviewImageURL = nil
                 }
                 state.sliderPreviewLoading = false
@@ -769,18 +721,10 @@ import UIKit
             return .none
         }
 
-        let previewFileURL = Self.sliderPreviewFileURL(
-            archiveId: state.currentArchiveId,
-            pageNumber: state.pages[clampedIndex].pageNumber
-        )
-        let hasPreviewFile = FileManager.default.fileExists(atPath: previewFileURL.path(percentEncoded: false))
-
-        state.sliderDraftIndex = Double(clampedIndex)
+        state.sliderDraftIndex = clampedIndex
         state.sliderPreviewVisible = true
         state.sliderPreviewPageIndex = clampedIndex
-        if hasPreviewFile {
-            state.sliderPreviewImageURL = previewFileURL
-            state.sliderPreviewLoading = false
+        if self.restoreExistingSliderPreviewIfAvailable(state: &state, pageIndex: clampedIndex) {
             return .none
         }
         return .send(.loadSliderPreview(clampedIndex))
@@ -797,7 +741,6 @@ import UIKit
 
     private func resetSliderPreviewArchiveState(state: inout State) {
         resetSliderPreviewDisplayState(state: &state)
-        state.sliderThumbnailQueueing = false
         state.sliderThumbnailJobId = nil
         state.sliderReadyThumbnailPages = []
     }
@@ -810,6 +753,19 @@ import UIKit
             archiveId: state.currentArchiveId,
             pageNumber: state.pages[pageIndex].pageNumber
         )
+    }
+
+    private func restoreExistingSliderPreviewIfAvailable(
+        state: inout State,
+        pageIndex: Int
+    ) -> Bool {
+        guard let existingPreviewURL = self.previewFileURL(state: state, pageIndex: pageIndex),
+              FileManager.default.fileExists(atPath: existingPreviewURL.path(percentEncoded: false)) else {
+            return false
+        }
+        state.sliderPreviewImageURL = existingPreviewURL
+        state.sliderPreviewLoading = false
+        return true
     }
 
     private static func sliderPreviewRootDirectory() -> URL {
@@ -953,39 +909,31 @@ struct ArchiveReader: View {
         readerSize: CGSize
     ) -> some View {
         if !store.pages.isEmpty {
+            let isRightToLeft = store.resolvedReadDirection == .rightLeft
             let bubbleLayout = sliderPreviewBubbleLayout(readerSize: readerSize)
             let sliderHorizontalPadding: CGFloat = 16
             let bubbleVerticalSpacing: CGFloat = 14
-            let isRightToLeft = store.resolvedReadDirection == .rightLeft
-            let sliderDisplayValue = store.sliderDraftIndex ?? Double(store.currentPageIndex)
+            let sliderDisplayIndex = store.sliderDraftIndex ?? store.currentPageIndex
+            let sliderDisplayValue = Double(sliderDisplayIndex)
             let displayIndex = ReaderPositioning.clampedPageIndex(
-                Int(sliderDisplayValue.rounded()),
+                sliderDisplayIndex,
                 pageCount: store.pages.count
             )
             let displayPageNumber = store.pages[displayIndex].pageNumber
-            let sliderBinding = Binding(
-                get: {
-                    sliderDisplayValue
-                },
-                set: { _ in }
-            )
             let sliderMaxIndex = max(store.pages.count - 1, 1)
 
             VStack(spacing: 0) {
                 if store.sliderPreviewVisible {
                     GeometryReader { geometry in
-                        let logicalNormalized = store.pages.count <= 1
-                            ? 0.0
-                            : CGFloat(displayIndex) / CGFloat(store.pages.count - 1)
-                        let visualNormalized = isRightToLeft ? (1 - logicalNormalized) : logicalNormalized
-                        let sliderWidth = max(geometry.size.width - sliderHorizontalPadding * 2, 1)
-                        let thumbCenterX = sliderHorizontalPadding + (sliderWidth * visualNormalized)
-                        let bubbleLeadingX = max(
-                            0,
-                            min(
-                                thumbCenterX - (bubbleLayout.width / 2),
-                                geometry.size.width - bubbleLayout.width
-                            )
+                        let bubbleLeadingX = SliderPreviewPositioning.bubbleLeadingX(
+                            pageIndex: displayIndex,
+                            pageCount: store.pages.count,
+                            track: SliderPreviewTrackGeometry(
+                                rowWidth: geometry.size.width,
+                                sliderHorizontalPadding: sliderHorizontalPadding,
+                                bubbleWidth: bubbleLayout.width
+                            ),
+                            isRightToLeft: isRightToLeft
                         )
 
                         SliderPreviewBubble(
@@ -997,10 +945,10 @@ struct ArchiveReader: View {
                         .offset(x: bubbleLeadingX)
                         .allowsHitTesting(false)
                     }
-                    .environment(\.layoutDirection, .leftToRight)
                     .frame(height: bubbleLayout.rowHeight)
                     .padding(.horizontal, 16)
                     .padding(.bottom, bubbleVerticalSpacing)
+                    .environment(\.layoutDirection, .leftToRight)
                     .transition(.opacity)
                 }
 
@@ -1048,14 +996,11 @@ struct ArchiveReader: View {
 
                             ZStack {
                                 Slider(
-                                    value: sliderBinding,
+                                    value: .constant(sliderDisplayValue),
                                     in: 0...Double(sliderMaxIndex),
                                     step: 1
                                 )
                                 .padding(.horizontal, sliderHorizontalPadding)
-                                // Keep the decorative slider in a stable coordinate system.
-                                // The transparent drag layer handles RTL/LTR value mapping.
-                                .environment(\.layoutDirection, .leftToRight)
                                 .scaleEffect(x: isRightToLeft ? -1 : 1, y: 1)
                                 .allowsHitTesting(false)
 
@@ -1070,7 +1015,7 @@ struct ArchiveReader: View {
                                                 }
                                                 store.send(
                                                     .sliderDragChanged(
-                                                        sliderValue(
+                                                        SliderPreviewPositioning.pageIndex(
                                                             at: value.location.x,
                                                             sliderWidth: sliderWidth,
                                                             horizontalPadding: sliderHorizontalPadding,
@@ -1083,7 +1028,7 @@ struct ArchiveReader: View {
                                             .onEnded { value in
                                                 store.send(
                                                     .sliderDragChanged(
-                                                        sliderValue(
+                                                        SliderPreviewPositioning.pageIndex(
                                                             at: value.location.x,
                                                             sliderWidth: sliderWidth,
                                                             horizontalPadding: sliderHorizontalPadding,
@@ -1097,9 +1042,9 @@ struct ArchiveReader: View {
                                     )
                             }
                         }
-                        .environment(\.layoutDirection, .leftToRight)
                         .frame(height: 44)
                         .gridCellColumns(5)
+                        .environment(\.layoutDirection, .leftToRight)
                     }
                 }
                 .padding()
@@ -1127,22 +1072,59 @@ struct ArchiveReader: View {
             rowHeight: imageHeight + 52
         )
     }
+}
 
-    private func sliderValue(
+enum SliderPreviewPositioning {
+    static func visualNormalized(
+        pageIndex: Int,
+        pageCount: Int,
+        isRightToLeft: Bool
+    ) -> CGFloat {
+        guard pageCount > 1 else { return 0 }
+        let clampedIndex = ReaderPositioning.clampedPageIndex(pageIndex, pageCount: pageCount)
+        let logicalNormalized = CGFloat(clampedIndex) / CGFloat(pageCount - 1)
+        return isRightToLeft ? (1 - logicalNormalized) : logicalNormalized
+    }
+
+    static func bubbleLeadingX(
+        pageIndex: Int,
+        pageCount: Int,
+        track: SliderPreviewTrackGeometry,
+        isRightToLeft: Bool
+    ) -> CGFloat {
+        let sliderWidth = max(track.rowWidth - track.sliderHorizontalPadding * 2, 1)
+        let thumbCenterX = track.sliderHorizontalPadding + (
+            sliderWidth * visualNormalized(
+                pageIndex: pageIndex,
+                pageCount: pageCount,
+                isRightToLeft: isRightToLeft
+            )
+        )
+        let maxLeading = max(track.rowWidth - track.bubbleWidth, 0)
+        return max(0, min(thumbCenterX - (track.bubbleWidth / 2), maxLeading))
+    }
+
+    static func pageIndex(
         at locationX: CGFloat,
         sliderWidth: CGFloat,
         horizontalPadding: CGFloat,
         sliderMaxIndex: Int,
         isRightToLeft: Bool
-    ) -> Double {
+    ) -> Int {
         let adjustedX = min(
             max(locationX - horizontalPadding, 0),
             sliderWidth
         )
         let visualNormalized = sliderWidth == 0 ? 0 : adjustedX / sliderWidth
         let logicalNormalized = isRightToLeft ? (1 - visualNormalized) : visualNormalized
-        return Double(logicalNormalized) * Double(sliderMaxIndex)
+        return Int((logicalNormalized * CGFloat(sliderMaxIndex)).rounded())
     }
+}
+
+struct SliderPreviewTrackGeometry {
+    let rowWidth: CGFloat
+    let sliderHorizontalPadding: CGFloat
+    let bubbleWidth: CGFloat
 }
 
 private struct SliderPreviewBubble: View {
@@ -1150,21 +1132,15 @@ private struct SliderPreviewBubble: View {
     let loading: Bool
     let imageHeight: CGFloat
 
-    @State private var previewImage: UIImage?
-
-    private var imageLoadId: String {
-        if let imageURL {
-            return imageURL.path(percentEncoded: false)
-        }
-        return "none"
-    }
-
-    private func makePreviewImage() -> UIImage? {
+    private var previewImage: UIImage? {
         guard let imageURL,
               let image = UIImage(contentsOfFile: imageURL.path(percentEncoded: false)) else {
             return nil
         }
-        return image.preparingForDisplay() ?? image
+        if let preparedImage = image.preparingForDisplay() {
+            return preparedImage
+        }
+        return image
     }
 
     var body: some View {
@@ -1188,10 +1164,6 @@ private struct SliderPreviewBubble: View {
             }
         }
         .frame(height: imageHeight)
-        .task(id: imageLoadId) {
-            previewImage = nil
-            previewImage = makePreviewImage()
-        }
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .padding(12)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))

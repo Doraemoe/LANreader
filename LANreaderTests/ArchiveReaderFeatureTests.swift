@@ -212,11 +212,94 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         )
     }
 
+    func testSliderPreviewPositioningMirrorsVisualNormalizedInRTL() {
+        XCTAssertEqual(
+            SliderPreviewPositioning.visualNormalized(
+                pageIndex: 0,
+                pageCount: 5,
+                isRightToLeft: false
+            ),
+            0,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            SliderPreviewPositioning.visualNormalized(
+                pageIndex: 0,
+                pageCount: 5,
+                isRightToLeft: true
+            ),
+            1,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            SliderPreviewPositioning.visualNormalized(
+                pageIndex: 4,
+                pageCount: 5,
+                isRightToLeft: true
+            ),
+            0,
+            accuracy: 0.001
+        )
+    }
+
+    func testSliderPreviewPositioningClampsBubbleToRightEdgeInRTL() {
+        XCTAssertEqual(
+            SliderPreviewPositioning.bubbleLeadingX(
+                pageIndex: 0,
+                pageCount: 5,
+                track: SliderPreviewTrackGeometry(
+                    rowWidth: 320,
+                    sliderHorizontalPadding: 16,
+                    bubbleWidth: 100
+                ),
+                isRightToLeft: true
+            ),
+            220,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            SliderPreviewPositioning.bubbleLeadingX(
+                pageIndex: 0,
+                pageCount: 5,
+                track: SliderPreviewTrackGeometry(
+                    rowWidth: 320,
+                    sliderHorizontalPadding: 16,
+                    bubbleWidth: 100
+                ),
+                isRightToLeft: false
+            ),
+            0,
+            accuracy: 0.001
+        )
+    }
+
+    func testSliderPreviewPositioningMapsRightEdgeToFirstPageInRTL() {
+        XCTAssertEqual(
+            SliderPreviewPositioning.pageIndex(
+                at: 304,
+                sliderWidth: 288,
+                horizontalPadding: 16,
+                sliderMaxIndex: 4,
+                isRightToLeft: true
+            ),
+            0
+        )
+        XCTAssertEqual(
+            SliderPreviewPositioning.pageIndex(
+                at: 16,
+                sliderWidth: 288,
+                horizontalPadding: 16,
+                sliderMaxIndex: 4,
+                isRightToLeft: true
+            ),
+            4
+        )
+    }
+
     @MainActor
-    func testFinishExtractingVerticalModeIgnoresDoublePageLayout() async {
+    func testFinishExtractingVerticalModeIgnoresDoublePageLayout() async throws {
         configureReaderDefaults(readDirection: .upDown, doublePageLayout: true)
-        try? await configureVerifiedClient()
-        stubPageThumbnailQueueAlreadyGenerated()
+        try await configureReadyThumbnailQueue()
         let store = makeTestStore(
             initialState: makeState(
                 progress: 3,
@@ -238,20 +321,25 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
-        await store.receive(.prepareSliderPreviewThumbnails) {
-            $0.sliderThumbnailQueueing = true
-        }
-        await store.receive(.sliderPreviewThumbnailsQueued(makeAlreadyGeneratedThumbnailQueueResponse())) {
-            $0.sliderThumbnailQueueing = false
+        await store.receive(.prepareSliderPreviewThumbnails)
+        await store.receive(
+            .sliderPreviewThumbnailsQueued(
+                PageThumbnailQueueResponse(
+                    job: nil,
+                    message: "No job queued, all thumbnails already exist.",
+                    operation: "generate_page_thumbnails",
+                    success: 1
+                )
+            )
+        ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
         }
     }
 
     @MainActor
-    func testFinishExtractingRestoresSavedProgressAndQueuesInitialScroll() async {
+    func testFinishExtractingRestoresSavedProgressAndQueuesInitialScroll() async throws {
         configureReaderDefaults()
-        try? await configureVerifiedClient()
-        stubPageThumbnailQueueAlreadyGenerated()
+        try await configureReadyThumbnailQueue()
         let store = makeTestStore(initialState: makeState(progress: 3))
 
         await store.send(.finishExtracting(makeExtractedPages(count: 5))) {
@@ -267,20 +355,25 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
-        await store.receive(.prepareSliderPreviewThumbnails) {
-            $0.sliderThumbnailQueueing = true
-        }
-        await store.receive(.sliderPreviewThumbnailsQueued(makeAlreadyGeneratedThumbnailQueueResponse())) {
-            $0.sliderThumbnailQueueing = false
+        await store.receive(.prepareSliderPreviewThumbnails)
+        await store.receive(
+            .sliderPreviewThumbnailsQueued(
+                PageThumbnailQueueResponse(
+                    job: nil,
+                    message: "No job queued, all thumbnails already exist.",
+                    operation: "generate_page_thumbnails",
+                    success: 1
+                )
+            )
+        ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
         }
     }
 
     @MainActor
-    func testFinishExtractingFromStartStartsAtFirstPage() async {
+    func testFinishExtractingFromStartStartsAtFirstPage() async throws {
         configureReaderDefaults()
-        try? await configureVerifiedClient()
-        stubPageThumbnailQueueAlreadyGenerated()
+        try await configureReadyThumbnailQueue()
         let store = makeTestStore(initialState: makeState(progress: 4, fromStart: true))
 
         await store.send(.finishExtracting(makeExtractedPages(count: 5))) {
@@ -295,20 +388,25 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
-        await store.receive(.prepareSliderPreviewThumbnails) {
-            $0.sliderThumbnailQueueing = true
-        }
-        await store.receive(.sliderPreviewThumbnailsQueued(makeAlreadyGeneratedThumbnailQueueResponse())) {
-            $0.sliderThumbnailQueueing = false
+        await store.receive(.prepareSliderPreviewThumbnails)
+        await store.receive(
+            .sliderPreviewThumbnailsQueued(
+                PageThumbnailQueueResponse(
+                    job: nil,
+                    message: "No job queued, all thumbnails already exist.",
+                    operation: "generate_page_thumbnails",
+                    success: 1
+                )
+            )
+        ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
         }
     }
 
     @MainActor
-    func testFinishExtractingClampsOutOfRangeProgress() async {
+    func testFinishExtractingClampsOutOfRangeProgress() async throws {
         configureReaderDefaults()
-        try? await configureVerifiedClient()
-        stubPageThumbnailQueueAlreadyGenerated()
+        try await configureReadyThumbnailQueue()
         let store = makeTestStore(initialState: makeState(progress: 99))
 
         await store.send(.finishExtracting(makeExtractedPages(count: 4))) {
@@ -324,11 +422,17 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
-        await store.receive(.prepareSliderPreviewThumbnails) {
-            $0.sliderThumbnailQueueing = true
-        }
-        await store.receive(.sliderPreviewThumbnailsQueued(makeAlreadyGeneratedThumbnailQueueResponse())) {
-            $0.sliderThumbnailQueueing = false
+        await store.receive(.prepareSliderPreviewThumbnails)
+        await store.receive(
+            .sliderPreviewThumbnailsQueued(
+                PageThumbnailQueueResponse(
+                    job: nil,
+                    message: "No job queued, all thumbnails already exist.",
+                    operation: "generate_page_thumbnails",
+                    success: 1
+                )
+            )
+        ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4])
         }
     }
@@ -501,8 +605,9 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testSliderPreviewQueuedResponseStoresJobId() async {
+    func testSliderPreviewQueuedResponseStoresJobId() async throws {
         configureReaderDefaults()
+        try await configureFinishedThumbnailPolling(jobId: 42)
         var initialState = makeState(progress: 2)
         initialState.pages = makePageStates(count: 4)
         let store = makeTestStore(initialState: initialState)
@@ -520,8 +625,18 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             $0.sliderThumbnailJobId = 42
         }
         await store.receive(.pollSliderPreviewThumbnailJob(42))
-        await store.receive(.sliderPreviewThumbnailPollingFailed) {
+        await store.receive(
+            .sliderPreviewThumbnailJobStatus(
+                BasicJobStatus(
+                    task: "generate_page_thumbnails",
+                    state: "finished",
+                    notes: [:],
+                    error: ""
+                )
+            )
+        ) {
             $0.sliderThumbnailJobId = nil
+            $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4])
         }
     }
 
@@ -537,8 +652,9 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testSliderPreviewQueuedResponseUsesUniqueArchivePageCountWhenPagesAreSplit() async {
+    func testSliderPreviewQueuedResponseUsesUniqueArchivePageCountWhenPagesAreSplit() async throws {
         configureReaderDefaults()
+        try await configureFinishedThumbnailPolling(jobId: 42)
         var initialState = makeState(progress: 2)
         initialState.pages = makeSplitPageStates()
         let store = makeTestStore(initialState: initialState)
@@ -556,8 +672,18 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             $0.sliderThumbnailJobId = 42
         }
         await store.receive(.pollSliderPreviewThumbnailJob(42))
-        await store.receive(.sliderPreviewThumbnailPollingFailed) {
+        await store.receive(
+            .sliderPreviewThumbnailJobStatus(
+                BasicJobStatus(
+                    task: "generate_page_thumbnails",
+                    state: "finished",
+                    notes: [:],
+                    error: ""
+                )
+            )
+        ) {
             $0.sliderThumbnailJobId = nil
+            $0.sliderReadyThumbnailPages = Set([1, 2, 3])
         }
     }
 
@@ -617,33 +743,6 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testSliderPreviewInactiveJobStatusStopsPollingAndClearsJobId() async {
-        configureReaderDefaults()
-        var initialState = makeState(progress: 2)
-        initialState.pages = makePageStates(count: 4)
-        initialState.sliderThumbnailJobId = 42
-        initialState.sliderPreviewLoading = true
-        let store = makeTestStore(initialState: initialState)
-
-        await store.send(
-            .sliderPreviewThumbnailJobStatus(
-                BasicJobStatus(
-                    task: "generate_page_thumbnails",
-                    state: "inactive",
-                    notes: [
-                        "1": .string("processed")
-                    ],
-                    error: ""
-                )
-            )
-        ) {
-            $0.sliderThumbnailJobId = nil
-            $0.sliderReadyThumbnailPages = Set([1])
-            $0.sliderPreviewLoading = false
-        }
-    }
-
-    @MainActor
     func testSliderPreviewAlreadyGeneratedMarksAllPagesReady() async {
         configureReaderDefaults()
         var initialState = makeState(progress: 2)
@@ -665,43 +764,6 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testSliderPreviewQueueFailureAllowsLaterRetry() async throws {
-        configureReaderDefaults()
-        try await configureVerifiedClient()
-        stubPageThumbnailQueueFailure()
-
-        var initialState = makeState(progress: 2)
-        initialState.pages = makePageStates(count: 4)
-        initialState.sliderPreviewVisible = true
-        initialState.sliderPreviewPageIndex = 1
-        let store = makeTestStore(initialState: initialState)
-
-        await store.send(.loadSliderPreview(1)) {
-            $0.sliderPreviewImageURL = nil
-            $0.sliderPreviewLoading = true
-        }
-        await store.receive(.prepareSliderPreviewThumbnails) {
-            $0.sliderThumbnailQueueing = true
-        }
-        await store.receive(.sliderPreviewThumbnailQueueFailed) {
-            $0.sliderThumbnailQueueing = false
-            $0.sliderPreviewLoading = false
-        }
-
-        await store.send(.loadSliderPreview(1)) {
-            $0.sliderPreviewImageURL = nil
-            $0.sliderPreviewLoading = true
-        }
-        await store.receive(.prepareSliderPreviewThumbnails) {
-            $0.sliderThumbnailQueueing = true
-        }
-        await store.receive(.sliderPreviewThumbnailQueueFailed) {
-            $0.sliderThumbnailQueueing = false
-            $0.sliderPreviewLoading = false
-        }
-    }
-
-    @MainActor
     func testSliderDragChangedUpdatesPreviewStateWithoutJump() async {
         configureReaderDefaults()
         var initialState = makeState(progress: 2)
@@ -715,31 +777,13 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             $0.sliderPreviewVisible = true
             $0.sliderPreviewPageIndex = 1
         }
-        await store.receive(.loadSliderPreview(1)) {
-            $0.sliderPreviewLoading = true
-        }
-        await store.receive(.prepareSliderPreviewThumbnails) {
-            $0.sliderThumbnailQueueing = true
-        }
-        await store.receive(.sliderPreviewThumbnailQueueFailed) {
-            $0.sliderThumbnailQueueing = false
-            $0.sliderPreviewLoading = false
-        }
+        await store.receive(.loadSliderPreview(1))
 
         await store.send(.sliderDragChanged(3)) {
             $0.sliderDraftIndex = 3
             $0.sliderPreviewPageIndex = 3
         }
-        await store.receive(.loadSliderPreview(3)) {
-            $0.sliderPreviewLoading = true
-        }
-        await store.receive(.prepareSliderPreviewThumbnails) {
-            $0.sliderThumbnailQueueing = true
-        }
-        await store.receive(.sliderPreviewThumbnailQueueFailed) {
-            $0.sliderThumbnailQueueing = false
-            $0.sliderPreviewLoading = false
-        }
+        await store.receive(.loadSliderPreview(3))
     }
 
     @MainActor
@@ -857,7 +901,6 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         state.sliderPreviewPageIndex = 1
         state.sliderPreviewImageURL = URL(fileURLWithPath: "/tmp/preview.jpg")
         state.sliderPreviewLoading = true
-        state.sliderThumbnailQueueing = true
         state.sliderThumbnailJobId = 42
         state.sliderReadyThumbnailPages = Set([1, 2])
 
@@ -875,7 +918,6 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         XCTAssertNil(state.sliderPreviewPageIndex)
         XCTAssertNil(state.sliderPreviewImageURL)
         XCTAssertFalse(state.sliderPreviewLoading)
-        XCTAssertFalse(state.sliderThumbnailQueueing)
         XCTAssertNil(state.sliderThumbnailJobId)
         XCTAssertTrue(state.sliderReadyThumbnailPages.isEmpty)
     }
@@ -923,11 +965,14 @@ private func configureVerifiedClient() async throws {
     _ = try await LANraragiService.shared.verifyClient(url: url, apiKey: apiKey)
 }
 
-private func stubPageThumbnailQueueAlreadyGenerated(archiveId: String = "archive") {
+private func configureReadyThumbnailQueue(
+    archiveId: String = "archive"
+) async throws {
+    try await configureVerifiedClient()
+
     stub(condition: isHost("localhost")
             && isPath("/api/archives/\(archiveId)/files/thumbnails")
-            && isMethodPOST()
-            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            && isMethodPOST()) { _ in
         HTTPStubsResponse(
             data: Data("""
             {
@@ -942,26 +987,27 @@ private func stubPageThumbnailQueueAlreadyGenerated(archiveId: String = "archive
     }
 }
 
-private func stubPageThumbnailQueueFailure(archiveId: String = "archive") {
+private func configureFinishedThumbnailPolling(
+    jobId: Int
+) async throws {
+    try await configureVerifiedClient()
+
     stub(condition: isHost("localhost")
-            && isPath("/api/archives/\(archiveId)/files/thumbnails")
-            && isMethodPOST()
-            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            && isPath("/api/minion/\(jobId)")
+            && isMethodGET()) { _ in
         HTTPStubsResponse(
-            data: Data(),
-            statusCode: 500,
+            data: Data("""
+            {
+              "task": "generate_page_thumbnails",
+              "state": "finished",
+              "notes": {},
+              "error": ""
+            }
+            """.utf8),
+            statusCode: 200,
             headers: ["Content-Type": "application/json"]
         )
     }
-}
-
-private func makeAlreadyGeneratedThumbnailQueueResponse() -> PageThumbnailQueueResponse {
-    PageThumbnailQueueResponse(
-        job: nil,
-        message: "No job queued, all thumbnails already exist.",
-        operation: "generate_page_thumbnails",
-        success: 1
-    )
 }
 
 @MainActor

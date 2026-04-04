@@ -237,7 +237,7 @@ final class ImageService: Sendable {
             return nil
         }
 
-        context.setFillColor(UIColor.systemBackground.cgColor)
+        context.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
         context.fill(CGRect(x: 0, y: 0, width: image.width, height: image.height))
         context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
         return context.makeImage()
