@@ -1,11 +1,11 @@
 [
   {
-    "fingerprint" : "6989976265be3f8d2b5802c722f9ba168e227c71",
+    "fingerprint" : "206cbce3882b4de9aee19ce62ac5b7306cadd45b",
     "packageIdentity" : "swift-case-paths",
     "targetName" : "CasePathsMacros"
   },
   {
-    "fingerprint" : "ce8ee57840b2b46cd6b5cf06ed0526dd1d690126",
+    "fingerprint" : "1eaa6fa2ee57ac42843283b9fd3457af408c858d",
     "packageIdentity" : "swift-composable-architecture",
     "targetName" : "ComposableArchitectureMacros"
   },
