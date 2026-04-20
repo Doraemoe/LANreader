@@ -573,6 +573,64 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testUIArchiveReaderControllerKeepsSliderPreviewStateWhenTemporarilyCovered() async {
+        configureReaderDefaults()
+        var initialState = makeState(progress: 2)
+        initialState.pages = makePageStates(count: 4)
+        initialState.sliderPreviewVisible = true
+        initialState.sliderPreviewPageIndex = 1
+        initialState.sliderPreviewImageURL = URL(fileURLWithPath: "/tmp/preview.jpg")
+        initialState.sliderPreviewLoading = true
+        initialState.sliderThumbnailJobId = 42
+        initialState.sliderReadyThumbnailPages = Set([1, 2])
+
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        }
+        let controller = UIArchiveReaderController(store: store)
+
+        controller.loadViewIfNeeded()
+        controller.cleanupSliderPreviewResourcesIfNeeded(movingFromParent: false, beingDismissed: false)
+        await Task.yield()
+
+        XCTAssertTrue(store.sliderPreviewVisible)
+        XCTAssertEqual(store.sliderPreviewPageIndex, 1)
+        XCTAssertEqual(store.sliderPreviewImageURL, URL(fileURLWithPath: "/tmp/preview.jpg"))
+        XCTAssertTrue(store.sliderPreviewLoading)
+        XCTAssertEqual(store.sliderThumbnailJobId, 42)
+        XCTAssertEqual(store.sliderReadyThumbnailPages, Set([1, 2]))
+    }
+
+    @MainActor
+    func testUIArchiveReaderControllerCleansSliderPreviewStateWhenDismissed() async {
+        configureReaderDefaults()
+        var initialState = makeState(progress: 2)
+        initialState.pages = makePageStates(count: 4)
+        initialState.sliderPreviewVisible = true
+        initialState.sliderPreviewPageIndex = 1
+        initialState.sliderPreviewImageURL = URL(fileURLWithPath: "/tmp/preview.jpg")
+        initialState.sliderPreviewLoading = true
+        initialState.sliderThumbnailJobId = 42
+        initialState.sliderReadyThumbnailPages = Set([1, 2])
+
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        }
+        let controller = UIArchiveReaderController(store: store)
+
+        controller.loadViewIfNeeded()
+        controller.cleanupSliderPreviewResourcesIfNeeded(movingFromParent: true)
+        await Task.yield()
+
+        XCTAssertFalse(store.sliderPreviewVisible)
+        XCTAssertNil(store.sliderPreviewPageIndex)
+        XCTAssertNil(store.sliderPreviewImageURL)
+        XCTAssertFalse(store.sliderPreviewLoading)
+        XCTAssertNil(store.sliderThumbnailJobId)
+        XCTAssertTrue(store.sliderReadyThumbnailPages.isEmpty)
+    }
+
+    @MainActor
     func testAutoPageTickRequestsNextPage() async {
         configureReaderDefaults(autoPageInterval: 1)
         let clock = TestClock()
