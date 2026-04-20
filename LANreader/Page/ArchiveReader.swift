@@ -896,9 +896,6 @@ struct ArchiveReader: View {
                 navigationHelper?.pop()
             }
         }
-        .onDisappear {
-            store.send(.cleanupSliderPreviewResources)
-        }
     }
 
     // swiftlint:disable function_body_length

@@ -95,4 +95,19 @@ class UIArchiveReaderController: UIViewController {
         super.viewWillDisappear(animated)
         navigationController?.setNavigationBarHidden(false, animated: animated)
     }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        cleanupSliderPreviewResourcesIfNeeded()
+    }
+
+    func cleanupSliderPreviewResourcesIfNeeded(
+        movingFromParent: Bool? = nil,
+        beingDismissed: Bool? = nil
+    ) {
+        let shouldCleanup = (movingFromParent ?? isMovingFromParent)
+            || (beingDismissed ?? isBeingDismissed)
+        guard shouldCleanup else { return }
+        store.send(.cleanupSliderPreviewResources)
+    }
 }
