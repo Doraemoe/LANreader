@@ -60,7 +60,10 @@ import Logging
     @Dependency(\.imageService) var imageService
     @Dependency(\.translatorService) var translatorService
 
-    public enum CancelId: Sendable { case imageProgress }
+    public enum CancelId: Sendable {
+        case imageLoad
+        case imageProgress
+    }
 
     public var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -132,6 +135,8 @@ import Logging
                         return .send(.setError(String(localized: "archive.cache.page.load.failed")))
                     } else {
                         return .run { [state] send in
+                            await send(.cancelSubscribeImageProgress)
+
                             do {
                                 let task = await service.fetchArchivePage(
                                     page: state.pageId,
@@ -197,11 +202,15 @@ import Logging
                                     split: state.splitImage
                                 )
                                 await send(.setImage(previousPageMode, splitted))
+                            } catch is CancellationError {
+                                await send(.cancelSubscribeImageProgress)
                             } catch {
                                 logger.error("failed to load image. \(error)")
+                                await send(.cancelSubscribeImageProgress)
                                 await send(.setError(error.localizedDescription))
                             }
                         }
+                        .cancellable(id: CancelId.imageLoad, cancelInFlight: true)
                     }
                 }
                 state.loading = false
