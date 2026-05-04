@@ -12,27 +12,20 @@ actor TranslationStreamHandler {
     private var buffer = Data()
 
     func processStreamResponse(_ request: DataStreamRequest) -> AsyncThrowingStream<TranslationStatus, Error> {
-        return AsyncThrowingStream { continuation in
-            request.responseStream { [weak self] stream in
-                guard let self = self else {
-                    continuation.finish()
-                    return
-                }
+        AsyncThrowingStream { continuation in
+            let processingTask = Task {
+                let requestStream = request.streamTask()
+                    .streamingData(automaticallyCancelling: false)
 
-                Task {
+                for await stream in requestStream {
                     switch stream.event {
-                    case .stream(let result):
-                        switch result {
-                        case .success(let data):
-                            let status = await self.processChunk(data)
-                            continuation.yield(status)
+                    case .stream(.success(let data)):
+                        let status = self.processChunk(data)
+                        continuation.yield(status)
 
-                            if case .completed = status {
-                                continuation.finish()
-                            }
-
-                        case .failure(let error):
-                            continuation.finish(throwing: error)
+                        if case .completed = status {
+                            continuation.finish()
+                            return
                         }
 
                     case .complete(let response):
@@ -41,8 +34,16 @@ actor TranslationStreamHandler {
                         } else {
                             continuation.finish()
                         }
+                        return
                     }
                 }
+
+                continuation.finish()
+            }
+
+            continuation.onTermination = { _ in
+                processingTask.cancel()
+                request.cancel()
             }
         }
     }

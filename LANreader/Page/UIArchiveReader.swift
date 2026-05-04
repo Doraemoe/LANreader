@@ -62,9 +62,10 @@ class UIArchiveReaderController: UIViewController {
 
     private func setupObserve() {
         observe { [weak self] in
-            guard let self,
-                  self.navigationController?.topViewController === self else { return }
-            self.navigationController?.setNavigationBarHidden(store.controlUiHidden, animated: false)
+            guard let self else { return }
+            let controlUiHidden = store.controlUiHidden
+            guard self.navigationController?.topViewController === self else { return }
+            self.navigationController?.setNavigationBarHidden(controlUiHidden, animated: false)
         }
 
         observe { [weak self] in

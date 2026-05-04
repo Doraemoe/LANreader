@@ -573,6 +573,34 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testUIArchiveReaderControllerObservesNavigationBarAfterLateNavigationAttachment() async {
+        configureReaderDefaults()
+        var initialState = makeState(progress: 2)
+        initialState.pages = makePageStates(count: 4)
+
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        }
+        let controller = UIArchiveReaderController(store: store)
+
+        controller.loadViewIfNeeded()
+        let navigationController = UINavigationController(rootViewController: controller)
+        navigationController.loadViewIfNeeded()
+
+        XCTAssertFalse(navigationController.isNavigationBarHidden)
+
+        store.send(.toggleControlUi(true))
+        await Task.yield()
+
+        XCTAssertTrue(navigationController.isNavigationBarHidden)
+
+        store.send(.toggleControlUi(false))
+        await Task.yield()
+
+        XCTAssertFalse(navigationController.isNavigationBarHidden)
+    }
+
+    @MainActor
     func testUIArchiveReaderControllerKeepsSliderPreviewStateWhenTemporarilyCovered() async {
         configureReaderDefaults()
         var initialState = makeState(progress: 2)
