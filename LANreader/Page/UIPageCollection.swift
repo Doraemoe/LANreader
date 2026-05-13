@@ -2,6 +2,8 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 
+// swiftlint:disable file_length
+
 public struct UIPageCollection: UIViewControllerRepresentable {
     let store: StoreOf<ArchiveReaderFeature>
     public init(store: StoreOf<ArchiveReaderFeature>) {
@@ -21,8 +23,17 @@ public struct UIPageCollection: UIViewControllerRepresentable {
 class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     let store: StoreOf<ArchiveReaderFeature>
     var collectionView: UICollectionView!
-    var dataSource: UICollectionViewDiffableDataSource<Section, StoreOf<PageFeature>>!
+    var dataSource: UICollectionViewDiffableDataSource<Section, String>!
     private var lastReportedVisiblePageIndex: Int?
+    private var appliedPageIds: [String] = []
+    private var isApplyingSnapshot = false
+    private var activeAnimatedScrollTargetPageId: String?
+
+    private struct SnapshotAnchor {
+        let pageId: String
+        let offsetFromViewportOrigin: CGPoint
+        let resolvesAnimatedScroll: Bool
+    }
 
     // MARK: - Pull Navigation
     private enum PullEdge {
@@ -123,20 +134,29 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         )
 
         let cellRegistration = UICollectionView
-            .CellRegistration<UIPageCell, StoreOf<PageFeature>> { [weak self] cell, _, pageStore in
-                guard self != nil else { return }
+            .CellRegistration<UIPageCell, String> { [weak self] cell, _, pageId in
+                guard let self, let pageStore = self.pageStore(id: pageId) else { return }
                 cell.configure(with: pageStore)
             }
 
-        dataSource = UICollectionViewDiffableDataSource<Section, StoreOf<PageFeature>>(
+        dataSource = UICollectionViewDiffableDataSource<Section, String>(
             collectionView: collectionView
-        ) { collectionView, indexPath, pageStore in
+        ) { collectionView, indexPath, pageId in
             collectionView.dequeueConfiguredReusableCell(
                 using: cellRegistration,
                 for: indexPath,
-                item: pageStore
+                item: pageId
             )
         }
+    }
+
+    private func pageStore(id pageId: String) -> StoreOf<PageFeature>? {
+        Array(store.scope(state: \.pages, action: \.page)).first { $0.id == pageId }
+    }
+
+    private func pageStore(at indexPath: IndexPath) -> StoreOf<PageFeature>? {
+        guard let pageId = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        return pageStore(id: pageId)
     }
 
     private var resolvedReadDirection: ReadDirection {
@@ -162,11 +182,12 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             doublePageLayout: store.doublePageLayout
         )
         let indexPath = IndexPath(row: idx, section: 0)
+        collectionView.layoutIfNeeded()
+        guard let attr = collectionView.layoutAttributesForItem(at: indexPath) else {
+            return false
+        }
+        activeAnimatedScrollTargetPageId = request.animated ? dataSource.itemIdentifier(for: indexPath) : nil
         if store.readDirection == ReadDirection.upDown.rawValue {
-            collectionView.layoutIfNeeded()
-            guard let attr = collectionView.layoutAttributesForItem(at: indexPath) else {
-                return false
-            }
             collectionView.scrollRectToVisible(attr.frame, animated: request.animated)
         } else {
             collectionView.scrollToItem(at: indexPath, at: scrollPosition(for: request), animated: request.animated)
@@ -187,14 +208,24 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         observe { [weak self] in
             guard let self else { return }
             guard !store.pages.isEmpty else { return }
-            var snapshot = NSDiffableDataSourceSnapshot<
-                Section, StoreOf<PageFeature>
-            >()
+            let pageIds = store.pages.map(\.id)
+            guard pageIds != appliedPageIds else { return }
+            let snapshotAnchor = currentSnapshotAnchor()
+            appliedPageIds = pageIds
+
+            var snapshot = NSDiffableDataSourceSnapshot<Section, String>()
             snapshot.appendSections([.main])
-            snapshot.appendItems(
-                Array(store.scope(state: \.pages, action: \.page)))
-            dataSource.apply(snapshot, animatingDifferences: false) { [weak self] in
-                self?.consumePendingScrollRequestIfPossible()
+            snapshot.appendItems(pageIds)
+            isApplyingSnapshot = true
+            UIView.performWithoutAnimation {
+                dataSource.apply(snapshot, animatingDifferences: false) { [weak self] in
+                    guard let self else { return }
+                    self.restoreSnapshotAnchor(snapshotAnchor)
+                    self.consumePendingScrollRequestIfPossible()
+                    self.isApplyingSnapshot = false
+                }
+                collectionView.layoutIfNeeded()
+                restoreSnapshotAnchor(snapshotAnchor)
             }
         }
         observe { [weak self] in
@@ -259,6 +290,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     }
 
     private func reportVisiblePageIfNeeded() {
+        guard !isApplyingSnapshot else { return }
         guard let visibleIndex = currentVisibleItemIndex() else { return }
         let pageIndex = ReaderPositioning.canonicalPageIndex(
             forVisibleIndex: visibleIndex,
@@ -299,6 +331,81 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         let deltaX = lhs.x - rhs.x
         let deltaY = lhs.y - rhs.y
         return (deltaX * deltaX) + (deltaY * deltaY)
+    }
+
+    private func currentSnapshotAnchor() -> SnapshotAnchor? {
+        if let activeAnimatedScrollTargetPageId,
+           store.pages.contains(where: { $0.id == activeAnimatedScrollTargetPageId }) {
+            return SnapshotAnchor(
+                pageId: activeAnimatedScrollTargetPageId,
+                offsetFromViewportOrigin: .zero,
+                resolvesAnimatedScroll: true
+            )
+        }
+
+        if let visibleIndex = currentVisibleItemIndex() {
+            let indexPath = IndexPath(row: visibleIndex, section: 0)
+            guard let pageId = dataSource.itemIdentifier(for: indexPath),
+                  let attributes = collectionView.layoutAttributesForItem(at: indexPath) else {
+                return nil
+            }
+
+            return SnapshotAnchor(
+                pageId: pageId,
+                offsetFromViewportOrigin: CGPoint(
+                    x: attributes.frame.minX - collectionView.contentOffset.x,
+                    y: attributes.frame.minY - collectionView.contentOffset.y
+                ),
+                resolvesAnimatedScroll: false
+            )
+        }
+
+        guard appliedPageIds.isEmpty else { return nil }
+        let anchorIndex = ReaderPositioning.scrollAnchorIndex(
+            forPageIndex: store.currentPageIndex,
+            pageCount: store.pages.count,
+            readDirection: resolvedReadDirection,
+            doublePageLayout: store.doublePageLayout
+        )
+        guard store.pages.indices.contains(anchorIndex) else { return nil }
+        return SnapshotAnchor(
+            pageId: store.pages[anchorIndex].id,
+            offsetFromViewportOrigin: .zero,
+            resolvesAnimatedScroll: false
+        )
+    }
+
+    private func restoreSnapshotAnchor(_ anchor: SnapshotAnchor?) {
+        guard let anchor,
+              let pageIndex = store.pages.firstIndex(where: { $0.id == anchor.pageId }) else {
+            return
+        }
+
+        collectionView.layoutIfNeeded()
+        let indexPath = IndexPath(row: pageIndex, section: 0)
+        guard let attributes = collectionView.layoutAttributesForItem(at: indexPath) else { return }
+
+        let proposedOffset = CGPoint(
+            x: attributes.frame.minX - anchor.offsetFromViewportOrigin.x,
+            y: attributes.frame.minY - anchor.offsetFromViewportOrigin.y
+        )
+        collectionView.setContentOffset(clampedContentOffset(proposedOffset), animated: false)
+        if anchor.resolvesAnimatedScroll {
+            activeAnimatedScrollTargetPageId = nil
+        }
+    }
+
+    private func clampedContentOffset(_ offset: CGPoint) -> CGPoint {
+        let inset = collectionView.adjustedContentInset
+        let minimumX = -inset.left
+        let minimumY = -inset.top
+        let maximumX = max(minimumX, collectionView.contentSize.width - collectionView.bounds.width + inset.right)
+        let maximumY = max(minimumY, collectionView.contentSize.height - collectionView.bounds.height + inset.bottom)
+
+        return CGPoint(
+            x: min(max(offset.x, minimumX), maximumX),
+            y: min(max(offset.y, minimumY), maximumY)
+        )
     }
 
     // Returns index path representing the start of the current visual page (accounts for double page layout)
@@ -721,11 +828,18 @@ extension UIPageCollectionController {
 
     func resetCollectionView() {
         let snapshot = NSDiffableDataSourceSnapshot<
-            Section, StoreOf<PageFeature>
+            Section, String
         >()
+        appliedPageIds = []
+        activeAnimatedScrollTargetPageId = nil
         dataSource.apply(snapshot, animatingDifferences: false)
         collectionView.setContentOffset(.zero, animated: false)
         lastReportedVisiblePageIndex = nil
+    }
+
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        guard scrollView === collectionView else { return }
+        activeAnimatedScrollTargetPageId = nil
     }
 
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
@@ -783,7 +897,7 @@ extension UIPageCollectionController: UICollectionViewDataSourcePrefetching {
         prefetchItemsAt indexPaths: [IndexPath]
     ) {
         indexPaths.forEach { path in
-            if let pageStore = dataSource.itemIdentifier(for: path) {
+            if let pageStore = pageStore(at: path) {
                 if pageStore.pageMode == .loading {
                     Task {
                         await pageStore.send(.load(false)).finish()

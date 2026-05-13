@@ -77,6 +77,23 @@ class LANreaderTests: XCTestCase {
         XCTAssertEqual(width, 64)
         XCTAssertEqual(height, 32)
     }
+
+    func testSplitImageCropsWideImageHalves() throws {
+        let sourceURL = tempDirectory.appendingPathComponent("wide.png")
+        let service = ImageService.shared
+
+        try makeWidePNGData().write(to: sourceURL, options: .atomic)
+
+        XCTAssertTrue(service.shouldSplitWideImage(imageUrl: sourceURL))
+
+        let leftImage = try XCTUnwrap(service.splitImage(imageUrl: sourceURL, side: .left))
+        let rightImage = try XCTUnwrap(service.splitImage(imageUrl: sourceURL, side: .right))
+
+        XCTAssertEqual(leftImage.cgImage?.width, 60)
+        XCTAssertEqual(leftImage.cgImage?.height, 60)
+        XCTAssertEqual(rightImage.cgImage?.width, 60)
+        XCTAssertEqual(rightImage.cgImage?.height, 60)
+    }
 }
 
 private func makeJPEGData(color: UIColor) -> Data {
@@ -91,6 +108,7 @@ private func makeJPEGData(color: UIColor) -> Data {
 private func makeTransparentPNGData() -> Data {
     let format = UIGraphicsImageRendererFormat.default()
     format.opaque = false
+    format.scale = 1
 
     let renderer = UIGraphicsImageRenderer(size: CGSize(width: 200, height: 100), format: format)
     let image = renderer.image { context in
@@ -99,6 +117,22 @@ private func makeTransparentPNGData() -> Data {
 
         UIColor.systemBlue.setFill()
         context.fill(CGRect(x: 20, y: 20, width: 160, height: 60))
+    }
+    return image.pngData()!
+}
+
+private func makeWidePNGData() -> Data {
+    let format = UIGraphicsImageRendererFormat.default()
+    format.opaque = true
+    format.scale = 1
+
+    let renderer = UIGraphicsImageRenderer(size: CGSize(width: 120, height: 60), format: format)
+    let image = renderer.image { context in
+        UIColor.systemRed.setFill()
+        context.fill(CGRect(x: 0, y: 0, width: 60, height: 60))
+
+        UIColor.systemBlue.setFill()
+        context.fill(CGRect(x: 60, y: 0, width: 60, height: 60))
     }
     return image.pngData()!
 }

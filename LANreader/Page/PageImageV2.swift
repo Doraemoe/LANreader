@@ -19,6 +19,7 @@ import Logging
         var progress: Double = 0
         var errorMessage = ""
         var pageMode: PageMode
+        var pendingSplitMode: PageMode?
         let cached: Bool
         var imageLoaded = false
         var translationStatus = ""
@@ -33,7 +34,7 @@ import Logging
             self.pageId = pageId
             self.pageNumber = pageNumber
             self.pageMode = pageMode
-            self.suffix = pageMode.rawValue
+            self.suffix = pageMode.identitySuffix
             self.cached = cached
             let imagePath = if cached {
                 LANraragiService.cachePath
@@ -86,42 +87,43 @@ import Logging
                 guard !state.loading || force else {
                     return .none
                 }
+                let previousPageMode = state.pageMode
+
+                if !force, previousPageMode != .loading {
+                    state.loading = false
+                    state.imageLoaded = true
+                    return .none
+                }
+
                 state.loading = true
                 state.errorMessage = ""
                 state.imageLoaded = false
 
-                let previousPageMode = state.pageMode
-
                 if force {
                     state.pageMode = .loading
                 } else if state.pageMode == .loading {
-                    let leftPath = imageService.storedImagePath(
-                        folderUrl: state.folder,
-                        pageNumber: "\(state.pageNumber)-left"
-                    )
-                    let rightPath = imageService.storedImagePath(
-                        folderUrl: state.folder,
-                        pageNumber: "\(state.pageNumber)-right"
-                    )
                     let normalPath = imageService.storedImagePath(
                         folderUrl: state.folder,
                         pageNumber: String(state.pageNumber)
                     )
 
-                    if state.splitImage {
-                        if state.piorityLeft && leftPath != nil {
-                            state.pageMode = .left
+                    if let normalPath {
+                        if state.splitImage && imageService.shouldSplitWideImage(imageUrl: normalPath) {
+                            let splitMode = state.pendingSplitMode
+                            ?? PageMode.preferredSplitMode(priorityLeft: state.piorityLeft)
+                            state.pageMode = splitMode
+                            state.pendingSplitMode = nil
+                            state.loading = false
                             state.imageLoaded = true
-                            return .send(.insertPage(.right))
-                        } else if rightPath != nil {
-                            state.pageMode = .right
+                            if let siblingMode = splitMode.splitSiblingMode {
+                                return .send(.insertPage(siblingMode))
+                            }
+                        } else {
+                            state.pageMode = .normal
+                            state.pendingSplitMode = nil
+                            state.loading = false
                             state.imageLoaded = true
-                            return .send(.insertPage(.left))
                         }
-                    }
-                    if normalPath != nil {
-                        state.pageMode = .normal
-                        state.imageLoaded = true
                         return .none
                     }
                 } else {
@@ -225,21 +227,25 @@ import Logging
             case let .setImage(previousPageMode, splitted):
                 state.progress = 0
                 state.loading = false
-                state.imageLoaded = true
                 if splitted {
-                    if previousPageMode == .left || previousPageMode == .right {
-                        state.pageMode = previousPageMode
-                        return .none
-                    }
-                    if state.piorityLeft {
-                        state.pageMode = .left
-                        return .send(.insertPage(.right))
+                    let splitMode: PageMode
+                    if previousPageMode.isSplitMode {
+                        splitMode = previousPageMode
                     } else {
-                        state.pageMode = .right
-                        return .send(.insertPage(.left))
+                        splitMode = state.pendingSplitMode
+                        ?? PageMode.preferredSplitMode(priorityLeft: state.piorityLeft)
+                    }
+                    state.pageMode = splitMode
+                    state.pendingSplitMode = nil
+                    state.imageLoaded = true
+                    if !previousPageMode.isSplitMode,
+                       let siblingMode = splitMode.splitSiblingMode {
+                        return .send(.insertPage(siblingMode))
                     }
                 } else {
                     state.pageMode = .normal
+                    state.pendingSplitMode = nil
+                    state.imageLoaded = true
                 }
                 return .none
             case let .setError(message):
@@ -263,4 +269,38 @@ public enum PageMode: String, Sendable {
     case right
     case normal
     case error
+}
+
+extension PageMode {
+    var identitySuffix: String {
+        switch self {
+        case .loading:
+            PageMode.normal.rawValue
+        case .left, .right, .normal, .error:
+            rawValue
+        }
+    }
+
+    var isSplitMode: Bool {
+        self == .left || self == .right
+    }
+
+    var splitSiblingMode: PageMode? {
+        switch self {
+        case .left:
+            return .right
+        case .right:
+            return .left
+        case .loading, .normal, .error:
+            return nil
+        }
+    }
+
+    static func preferredSplitMode(priorityLeft: Bool) -> PageMode {
+        priorityLeft ? .left : .right
+    }
+
+    static func trailingSplitMode(priorityLeft: Bool) -> PageMode {
+        priorityLeft ? .right : .left
+    }
 }
