@@ -20,6 +20,7 @@ import UIKit
         @SharedReader(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
         @SharedReader(.appStorage(SettingsKey.serverProgress)) var serverProgress = false
         @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
+        @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
         @SharedReader(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
         @SharedReader(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
 
@@ -250,6 +251,7 @@ import UIKit
                 guard !state.pages.isEmpty else { return .none }
                 let clampedIndex = ReaderPositioning.clampedPageIndex(index, pageCount: state.pages.count)
                 guard clampedIndex != state.currentPageIndex else { return .none }
+                self.preparePendingSplitMode(state: &state, pageIndex: clampedIndex)
                 state.currentPageIndex = clampedIndex
                 guard let currentArchive = state.allArchives[id: state.currentArchiveId],
                       let page = state.currentPage else { return .none }
@@ -489,6 +491,7 @@ import UIKit
                 ) else {
                     return .none
                 }
+                self.preparePendingSplitMode(state: &state, pageIndex: targetIndex)
                 state.scrollRequest = ScrollRequest(
                     id: uuid(),
                     targetPageIndex: targetIndex,
@@ -543,17 +546,32 @@ import UIKit
                 return .none
             case let .page(.element(id: id, action: .insertPage(mode))):
                 guard let current = state.pages[id: id] else { return .none }
-                let currentIndex = state.pages.index(id: id)!
-                state.pages.insert(
-                    PageFeature.State(
-                        archiveId: state.currentArchiveId,
-                        pageId: current.pageId,
-                        pageNumber: current.pageNumber,
-                        pageMode: mode,
-                        cached: current.cached
-                    ),
-                    at: currentIndex + 1
+                guard let sourcePageIndex = state.pages.index(id: id) else { return .none }
+                var insertedPage = PageFeature.State(
+                    archiveId: state.currentArchiveId,
+                    pageId: current.pageId,
+                    pageNumber: current.pageNumber,
+                    pageMode: mode,
+                    cached: current.cached
                 )
+                // Split siblings render from the same stored original, so they are ready together.
+                insertedPage.imageLoaded = current.imageLoaded
+                guard state.pages[id: insertedPage.id] == nil else { return .none }
+
+                let leadingSplitMode = PageMode.preferredSplitMode(priorityLeft: state.piorityLeft)
+                let insertAfterCurrent = !current.pageMode.isSplitMode || current.pageMode == leadingSplitMode
+                let visiblePageId = state.currentPage?.id
+                let previousCurrentPageIndex = state.currentPageIndex
+                let insertedIndex = insertAfterCurrent ? sourcePageIndex + 1 : sourcePageIndex
+                state.pages.insert(insertedPage, at: insertedIndex)
+
+                guard insertedIndex <= previousCurrentPageIndex,
+                      let visiblePageId,
+                      let preservedIndex = state.pages.index(id: visiblePageId) else {
+                    return .none
+                }
+
+                state.currentPageIndex = preservedIndex
                 return .none
             case .page:
                 return .none
@@ -710,6 +728,21 @@ import UIKit
             PageFeature()
         }
         .ifLet(\.$alert, action: \.alert)
+    }
+
+    private func preparePendingSplitMode(
+        state: inout State,
+        pageIndex: Int
+    ) {
+        guard state.splitImage else { return }
+        guard state.pages.indices.contains(pageIndex) else { return }
+        guard state.pages[pageIndex].pageMode == .loading else { return }
+
+        state.pages[pageIndex].pendingSplitMode = if pageIndex < state.currentPageIndex {
+            PageMode.trailingSplitMode(priorityLeft: state.piorityLeft)
+        } else {
+            PageMode.preferredSplitMode(priorityLeft: state.piorityLeft)
+        }
     }
 
     private func updateSliderPreview(

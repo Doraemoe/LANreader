@@ -11,6 +11,8 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: SettingsKey.readDirection)
         UserDefaults.standard.removeObject(forKey: SettingsKey.doublePageLayout)
         UserDefaults.standard.removeObject(forKey: SettingsKey.autoPageInterval)
+        UserDefaults.standard.removeObject(forKey: SettingsKey.splitWideImage)
+        UserDefaults.standard.removeObject(forKey: SettingsKey.splitPiorityLeft)
         UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiUrl)
         UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiApiKey)
         HTTPStubs.removeAllStubs()
@@ -504,6 +506,26 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testNavigatePreviousSetsTrailingSplitModeForUnloadedTarget() async {
+        configureReaderDefaults(splitWideImage: true)
+        var initialState = makeState(progress: 3)
+        initialState.$splitImage = SharedReader(value: true)
+        initialState.pages = makePageStates(count: 4)
+        initialState.currentPageIndex = 2
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.navigate(.previous, source: .tap)) {
+            $0.pages[1].pendingSplitMode = .left
+            $0.scrollRequest = makeScrollRequest(
+                id: 0,
+                targetPageIndex: 1,
+                source: .tap,
+                animated: true
+            )
+        }
+    }
+
+    @MainActor
     func testRequestJumpToSamePageTwiceCreatesFreshScrollRequest() async {
         configureReaderDefaults()
         var initialState = makeState(progress: 2)
@@ -529,6 +551,99 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 source: .slider,
                 animated: false
             )
+        }
+    }
+
+    @MainActor
+    func testSplitPageInsertionBeforeCurrentPreservesVisiblePage() async {
+        configureReaderDefaults()
+        var initialState = makeState(progress: 3)
+        initialState.pages = makePageStates(count: 4)
+        initialState.currentPageIndex = 2
+        let splittingPageId = initialState.pages[0].id
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.page(.element(id: splittingPageId, action: .insertPage(.left)))) {
+            $0.pages.insert(
+                PageFeature.State(
+                    archiveId: "archive",
+                    pageId: "1",
+                    pageNumber: 1,
+                    pageMode: .left
+                ),
+                at: 1
+            )
+            $0.currentPageIndex = 3
+        }
+    }
+
+    @MainActor
+    func testSplitPageInsertionForCurrentPageDoesNotForceRescroll() async {
+        configureReaderDefaults()
+        var initialState = makeState(progress: 3)
+        initialState.pages = makePageStates(count: 4)
+        initialState.currentPageIndex = 2
+        let splittingPageId = initialState.pages[2].id
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.page(.element(id: splittingPageId, action: .insertPage(.left)))) {
+            $0.pages.insert(
+                PageFeature.State(
+                    archiveId: "archive",
+                    pageId: "3",
+                    pageNumber: 3,
+                    pageMode: .left
+                ),
+                at: 3
+            )
+        }
+    }
+
+    @MainActor
+    func testSplitPageInsertionKeepsSiblingLoadedWhenSourcePageIsLoaded() async {
+        configureReaderDefaults()
+        var initialState = makeState(progress: 3)
+        initialState.pages = makePageStates(count: 4)
+        initialState.pages[2].imageLoaded = true
+        initialState.currentPageIndex = 2
+        let splittingPageId = initialState.pages[2].id
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.page(.element(id: splittingPageId, action: .insertPage(.left)))) {
+            var insertedPage = PageFeature.State(
+                archiveId: "archive",
+                pageId: "3",
+                pageNumber: 3,
+                pageMode: .left
+            )
+            insertedPage.imageLoaded = true
+            $0.pages.insert(insertedPage, at: 3)
+        }
+    }
+
+    @MainActor
+    func testSplitPageInsertionBeforeTrailingCurrentPreservesVisiblePage() async {
+        configureReaderDefaults(splitWideImage: true)
+        var initialState = makeState(progress: 2)
+        initialState.$splitImage = SharedReader(value: true)
+        var pages = makePageStates(count: 3)
+        pages[1].pageMode = .left
+        pages[1].imageLoaded = true
+        initialState.pages = pages
+        initialState.currentPageIndex = 1
+        let splittingPageId = initialState.pages[1].id
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.page(.element(id: splittingPageId, action: .insertPage(.right)))) {
+            var insertedPage = PageFeature.State(
+                archiveId: "archive",
+                pageId: "2",
+                pageNumber: 2,
+                pageMode: .right
+            )
+            insertedPage.imageLoaded = true
+            $0.pages.insert(insertedPage, at: 1)
+            $0.currentPageIndex = 2
         }
     }
 
@@ -570,6 +685,106 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await Task.yield()
 
         XCTAssertNil(store.scrollRequest)
+    }
+
+    @MainActor
+    func testUIPageCollectionDoesNotOverwriteRestoredPageDuringInitialSnapshot() async {
+        configureReaderDefaults()
+        var initialState = makeState(progress: 3)
+        initialState.pages = makePageStates(count: 4)
+        initialState.currentPageIndex = 2
+
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        } withDependencies: {
+            $0.continuousClock = ImmediateClock()
+        }
+        let controller = UIPageCollectionController(store: store)
+
+        controller.loadViewIfNeeded()
+        await Task.yield()
+        await Task.yield()
+
+        XCTAssertEqual(store.currentPageIndex, 2)
+        XCTAssertEqual(store.allArchives[id: "archive"]?.wrappedValue.progress, 3)
+    }
+
+    @MainActor
+    func testUIPageCollectionPreservesVisiblePageWhenSplitSiblingIsInsertedBeforeIt() async {
+        configureReaderDefaults(splitWideImage: true)
+        var initialState = makeState(progress: 2)
+        var pages = makePageStates(count: 3)
+        pages[1].pageMode = .left
+        pages[1].imageLoaded = true
+        initialState.pages = pages
+        initialState.currentPageIndex = 1
+
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        } withDependencies: {
+            $0.continuousClock = ImmediateClock()
+        }
+        let controller = UIPageCollectionController(store: store)
+
+        controller.loadViewIfNeeded()
+        controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 480)
+        controller.view.layoutIfNeeded()
+        await Task.yield()
+        await Task.yield()
+
+        let pageWidth = controller.collectionView.bounds.width
+        XCTAssertGreaterThan(pageWidth, 0)
+        controller.collectionView.setContentOffset(CGPoint(x: pageWidth, y: 0), animated: false)
+        controller.collectionView.layoutIfNeeded()
+
+        let visiblePageId = store.pages[1].id
+        store.send(.page(.element(id: visiblePageId, action: .insertPage(.right))))
+        await Task.yield()
+        await Task.yield()
+        controller.collectionView.layoutIfNeeded()
+
+        XCTAssertEqual(store.currentPageIndex, 2)
+        XCTAssertEqual(controller.collectionView.contentOffset.x, pageWidth * 2, accuracy: 1)
+    }
+
+    @MainActor
+    func testUIPageCollectionSettlesPriorityLeftBackwardSplitInsertionOnAnimatedTarget() async {
+        configureReaderDefaults(splitWideImage: true, splitPiorityLeft: true)
+        var initialState = makeState(progress: 3)
+        initialState.$splitImage = SharedReader(value: true)
+        initialState.$piorityLeft = SharedReader(value: true)
+        initialState.pages = makePageStates(count: 3)
+        initialState.currentPageIndex = 2
+
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        } withDependencies: {
+            $0.continuousClock = ImmediateClock()
+            $0.uuid = .incrementing
+        }
+        let controller = UIPageCollectionController(store: store)
+
+        controller.loadViewIfNeeded()
+        controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 480)
+        controller.view.layoutIfNeeded()
+        await Task.yield()
+        await Task.yield()
+
+        let pageWidth = controller.collectionView.bounds.width
+        XCTAssertGreaterThan(pageWidth, 0)
+        controller.collectionView.setContentOffset(CGPoint(x: pageWidth * 2, y: 0), animated: false)
+        controller.collectionView.layoutIfNeeded()
+
+        store.send(.navigate(.previous, source: .tap))
+        await Task.yield()
+        controller.collectionView.setContentOffset(CGPoint(x: pageWidth * 1.5, y: 0), animated: false)
+        let targetPageId = store.pages[1].id
+        store.send(.page(.element(id: targetPageId, action: .setImage(.loading, true))))
+        await Task.yield()
+        await Task.yield()
+        controller.collectionView.layoutIfNeeded()
+
+        XCTAssertEqual(controller.collectionView.contentOffset.x, pageWidth * 2, accuracy: 1)
     }
 
     @MainActor
@@ -1012,11 +1227,15 @@ final class ArchiveReaderFeatureTests: XCTestCase {
 private func configureReaderDefaults(
     readDirection: ReadDirection = .leftRight,
     doublePageLayout: Bool = false,
-    autoPageInterval: Double = 5
+    autoPageInterval: Double = 5,
+    splitWideImage: Bool = false,
+    splitPiorityLeft: Bool = false
 ) {
     UserDefaults.standard.set(readDirection.rawValue, forKey: SettingsKey.readDirection)
     UserDefaults.standard.set(doublePageLayout, forKey: SettingsKey.doublePageLayout)
     UserDefaults.standard.set(autoPageInterval, forKey: SettingsKey.autoPageInterval)
+    UserDefaults.standard.set(splitWideImage, forKey: SettingsKey.splitWideImage)
+    UserDefaults.standard.set(splitPiorityLeft, forKey: SettingsKey.splitPiorityLeft)
 }
 
 private func configureVerifiedClient() async throws {

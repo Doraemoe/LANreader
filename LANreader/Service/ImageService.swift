@@ -3,12 +3,26 @@ import Dependencies
 import ImageIO
 import UniformTypeIdentifiers
 
+enum ImageSplitSide: Sendable {
+    case left
+    case right
+}
+
 final class ImageService: Sendable {
     static let shared = ImageService()
 
     func isAnimatedImage(imageUrl: URL, imageData: Data? = nil) -> Bool {
         guard let imageSource = makeImageSource(imageUrl: imageUrl, imageData: imageData) else { return false }
         return CGImageSourceGetCount(imageSource) > 1
+    }
+
+    func shouldSplitWideImage(imageUrl: URL, imageData: Data? = nil) -> Bool {
+        guard !isAnimatedImage(imageUrl: imageUrl, imageData: imageData),
+              let imageSize = imagePixelSize(imageUrl: imageUrl, imageData: imageData),
+              imageSize.height > 0 else {
+            return false
+        }
+        return imageSize.width / imageSize.height > 1.2
     }
 
     func storedImagePath(folderUrl: URL?, pageNumber: String) -> URL? {
@@ -29,6 +43,39 @@ final class ImageService: Sendable {
             !$0.hasDirectoryPath && $0.deletingPathExtension().lastPathComponent == pageNumber
         }
         return matched.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }).first
+    }
+
+    func splitImage(imageUrl: URL, side: ImageSplitSide) -> UIImage? {
+        guard let image = UIImage(contentsOfFile: imageUrl.path(percentEncoded: false)),
+              let cgImage = image.cgImage else {
+            return nil
+        }
+
+        let pixelWidth = cgImage.width
+        let pixelHeight = cgImage.height
+        guard pixelWidth > 1, pixelHeight > 0 else {
+            return nil
+        }
+
+        let midpoint = pixelWidth / 2
+        let cropRect: CGRect
+        switch side {
+        case .left:
+            cropRect = CGRect(x: 0, y: 0, width: CGFloat(midpoint), height: CGFloat(pixelHeight))
+        case .right:
+            cropRect = CGRect(
+                x: CGFloat(midpoint),
+                y: 0,
+                width: CGFloat(pixelWidth - midpoint),
+                height: CGFloat(pixelHeight)
+            )
+        }
+
+        guard cropRect.width > 0,
+              let croppedImage = cgImage.cropping(to: cropRect) else {
+            return nil
+        }
+        return UIImage(cgImage: croppedImage, scale: image.scale, orientation: image.imageOrientation)
     }
 
     func heicDataOfImage(url: URL) -> Data? {
@@ -77,20 +124,9 @@ final class ImageService: Sendable {
             pageNames: [pageNumber, "\(pageNumber)-left", "\(pageNumber)-right"]
         )
 
-        var splitted = false
-
         try? image.heicData()?.write(to: mainPath)
 
-        if split && (image.size.width / image.size.height > 1.2) {
-            let leftPath = destinationUrl.appendingPathComponent("\(pageNumber)-left.heic", conformingTo: .heic)
-            let rightPath = destinationUrl.appendingPathComponent("\(pageNumber)-right.heic", conformingTo: .heic)
-
-            try? image.leftHalf?.heicData()?.write(to: leftPath)
-            try? image.rightHalf?.heicData()?.write(to: rightPath)
-
-            splitted = true
-        }
-        return splitted
+        return split && shouldSplitWideImage(imageUrl: imageUrl, imageData: imageData)
     }
 
     func generatePreviewImage(
@@ -295,6 +331,22 @@ final class ImageService: Sendable {
         return CGImageSourceCreateWithURL(imageUrl as CFURL, nil)
     }
 
+    private func imagePixelSize(imageUrl: URL, imageData: Data? = nil) -> CGSize? {
+        guard let imageSource = makeImageSource(imageUrl: imageUrl, imageData: imageData),
+              CGImageSourceGetCount(imageSource) > 0,
+              let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? NSNumber,
+              let height = properties[kCGImagePropertyPixelHeight] as? NSNumber else {
+            return nil
+        }
+
+        if let orientation = properties[kCGImagePropertyOrientation] as? NSNumber,
+           [5, 6, 7, 8].contains(orientation.intValue) {
+            return CGSize(width: height.doubleValue, height: width.doubleValue)
+        }
+        return CGSize(width: width.doubleValue, height: height.doubleValue)
+    }
+
     private func preferredFileExtension(imageUrl: URL, imageData: Data? = nil) -> String {
         let pathExtension = imageUrl.pathExtension.lowercased()
         if !pathExtension.isEmpty, UTType(filenameExtension: pathExtension) != nil {
@@ -350,22 +402,6 @@ extension UIImage {
             to: CGRect(
                 origin: CGPoint(x: .zero, y: size.height - (size.height/2).rounded()),
                 size: CGSize(width: size.width, height: size.height - (size.height/2).rounded())
-            )
-        )?.image
-    }
-    var leftHalf: UIImage? {
-        cgImage?.cropping(
-            to: CGRect(
-                origin: .zero,
-                size: CGSize(width: size.width/2, height: size.height)
-            )
-        )?.image
-    }
-    var rightHalf: UIImage? {
-        cgImage?.cropping(
-            to: CGRect(
-                origin: CGPoint(x: size.width - (size.width/2).rounded(), y: .zero),
-                size: CGSize(width: size.width - (size.width/2).rounded(), height: size.height)
             )
         )?.image
     }

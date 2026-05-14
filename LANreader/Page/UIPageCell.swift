@@ -195,6 +195,7 @@ class UIPageCell: UICollectionViewCell {
 
         SwiftNavigation.observe { [weak self] in
             let loaded = store.imageLoaded
+            let pageMode = store.pageMode
             guard let self else { return }
             guard self.store === store else { return }
             guard loaded else { return }
@@ -202,7 +203,7 @@ class UIPageCell: UICollectionViewCell {
             if store.errorMessage.isEmpty {
                 progressView.isHidden = true
                 progressViewLabel.isHidden = true
-                renderImage(store: store)
+                renderImage(store: store, pageMode: pageMode)
             } else {
                 imageView.isHidden = true
                 animatedImageView.isHidden = true
@@ -214,25 +215,23 @@ class UIPageCell: UICollectionViewCell {
     }
 
     // swiftlint:disable function_body_length
-    private func renderImage(store: StoreOf<PageFeature>) {
+    private func renderImage(store: StoreOf<PageFeature>, pageMode: PageMode) {
         animatedImageView.resetFirstFrameState()
-
-        let pageName: String = {
-            switch store.pageMode {
-            case .left:
-                return "\(store.pageNumber)-left"
-            case .right:
-                return "\(store.pageNumber)-right"
-            default:
-                return "\(store.pageNumber)"
-            }
-        }()
 
         guard let contentPath = imageService.storedImagePath(
             folderUrl: store.folder,
-            pageNumber: pageName
+            pageNumber: "\(store.pageNumber)"
         ) else {
             imageView.image = UIImage(systemName: "rectangle.slash")
+            imageView.isHidden = false
+            animatedImageView.image = nil
+            animatedImageView.isHidden = true
+            return
+        }
+
+        if let splitSide = splitSide(for: pageMode) {
+            imageView.image = imageService.splitImage(imageUrl: contentPath, side: splitSide)
+                ?? UIImage(systemName: "rectangle.slash")
             imageView.isHidden = false
             animatedImageView.image = nil
             animatedImageView.isHidden = true
@@ -278,12 +277,24 @@ class UIPageCell: UICollectionViewCell {
     }
     // swiftlint:enable function_body_length
 
+    private func splitSide(for pageMode: PageMode) -> ImageSplitSide? {
+        switch pageMode {
+        case .left:
+            return .left
+        case .right:
+            return .right
+        case .loading, .normal, .error:
+            return nil
+        }
+    }
+
     private func renderCurrentState(store: StoreOf<PageFeature>) {
+        let pageMode = store.pageMode
         if store.errorMessage.isEmpty {
             if store.imageLoaded {
                 progressView.isHidden = true
                 progressViewLabel.isHidden = true
-                renderImage(store: store)
+                renderImage(store: store, pageMode: pageMode)
             } else {
                 imageView.isHidden = true
                 animatedImageView.isHidden = true
