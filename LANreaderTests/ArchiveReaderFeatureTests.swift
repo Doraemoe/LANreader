@@ -1327,12 +1327,14 @@ private func makeTestStore(
     initialState: ArchiveReaderFeature.State,
     configureDependencies: ((inout DependencyValues) -> Void)? = nil
 ) -> TestStoreOf<ArchiveReaderFeature> {
-    TestStore(initialState: initialState) {
+    let store = TestStore(initialState: initialState) {
         ArchiveReaderFeature()
     } withDependencies: {
         $0.uuid = .incrementing
         configureDependencies?(&$0)
     }
+    store.timeout = .seconds(5)
+    return store
 }
 
 private func makeScrollRequest(
