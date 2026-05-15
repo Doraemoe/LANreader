@@ -779,7 +779,14 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await Task.yield()
         controller.collectionView.setContentOffset(CGPoint(x: pageWidth * 1.5, y: 0), animated: false)
         let targetPageId = store.pages[1].id
-        store.send(.page(.element(id: targetPageId, action: .setImage(.loading, true))))
+        store.send(
+            .page(
+                .element(
+                    id: targetPageId,
+                    action: .setStoredImage(.loading, shouldDisplayAsSplitPages: true)
+                )
+            )
+        )
         await Task.yield()
         await Task.yield()
         controller.collectionView.layoutIfNeeded()

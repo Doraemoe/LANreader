@@ -303,23 +303,9 @@ actor LANraragiService {
         return URL(string: page, relativeTo: baseURL)!.absoluteURL
     }
 
-    func fetchArchivePage(page: String, pageNumber: Int) -> DownloadRequest {
+    func fetchArchivePage(page: String, pageNumber _: Int) -> DownloadRequest {
         let request = URLRequest(url: resolveArchivePageURL(page: page))
-        return session.download(request, to: { tempUrl, rsp in
-            let destName: String
-            if let filename = rsp.suggestedFilename {
-                let fileExt = (filename as NSString).pathExtension
-                destName = "\(pageNumber).\(fileExt)"
-            } else {
-                destName = "\(pageNumber)"
-            }
-            let id = String(page.split(separator: "/")[2])
-            let destinationUrl = LANraragiService.downloadPath?
-                .appendingPathComponent(id, conformingTo: .folder)
-                .appendingPathComponent(destName, conformingTo: .image)
-            ?? tempUrl
-            return (destinationUrl, [.createIntermediateDirectories, .removePreviousFile])
-        }).validate()
+        return session.download(request).validate()
     }
 
     func backgroupFetchArchivePage(page: String, archiveId: String, pageNumber: Int) {
@@ -441,11 +427,11 @@ final class URLSessionDelegateHandler: NSObject, URLSessionDelegate, URLSessionD
            let pageNumber = task.originalRequest?.value(forHTTPHeaderField: "X-Page-Number"),
            let cachePath = LANraragiService.cachePath {
             let folder = cachePath.appendingPathComponent(archiveId, conformingTo: .folder)
-            _ = imageService.resizeImage(
+            _ = imageService.storePageImage(
                 imageUrl: location,
                 destinationUrl: folder,
                 pageNumber: pageNumber,
-                split: splitImage
+                splitWideImages: splitImage
             )
         }
     }
