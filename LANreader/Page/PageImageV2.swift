@@ -51,7 +51,7 @@ import Logging
         case subscribeToProgress(DownloadRequest)
         case cancelSubscribeImageProgress
         case setProgress(Double)
-        case setImage(PageMode, Bool)
+        case setStoredImage(PageMode, shouldDisplayAsSplitPages: Bool)
         case setError(String)
         case insertPage(PageMode)
         case setTranslationStatus(String)
@@ -196,14 +196,19 @@ import Logging
                                     }
                                 }
 
-                                let splitted = imageService.resizeImage(
+                                let storedPageImage = imageService.storePageImage(
                                     imageUrl: imageUrl,
                                     imageData: translated,
                                     destinationUrl: state.folder!,
                                     pageNumber: String(state.pageNumber),
-                                    split: state.splitImage
+                                    splitWideImages: state.splitImage
                                 )
-                                await send(.setImage(previousPageMode, splitted))
+                                await send(
+                                    .setStoredImage(
+                                        previousPageMode,
+                                        shouldDisplayAsSplitPages: storedPageImage?.shouldDisplayAsSplitPages ?? false
+                                    )
+                                )
                             } catch is CancellationError {
                                 await send(.cancelSubscribeImageProgress)
                             } catch {
@@ -224,10 +229,10 @@ import Logging
             case let .setProgress(progres):
                 state.progress = progres
                 return .none
-            case let .setImage(previousPageMode, splitted):
+            case let .setStoredImage(previousPageMode, shouldDisplayAsSplitPages):
                 state.progress = 0
                 state.loading = false
-                if splitted {
+                if shouldDisplayAsSplitPages {
                     let splitMode: PageMode
                     if previousPageMode.isSplitMode {
                         splitMode = previousPageMode
