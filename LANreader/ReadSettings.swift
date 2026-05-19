@@ -16,14 +16,28 @@ import SwiftUI
     }
     public enum Action: BindableAction {
         case binding(BindingAction<State>)
+        case splitWideImageChanged(Bool)
+        case doublePageLayoutChanged(Bool)
     }
 
     public var body: some ReducerOf<Self> {
         BindingReducer()
 
-        Reduce { _, action in
+        Reduce { state, action in
             switch action {
-            default:
+            case let .splitWideImageChanged(isEnabled):
+                state.$splitWideImage.withLock { $0 = isEnabled }
+                if isEnabled {
+                    state.$doublePageLayout.withLock { $0 = false }
+                }
+                return .none
+            case let .doublePageLayoutChanged(isEnabled):
+                state.$doublePageLayout.withLock { $0 = isEnabled }
+                if isEnabled {
+                    state.$splitWideImage.withLock { $0 = false }
+                }
+                return .none
+            case .binding:
                 return .none
             }
         }
@@ -57,12 +71,18 @@ struct ReadSettings: View {
             .padding()
         }
         if store.readDirection != ReadDirection.upDown.rawValue {
-            Toggle(isOn: Binding(self.store.$doublePageLayout)) {
+            Toggle(isOn: Binding(
+                get: { self.store.doublePageLayout },
+                set: { self.store.send(.doublePageLayoutChanged($0)) }
+            )) {
                 Text("settings.read.double.page")
             }
             .padding()
         }
-        Toggle(isOn: Binding(self.store.$splitWideImage)) {
+        Toggle(isOn: Binding(
+            get: { self.store.splitWideImage },
+            set: { self.store.send(.splitWideImageChanged($0)) }
+        )) {
             Text("settings.read.split.page")
         }
         .padding()

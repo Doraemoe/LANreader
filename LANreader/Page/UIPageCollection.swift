@@ -187,6 +187,9 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             return false
         }
         activeAnimatedScrollTargetPageId = request.animated ? dataSource.itemIdentifier(for: indexPath) : nil
+        if request.animated {
+            store.send(.collectionScrollStarted)
+        }
         if store.readDirection == ReadDirection.upDown.rawValue {
             collectionView.scrollRectToVisible(attr.frame, animated: request.animated)
         } else {
@@ -416,7 +419,8 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
     // For double page layout treat a pair of items as one visual page; return left item index path
     private func startOfGroupIndexPath(for indexPath: IndexPath) -> IndexPath {
-        guard store.readDirection != ReadDirection.upDown.rawValue && store.doublePageLayout else { return indexPath }
+        guard store.readDirection != ReadDirection.upDown.rawValue,
+              store.doublePageLayout else { return indexPath }
         let row = indexPath.row % 2 == 0 ? indexPath.row : indexPath.row - 1
         return IndexPath(row: row, section: indexPath.section)
     }
@@ -840,6 +844,7 @@ extension UIPageCollectionController {
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         guard scrollView === collectionView else { return }
         activeAnimatedScrollTargetPageId = nil
+        store.send(.collectionScrollStarted)
     }
 
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
@@ -862,17 +867,20 @@ extension UIPageCollectionController {
 
         endPullInteraction()
         if !decelerate {
+            store.send(.collectionScrollEnded)
             reportVisiblePageIfNeeded()
         }
     }
 
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         guard scrollView === collectionView else { return }
+        store.send(.collectionScrollEnded)
         reportVisiblePageIfNeeded()
     }
 
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
         guard scrollView === collectionView else { return }
+        store.send(.collectionScrollEnded)
         reportVisiblePageIfNeeded()
     }
 }
