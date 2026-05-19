@@ -19,6 +19,50 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         super.tearDown()
     }
 
+    @MainActor
+    func testReadSettingsEnablingSplitDisablesDoublePageLayout() async {
+        configureReaderDefaults(doublePageLayout: true)
+        let store = TestStore(initialState: ReadSettingsFeature.State()) {
+            ReadSettingsFeature()
+        }
+
+        await store.send(.splitWideImageChanged(true)) {
+            $0.$splitWideImage.withLock { $0 = true }
+            $0.$doublePageLayout.withLock { $0 = false }
+        }
+    }
+
+    @MainActor
+    func testReadSettingsEnablingDoublePageLayoutDisablesSplitAndKeepsPriority() async {
+        configureReaderDefaults(
+            splitWideImage: true,
+            splitPiorityLeft: true
+        )
+        let store = TestStore(initialState: ReadSettingsFeature.State()) {
+            ReadSettingsFeature()
+        }
+
+        await store.send(.doublePageLayoutChanged(true)) {
+            $0.$splitWideImage.withLock { $0 = false }
+            $0.$doublePageLayout.withLock { $0 = true }
+        }
+    }
+
+    @MainActor
+    func testReadSettingsDisablingSplitKeepsPriority() async {
+        configureReaderDefaults(
+            splitWideImage: true,
+            splitPiorityLeft: true
+        )
+        let store = TestStore(initialState: ReadSettingsFeature.State()) {
+            ReadSettingsFeature()
+        }
+
+        await store.send(.splitWideImageChanged(false)) {
+            $0.$splitWideImage.withLock { $0 = false }
+        }
+    }
+
     func testReaderPositioningSinglePageMath() {
         XCTAssertEqual(
             ReaderPositioning.initialPageIndex(
@@ -555,17 +599,23 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testSplitPageInsertionBeforeCurrentPreservesVisiblePage() async {
-        configureReaderDefaults()
+    func testSplitPageResolutionBeforeCurrentPreservesVisiblePage() async {
+        configureReaderDefaults(splitWideImage: true)
         var initialState = makeState(progress: 3)
+        initialState.$splitImage = SharedReader(value: true)
         initialState.pages = makePageStates(count: 4)
         initialState.currentPageIndex = 2
         let splittingPageId = initialState.pages[0].id
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.page(.element(id: splittingPageId, action: .insertPage(.left)))) {
+        await store.send(.page(.element(
+            id: splittingPageId,
+            action: .storedImageResolved(shouldDisplayAsSplitPages: true)
+        ))) {
+            $0.pages[0].pageMode = .right
+            $0.pages[0].imageLoaded = true
             $0.pages.insert(
-                PageFeature.State(
+                loadedPageState(
                     archiveId: "archive",
                     pageId: "1",
                     pageNumber: 1,
@@ -578,17 +628,23 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testSplitPageInsertionForCurrentPageDoesNotForceRescroll() async {
-        configureReaderDefaults()
+    func testSplitPageResolutionForCurrentPageDoesNotForceRescroll() async {
+        configureReaderDefaults(splitWideImage: true)
         var initialState = makeState(progress: 3)
+        initialState.$splitImage = SharedReader(value: true)
         initialState.pages = makePageStates(count: 4)
         initialState.currentPageIndex = 2
         let splittingPageId = initialState.pages[2].id
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.page(.element(id: splittingPageId, action: .insertPage(.left)))) {
+        await store.send(.page(.element(
+            id: splittingPageId,
+            action: .storedImageResolved(shouldDisplayAsSplitPages: true)
+        ))) {
+            $0.pages[2].pageMode = .right
+            $0.pages[2].imageLoaded = true
             $0.pages.insert(
-                PageFeature.State(
+                loadedPageState(
                     archiveId: "archive",
                     pageId: "3",
                     pageNumber: 3,
@@ -600,29 +656,36 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testSplitPageInsertionKeepsSiblingLoadedWhenSourcePageIsLoaded() async {
-        configureReaderDefaults()
+    func testSplitPageResolutionKeepsSiblingLoadedWhenSourcePageIsLoaded() async {
+        configureReaderDefaults(splitWideImage: true)
         var initialState = makeState(progress: 3)
+        initialState.$splitImage = SharedReader(value: true)
         initialState.pages = makePageStates(count: 4)
         initialState.pages[2].imageLoaded = true
         initialState.currentPageIndex = 2
         let splittingPageId = initialState.pages[2].id
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.page(.element(id: splittingPageId, action: .insertPage(.left)))) {
-            var insertedPage = PageFeature.State(
-                archiveId: "archive",
-                pageId: "3",
-                pageNumber: 3,
-                pageMode: .left
+        await store.send(.page(.element(
+            id: splittingPageId,
+            action: .storedImageResolved(shouldDisplayAsSplitPages: true)
+        ))) {
+            $0.pages[2].pageMode = .right
+            $0.pages[2].imageLoaded = true
+            $0.pages.insert(
+                loadedPageState(
+                    archiveId: "archive",
+                    pageId: "3",
+                    pageNumber: 3,
+                    pageMode: .left
+                ),
+                at: 3
             )
-            insertedPage.imageLoaded = true
-            $0.pages.insert(insertedPage, at: 3)
         }
     }
 
     @MainActor
-    func testSplitPageInsertionBeforeTrailingCurrentPreservesVisiblePage() async {
+    func testSplitPageResolutionBeforeTrailingCurrentPreservesVisiblePage() async {
         configureReaderDefaults(splitWideImage: true)
         var initialState = makeState(progress: 2)
         initialState.$splitImage = SharedReader(value: true)
@@ -634,16 +697,181 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         let splittingPageId = initialState.pages[1].id
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.page(.element(id: splittingPageId, action: .insertPage(.right)))) {
-            var insertedPage = PageFeature.State(
-                archiveId: "archive",
-                pageId: "2",
-                pageNumber: 2,
-                pageMode: .right
+        await store.send(.page(.element(
+            id: splittingPageId,
+            action: .storedImageResolved(shouldDisplayAsSplitPages: true)
+        ))) {
+            $0.pages.insert(
+                loadedPageState(
+                    archiveId: "archive",
+                    pageId: "2",
+                    pageNumber: 2,
+                    pageMode: .right
+                ),
+                at: 1
             )
-            insertedPage.imageLoaded = true
-            $0.pages.insert(insertedPage, at: 1)
             $0.currentPageIndex = 2
+        }
+    }
+
+    @MainActor
+    func testSplitPageResolutionUsesPendingTrailingModeForUnloadedCurrentPage() async {
+        configureReaderDefaults(splitWideImage: true)
+        var initialState = makeState(progress: 2)
+        initialState.$splitImage = SharedReader(value: true)
+        initialState.pages = makePageStates(count: 3)
+        initialState.pages[1].pendingSplitMode = .left
+        initialState.currentPageIndex = 1
+        let splittingPageId = initialState.pages[1].id
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.page(.element(
+            id: splittingPageId,
+            action: .storedImageResolved(shouldDisplayAsSplitPages: true)
+        ))) {
+            $0.pages.insert(
+                loadedPageState(
+                    archiveId: "archive",
+                    pageId: "2",
+                    pageNumber: 2,
+                    pageMode: .right
+                ),
+                at: 1
+            )
+            $0.pages[2].pageMode = .left
+            $0.pages[2].pendingSplitMode = nil
+            $0.pages[2].imageLoaded = true
+            $0.currentPageIndex = 2
+        }
+    }
+
+    @MainActor
+    func testSplitPageResolutionQueuesWhileCollectionIsScrolling() async {
+        configureReaderDefaults(splitWideImage: true)
+        var initialState = makeState(progress: 2)
+        initialState.$splitImage = SharedReader(value: true)
+        initialState.pages = makePageStates(count: 3)
+        initialState.currentPageIndex = 1
+        initialState.collectionScrolling = true
+        let splittingPageId = initialState.pages[1].id
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.page(.element(
+            id: splittingPageId,
+            action: .storedImageResolved(shouldDisplayAsSplitPages: true)
+        ))) {
+            $0.pendingSplitResolutions[splittingPageId] = true
+        }
+    }
+
+    @MainActor
+    func testQueuedSplitPageResolutionAppliesWhenCollectionStopsScrolling() async {
+        configureReaderDefaults(splitWideImage: true)
+        var initialState = makeState(progress: 2)
+        initialState.$splitImage = SharedReader(value: true)
+        initialState.pages = makePageStates(count: 3)
+        initialState.currentPageIndex = 1
+        let splittingPageId = initialState.pages[1].id
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.collectionScrollStarted) {
+            $0.collectionScrolling = true
+        }
+        await store.send(.page(.element(
+            id: splittingPageId,
+            action: .storedImageResolved(shouldDisplayAsSplitPages: true)
+        ))) {
+            $0.pendingSplitResolutions[splittingPageId] = true
+        }
+        await store.send(.collectionScrollEnded) {
+            $0.collectionScrolling = false
+            $0.pendingSplitResolutions = [:]
+            $0.pages[1].pageMode = .right
+            $0.pages[1].imageLoaded = true
+            $0.pages.insert(
+                loadedPageState(
+                    archiveId: "archive",
+                    pageId: "2",
+                    pageNumber: 2,
+                    pageMode: .left
+                ),
+                at: 2
+            )
+        }
+    }
+
+    @MainActor
+    func testQueuedSplitPageResolutionPreservesVisiblePageAfterInsertionBeforeCurrent() async {
+        configureReaderDefaults(splitWideImage: true)
+        var initialState = makeState(progress: 3)
+        initialState.$splitImage = SharedReader(value: true)
+        initialState.pages = makePageStates(count: 4)
+        initialState.currentPageIndex = 2
+        initialState.collectionScrolling = true
+        let splittingPageId = initialState.pages[0].id
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.page(.element(
+            id: splittingPageId,
+            action: .storedImageResolved(shouldDisplayAsSplitPages: true)
+        ))) {
+            $0.pendingSplitResolutions[splittingPageId] = true
+        }
+        await store.send(.collectionScrollEnded) {
+            $0.collectionScrolling = false
+            $0.pendingSplitResolutions = [:]
+            $0.pages[0].pageMode = .right
+            $0.pages[0].imageLoaded = true
+            $0.pages.insert(
+                loadedPageState(
+                    archiveId: "archive",
+                    pageId: "1",
+                    pageNumber: 1,
+                    pageMode: .left
+                ),
+                at: 1
+            )
+            $0.currentPageIndex = 3
+        }
+    }
+
+    @MainActor
+    func testVerticalSplitPageResolutionQueuesWhileCollectionIsScrolling() async {
+        configureReaderDefaults(
+            readDirection: .upDown,
+            splitWideImage: true
+        )
+        var initialState = makeState(
+            progress: 2,
+            readDirection: .upDown
+        )
+        initialState.$splitImage = SharedReader(value: true)
+        initialState.pages = makePageStates(count: 3)
+        initialState.currentPageIndex = 1
+        initialState.collectionScrolling = true
+        let splittingPageId = initialState.pages[1].id
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.page(.element(
+            id: splittingPageId,
+            action: .storedImageResolved(shouldDisplayAsSplitPages: true)
+        ))) {
+            $0.pendingSplitResolutions[splittingPageId] = true
+        }
+        await store.send(.collectionScrollEnded) {
+            $0.collectionScrolling = false
+            $0.pendingSplitResolutions = [:]
+            $0.pages[1].pageMode = .right
+            $0.pages[1].imageLoaded = true
+            $0.pages.insert(
+                loadedPageState(
+                    archiveId: "archive",
+                    pageId: "2",
+                    pageNumber: 2,
+                    pageMode: .left
+                ),
+                at: 2
+            )
         }
     }
 
@@ -713,6 +941,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     func testUIPageCollectionPreservesVisiblePageWhenSplitSiblingIsInsertedBeforeIt() async {
         configureReaderDefaults(splitWideImage: true)
         var initialState = makeState(progress: 2)
+        initialState.$splitImage = SharedReader(value: true)
         var pages = makePageStates(count: 3)
         pages[1].pageMode = .left
         pages[1].imageLoaded = true
@@ -738,7 +967,10 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         controller.collectionView.layoutIfNeeded()
 
         let visiblePageId = store.pages[1].id
-        store.send(.page(.element(id: visiblePageId, action: .insertPage(.right))))
+        store.send(.page(.element(
+            id: visiblePageId,
+            action: .storedImageResolved(shouldDisplayAsSplitPages: true)
+        )))
         await Task.yield()
         await Task.yield()
         controller.collectionView.layoutIfNeeded()
@@ -748,7 +980,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testUIPageCollectionSettlesPriorityLeftBackwardSplitInsertionOnAnimatedTarget() async {
+    func testUIPageCollectionQueuesPriorityLeftBackwardSplitDuringAnimatedScroll() async {
         configureReaderDefaults(splitWideImage: true, splitPiorityLeft: true)
         var initialState = makeState(progress: 3)
         initialState.$splitImage = SharedReader(value: true)
@@ -777,13 +1009,16 @@ final class ArchiveReaderFeatureTests: XCTestCase {
 
         store.send(.navigate(.previous, source: .tap))
         await Task.yield()
+        store.send(.collectionScrollStarted)
         controller.collectionView.setContentOffset(CGPoint(x: pageWidth * 1.5, y: 0), animated: false)
+        XCTAssertTrue(store.collectionScrolling)
+
         let targetPageId = store.pages[1].id
         store.send(
             .page(
                 .element(
                     id: targetPageId,
-                    action: .setStoredImage(.loading, shouldDisplayAsSplitPages: true)
+                    action: .setStoredImage(shouldDisplayAsSplitPages: true)
                 )
             )
         )
@@ -791,7 +1026,8 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await Task.yield()
         controller.collectionView.layoutIfNeeded()
 
-        XCTAssertEqual(controller.collectionView.contentOffset.x, pageWidth * 2, accuracy: 1)
+        XCTAssertEqual(store.pendingSplitResolutions[targetPageId], true)
+        XCTAssertEqual(store.pages.count, 3)
     }
 
     @MainActor
@@ -1398,6 +1634,22 @@ private func makeArchive(
 
 private func makeExtractedPages(count: Int) -> [String] {
     (1...count).map { "p\($0)" }
+}
+
+private func loadedPageState(
+    archiveId: String,
+    pageId: String,
+    pageNumber: Int,
+    pageMode: PageMode
+) -> PageFeature.State {
+    var state = PageFeature.State(
+        archiveId: archiveId,
+        pageId: pageId,
+        pageNumber: pageNumber,
+        pageMode: pageMode
+    )
+    state.imageLoaded = true
+    return state
 }
 
 private func makePageStates(

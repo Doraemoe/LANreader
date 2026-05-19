@@ -28,6 +28,8 @@ import UIKit
         var currentPageIndex = 0
         var scrollRequest: ScrollRequest?
         var pages: IdentifiedArrayOf<PageFeature.State> = []
+        var collectionScrolling = false
+        var pendingSplitResolutions: [String: Bool] = [:]
         var fromStart = false
         var extracting = false
         var controlUiHidden = false
@@ -101,6 +103,8 @@ import UIKit
         case requestJump(Int, source: ReaderNavigationSource)
         case navigate(ReaderNavigationDirection, source: ReaderNavigationSource)
         case scrollRequestHandled(UUID)
+        case collectionScrollStarted
+        case collectionScrollEnded
         case prepareSliderPreviewThumbnails
         case sliderPreviewThumbnailsQueued(PageThumbnailQueueResponse)
         case pollSliderPreviewThumbnailJob(Int)
@@ -290,6 +294,13 @@ import UIKit
                     source: source,
                     animated: source != .slider && source != .initialRestore
                 )
+                return .none
+            case .collectionScrollStarted:
+                state.collectionScrolling = true
+                return .none
+            case .collectionScrollEnded:
+                state.collectionScrolling = false
+                self.applyPendingSplitResolutions(state: &state)
                 return .none
             case .prepareSliderPreviewThumbnails:
                 guard !state.cached, !state.pages.isEmpty else { return .none }
@@ -544,34 +555,12 @@ import UIKit
                 return .none
             case .binding:
                 return .none
-            case let .page(.element(id: id, action: .insertPage(mode))):
-                guard let current = state.pages[id: id] else { return .none }
-                guard let sourcePageIndex = state.pages.index(id: id) else { return .none }
-                var insertedPage = PageFeature.State(
-                    archiveId: state.currentArchiveId,
-                    pageId: current.pageId,
-                    pageNumber: current.pageNumber,
-                    pageMode: mode,
-                    cached: current.cached
+            case let .page(.element(id: id, action: .storedImageResolved(shouldDisplayAsSplitPages))):
+                self.handleSplitResolution(
+                    id: id,
+                    shouldDisplayAsSplitPages: shouldDisplayAsSplitPages,
+                    state: &state
                 )
-                // Split siblings render from the same stored original, so they are ready together.
-                insertedPage.imageLoaded = current.imageLoaded
-                guard state.pages[id: insertedPage.id] == nil else { return .none }
-
-                let leadingSplitMode = PageMode.preferredSplitMode(priorityLeft: state.piorityLeft)
-                let insertAfterCurrent = !current.pageMode.isSplitMode || current.pageMode == leadingSplitMode
-                let visiblePageId = state.currentPage?.id
-                let previousCurrentPageIndex = state.currentPageIndex
-                let insertedIndex = insertAfterCurrent ? sourcePageIndex + 1 : sourcePageIndex
-                state.pages.insert(insertedPage, at: insertedIndex)
-
-                guard insertedIndex <= previousCurrentPageIndex,
-                      let visiblePageId,
-                      let preservedIndex = state.pages.index(id: visiblePageId) else {
-                    return .none
-                }
-
-                state.currentPageIndex = preservedIndex
                 return .none
             case .page:
                 return .none
@@ -603,7 +592,9 @@ import UIKit
                     } else {
                         return .cancel(id: CancelId.autoPage)
                     }
-                    if canAdvance && state.readDirection != ReadDirection.upDown.rawValue && state.doublePageLayout {
+                    if canAdvance
+                        && state.readDirection != ReadDirection.upDown.rawValue
+                        && state.doublePageLayout {
                         let previousIdx = idx - 1
                         if previousIdx >= 0 && previousIdx < state.pages.count {
                             let page = state.pages[previousIdx]
@@ -745,6 +736,125 @@ import UIKit
         }
     }
 
+    private func handleSplitResolution(
+        id: PageFeature.State.ID,
+        shouldDisplayAsSplitPages: Bool,
+        state: inout State
+    ) {
+        guard state.pages[id: id] != nil else { return }
+        if state.collectionScrolling {
+            state.pendingSplitResolutions[id] = shouldDisplayAsSplitPages
+            return
+        }
+
+        applySplitResolution(
+            id: id,
+            shouldDisplayAsSplitPages: shouldDisplayAsSplitPages,
+            state: &state
+        )
+    }
+
+    private func applyPendingSplitResolutions(state: inout State) {
+        let pending = state.pendingSplitResolutions
+        state.pendingSplitResolutions = [:]
+
+        for pageId in state.pages.map(\.id) where pending[pageId] != nil {
+            applySplitResolution(
+                id: pageId,
+                shouldDisplayAsSplitPages: pending[pageId] ?? false,
+                state: &state
+            )
+        }
+    }
+
+    private func applySplitResolution(
+        id: PageFeature.State.ID,
+        shouldDisplayAsSplitPages: Bool,
+        state: inout State
+    ) {
+        let visiblePageId = state.currentPage?.id
+
+        guard shouldDisplayAsSplitPages,
+              state.splitImage else {
+            normalizePageDisplay(id: id, state: &state)
+            preserveVisiblePage(id: visiblePageId, state: &state)
+            return
+        }
+
+        applySplitPageDisplay(id: id, state: &state)
+        preserveVisiblePage(id: visiblePageId, state: &state)
+    }
+
+    private func applySplitPageDisplay(
+        id: PageFeature.State.ID,
+        state: inout State
+    ) {
+        guard let current = state.pages[id: id],
+              let sourcePageIndex = state.pages.index(id: id) else {
+            return
+        }
+
+        let splitMode: PageMode
+        if current.pageMode.isSplitMode {
+            splitMode = current.pageMode
+        } else {
+            splitMode = current.pendingSplitMode
+                ?? PageMode.preferredSplitMode(priorityLeft: state.piorityLeft)
+        }
+
+        state.pages[id: id]?.pageMode = splitMode
+        state.pages[id: id]?.pendingSplitMode = nil
+        state.pages[id: id]?.imageLoaded = true
+
+        guard let siblingMode = splitMode.splitSiblingMode else { return }
+        var insertedPage = PageFeature.State(
+            archiveId: state.currentArchiveId,
+            pageId: current.pageId,
+            pageNumber: current.pageNumber,
+            pageMode: siblingMode,
+            cached: current.cached
+        )
+        insertedPage.imageLoaded = true
+        guard state.pages[id: insertedPage.id] == nil else { return }
+
+        let leadingSplitMode = PageMode.preferredSplitMode(priorityLeft: state.piorityLeft)
+        let insertAfterCurrent = splitMode == leadingSplitMode
+        let insertedIndex = insertAfterCurrent ? sourcePageIndex + 1 : sourcePageIndex
+        state.pages.insert(insertedPage, at: insertedIndex)
+    }
+
+    private func normalizePageDisplay(
+        id: PageFeature.State.ID,
+        state: inout State
+    ) {
+        guard let current = state.pages[id: id] else { return }
+        let canonicalId = "\(current.pageId)-\(PageMode.normal.identitySuffix)"
+        let keepId = state.pages[id: canonicalId] == nil ? id : canonicalId
+
+        state.pages[id: keepId]?.pageMode = .normal
+        state.pages[id: keepId]?.pendingSplitMode = nil
+        state.pages[id: keepId]?.imageLoaded = true
+
+        state.pages.removeAll {
+            $0.pageId == current.pageId && $0.id != keepId && $0.pageMode.isSplitMode
+        }
+    }
+
+    private func preserveVisiblePage(
+        id visiblePageId: PageFeature.State.ID?,
+        state: inout State
+    ) {
+        if let visiblePageId,
+           let preservedIndex = state.pages.index(id: visiblePageId) {
+            state.currentPageIndex = preservedIndex
+        } else {
+            state.currentPageIndex = ReaderPositioning.clampedPageIndex(
+                state.currentPageIndex,
+                pageCount: state.pages.count
+            )
+        }
+    }
+
     private func updateSliderPreview(
         state: inout State,
         pageIndex: Int
@@ -824,6 +934,8 @@ import UIKit
         state.pages = []
         state.currentPageIndex = 0
         state.scrollRequest = nil
+        state.collectionScrolling = false
+        state.pendingSplitResolutions = [:]
         state.inCache = false
         state.errorMessage = ""
         state.successMessage = ""
