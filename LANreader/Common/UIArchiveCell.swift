@@ -3,27 +3,41 @@ import ComposableArchitecture
 import SwiftUI
 
 class UIArchiveCell: UICollectionViewCell {
-    private var hostingController: UIHostingController<ArchiveGridV2>?
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+
+        backgroundColor = .clear
+        contentView.backgroundColor = .clear
+        clipsToBounds = false
+        contentView.clipsToBounds = false
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     func configure(with store: StoreOf<GridFeature>) {
-        hostingController = nil
-        let hostingController = UIHostingController(rootView: ArchiveGridV2(store: store))
-        contentView.addSubview(hostingController.view)
-
-        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            hostingController.view.topAnchor.constraint(equalTo: contentView.topAnchor),
-            hostingController.view.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            hostingController.view.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            hostingController.view.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
-
-        ])
-        self.hostingController = hostingController
+        contentConfiguration = UIHostingConfiguration {
+            ArchiveGridV2(store: store)
+        }
+        .margins(.all, 0)
     }
 
     override func prepareForReuse() {
         super.prepareForReuse()
-        hostingController?.view.removeFromSuperview()
-        hostingController = nil
+        contentConfiguration = nil
+    }
+
+    override var isHighlighted: Bool {
+        didSet {
+            UIView.animate(
+                withDuration: 0.16,
+                delay: 0,
+                options: [.allowUserInteraction, .beginFromCurrentState]
+            ) {
+                self.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.97, y: 0.97) : .identity
+                self.alpha = self.isHighlighted ? 0.92 : 1.0
+            }
+        }
     }
 }
