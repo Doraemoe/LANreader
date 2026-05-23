@@ -69,6 +69,7 @@ struct ArchiveGridV2: View {
     let store: StoreOf<GridFeature>
 
     @Dependency(\.appDatabase) var database
+    private let cornerRadius: CGFloat = 8
 
     init(store: StoreOf<GridFeature>) {
         self.store = store
@@ -76,22 +77,24 @@ struct ArchiveGridV2: View {
 
     var body: some View {
         let thumbnailObj = try? database.readArchiveThumbnail(store.id)
-        VStack(alignment: HorizontalAlignment.center, spacing: 2) {
-            Text(buildTitle(archive: store.archive))
-                .lineLimit(2)
-                .foregroundStyle(Color.primary)
-                .padding(4)
-                .font(.caption)
+        ZStack {
             imageView(thumbnailObj: thumbnailObj)
                 .id(store.nonce)
+            bottomGradient
+            topBadges
+            titleOverlay
         }
-        .frame(maxHeight: .infinity, alignment: .top)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .aspectRatio(ArchiveGridMetrics.coverAspectRatio, contentMode: .fit)
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.secondary, lineWidth: 2)
-                .opacity(0.9)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
         )
+        .shadow(color: Color.black.opacity(0.14), radius: 10, x: 0, y: 6)
+        .padding(2)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
         .onChange(of: store.archive.refresh) { _, newValue in
             if newValue {
                 store.send(.increaseNonce)
@@ -100,17 +103,70 @@ struct ArchiveGridV2: View {
         }
     }
 
-    func buildTitle(archive: ArchiveItem) -> String {
-        var title = archive.name
-        if store.cached {
-            return title
+    private var bottomGradient: some View {
+        LinearGradient(
+            colors: [
+                Color.black.opacity(0),
+                Color.black.opacity(0.24),
+                Color.black.opacity(0.78)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .frame(height: 128)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .allowsHitTesting(false)
+    }
+
+    private var titleOverlay: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(store.archive.name)
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.45), radius: 2, x: 0, y: 1)
+
+            if let progressFraction {
+                progressBar(progressFraction)
+            }
         }
-        if archive.pagecount == archive.progress {
-            title = "👑 " + title
-        } else if archive.progress < 2 {
-            title = "🆕 " + title
+        .padding(.horizontal, 10)
+        .padding(.bottom, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+        .allowsHitTesting(false)
+    }
+
+    private var topBadges: some View {
+        HStack(alignment: .top) {
+            if let status {
+                Image(systemName: status.systemImage)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 26, height: 26)
+                    .background(status.tint, in: Circle())
+                    .shadow(color: .black.opacity(0.22), radius: 4, x: 0, y: 2)
+            }
+
+            Spacer(minLength: 6)
+
+            if store.archive.pagecount > 0 {
+                HStack(spacing: 4) {
+                    Image(systemName: "rectangle.stack.fill")
+                        .font(.caption2.weight(.semibold))
+                    Text("\(store.archive.pagecount)")
+                        .font(.caption2.weight(.bold))
+                        .monospacedDigit()
+                }
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 5)
+                .background(.ultraThinMaterial, in: Capsule())
+            }
         }
-        return title
+        .padding(8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .allowsHitTesting(false)
     }
 
     @ViewBuilder
@@ -119,14 +175,126 @@ struct ArchiveGridV2: View {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFit()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            Image("noThumb")
-                .resizable()
-                .scaledToFit()
-                .frame(height: 240)
-                .onAppear {
-                    store.send(.load(false))
-                }
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(uiColor: .secondarySystemGroupedBackground),
+                        Color(uiColor: .tertiarySystemGroupedBackground)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+
+                Image("noThumb")
+                    .resizable()
+                    .scaledToFit()
+                    .padding(30)
+                    .opacity(0.66)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onAppear {
+                store.send(.load(false))
+            }
+        }
+    }
+
+    private var status: ArchiveGridStatus? {
+        if store.cached {
+            return .cached
+        }
+        if store.archive.pagecount > 0 && store.archive.pagecount == store.archive.progress {
+            return .read
+        }
+        if store.archive.progress < 2 {
+            return .new
+        }
+        return nil
+    }
+
+    private var progressFraction: Double? {
+        guard store.cached == false,
+              store.archive.pagecount > 0,
+              store.archive.progress > 1 else {
+            return nil
+        }
+        let fraction = Double(store.archive.progress) / Double(store.archive.pagecount)
+        return min(max(fraction, 0), 1)
+    }
+
+    private var accessibilityLabel: Text {
+        if let status {
+            Text(verbatim: "\(store.archive.name), \(status.accessibilityLabel)")
+        } else {
+            Text(verbatim: store.archive.name)
+        }
+    }
+
+    private func progressBar(_ value: Double) -> some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.white.opacity(0.24))
+                Capsule()
+                    .fill(progressTint)
+                    .frame(width: proxy.size.width * value)
+            }
+        }
+        .frame(height: 4)
+    }
+
+    private var progressTint: Color {
+        if store.archive.pagecount > 0 && store.archive.pagecount == store.archive.progress {
+            Color(uiColor: .systemGreen)
+        } else {
+            Color(uiColor: .systemBlue)
+        }
+    }
+}
+
+enum ArchiveGridMetrics {
+    // Most manga/book covers are close to A/B-series paper proportions
+    // (width / height ~= 0.707), which avoids vertical gaps for normal covers
+    // while wide/double-page thumbnails still fit inside the card.
+    static let coverAspectRatio: CGFloat = 0.707
+}
+
+private enum ArchiveGridStatus {
+    case cached
+    case read
+    case new
+
+    var systemImage: String {
+        switch self {
+        case .cached:
+            "tray.full.fill"
+        case .read:
+            "crown.fill"
+        case .new:
+            "sparkles"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .cached:
+            Color(uiColor: .systemOrange)
+        case .read:
+            Color(uiColor: .systemGreen)
+        case .new:
+            Color(uiColor: .systemBlue)
+        }
+    }
+
+    var accessibilityLabel: String {
+        switch self {
+        case .cached:
+            "cached"
+        case .read:
+            "read"
+        case .new:
+            "new"
         }
     }
 }
