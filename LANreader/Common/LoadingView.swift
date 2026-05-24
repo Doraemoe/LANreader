@@ -38,6 +38,8 @@ struct LoadingView: View {
     }
 
     private var panelWidth: CGFloat {
-        min(max(geometry.size.width * 0.52, 220), 340)
+        let availableWidth = max(geometry.size.width - 32, 0)
+        let preferredWidth = min(max(geometry.size.width * 0.52, 220), 340)
+        return min(preferredWidth, availableWidth)
     }
 }

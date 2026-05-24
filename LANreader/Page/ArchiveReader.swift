@@ -1358,7 +1358,7 @@ private enum ReaderToolbarMetrics {
     static let panelCornerRadius: CGFloat = 26
     static let previewBottomSpacing: CGFloat = 12
     static let sliderHorizontalPadding: CGFloat = 16
-    static let buttonSize: CGFloat = 42
+    static let buttonSize: CGFloat = 44
 }
 
 enum SliderPreviewPositioning {
