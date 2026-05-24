@@ -696,13 +696,15 @@ extension UIPageCollectionController {
     }
 
     private func pullCardWidth(iconSize: CGFloat, horizontalPadding: CGFloat, spacing: CGFloat) -> CGFloat {
-        let maxWidth = min(view.bounds.width - 32, 360)
+        let maxWidth = max(min(view.bounds.width - 32, 360), 0)
         pullStatusLabel.sizeToFit()
+        let labelAvailableWidth = max(maxWidth - iconSize - spacing - horizontalPadding * 2, 0)
         let labelWidth = min(
-            maxWidth - iconSize - spacing - horizontalPadding * 2,
+            labelAvailableWidth,
             pullStatusLabel.bounds.width
         )
-        return min(maxWidth, max(172, iconSize + spacing + labelWidth + horizontalPadding * 2))
+        let minimumWidth = min(172, maxWidth)
+        return min(maxWidth, max(minimumWidth, iconSize + spacing + labelWidth + horizontalPadding * 2))
     }
 
     private func pullCardFrame(

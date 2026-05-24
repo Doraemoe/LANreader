@@ -256,7 +256,8 @@ struct ArchiveDetailsV2: View {
                             }
                     }
                 } label: {
-                    Image(systemName: "folder.badge.gear")
+                    Label("archive.category.manage", systemImage: "folder.badge.gear")
+                        .labelStyle(.iconOnly)
                 }
                 .disabled(store.loading)
                 EditButton()
@@ -341,7 +342,7 @@ struct ArchiveDetailsV2: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         } else {
             VStack(alignment: .leading, spacing: 10) {
-                Text("details")
+                Text("archive.details.title")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)

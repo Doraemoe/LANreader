@@ -118,6 +118,6 @@ struct AutomaticPageConfig: View {
     }
 
     private func dialogWidth(for size: CGSize) -> CGFloat {
-        min(max(size.width - 40, 300), 430)
+        min(max(size.width - 40, 0), 430)
     }
 }
