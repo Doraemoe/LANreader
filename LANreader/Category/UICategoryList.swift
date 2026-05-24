@@ -38,8 +38,6 @@ class UICategoryListViewController: UIViewController {
         view.backgroundColor = .systemGroupedBackground
         setupLayout()
         navigationItem.title = String(localized: "category")
-        navigationItem.largeTitleDisplayMode = .always
-        navigationController?.navigationBar.prefersLargeTitles = true
     }
 
     override func viewWillAppear(_ animated: Bool) {
