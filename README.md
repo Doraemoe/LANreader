@@ -4,7 +4,7 @@
 
 # LANreader
 
-LANreader is an iOS manga reader for [LANraragi](https://github.com/Difegue/LANraragi)
+LANreader is an iOS/macOS(Apple silicon) manga reader for [LANraragi](https://github.com/Difegue/LANraragi)
 
 <a href="https://apps.apple.com/au/app/lanreader/id6743684988?itscg=30200&itsct=apps_box_badge&mttnsubad=6743684988" style="display: inline-block;">
 <img src="https://toolbox.marketingtools.apple.com/api/v2/badges/download-on-the-app-store/black/en-us?releaseDate=1742774400" alt="Download on the App Store" style="width: 246px; height: 82px; vertical-align: middle; object-fit: contain;" />
@@ -17,23 +17,23 @@ The AppStore version is a paid app. You can still follow [Test on your device](#
 
 ### Library View
 
-<img width="1049" height="1381" alt="Screenshot 2025-09-23 at 12 59 01 pm" src="https://github.com/user-attachments/assets/ad036018-2b78-4e7c-bff5-dc0f6f0d5bf9" />
+<img width="894" height="1256" alt="Screenshot 2026-05-24 at 10 38 54 pm" src="https://github.com/user-attachments/assets/e2a77035-e221-4f6c-8331-769ec88fc467" />
 
 ### Archive Page View
 
-<img width="1049" height="1381" alt="Screenshot 2025-09-23 at 1 00 07 pm" src="https://github.com/user-attachments/assets/5bd0b753-7370-4c7b-b761-73d6989763a7" />
+<img width="894" height="1256" alt="Screenshot 2026-05-24 at 10 39 35 pm" src="https://github.com/user-attachments/assets/bb114a8b-8e1f-4afe-807f-e148c5d2fe07" />
 
 ### Archive Details View
 
-<img width="1049" height="1381" alt="Screenshot 2025-09-23 at 12 59 50 pm" src="https://github.com/user-attachments/assets/57e1e3fd-389e-4c18-8e7a-a1c9e02e9303" />
+<img width="894" height="1256" alt="Screenshot 2026-05-24 at 10 39 50 pm" src="https://github.com/user-attachments/assets/024223ab-b9d3-4dab-885e-6f17c277f191" />
 
 ### Category Page
 
-<img width="1049" height="1381" alt="Screenshot 2025-09-23 at 12 59 03 pm" src="https://github.com/user-attachments/assets/270575d1-2467-4cde-ba7d-78f775a4305f" />
+<img width="894" height="1256" alt="Screenshot 2026-05-24 at 10 43 09 pm" src="https://github.com/user-attachments/assets/fa027b1a-9569-4f3d-8466-388e155ba809" />
 
 ### Settings Page
 
-<img width="1049" height="1381" alt="Screenshot 2025-09-23 at 12 59 05 pm" src="https://github.com/user-attachments/assets/2bf05109-b1bd-4138-ba6d-c4801b41a4f3" />
+<img width="894" height="1256" alt="Screenshot 2026-05-24 at 10 43 26 pm" src="https://github.com/user-attachments/assets/a15492ab-2103-4e30-a44e-7d7c73b0ab46" />
 
 ### Save URL
 
