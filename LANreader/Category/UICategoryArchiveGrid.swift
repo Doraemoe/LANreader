@@ -61,6 +61,7 @@ class UICategoryArchiveGridController: UIViewController {
         super.viewDidLoad()
 
         navigationItem.title = store.name
+        navigationItem.largeTitleDisplayMode = .never
 
         let archiveListView = UIArchiveListViewController(
             store: store.scope(state: \.archiveList, action: \.archiveList)
