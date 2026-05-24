@@ -23,6 +23,7 @@ class UICategoryListViewController: UIViewController {
                 animated: true
             )
         }))
+        hostingController.view.backgroundColor = .clear
         add(hostingController)
         NSLayoutConstraint.activate([
             hostingController!.view.topAnchor.constraint(equalTo: view.topAnchor),
@@ -34,6 +35,7 @@ class UICategoryListViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        view.backgroundColor = .systemGroupedBackground
         setupLayout()
         navigationItem.title = String(localized: "category")
     }
