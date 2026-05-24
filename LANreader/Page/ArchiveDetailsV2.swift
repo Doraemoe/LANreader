@@ -190,9 +190,6 @@ import GRDBQuery
 }
 
 struct ArchiveDetailsV2: View {
-    private static let sourceTag = "source"
-    private static let dateTag = "date_added"
-
     @Query<ThumbnailRequest> var thumbnailObj: ArchiveThumbnail?
 
     @Environment(\.openURL) var openURL
@@ -214,23 +211,17 @@ struct ArchiveDetailsV2: View {
 
     var body: some View {
         ScrollView {
-            titleView(store: store)
-            thumbnailView()
-            tagsView(store: store)
-            Button(
-                role: .destructive,
-                action: { store.send(.deleteButtonTapped) },
-                label: {
-                    Text("archive.delete")
-                }
-            )
-            .padding()
-            .background(.red)
-            .foregroundStyle(.white)
-            .clipShape(Capsule())
-            .disabled(store.loading)
-            .opacity(store.editMode != .active && !store.cached ? 1 : 0)
+            VStack(spacing: 22) {
+                headerView(store: store)
+                tagsView(store: store)
+                deleteButton(store: store)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 18)
+            .frame(maxWidth: 720)
+            .frame(maxWidth: .infinity)
         }
+        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
         .onAppear {
             store.send(.loadLocalFields)
         }
@@ -311,96 +302,266 @@ struct ArchiveDetailsV2: View {
         }
     }
 
-    @ViewBuilder
-    private func titleView(store: StoreOf<ArchiveDetailsFeature>) -> some View {
-        if store.editMode == .active {
-            TextField("", text: $store.title, axis: .vertical)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .textFieldStyle(.roundedBorder)
-                .padding()
-        } else {
-            Text(store.title)
-                .textFieldStyle(.roundedBorder)
-                .textSelection(.enabled)
-                .padding()
+    private func headerView(store: StoreOf<ArchiveDetailsFeature>) -> some View {
+        HStack(alignment: .top, spacing: 16) {
+            thumbnailView()
+
+            titleView(store: store)
+                .padding(.top, 4)
+                .layoutPriority(1)
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            Color(uiColor: .secondarySystemGroupedBackground),
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
+        )
     }
 
     @ViewBuilder
-    private func tagsView(store: StoreOf<ArchiveDetailsFeature>) -> some View {
+    private func titleView(store: StoreOf<ArchiveDetailsFeature>) -> some View {
         if store.editMode == .active {
-            TextField("", text: $store.tags, axis: .vertical)
-                .textFieldStyle(.roundedBorder)
-                .textInputAutocapitalization(.never)
-                .disableAutocorrection(true)
-                .padding()
-        } else {
-            let tags = store.tags.split(separator: ",")
-            WrappingHStack.ForEach(tags) { tag in
-                parseTag(tag: String(tag))
-                    .padding()
-                    .controlSize(.mini)
-                    .foregroundStyle(.white)
-                    .background(.blue)
-                    .clipShape(Capsule())
+            VStack(alignment: .leading, spacing: 10) {
+                Text("archive.details.title")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+
+                TextField("archive.details.title", text: $store.title, axis: .vertical)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.title3.weight(.semibold))
+                    .lineLimit(2...8)
+                    .padding(14)
+                    .background(
+                        Color(uiColor: .tertiarySystemGroupedBackground),
+                        in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    )
             }
-            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("details")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+
+                Text(store.title)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func tagsView(store: StoreOf<ArchiveDetailsFeature>) -> some View {
+        let groups = ArchiveDetailsTagParser.tagGroups(from: store.tags)
+        let tagCount = groups.reduce(0) { count, group in
+            count + group.tags.count
+        }
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Label("archive.details.tags", systemImage: "tag")
+                    .font(.headline)
+
+                Spacer()
+
+                if tagCount > 0 && store.editMode != .active {
+                    Text("\(tagCount)")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(.thinMaterial, in: Capsule())
+                }
+            }
+
+            if store.editMode == .active {
+                TextField("archive.details.tags", text: $store.tags, axis: .vertical)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.body.monospaced())
+                    .lineLimit(5...14)
+                    .padding(14)
+                    .background(
+                        Color(uiColor: .secondarySystemGroupedBackground),
+                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    )
+            } else if groups.isEmpty {
+                Label("archive.tags.empty", systemImage: "tag")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 76)
+                    .background(
+                        Color(uiColor: .secondarySystemGroupedBackground),
+                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    )
+            } else {
+                ForEach(groups) { group in
+                    tagGroupView(group)
+                }
+            }
         }
     }
 
     @ViewBuilder
     private func thumbnailView() -> some View {
-        if let thumbnailData = thumbnailObj?.thumbnail, let uiImage = UIImage(data: thumbnailData) {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFit()
-                .padding()
-                .frame(width: 200, height: 250)
-        } else {
-            Image("noThumb")
-                .resizable()
-                .scaledToFit()
-                .padding()
-                .frame(width: 200, height: 250)
+        Group {
+            if let thumbnailData = thumbnailObj?.thumbnail, let uiImage = UIImage(data: thumbnailData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+            } else {
+                Image("noThumb")
+                    .resizable()
+            }
+        }
+        .scaledToFit()
+        .padding(8)
+        .frame(width: 132, height: 178)
+        .background(
+            Color(uiColor: .tertiarySystemGroupedBackground),
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .shadow(color: Color.black.opacity(0.10), radius: 12, x: 0, y: 6)
+        .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private func deleteButton(store: StoreOf<ArchiveDetailsFeature>) -> some View {
+        if store.editMode != .active && !store.cached {
+            Button(
+                role: .destructive,
+                action: { store.send(.deleteButtonTapped) },
+                label: {
+                    Label("archive.delete", systemImage: "trash")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+            )
+            .buttonStyle(.plain)
+            .foregroundStyle(.white)
+            .background(Color.red, in: Capsule())
+            .disabled(store.loading)
+            .opacity(store.loading ? 0.55 : 1)
         }
     }
 
-    private func parseTag(tag: String) -> some View {
-        let tagPair = tag.split(separator: ":", maxSplits: 1)
+    private func tagGroupView(_ group: ArchiveTagGroup) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(group.title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
 
-        let tagName = tagPair[0].trimmingCharacters(in: .whitespacesAndNewlines)
-        let tagValue = tagPair.count == 2 ? tagPair[1].trimmingCharacters(in: .whitespacesAndNewlines) : ""
-        if tagName == ArchiveDetailsV2.sourceTag {
-            let urlString = tagValue.hasPrefix("http") ? tagValue : "https://\(tagValue)"
-            return Text(tag)
-                .lineLimit(1)
-                .onTapGesture {
-                    openURL(URL(string: urlString)!)
+            WrappingHStack(horizontalSpacing: 4, verticalSpacing: 4) {
+                ForEach(group.tags) { tag in
+                    tagButton(tag)
                 }
-
-        }
-        let processedTag: String
-        if tagName == ArchiveDetailsV2.dateTag {
-            let date = Date(timeIntervalSince1970: TimeInterval(tagValue) ?? 0)
-            processedTag = "\(ArchiveDetailsV2.dateTag): \(date.formatted(date: .abbreviated, time: .omitted))"
-        } else {
-            processedTag = tag
-        }
-        let normalizedTag = String(tag.trimmingCharacters(in: .whitespacesAndNewlines))
-        return Text(processedTag)
-            .lineLimit(1)
-            .onTapGesture {
-                let searchStore = Store(initialState: SearchFeature.State.init(
-                    keyword: normalizedTag, archiveList: ArchiveListFeature.State(
-                        filter: SearchFilter(category: nil, filter: normalizedTag),
-                        loadOnAppear: true,
-                        currentTab: .search
-                    )
-                )) {
-                    SearchFeature()
-                }
-                onTagNavigation(searchStore)
             }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            Color(uiColor: .secondarySystemGroupedBackground),
+            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+        }
+    }
+
+    private func tagButton(_ tag: ArchiveDetailsTag) -> some View {
+        let tint = tagTint(for: tag.namespaceKey)
+
+        return Button {
+            if tag.namespaceKey == ArchiveDetailsTagParser.sourceTag, let url = sourceURL(for: tag) {
+                openURL(url)
+            } else {
+                navigateToTag(tag.raw)
+            }
+        } label: {
+            HStack(spacing: 6) {
+                if let iconName = tagIconName(for: tag.namespaceKey) {
+                    Image(systemName: iconName)
+                        .font(.caption2.weight(.bold))
+                }
+
+                Text(tag.displayText)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .padding(.horizontal, 11)
+            .padding(.vertical, 7)
+            .frame(maxWidth: 280, alignment: .leading)
+            .foregroundStyle(tint)
+            .background(tint.opacity(0.14), in: Capsule())
+            .overlay {
+                Capsule()
+                    .strokeBorder(tint.opacity(0.18), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(verbatim: tag.accessibilityLabel))
+    }
+
+    private func tagTint(for namespaceKey: String) -> Color {
+        switch namespaceKey {
+        case ArchiveDetailsTagParser.artistTag:
+            return .orange
+        case ArchiveDetailsTagParser.sourceTag:
+            return .teal
+        case ArchiveDetailsTagParser.dateTag:
+            return .indigo
+        case ArchiveDetailsTagParser.otherTag:
+            return .secondary
+        default:
+            return .blue
+        }
+    }
+
+    private func tagIconName(for namespaceKey: String) -> String? {
+        switch namespaceKey {
+        case ArchiveDetailsTagParser.sourceTag:
+            return "link"
+        case ArchiveDetailsTagParser.dateTag:
+            return "calendar"
+        default:
+            return nil
+        }
+    }
+
+    private func sourceURL(for tag: ArchiveDetailsTag) -> URL? {
+        let value = tag.value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else {
+            return nil
+        }
+
+        let lowercasedValue = value.lowercased()
+        let urlString = if lowercasedValue.hasPrefix("http://") || lowercasedValue.hasPrefix("https://") {
+            value
+        } else {
+            "https://\(value)"
+        }
+        return URL(string: urlString)
+    }
+
+    private func navigateToTag(_ tag: String) {
+        let normalizedTag = String(tag.trimmingCharacters(in: .whitespacesAndNewlines))
+        let searchStore = Store(initialState: SearchFeature.State.init(
+            keyword: normalizedTag,
+            archiveList: ArchiveListFeature.State(
+                filter: SearchFilter(category: nil, filter: normalizedTag),
+                loadOnAppear: true,
+                currentTab: .search
+            )
+        )) {
+            SearchFeature()
+        }
+        onTagNavigation(searchStore)
     }
 }

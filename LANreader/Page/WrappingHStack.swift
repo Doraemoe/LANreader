@@ -55,33 +55,3 @@ struct WrappingHStack: Layout {
         return (CGSize(width: totalWidth, height: totalHeight), positions)
     }
 }
-
-// Convenience wrapper for generic content
-extension WrappingHStack {
-    struct ForEach<Model: Hashable, Content: View>: View {
-        let models: [Model]
-        let horizontalSpacing: CGFloat
-        let verticalSpacing: CGFloat
-        let content: (Model) -> Content
-
-        init(
-            _ models: [Model],
-            horizontalSpacing: CGFloat = 2,
-            verticalSpacing: CGFloat = 2,
-            @ViewBuilder content: @escaping (Model) -> Content
-        ) {
-            self.models = models
-            self.horizontalSpacing = horizontalSpacing
-            self.verticalSpacing = verticalSpacing
-            self.content = content
-        }
-
-        var body: some View {
-            WrappingHStack(horizontalSpacing: horizontalSpacing, verticalSpacing: verticalSpacing) {
-                SwiftUI.ForEach(models, id: \.self) { model in
-                    content(model)
-                }
-            }
-        }
-    }
-}
