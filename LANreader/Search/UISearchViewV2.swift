@@ -107,10 +107,38 @@ class UISearchViewV2Controller: UIViewController {
         return searchBar
     }()
 
+    private let suggestionsContainerView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowOpacity = 0.12
+        view.layer.shadowRadius = 18
+        view.layer.shadowOffset = CGSize(width: 0, height: 10)
+        return view
+    }()
+
+    private let suggestionsBackgroundView: UIVisualEffectView = {
+        let blur = UIBlurEffect(style: .systemChromeMaterial)
+        let view = UIVisualEffectView(effect: blur)
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.clipsToBounds = true
+        view.layer.cornerRadius = 22
+        view.layer.borderColor = UIColor.label.withAlphaComponent(0.08).cgColor
+        view.layer.borderWidth = 1
+        return view
+    }()
+
     private let suggestionsTableView: UITableView = {
         let tableView = UITableView()
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.isHidden = true
+        tableView.backgroundColor = .clear
+        tableView.separatorStyle = .none
+        tableView.rowHeight = 58
+        tableView.showsVerticalScrollIndicator = false
+        tableView.keyboardDismissMode = .onDrag
+        tableView.contentInset = UIEdgeInsets(top: 6, left: 0, bottom: 6, right: 0)
         return tableView
     }()
 
@@ -127,12 +155,13 @@ class UISearchViewV2Controller: UIViewController {
     // Constants
     private let maxSuggestionsHeight: CGFloat = {
         if UIDevice.current.userInterfaceIdiom == .phone {
-            return 300
+            return 340
         } else {
-            return 600
+            return 540
         }
     }()
-    private let suggestionsRowHeight: CGFloat = 45
+    private let suggestionsRowHeight: CGFloat = 58
+    private let suggestionsVerticalPadding: CGFloat = 12
 
     // MARK: - Init
     init(store: StoreOf<SearchFeature>) {
@@ -164,6 +193,14 @@ class UISearchViewV2Controller: UIViewController {
         }
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        suggestionsContainerView.layer.shadowPath = UIBezierPath(
+            roundedRect: suggestionsContainerView.bounds,
+            cornerRadius: 22
+        ).cgPath
+    }
+
     // MARK: - Setup
     private func setupNavigationSearch() {
         if UIDevice.current.userInterfaceIdiom == .phone {
@@ -185,9 +222,11 @@ class UISearchViewV2Controller: UIViewController {
         // Child archive list
         add(archiveListViewController)
 
-        view.addSubview(suggestionsTableView)
+        view.addSubview(suggestionsContainerView)
+        suggestionsContainerView.addSubview(suggestionsBackgroundView)
+        suggestionsBackgroundView.contentView.addSubview(suggestionsTableView)
 
-        suggestionsHeightConstraint = suggestionsTableView.heightAnchor.constraint(equalToConstant: 0)
+        suggestionsHeightConstraint = suggestionsContainerView.heightAnchor.constraint(equalToConstant: 0)
         suggestionsHeightConstraint?.isActive = true
 
         if UIDevice.current.userInterfaceIdiom == .phone {
@@ -199,9 +238,9 @@ class UISearchViewV2Controller: UIViewController {
                 archiveListViewController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
                 // Suggestions table anchors (top under safe area so it visually appears below nav/search bar)
-                suggestionsTableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-                suggestionsTableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                suggestionsTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+                suggestionsContainerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+                suggestionsContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+                suggestionsContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)
             ])
         } else {
             NSLayoutConstraint.activate([
@@ -210,9 +249,9 @@ class UISearchViewV2Controller: UIViewController {
                 searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
                 searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
 
-                suggestionsTableView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 8),
-                suggestionsTableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                suggestionsTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                suggestionsContainerView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 10),
+                suggestionsContainerView.leadingAnchor.constraint(equalTo: searchBar.leadingAnchor),
+                suggestionsContainerView.trailingAnchor.constraint(equalTo: searchBar.trailingAnchor),
 
                 archiveListViewController.view.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 8),
                 archiveListViewController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -220,6 +259,20 @@ class UISearchViewV2Controller: UIViewController {
                 archiveListViewController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
             ])
         }
+
+        NSLayoutConstraint.activate([
+            suggestionsBackgroundView.topAnchor.constraint(equalTo: suggestionsContainerView.topAnchor),
+            suggestionsBackgroundView.leadingAnchor.constraint(equalTo: suggestionsContainerView.leadingAnchor),
+            suggestionsBackgroundView.trailingAnchor.constraint(equalTo: suggestionsContainerView.trailingAnchor),
+            suggestionsBackgroundView.bottomAnchor.constraint(equalTo: suggestionsContainerView.bottomAnchor),
+
+            suggestionsTableView.topAnchor.constraint(equalTo: suggestionsBackgroundView.contentView.topAnchor),
+            suggestionsTableView.leadingAnchor.constraint(equalTo: suggestionsBackgroundView.contentView.leadingAnchor),
+            suggestionsTableView.trailingAnchor.constraint(
+                equalTo: suggestionsBackgroundView.contentView.trailingAnchor
+            ),
+            suggestionsTableView.bottomAnchor.constraint(equalTo: suggestionsBackgroundView.contentView.bottomAnchor)
+        ])
     }
 
     private func setupDelegates() {
@@ -231,7 +284,10 @@ class UISearchViewV2Controller: UIViewController {
 
         suggestionsTableView.delegate = self
         suggestionsTableView.dataSource = self
-        suggestionsTableView.register(UITableViewCell.self, forCellReuseIdentifier: "SuggestionCellV2")
+        suggestionsTableView.register(
+            SearchSuggestionCell.self,
+            forCellReuseIdentifier: SearchSuggestionCell.reuseIdentifier
+        )
     }
 
     private func setupObserve() {
@@ -244,29 +300,50 @@ class UISearchViewV2Controller: UIViewController {
                 searchText = searchBar.text
             }
             if searchText?.isEmpty == true && !store.popularTag.isEmpty {
-                self.suggestionsHeightConstraint?.constant = maxSuggestionsHeight
-                self.suggestionsTableView.isHidden = false
-                self.view.layoutIfNeeded()
+                suggestionsTableView.reloadData()
+                updateSuggestionsVisibility(for: searchText ?? "", animated: false)
             }
         }
     }
 
     // MARK: - Suggestions Handling
-    private func updateSuggestionsVisibility(for searchText: String) {
+    private func updateSuggestionsVisibility(for _: String, animated: Bool = true) {
         if !store.suggestedTag.isEmpty {
-            let contentHeight = CGFloat(store.suggestedTag.count) * suggestionsRowHeight
+            let contentHeight = CGFloat(store.suggestedTag.count) * suggestionsRowHeight + suggestionsVerticalPadding
             let newHeight = min(contentHeight, maxSuggestionsHeight)
-            UIView.animate(withDuration: 0.25) {
+
+            let updates = {
                 self.suggestionsHeightConstraint?.constant = newHeight
+                self.suggestionsContainerView.isHidden = false
                 self.suggestionsTableView.isHidden = false
+                self.suggestionsTableView.showsVerticalScrollIndicator = contentHeight > self.maxSuggestionsHeight
                 self.view.layoutIfNeeded()
+            }
+            if animated {
+                UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseOut]) {
+                    updates()
+                }
+            } else {
+                updates()
             }
         } else {
-            UIView.animate(withDuration: 0.25) {
-                self.suggestionsHeightConstraint?.constant = 0
-                self.suggestionsTableView.isHidden = true
-                self.view.layoutIfNeeded()
+            hideSuggestions(animated: animated)
+        }
+    }
+
+    private func hideSuggestions(animated: Bool = true) {
+        let updates = {
+            self.suggestionsHeightConstraint?.constant = 0
+            self.suggestionsContainerView.isHidden = true
+            self.suggestionsTableView.isHidden = true
+            self.view.layoutIfNeeded()
+        }
+        if animated {
+            UIView.animate(withDuration: 0.2, delay: 0, options: [.curveEaseIn]) {
+                updates()
             }
+        } else {
+            updates()
         }
     }
 }
@@ -288,8 +365,7 @@ extension UISearchViewV2Controller: UISearchBarDelegate {
         guard let text = searchBar.text, !text.isEmpty else { return }
         store.send(.binding(.set(\.keyword, text)))
         store.send(.searchSubmit(text))
-        suggestionsTableView.isHidden = true
-        suggestionsHeightConstraint?.constant = 0
+        hideSuggestions()
         searchBar.resignFirstResponder()
     }
 }
@@ -299,13 +375,14 @@ extension UISearchViewV2Controller: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { store.suggestedTag.count }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "SuggestionCellV2", for: indexPath)
-        var content = cell.defaultContentConfiguration()
+        let cell = tableView.dequeueReusableCell(
+            withIdentifier: SearchSuggestionCell.reuseIdentifier,
+            for: indexPath
+        )
         let tagWithType = store.suggestedTag[indexPath.row]
-        content.text = tagWithType.tag
-        content.image = tagWithType.type == .popular ? UIImage(systemName: "flame") : UIImage(systemName: "tag")
-        content.imageProperties.tintColor = .label
-        cell.contentConfiguration = content
+        if let cell = cell as? SearchSuggestionCell {
+            cell.configure(with: tagWithType, isLast: indexPath.row == store.suggestedTag.count - 1)
+        }
         return cell
     }
 
@@ -317,11 +394,7 @@ extension UISearchViewV2Controller: UITableViewDataSource, UITableViewDelegate {
         } else {
             searchBar.text = store.keyword
         }
-        UIView.animate(withDuration: 0.25) {
-            self.suggestionsHeightConstraint?.constant = 0
-            tableView.isHidden = true
-            self.view.layoutIfNeeded()
-        }
+        hideSuggestions()
         tableView.deselectRow(at: indexPath, animated: true)
     }
 }
