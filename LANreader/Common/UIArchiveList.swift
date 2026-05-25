@@ -33,6 +33,19 @@ import Logging
         var currentTab: TabName
 
         var archivesToDisplay: IdentifiedArrayOf<GridFeature.State> = []
+
+        // Library/category can load an unfiltered list; Search treats an empty filter as no query yet.
+        var canLoadArchives: Bool {
+            currentTab != .search || hasSearchFilter
+        }
+
+        private var hasSearchFilter: Bool {
+            guard currentTab == .search else { return true }
+            if filter.category != nil {
+                return true
+            }
+            return filter.filter?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        }
     }
 
     public enum Action: Equatable {
@@ -86,6 +99,10 @@ import Logging
                 state.archives = .init()
                 return .none
             case let .load(showLoading):
+                guard state.canLoadArchives else {
+                    clearArchives(state: &state)
+                    return .none
+                }
                 guard state.loading == false else {
                     return .none
                 }
@@ -100,6 +117,9 @@ import Logging
                     searchFilter: state.filter, sortby: sortby, start: "0", order: order, append: false
                 )
             case let .appendArchives(start):
+                guard state.canLoadArchives else {
+                    return .none
+                }
                 guard state.loading == false else {
                     return .none
                 }
@@ -415,6 +435,14 @@ import Logging
             GridFeature()
         }
         .ifLet(\.$alert, action: \.alert)
+    }
+
+    func clearArchives(state: inout State) {
+        state.archivesToDisplay = .init()
+        state.archives = .init()
+        state.total = 0
+        state.loading = false
+        state.showLoading = false
     }
 
     func populateTags(state: inout State) {
