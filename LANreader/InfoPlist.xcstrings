@@ -39,6 +39,12 @@
             "state" : "translated",
             "value" : "我们需要解锁您的App"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我們需要解鎖您的App"
+          }
         }
       }
     }

@@ -27,6 +27,12 @@
             "state" : "translated",
             "value" : "上传至LANraragi"
           }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上傳至LANraragi"
+          }
         }
       }
     },

@@ -618,6 +618,7 @@
 				ja,
 				ko,
 				"zh-Hans",
+				"zh-Hant",
 			);
 			mainGroup = 7D354C9324F1316800617F4A;
 			packageReferences = (
