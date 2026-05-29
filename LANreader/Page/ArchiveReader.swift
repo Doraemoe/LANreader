@@ -1165,7 +1165,7 @@ struct ArchiveReader: View {
                 systemImage: "arrow.clockwise",
                 tint: Color(uiColor: .systemBlue),
                 disabled: store.cached,
-                accessibilityLabel: "Reload current page"
+                accessibilityLabel: "archive.reader.reload.currentPage"
             ) {
                 let indexString = store.pages[store.safeCurrentPageIndex].id
                 store.send(.page(.element(id: indexString, action: .load(true))))
@@ -1175,7 +1175,7 @@ struct ArchiveReader: View {
                 systemImage: "play.fill",
                 tint: Color(uiColor: .systemPurple),
                 disabled: autoPageDisabled,
-                accessibilityLabel: "Auto page"
+                accessibilityLabel: "archive.reader.autoPage"
             ) {
                 store.send(.showAutoPageConfig)
             }
@@ -1192,7 +1192,7 @@ struct ArchiveReader: View {
             readerToolbarButton(
                 systemImage: cacheActionRemoves ? "trash.fill" : "tray.and.arrow.down.fill",
                 tint: cacheActionRemoves ? Color(uiColor: .systemRed) : Color(uiColor: .systemOrange),
-                accessibilityLabel: cacheActionRemoves ? "Remove cache" : "Download pages"
+                accessibilityLabel: cacheActionRemoves ? "archive.reader.cache.remove" : "archive.reader.pages.download"
             ) {
                 if cacheActionRemoves {
                     store.send(.removeCache)
@@ -1205,7 +1205,7 @@ struct ArchiveReader: View {
                 systemImage: "photo.artframe",
                 tint: Color(uiColor: .systemTeal),
                 disabled: store.settingThumbnail || store.cached,
-                accessibilityLabel: "Set archive thumbnail"
+                accessibilityLabel: "archive.thumbnail.current"
             ) {
                 store.send(.setThumbnail)
             }
@@ -1228,14 +1228,21 @@ struct ArchiveReader: View {
         .foregroundStyle(.primary)
         .background(Color(uiColor: .tertiarySystemFill), in: Capsule())
         .environment(\.layoutDirection, .leftToRight)
-        .accessibilityLabel(Text(verbatim: "Page \(currentPage) of \(pageCount)"))
+        .accessibilityLabel(
+            Text(verbatim: pageCounterAccessibilityLabel(currentPage: currentPage, pageCount: pageCount))
+        )
+    }
+
+    private func pageCounterAccessibilityLabel(currentPage: Int, pageCount: Int) -> String {
+        let format = String(localized: "archive.reader.page.accessibility %lld %lld")
+        return String(format: format, Int64(currentPage), Int64(pageCount))
     }
 
     private func readerToolbarButton(
         systemImage: String,
         tint: Color,
         disabled: Bool = false,
-        accessibilityLabel: String,
+        accessibilityLabel: LocalizedStringKey,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -1252,7 +1259,7 @@ struct ArchiveReader: View {
         .buttonStyle(.plain)
         .disabled(disabled)
         .opacity(disabled ? 0.42 : 1)
-        .accessibilityLabel(Text(verbatim: accessibilityLabel))
+        .accessibilityLabel(Text(accessibilityLabel))
     }
 
     private func readerPageSlider(
@@ -1303,7 +1310,7 @@ struct ArchiveReader: View {
         }
         .frame(height: 34)
         .environment(\.layoutDirection, .leftToRight)
-        .accessibilityLabel(Text(verbatim: "Page slider"))
+        .accessibilityLabel(Text("archive.reader.page.slider"))
     }
 
     private func sendSliderDragChanged(

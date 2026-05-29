@@ -10,10 +10,28 @@
             "value" : "Upload to LANraragi"
           }
         },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LANraragiにアップロード"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LANraragi에 업로드"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "上传至LANraragi"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上傳至LANraragi"
           }
         }
       }
@@ -27,6 +45,18 @@
             "state" : "new",
             "value" : "Action"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクション"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "액션"
+          }
         }
       }
     },
@@ -37,6 +67,18 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
+            "value" : "Copyright © 2023 Jin Yifan. All rights reserved."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copyright © 2023 Jin Yifan. All rights reserved."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "Copyright © 2023 Jin Yifan. All rights reserved."
           }
         }
