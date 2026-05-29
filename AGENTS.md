@@ -18,7 +18,7 @@ Use this file as the source of truth for Codex-style work in this repository.
 - Main app scheme: `LANreader`
 - Secondary scheme: `Action`
 - Test target: `LANreaderTests`
-- CI simulator destination: `platform=iOS Simulator,OS=26.4,name=iPad Pro 11-inch (M5)`
+- CI simulator destination: `platform=iOS Simulator,OS=26.5,name=iPad Pro 11-inch (M5)`
 - CI lint command: `swiftlint --strict`
 - CI test command: `xcodebuild clean test -project LANreader.xcodeproj -scheme LANreader ... -skipMacroValidation`
 - Current active GitHub workflows are `ci.yml` and `manual-ipa-release.yml`.

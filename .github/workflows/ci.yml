@@ -10,7 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        destination: ['platform=iOS Simulator,OS=26.4.1,name=iPad Pro 11-inch (M5)']
+        destination: ['platform=iOS Simulator,OS=26.5,name=iPad Pro 11-inch (M5)']
     steps:
       - uses: actions/checkout@v6
 
@@ -22,7 +22,7 @@ jobs:
 
       - name: Select Xcode version
         run: |
-          sudo xcode-select -switch /Applications/Xcode_26.4.app
+          sudo xcode-select -switch /Applications/Xcode_26.5.app
           xcodebuild -version
 
       - name: Build and test
