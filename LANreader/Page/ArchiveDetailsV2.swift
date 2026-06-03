@@ -441,11 +441,12 @@ struct ArchiveDetailsV2: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
+                        .foregroundStyle(.white)
+                        .background(Color.red, in: Capsule())
+                        .contentShape(Capsule())
                 }
             )
             .buttonStyle(.plain)
-            .foregroundStyle(.white)
-            .background(Color.red, in: Capsule())
             .disabled(store.loading)
             .opacity(store.loading ? 0.55 : 1)
         }
