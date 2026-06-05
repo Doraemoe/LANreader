@@ -166,21 +166,38 @@ struct LockScreen: View {
     @Bindable var store: StoreOf<LockScreenFeature>
 
     var body: some View {
-        let label = "lock.label.\(store.lockState.rawValue)"
-        VStack(spacing: 40) {
-            Text(LocalizedStringKey(label))
-                .font(.title)
-                .font(.title)
-            ZStack {
-                pinDots(store: store)
-                backgroundField(store: store)
-                    .focused($focusedField)
+        ZStack {
+            Color(uiColor: .systemGroupedBackground)
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                Spacer(minLength: 48)
+
+                VStack(spacing: 24) {
+                    stateIcon(store: store)
+
+                    Text(title(for: store.lockState))
+                        .font(.title2.weight(.semibold))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.82)
+
+                    passcodePanel(store: store)
+                }
+                .frame(maxWidth: 420)
+
+                Spacer(minLength: 48)
             }
-            showPinStack(store: store)
+            .padding(.horizontal, 24)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            focusPasscodeField()
         }
         .onChange(of: store.disableBiometricsAuth, initial: true) {
             if store.lockState != .normal || store.disableBiometricsAuth {
-                focusedField = true
+                focusPasscodeField()
             }
         }
         .onChange(of: scenePhase, initial: true) {
@@ -204,15 +221,102 @@ struct LockScreen: View {
         }
     }
 
+    private func title(for state: LockScreenFeature.LockScreenState) -> String {
+        NSLocalizedString("lock.label.\(state.rawValue)", comment: "")
+    }
+
+    private func focusPasscodeField() {
+        focusedField = false
+        Task { @MainActor in
+            await Task.yield()
+            focusedField = true
+        }
+    }
+
+    private func stateIcon(store: StoreOf<LockScreenFeature>) -> some View {
+        let tint = tintColor(for: store.lockState)
+
+        return ZStack {
+            Circle()
+                .fill(tint.opacity(0.14))
+
+            Circle()
+                .strokeBorder(tint.opacity(0.22), lineWidth: 1)
+
+            Image(systemName: iconName(for: store.lockState))
+                .font(.system(size: 34, weight: .semibold))
+                .foregroundStyle(tint)
+        }
+        .frame(width: 86, height: 86)
+        .shadow(color: tint.opacity(0.16), radius: 18, x: 0, y: 10)
+        .accessibilityHidden(true)
+    }
+
+    private func passcodePanel(store: StoreOf<LockScreenFeature>) -> some View {
+        VStack(spacing: 18) {
+            ZStack {
+                pinDots(store: store)
+
+                backgroundField(store: store)
+                    .focused($focusedField)
+                    .frame(width: 1, height: 1)
+                    .opacity(0.01)
+                    .accessibilityHidden(true)
+            }
+
+            showPinStack(store: store)
+        }
+        .padding(22)
+        .background(
+            Color(uiColor: .secondarySystemGroupedBackground),
+            in: RoundedRectangle(cornerRadius: 26, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(0.08), radius: 18, x: 0, y: 10)
+    }
+
     private func pinDots(store: StoreOf<LockScreenFeature>) -> some View {
-        HStack {
-            Spacer()
-            ForEach(0..<6) { index in
-                Image(systemName: self.getImageName(store: store, at: index))
-                    .font(.system(size: 30, weight: .thin, design: .default))
-                Spacer()
+        GeometryReader { proxy in
+            let spacing: CGFloat = 8
+            let availableWidth = max(0, proxy.size.width - spacing * 5)
+            let cellWidth = min(42, availableWidth / 6)
+
+            HStack(spacing: spacing) {
+                ForEach(0..<6) { index in
+                    pinCell(store: store, at: index, width: cellWidth)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .frame(height: 50)
+    }
+
+    private func pinCell(store: StoreOf<LockScreenFeature>, at index: Int, width: CGFloat) -> some View {
+        let hasDigit = index < store.pin.count
+        let tint = tintColor(for: store.lockState)
+
+        return ZStack {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(hasDigit ? tint.opacity(0.14) : Color(uiColor: .tertiarySystemGroupedBackground))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(hasDigit ? tint.opacity(0.28) : Color.primary.opacity(0.08), lineWidth: 1)
+                }
+
+            if hasDigit && store.showPin {
+                Text(store.pin.digits[index].singleDigitNumberString)
+                    .font(.title3.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(tint)
+            } else if hasDigit {
+                Circle()
+                    .fill(tint)
+                    .frame(width: 11, height: 11)
             }
         }
+        .frame(width: width, height: 50)
     }
 
     @MainActor
@@ -240,32 +344,58 @@ struct LockScreen: View {
                 showPinButton(store: store)
             }
         }
-        .frame(height: 20)
-        .padding([.trailing])
+        .frame(height: 42)
     }
 
     private func showPinButton(store: StoreOf<LockScreenFeature>) -> some View {
-        Button(action: {
+        let tint = tintColor(for: store.lockState)
+
+        return Button(action: {
             store.send(.setShowPin(nil))
         }, label: {
             store.showPin ?
             Image(systemName: "eye.slash.fill")
-                .foregroundStyle(Color.primary) :
+                .foregroundStyle(tint) :
             Image(systemName: "eye.fill")
-                .foregroundStyle(Color.primary)
+                .foregroundStyle(tint)
         })
+        .font(.system(size: 16, weight: .semibold))
+        .frame(width: 42, height: 42)
+        .background(
+            tint.opacity(0.12),
+            in: Circle()
+        )
+        .overlay {
+            Circle()
+                .strokeBorder(tint.opacity(0.18), lineWidth: 1)
+        }
+        .buttonStyle(.plain)
     }
 
-    private func getImageName(store: StoreOf<LockScreenFeature>, at index: Int) -> String {
-        if index >= store.pin.count {
-            return "circle"
+    private func iconName(for state: LockScreenFeature.LockScreenState) -> String {
+        switch state {
+        case .new:
+            return "key.fill"
+        case .verify:
+            return "checkmark.shield.fill"
+        case .normal:
+            return "lock.fill"
+        case .remove:
+            return "lock.open.fill"
         }
+    }
 
-        if store.showPin {
-            return store.pin.digits[index].singleDigitNumberString + ".circle"
+    private func tintColor(for state: LockScreenFeature.LockScreenState) -> Color {
+        switch state {
+        case .new:
+            return .green
+        case .verify:
+            return .indigo
+        case .normal:
+            return .blue
+        case .remove:
+            return .red
         }
-
-        return "circle.fill"
     }
 }
 
