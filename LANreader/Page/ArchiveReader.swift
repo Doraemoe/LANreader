@@ -152,7 +152,7 @@ import UIKit
     public var body: some ReducerOf<Self> {
         BindingReducer()
 
-        Scope(state: \.autoPage, action: \.autoPage) {
+        Scope(\.autoPage, action: \.autoPage) {
             AutomaticPageFeature()
         }
 
@@ -988,11 +988,11 @@ struct ArchiveReader: View {
             }
         }
         .alert(
-            $store.scope(state: \.$alert, action: \.alert)
+            $store.scope(\.$alert, action: \.alert)
         )
         .overlay(content: {
             store.showAutoPageConfig ? AutomaticPageConfig(
-                store: store.scope(state: \.autoPage, action: \.autoPage)
+                store: store.scope(\.autoPage, action: \.autoPage)
             ) : nil
         })
         .task {

@@ -129,7 +129,7 @@ struct CacheView: View {
         ScrollView {
             LazyVGrid(columns: columns) {
                 ForEach(
-                    store.scope(state: \.archives, action: \.grid),
+                    store.scope(\.archives, action: \.grid),
                     id: \.state.id
                 ) { gridStore in
                     let inProgress = store.downloading.contains { (key, _) in

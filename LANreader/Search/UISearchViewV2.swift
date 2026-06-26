@@ -31,7 +31,7 @@ import UIKit
 
     public var body: some ReducerOf<Self> {
 
-        Scope(state: \.archiveList, action: \.archiveList) {
+        Scope(\.archiveList, action: \.archiveList) {
             ArchiveListFeature()
         }
 
@@ -145,7 +145,7 @@ class UISearchViewV2Controller: UIViewController {
     // Archive list child (same as original UISearchView)
     private lazy var archiveListViewController: UIArchiveListViewController = {
         UIArchiveListViewController(
-            store: store.scope(state: \.archiveList, action: \.archiveList)
+            store: store.scope(\.archiveList, action: \.archiveList)
         )
     }()
 

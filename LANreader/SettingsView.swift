@@ -16,15 +16,15 @@ import SwiftUI
     }
 
     public var body: some ReducerOf<Self> {
-        Scope(state: \.read, action: \.read) {
+        Scope(\.read, action: \.read) {
             ReadSettingsFeature()
         }
 
-        Scope(state: \.view, action: \.view) {
+        Scope(\.view, action: \.view) {
             ViewSettingsFeature()
         }
 
-        Scope(state: \.database, action: \.database) {
+        Scope(\.database, action: \.database) {
             DatabaseSettingsFeature()
         }
 
@@ -47,7 +47,7 @@ struct SettingsView: View {
             Section(
                 header: Text("settings.read")
             ) {
-                ReadSettings(store: self.store.scope(state: \.read, action: \.read))
+                ReadSettings(store: self.store.scope(\.read, action: \.read))
             }
             Section(header: Text("settings.host")) {
                 ServerSettings()
@@ -56,7 +56,7 @@ struct SettingsView: View {
                 header: Text("settings.view"),
                 footer: Text("settings.archive.list.order.custom.explain")
             ) {
-                ViewSettings(store: self.store.scope(state: \.view, action: \.view))
+                ViewSettings(store: self.store.scope(\.view, action: \.view))
             }
             Section(
                 header: Text("settings.advanced"),
@@ -64,7 +64,7 @@ struct SettingsView: View {
                 AdvancedSettings()
             }
             Section(header: Text("settings.database")) {
-                DatabaseSettings(store: self.store.scope(state: \.database, action: \.database))
+                DatabaseSettings(store: self.store.scope(\.database, action: \.database))
             }
             Section(header: Text("settings.support")) {
                 SupportSettings()
