@@ -761,7 +761,7 @@ class UIArchiveListViewController: UIViewController {
             >()
             snapshot.appendSections([.main])
             snapshot.appendItems(
-                Array(store.scope(state: \.archivesToDisplay, action: \.grid)))
+                Array(store.scope(\.archivesToDisplay, action: \.grid)))
             dataSource.apply(snapshot, animatingDifferences: false)
         }
 

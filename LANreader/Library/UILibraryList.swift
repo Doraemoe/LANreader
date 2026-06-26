@@ -24,7 +24,7 @@ import UIKit
     public var body: some ReducerOf<Self> {
         BindingReducer()
 
-        Scope(state: \.archiveList, action: \.archiveList) {
+        Scope(\.archiveList, action: \.archiveList) {
             ArchiveListFeature()
         }
 
@@ -77,7 +77,7 @@ class UILibraryListViewController: UIViewController {
         setupNavigationBar()
 
         let archiveListView = UIArchiveListViewController(
-            store: store.scope(state: \.archiveList, action: \.archiveList)
+            store: store.scope(\.archiveList, action: \.archiveList)
         )
         add(archiveListView)
         NSLayoutConstraint.activate([

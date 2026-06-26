@@ -48,16 +48,16 @@ import Logging
     public var body: some Reducer<State, Action> {
         BindingReducer()
 
-        Scope(state: \.library, action: \.library) {
+        Scope(\.library, action: \.library) {
             LibraryFeature()
         }
-        Scope(state: \.category, action: \.category) {
+        Scope(\.category, action: \.category) {
             CategoryFeature()
         }
-        Scope(state: \.search, action: \.search) {
+        Scope(\.search, action: \.search) {
             SearchFeature()
         }
-        Scope(state: \.settings, action: \.settings) {
+        Scope(\.settings, action: \.settings) {
             SettingsFeature()
         }
 
@@ -190,12 +190,12 @@ struct Covers: ViewModifier {
     func body(content: Content) -> some View {
         content
             .fullScreenCover(
-                item: $store.scope(state: \.$destination, action: \.destination).login
+                item: $store.scope(\.$destination, action: \.destination).login
             ) { store in
                 LANraragiConfigView(store: store)
             }
             .fullScreenCover(
-                item: $store.scope(state: \.$destination, action: \.destination).lockScreen
+                item: $store.scope(\.$destination, action: \.destination).lockScreen
             ) { store in
                 LockScreen(store: store)
             }

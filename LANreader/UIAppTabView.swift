@@ -41,7 +41,7 @@ class UITabViewController: UITabBarController {
         let libraryNavHelper = NavigationHelper()
         libraryNavHelper.navigationController = libraryNav
         let libraryView = UILibraryListViewController(
-            store: store.scope(state: \.library, action: \.library),
+            store: store.scope(\.library, action: \.library),
             navigationHelper: libraryNavHelper
         )
         libraryNav.viewControllers = [libraryView]
@@ -51,7 +51,7 @@ class UITabViewController: UITabBarController {
             tag: 0
         )
 
-        let categoryView = UICategoryListViewController(store: store.scope(state: \.category, action: \.category))
+        let categoryView = UICategoryListViewController(store: store.scope(\.category, action: \.category))
         let categoryNav = UINavigationController(rootViewController: categoryView)
         categoryNav.tabBarItem = UITabBarItem(
             title: String(localized: "category"),
@@ -59,7 +59,7 @@ class UITabViewController: UITabBarController {
             tag: 1
         )
 
-        let searchView = UISearchViewV2Controller(store: store.scope(state: \.search, action: \.search))
+        let searchView = UISearchViewV2Controller(store: store.scope(\.search, action: \.search))
         let searchNav = UINavigationController(rootViewController: searchView)
         searchNav.tabBarItem = UITabBarItem(
             tabBarSystemItem: .search,
@@ -70,7 +70,7 @@ class UITabViewController: UITabBarController {
         let settingsNavHelper = NavigationHelper()
         settingsNavHelper.navigationController = settingsNav
         let settingsView = UISettingsViewController(
-            store: store.scope(state: \.settings, action: \.settings),
+            store: store.scope(\.settings, action: \.settings),
             navigationHelper: settingsNavHelper
         )
         settingsNav.viewControllers = [settingsView]

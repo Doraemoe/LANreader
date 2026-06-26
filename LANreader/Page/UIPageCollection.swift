@@ -152,7 +152,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     }
 
     private func pageStore(id pageId: String) -> StoreOf<PageFeature>? {
-        Array(store.scope(state: \.pages, action: \.page)).first { $0.id == pageId }
+        Array(store.scope(\.pages, action: \.page)).first { $0.id == pageId }
     }
 
     private func pageStore(at indexPath: IndexPath) -> StoreOf<PageFeature>? {
