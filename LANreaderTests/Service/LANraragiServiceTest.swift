@@ -227,7 +227,7 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(actual.job, 42)
         XCTAssertNil(actual.message)
         XCTAssertEqual(actual.operation, "generate_page_thumbnails")
-        XCTAssertEqual(actual.success, 1)
+        XCTAssertEqual(actual.success, "1")
     }
 
     func testQueuePageThumbnailsReturnsAlreadyGeneratedMessage() async throws {
@@ -237,7 +237,7 @@ class LANraragiServiceTest: XCTestCase {
         {
           "message": "No job queued, all thumbnails already exist.",
           "operation": "generate_page_thumbnails",
-          "success": 1
+          "success": "1"
         }
         """.utf8)
         stub(condition: isHost("localhost")
@@ -255,7 +255,7 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertNil(actual.job)
         XCTAssertEqual(actual.message, "No job queued, all thumbnails already exist.")
         XCTAssertEqual(actual.operation, "generate_page_thumbnails")
-        XCTAssertEqual(actual.success, 1)
+        XCTAssertEqual(actual.success, "1")
     }
 
     func testSearchArchive() async throws {
