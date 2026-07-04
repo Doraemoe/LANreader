@@ -157,7 +157,24 @@ actor LANraragiService {
         ]
         .merging(cacheBust.map { ["cachebust": String($0)] } ?? [:]) { _, new in new }
 
-        var components = URLComponents(string: "\(url)/api/archives/\(id)/thumbnail")!
+        return try await fetchThumbnail(
+            path: "/api/archives/\(id)/thumbnail",
+            query: query,
+            disableResponseCache: disableResponseCache
+        )
+    }
+
+    func retrieveTankoubonThumbnail(id: String) async throws -> Data? {
+        let query = ["no_fallback": "true"]
+        return try await fetchThumbnail(path: "/api/tankoubons/\(id)/thumbnail", query: query)
+    }
+
+    private func fetchThumbnail(
+        path: String,
+        query: [String: String],
+        disableResponseCache: Bool = false
+    ) async throws -> Data? {
+        var components = URLComponents(string: "\(url)\(path)")!
         components.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
 
         let request = session.request(components.url!)
@@ -205,7 +222,8 @@ actor LANraragiService {
                        filter: String? = nil,
                        start: String = "-1",
                        sortby: String = "title",
-                       order: String = "asc") async -> DataTask<ArchiveSearchResponse> {
+                       order: String = "asc",
+                       groupByTanks: Bool? = nil) async -> DataTask<ArchiveSearchResponse> {
         var query = [String: String]()
         if category != nil {
             query["category"] = category
@@ -216,6 +234,9 @@ actor LANraragiService {
         query["start"] = start
         query["sortby"] = sortby
         query["order"] = order
+        if let groupByTanks {
+            query["groupby_tanks"] = String(groupByTanks)
+        }
 
         return session.request("\(url)/api/search", parameters: query)
             .validate()
@@ -224,7 +245,8 @@ actor LANraragiService {
 
     func randomArchives(
         category: String? = nil,
-        filter: String? = nil
+        filter: String? = nil,
+        groupByTanks: Bool? = nil
     ) async -> DataTask<ArchiveRandomResponse> {
         var query = [String: String]()
         query["count"] = "100"
@@ -234,9 +256,77 @@ actor LANraragiService {
         if let filter = filter {
             query["filter"] = filter
         }
+        if let groupByTanks {
+            query["groupby_tanks"] = String(groupByTanks)
+        }
         return session.request("\(url)/api/search/random", method: .get, parameters: query)
             .validate(statusCode: 200...200)
             .serializingDecodable(ArchiveRandomResponse.self)
+    }
+
+    func retrieveTankoubon(id: String) async -> DataTask<TankoubonMetadataResponse> {
+        session.request("\(url)/api/tankoubons/\(id)")
+            .validate(statusCode: 200...200)
+            .serializingDecodable(TankoubonMetadataResponse.self)
+    }
+
+    func retrieveFullTankoubon(id: String, page: Int = -1) async -> DataTask<TankoubonFullResponse> {
+        session.request("\(url)/api/tankoubons/\(id)/full", parameters: ["page": page])
+            .validate(statusCode: 200...200)
+            .serializingDecodable(TankoubonFullResponse.self)
+    }
+
+    func updateTankoubon(
+        id: String,
+        name: String? = nil,
+        summary: String? = nil,
+        tags: String? = nil,
+        appendTags: Bool? = nil
+    ) async -> DataTask<GenericSuccessResponse> {
+        let metadata: TankoubonMetadataUpdateRequest?
+        if name != nil || summary != nil || tags != nil || appendTags != nil {
+            metadata = TankoubonMetadataUpdateRequest(
+                name: name,
+                summary: summary,
+                tags: tags,
+                appendTags: appendTags
+            )
+        } else {
+            metadata = nil
+        }
+
+        let request = TankoubonUpdateRequest(metadata: metadata)
+        return session.request(
+            "\(url)/api/tankoubons/\(id)",
+            method: .put,
+            parameters: request,
+            encoder: JSONParameterEncoder.default
+        )
+        .validate(statusCode: 200...200)
+        .serializingDecodable(GenericSuccessResponse.self)
+    }
+
+    func deleteTankoubon(id: String) async -> DataTask<GenericSuccessResponse> {
+        session.request("\(url)/api/tankoubons/\(id)", method: .delete)
+            .validate(statusCode: 200...200)
+            .serializingDecodable(GenericSuccessResponse.self)
+    }
+
+    func updateTankoubonThumbnail(id: String, page: Int) async -> DataTask<TankoubonThumbnailUpdateResponse> {
+        session.request(
+            "\(url)/api/tankoubons/\(id)/thumbnail",
+            method: .put,
+            parameters: ["page": page],
+            encoding: URLEncoding(destination: .queryString)
+        )
+            .validate(statusCode: 200...200)
+            .serializingDecodable(TankoubonThumbnailUpdateResponse.self)
+    }
+
+    func updateTankoubonReadProgress(id: String, progress: Int) async -> DataTask<TankoubonProgressResponse> {
+        session.request("\(url)/api/tankoubons/\(id)/progress/\(progress)", method: .put)
+            .validate(statusCode: 200...200)
+            .serializingDecodable(TankoubonProgressResponse.self)
     }
 
     func retrieveCategories() async -> DataTask<[ArchiveCategoriesResponse]> {

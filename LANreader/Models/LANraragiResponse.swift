@@ -10,6 +10,7 @@ struct ArchiveIndexResponse: Decodable, Equatable {
     let title: String
     let pagecount: Int
     let progress: Int
+    let archiveCount: Int?
 
     private enum CodingKeys: String, CodingKey {
         case arcid
@@ -19,6 +20,7 @@ struct ArchiveIndexResponse: Decodable, Equatable {
         case title
         case pagecount
         case progress
+        case archiveCount = "archive_count"
     }
 
     init(from decoder: Decoder) throws {
@@ -30,6 +32,7 @@ struct ArchiveIndexResponse: Decodable, Equatable {
         self.title = try container.decode(String.self, forKey: .title)
         self.pagecount = try container.decode(Int.self, forKey: .pagecount)
         self.progress = try container.decode(Int.self, forKey: .progress)
+        self.archiveCount = try container.decodeIfPresent(Int.self, forKey: .archiveCount)
     }
 }
 
@@ -78,6 +81,87 @@ struct ArchiveSearchResponse: Decodable {
 
 struct ArchiveRandomResponse: Decodable {
     let data: [ArchiveIndexResponse]
+}
+
+struct TankoubonMetadataResponse: Decodable, Equatable {
+    let id: String
+    let name: String?
+    let summary: String?
+    let tags: String?
+    let archives: [String]?
+    let progress: Int?
+}
+
+struct TankoubonFullResponse: Decodable, Equatable {
+    let result: TankoubonFullMetadataResponse
+    let total: Int
+    let filtered: Int
+}
+
+struct TankoubonFullMetadataResponse: Decodable, Equatable {
+    let id: String
+    let name: String?
+    let summary: String?
+    let tags: String?
+    let progress: Int?
+    let archives: [String]?
+    let fullData: [ArchiveIndexResponse]?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case summary
+        case tags
+        case progress
+        case archives
+        case fullData = "full_data"
+    }
+}
+
+struct TankoubonThumbnailUpdateResponse: Decodable, Equatable {
+    let operation: String
+    let success: Int
+    let newThumbnail: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case operation
+        case success
+        case newThumbnail = "new_thumbnail"
+    }
+}
+
+struct TankoubonProgressResponse: Decodable, Equatable {
+    let id: String
+    let operation: String
+    let page: Int
+    let lastReadTime: Int
+    let success: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case operation
+        case page
+        case lastReadTime = "lastreadtime"
+        case success
+    }
+}
+
+struct TankoubonUpdateRequest: Encodable {
+    let metadata: TankoubonMetadataUpdateRequest?
+}
+
+struct TankoubonMetadataUpdateRequest: Encodable {
+    let name: String?
+    let summary: String?
+    let tags: String?
+    let appendTags: Bool?
+
+    private enum CodingKeys: String, CodingKey {
+        case name
+        case summary
+        case tags
+        case appendTags = "append"
+    }
 }
 
 struct StatsResponse: Decodable {
