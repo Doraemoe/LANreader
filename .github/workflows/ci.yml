@@ -22,7 +22,7 @@ jobs:
 
       - name: Select Xcode version
         run: |
-          sudo xcode-select -switch /Applications/Xcode_26.5.app
+          sudo xcode-select -switch /Applications/Xcode_26.6.app
           xcodebuild -version
 
       - name: Build and test

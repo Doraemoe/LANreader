@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/noppefoxwolf/AnimatedImage",
       "state" : {
-        "revision" : "1aab1442149b76acf786b3c1e9cd6837638c954b",
-        "version" : "0.2.3"
+        "revision" : "d64237a33ce91b0513dd850589fea32fa28f4f80",
+        "version" : "0.2.4"
       }
     },
     {
@@ -177,8 +177,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-navigation",
       "state" : {
-        "revision" : "6cff006b3607b700029dc44f06b41a6cc7384ac7",
-        "version" : "2.10.2"
+        "revision" : "fad75807c596fecd724b0fc81cd61c94008faad4",
+        "version" : "2.10.3"
       }
     },
     {
@@ -195,8 +195,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-sharing",
       "state" : {
-        "revision" : "c8dd3627eb92cef1bcb44ac5a93d558ab32b82ce",
-        "version" : "2.9.0"
+        "revision" : "8244fe63bf43e58188ab13851ad693eecf6a9e90",
+        "version" : "2.9.1"
       }
     },
     {
