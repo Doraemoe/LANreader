@@ -12,6 +12,8 @@ import Logging
         @SharedReader(.appStorage(SettingsKey.translationEnabled)) var translationEnabled = false
 
         let pageId: String
+        let sourceArchiveId: String
+        let sourcePageNumber: Int
         let suffix: String
         let pageNumber: Int
         var loading: Bool = false
@@ -29,8 +31,18 @@ import Logging
 
         let folder: URL?
 
-        init(archiveId: String, pageId: String, pageNumber: Int, pageMode: PageMode = .loading, cached: Bool = false) {
+        init(
+            archiveId: String,
+            pageId: String,
+            pageNumber: Int,
+            sourceArchiveId: String? = nil,
+            sourcePageNumber: Int? = nil,
+            pageMode: PageMode = .loading,
+            cached: Bool = false
+        ) {
             self.pageId = pageId
+            self.sourceArchiveId = sourceArchiveId ?? archiveId
+            self.sourcePageNumber = sourcePageNumber ?? pageNumber
             self.pageNumber = pageNumber
             self.pageMode = pageMode
             self.suffix = pageMode.identitySuffix
@@ -128,7 +140,7 @@ import Logging
                             do {
                                 let task = await service.fetchArchivePage(
                                     page: state.pageId,
-                                    pageNumber: state.pageNumber
+                                    pageNumber: state.sourcePageNumber
                                 )
                                 await send(.subscribeToProgress(task))
                                 let imageUrl = try await task

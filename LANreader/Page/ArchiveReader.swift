@@ -7,6 +7,28 @@ import UIKit
 
 // swiftlint:disable type_body_length file_length
 
+public struct ReaderExtractedPage: Equatable, Sendable {
+    public let archiveId: String
+    public let path: String
+    public let archivePageNumber: Int
+
+    public init(archiveId: String, path: String, archivePageNumber: Int) {
+        self.archiveId = archiveId
+        self.path = path
+        self.archivePageNumber = archivePageNumber
+    }
+}
+
+public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
+    public let archiveId: String
+    public let response: PageThumbnailQueueResponse
+
+    public init(archiveId: String, response: PageThumbnailQueueResponse) {
+        self.archiveId = archiveId
+        self.response = response
+    }
+}
+
 @Reducer public struct ArchiveReaderFeature: Sendable {
     private let logger = Logger(label: "ArchiveReaderFeature")
 
@@ -48,7 +70,7 @@ import UIKit
         var sliderPreviewPageIndex: Int?
         var sliderPreviewImageURL: URL?
         var sliderPreviewLoading = false
-        var sliderThumbnailJobId: Int?
+        var sliderThumbnailJobsById: [Int: String] = [:]
         var sliderReadyThumbnailPages: Set<Int> = []
 
         var allArchives: IdentifiedArrayOf<Shared<ArchiveItem>> = []
@@ -97,7 +119,7 @@ import UIKit
         case setLastAutoPageIndex(Int?)
         case page(IdentifiedActionOf<PageFeature>)
         case extractArchive
-        case finishExtracting([String])
+        case finishExtracting([ReaderExtractedPage])
         case toggleControlUi(Bool?)
         case visiblePageChanged(Int)
         case requestJump(Int, source: ReaderNavigationSource)
@@ -106,10 +128,10 @@ import UIKit
         case collectionScrollStarted
         case collectionScrollEnded
         case prepareSliderPreviewThumbnails
-        case sliderPreviewThumbnailsQueued(PageThumbnailQueueResponse)
-        case pollSliderPreviewThumbnailJob(Int)
-        case sliderPreviewThumbnailJobStatus(BasicJobStatus)
-        case sliderPreviewThumbnailPollingFailed
+        case sliderPreviewThumbnailsQueued([SliderPreviewThumbnailQueueResult])
+        case pollSliderPreviewThumbnailJob(Int, archiveId: String)
+        case sliderPreviewThumbnailJobStatus(Int, String, BasicJobStatus)
+        case sliderPreviewThumbnailPollingFailed(Int, String)
         case sliderDragStarted
         case sliderDragChanged(Int)
         case sliderDragEnded
@@ -201,13 +223,37 @@ import UIKit
                     state.inCache = true
                 }
                 return .run { send in
-                    let extractResponse = try await service.extractArchive(id: id).value
-                    if extractResponse.pages.isEmpty {
+                    let pages: [ReaderExtractedPage]
+                    if Self.isTankoubonArchiveId(id) {
+                        let tankoubon = try await service.retrieveFullTankoubon(id: id).value
+                        let archiveIds = Self.tankoubonArchiveIds(from: tankoubon)
+                        var tankPages: [ReaderExtractedPage] = []
+
+                        if archiveIds.isEmpty {
+                            logger.error("tankoubon returned no archives. id=\(id)")
+                        }
+
+                        for archiveId in archiveIds {
+                            let extractResponse = try await service.extractArchive(id: archiveId).value
+                            if extractResponse.pages.isEmpty {
+                                logger.error("server returned empty pages. id=\(archiveId)")
+                            }
+                            tankPages.append(
+                                contentsOf: Self.extractedPages(from: extractResponse.pages, archiveId: archiveId)
+                            )
+                        }
+                        pages = tankPages
+                    } else {
+                        let extractResponse = try await service.extractArchive(id: id).value
+                        pages = Self.extractedPages(from: extractResponse.pages, archiveId: id)
+                    }
+
+                    if pages.isEmpty {
                         logger.error("server returned empty pages. id=\(id)")
                         let errorMessage = String(localized: "error.page.empty")
                         await send(.setError(errorMessage))
                     }
-                    await send(.finishExtracting(extractResponse.pages))
+                    await send(.finishExtracting(pages))
                 } catch: { error, send in
                     logger.error("failed to extract archive page. id=\(id) \(error)")
                     await send(.setError(error.localizedDescription))
@@ -215,10 +261,14 @@ import UIKit
                 }
             case let .finishExtracting(pages):
                 if !pages.isEmpty {
-                    let pageState = pages.enumerated().map { (index, page) in
-                        let normalizedPage = String(page.dropFirst(1))
+                    let pageState = pages.enumerated().map { (index, extractedPage) in
+                        let normalizedPagePath = String(extractedPage.path.dropFirst(1))
                         return PageFeature.State(
-                            archiveId: state.currentArchiveId, pageId: normalizedPage, pageNumber: index + 1
+                            archiveId: state.currentArchiveId,
+                            pageId: normalizedPagePath,
+                            pageNumber: index + 1,
+                            sourceArchiveId: extractedPage.archiveId,
+                            sourcePageNumber: extractedPage.archivePageNumber
                         )
                     }
                     state.pages.append(contentsOf: pageState)
@@ -235,10 +285,8 @@ import UIKit
                 }
                 state.extracting = false
                 guard !state.pages.isEmpty else { return .none }
-                return .merge(
-                    .send(.requestJump(state.currentPageIndex, source: .initialRestore)),
-                    .send(.prepareSliderPreviewThumbnails)
-                )
+                let initialRestore = Effect<Action>.send(.requestJump(state.currentPageIndex, source: .initialRestore))
+                return .merge(initialRestore, .send(.prepareSliderPreviewThumbnails))
             case let .toggleControlUi(show):
                 if let shouldShow = show {
                     state.controlUiHidden = shouldShow
@@ -261,7 +309,8 @@ import UIKit
                       let page = state.currentPage else { return .none }
 
                 let pageNumber = page.pageNumber
-                let shouldClearNewFlag = pageNumber > 1 && currentArchive.wrappedValue.isNew
+                let isTank = Self.isTankoubonArchiveId(state.currentArchiveId)
+                let shouldClearNewFlag = !isTank && pageNumber > 1 && currentArchive.wrappedValue.isNew
                 currentArchive.withLock {
                     $0.progress = pageNumber
                     if shouldClearNewFlag {
@@ -274,9 +323,15 @@ import UIKit
                 return .run(priority: .background) { [state] _ in
                     try await clock.sleep(for: .seconds(0.5))
                     if state.serverProgress {
-                        _ = try await service.updateArchiveReadProgress(
-                            id: state.currentArchiveId, progress: pageNumber
-                        ).value
+                        if isTank {
+                            _ = try await service.updateTankoubonReadProgress(
+                                id: state.currentArchiveId, progress: pageNumber
+                            ).value
+                        } else {
+                            _ = try await service.updateArchiveReadProgress(
+                                id: state.currentArchiveId, progress: pageNumber
+                            ).value
+                        }
                     }
                     if shouldClearNewFlag {
                         _ = try await service.clearNewFlag(id: state.currentArchiveId).value
@@ -304,57 +359,84 @@ import UIKit
                 return .none
             case .prepareSliderPreviewThumbnails:
                 guard !state.cached, !state.pages.isEmpty else { return .none }
-                guard state.sliderThumbnailJobId == nil,
+                guard state.sliderThumbnailJobsById.isEmpty,
                       state.sliderReadyThumbnailPages.count < state.archivePageCount else {
                     return .none
                 }
-                return .run { [archiveId = state.currentArchiveId] send in
-                    let response = try await service.queuePageThumbnails(id: archiveId).value
-                    await send(.sliderPreviewThumbnailsQueued(response))
+
+                let sourceArchiveIds = Array(OrderedSet(state.pages.map(\.sourceArchiveId)))
+                return .run { send in
+                    var results: [SliderPreviewThumbnailQueueResult] = []
+                    for archiveId in sourceArchiveIds {
+                        let response = try await service.queuePageThumbnails(id: archiveId).value
+                        results.append(
+                            SliderPreviewThumbnailQueueResult(archiveId: archiveId, response: response)
+                        )
+                    }
+                    await send(.sliderPreviewThumbnailsQueued(results))
                 } catch: { [archiveId = state.currentArchiveId] error, _ in
                     logger.warning("failed to queue slider preview thumbnails. id=\(archiveId) \(error)")
                 }
                 .cancellable(id: CancelId.sliderPreviewThumbnailQueue, cancelInFlight: true)
-            case let .sliderPreviewThumbnailsQueued(response):
-                if let jobId = response.job {
-                    state.sliderThumbnailJobId = jobId
-                    return .send(.pollSliderPreviewThumbnailJob(jobId))
+            case let .sliderPreviewThumbnailsQueued(results):
+                state.sliderThumbnailJobsById = [:]
+                var effect: Effect<Action> = .none
+
+                for result in results {
+                    if let jobId = result.response.job {
+                        state.sliderThumbnailJobsById[jobId] = result.archiveId
+                        effect = .merge(
+                            effect,
+                            .send(.pollSliderPreviewThumbnailJob(jobId, archiveId: result.archiveId))
+                        )
+                    } else {
+                        state.sliderReadyThumbnailPages.formUnion(
+                            Self.readerPageNumbers(in: state.pages, sourceArchiveId: result.archiveId)
+                        )
+                    }
                 }
-                state.sliderThumbnailJobId = nil
-                state.sliderReadyThumbnailPages = state.archivePageNumbers
+
                 if let previewPageIndex = state.sliderPreviewPageIndex {
-                    return .send(.loadSliderPreview(previewPageIndex))
+                    effect = .merge(effect, .send(.loadSliderPreview(previewPageIndex)))
                 }
-                return .none
-            case let .pollSliderPreviewThumbnailJob(jobId):
+                return effect
+            case let .pollSliderPreviewThumbnailJob(jobId, archiveId):
                 return .run { send in
                     while true {
                         let status = try await service.checkBasicJobStatus(id: jobId).value
-                        await send(.sliderPreviewThumbnailJobStatus(status))
+                        await send(.sliderPreviewThumbnailJobStatus(jobId, archiveId, status))
                         if status.state == "finished" || status.state == "failed" {
                             return
                         }
                         try await clock.sleep(for: .seconds(1))
                     }
-                } catch: { [archiveId = state.currentArchiveId] error, send in
+                } catch: { error, send in
                     logger.warning("failed to poll slider preview thumbnail job. id=\(archiveId) \(error)")
-                    await send(.sliderPreviewThumbnailPollingFailed)
+                    await send(.sliderPreviewThumbnailPollingFailed(jobId, archiveId))
                 }
-                .cancellable(id: CancelId.sliderPreviewThumbnailPolling, cancelInFlight: true)
-            case let .sliderPreviewThumbnailJobStatus(status):
-                state.sliderReadyThumbnailPages.formUnion(status.processedPages)
+                .cancellable(id: CancelId.sliderPreviewThumbnailPolling)
+            case let .sliderPreviewThumbnailJobStatus(jobId, archiveId, status):
+                state.sliderReadyThumbnailPages.formUnion(
+                    Self.readerPageNumbers(
+                        in: state.pages,
+                        sourceArchiveId: archiveId,
+                        sourcePageNumbers: status.processedPages
+                    )
+                )
                 if status.state == "finished" {
-                    state.sliderReadyThumbnailPages.formUnion(state.archivePageNumbers)
-                    state.sliderThumbnailJobId = nil
+                    state.sliderReadyThumbnailPages.formUnion(
+                        Self.readerPageNumbers(in: state.pages, sourceArchiveId: archiveId)
+                    )
+                    state.sliderThumbnailJobsById[jobId] = nil
                 } else if status.state == "failed" {
-                    state.sliderThumbnailJobId = nil
+                    state.sliderThumbnailJobsById[jobId] = nil
                 }
                 if let previewPageIndex = state.sliderPreviewPageIndex {
                     return .send(.loadSliderPreview(previewPageIndex))
                 }
                 return .none
-            case .sliderPreviewThumbnailPollingFailed:
-                state.sliderThumbnailJobId = nil
+            case let .sliderPreviewThumbnailPollingFailed(jobId, _):
+                state.sliderThumbnailJobsById[jobId] = nil
                 if let previewPageIndex = state.sliderPreviewPageIndex {
                     return .send(.loadSliderPreview(previewPageIndex))
                 }
@@ -403,7 +485,7 @@ import UIKit
 
                 guard state.cached || state.sliderReadyThumbnailPages.contains(page.pageNumber) else {
                     state.sliderPreviewImageURL = nil
-                    state.sliderPreviewLoading = state.sliderThumbnailJobId != nil
+                    state.sliderPreviewLoading = self.hasPendingSliderPreviewThumbnailJobs(state: state)
                     return .none
                 }
 
@@ -438,12 +520,17 @@ import UIKit
                     .cancellable(id: CancelId.sliderPreviewLoad, cancelInFlight: true)
                 }
 
-                return .run { [archiveId = state.currentArchiveId, pageNumber = page.pageNumber] send in
+                let archiveId = state.currentArchiveId
+                let pageNumber = page.pageNumber
+                let sourceArchiveId = page.sourceArchiveId
+                let sourcePageNumber = page.sourcePageNumber
+
+                return .run { send in
                     for attempt in 0..<6 {
                         let thumbnailData = try await service.retrieveGeneratedArchiveThumbnail(
-                            id: archiveId,
-                            page: pageNumber,
-                            cacheBust: Self.sliderPreviewCacheBust(pageNumber: pageNumber, attempt: attempt)
+                            id: sourceArchiveId,
+                            page: sourcePageNumber,
+                            cacheBust: Self.sliderPreviewCacheBust(pageNumber: sourcePageNumber, attempt: attempt)
                         )
                         if let thumbnailData {
                             let previewFileURL = Self.sliderPreviewFileURL(
@@ -474,7 +561,7 @@ import UIKit
             case let .sliderPreviewUnavailable(pageIndex):
                 guard state.sliderPreviewPageIndex == pageIndex else { return .none }
                 if !self.restoreExistingSliderPreviewIfAvailable(state: &state, pageIndex: pageIndex) {
-                    state.sliderPreviewLoading = state.sliderThumbnailJobId != nil
+                    state.sliderPreviewLoading = self.hasPendingSliderPreviewThumbnailJobs(state: state)
                     state.sliderPreviewImageURL = nil
                 }
                 return .none
@@ -521,9 +608,17 @@ import UIKit
                     return .none
                 }
                 let pageNumber = currentPage.pageNumber
-                return .run { [id = state.currentArchiveId] send in
-                    _ = try await service.updateArchiveThumbnail(id: id, page: pageNumber).value
-                    guard let thumbnailData = try await service.retrieveArchiveThumbnail(id: id) else {
+                let isTank = Self.isTankoubonArchiveId(state.currentArchiveId)
+                return .run { [id = state.currentArchiveId, pageNumber, isTank] send in
+                    let thumbnailData: Data?
+                    if isTank {
+                        _ = try await service.updateTankoubonThumbnail(id: id, page: pageNumber).value
+                        thumbnailData = try await service.retrieveTankoubonThumbnail(id: id)
+                    } else {
+                        _ = try await service.updateArchiveThumbnail(id: id, page: pageNumber).value
+                        thumbnailData = try await service.retrieveArchiveThumbnail(id: id)
+                    }
+                    guard let thumbnailData else {
                         throw ArchiveReaderError.thumbnailUnavailableAfterUpdate
                     }
                     var archiveThumbnail = ArchiveThumbnail(
@@ -721,6 +816,39 @@ import UIKit
         .ifLet(\.$alert, action: \.alert)
     }
 
+    private static func isTankoubonArchiveId(_ id: String) -> Bool {
+        id.hasPrefix("TANK_")
+    }
+
+    private static func tankoubonArchiveIds(from response: TankoubonFullResponse) -> [String] {
+        if let archives = response.result.archives, !archives.isEmpty {
+            return archives
+        }
+        return response.result.fullData?.map(\.arcid) ?? []
+    }
+
+    private static func extractedPages(from pages: [String], archiveId: String) -> [ReaderExtractedPage] {
+        pages.enumerated().map { index, path in
+            ReaderExtractedPage(archiveId: archiveId, path: path, archivePageNumber: index + 1)
+        }
+    }
+
+    private static func readerPageNumbers(
+        in pages: IdentifiedArrayOf<PageFeature.State>,
+        sourceArchiveId: String,
+        sourcePageNumbers: Set<Int>? = nil
+    ) -> Set<Int> {
+        Set(
+            pages.compactMap { page in
+                guard page.sourceArchiveId == sourceArchiveId else { return nil }
+                if let sourcePageNumbers, !sourcePageNumbers.contains(page.sourcePageNumber) {
+                    return nil
+                }
+                return page.pageNumber
+            }
+        )
+    }
+
     private func preparePendingSplitMode(
         state: inout State,
         pageIndex: Int
@@ -811,6 +939,8 @@ import UIKit
             archiveId: state.currentArchiveId,
             pageId: current.pageId,
             pageNumber: current.pageNumber,
+            sourceArchiveId: current.sourceArchiveId,
+            sourcePageNumber: current.sourcePageNumber,
             pageMode: siblingMode,
             cached: current.cached
         )
@@ -884,8 +1014,12 @@ import UIKit
 
     private func resetSliderPreviewArchiveState(state: inout State) {
         resetSliderPreviewDisplayState(state: &state)
-        state.sliderThumbnailJobId = nil
+        state.sliderThumbnailJobsById = [:]
         state.sliderReadyThumbnailPages = []
+    }
+
+    private func hasPendingSliderPreviewThumbnailJobs(state: State) -> Bool {
+        !state.sliderThumbnailJobsById.isEmpty
     }
 
     private func previewFileURL(state: State, pageIndex: Int) -> URL? {

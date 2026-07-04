@@ -198,7 +198,29 @@ public struct PageThumbnailQueueResponse: Decodable, Equatable, Sendable {
     let job: Int?
     let message: String?
     let operation: String
-    let success: Int
+    let success: String
+
+    private enum CodingKeys: String, CodingKey {
+        case job
+        case message
+        case operation
+        case success
+    }
+
+    init(job: Int?, message: String?, operation: String, success: String) {
+        self.job = job
+        self.message = message
+        self.operation = operation
+        self.success = success
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.job = try container.decodeIfPresent(Int.self, forKey: .job)
+        self.message = try container.decodeIfPresent(String.self, forKey: .message)
+        self.operation = try container.decode(String.self, forKey: .operation)
+        self.success = try container.decodeNumericString(forKey: .success)
+    }
 }
 
 public enum MinionNoteValue: Decodable, Equatable, Sendable {
