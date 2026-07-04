@@ -324,12 +324,19 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                 if state.cached {
                     return .none
                 }
+                let isTank = Self.isTankoubonArchiveId(state.currentArchiveId)
                 return .run(priority: .background) { [state] _ in
                     try await clock.sleep(for: .seconds(0.5))
                     if state.serverProgress {
-                        _ = try await service.updateArchiveReadProgress(
-                            id: state.currentArchiveId, progress: pageNumber
-                        ).value
+                        if isTank {
+                            _ = try await service.updateTankoubonReadProgress(
+                                id: state.currentArchiveId, progress: pageNumber
+                            ).value
+                        } else {
+                            _ = try await service.updateArchiveReadProgress(
+                                id: state.currentArchiveId, progress: pageNumber
+                            ).value
+                        }
                     }
                     if shouldClearNewFlag {
                         _ = try await service.clearNewFlag(id: state.currentArchiveId).value

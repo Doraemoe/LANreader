@@ -14,6 +14,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: SettingsKey.autoPageInterval)
         UserDefaults.standard.removeObject(forKey: SettingsKey.splitWideImage)
         UserDefaults.standard.removeObject(forKey: SettingsKey.splitPiorityLeft)
+        UserDefaults.standard.removeObject(forKey: SettingsKey.serverProgress)
         UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiUrl)
         UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiApiKey)
         HTTPStubs.removeAllStubs()
@@ -638,6 +639,68 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 $0.isNew = false
             }
         }
+    }
+
+    @MainActor
+    func testVisiblePageChangedUsesArchiveProgressEndpointForNormalArchive() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let clock = TestClock()
+        let progressUpdated = expectation(description: "archive progress updated")
+        stubArchiveProgressUpdate(archiveId: "archive", progress: 3, expectation: progressUpdated)
+
+        var initialState = makeState(progress: 2)
+        initialState.pages = makePageStates(count: 4)
+        initialState.currentPageIndex = 1
+        initialState.$serverProgress = SharedReader(value: true)
+        let store = makeTestStore(initialState: initialState) {
+            $0.continuousClock = clock
+        }
+
+        await store.send(.visiblePageChanged(2)) {
+            $0.currentPageIndex = 2
+            $0.allArchives[id: "archive"]?.withLock {
+                $0.progress = 3
+            }
+        }
+
+        await Task.yield()
+        await clock.advance(by: .seconds(1))
+        await fulfillment(of: [progressUpdated], timeout: 1)
+        await store.finish()
+    }
+
+    @MainActor
+    func testVisiblePageChangedUsesGlobalTankProgressEndpointForTankArchive() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let tankId = "TANK_1783084742"
+        let sourceArchives = makeTankSourceArchives(secondPageCount: 2)
+        let clock = TestClock()
+        let progressUpdated = expectation(description: "tank progress updated")
+        stubTankoubonProgressUpdate(tankId: tankId, progress: 3, expectation: progressUpdated)
+
+        var initialState = makeState(archiveId: tankId, progress: 2)
+        initialState.pages = makePageStates(archiveId: tankId, sourceArchives: sourceArchives)
+        initialState.currentPageIndex = 1
+        initialState.$serverProgress = SharedReader(value: true)
+        let store = makeTestStore(initialState: initialState) {
+            $0.continuousClock = clock
+        }
+
+        await store.send(.visiblePageChanged(2)) {
+            $0.currentPageIndex = 2
+            $0.allArchives[id: tankId]?.withLock {
+                $0.progress = 3
+            }
+        }
+
+        await Task.yield()
+        await clock.advance(by: .seconds(1))
+        await fulfillment(of: [progressUpdated], timeout: 1)
+        await store.finish()
     }
 
     @MainActor
@@ -1813,6 +1876,46 @@ private func stubReaderTankoubonThumbnail(tankId: String, data: Data) {
             && isMethodGET()
             && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
         HTTPStubsResponse(data: data, statusCode: 200, headers: ["Content-Type": "image/png"])
+    }
+}
+
+private func stubArchiveProgressUpdate(
+    archiveId: String,
+    progress: Int,
+    expectation: XCTestExpectation
+) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/archives/\(archiveId)/progress/\(progress)")
+            && isMethodPUT()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        expectation.fulfill()
+        return HTTPStubsResponse(data: Data("OK".utf8), statusCode: 200, headers: nil)
+    }
+}
+
+private func stubTankoubonProgressUpdate(
+    tankId: String,
+    progress: Int,
+    expectation: XCTestExpectation
+) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/tankoubons/\(tankId)/progress/\(progress)")
+            && isMethodPUT()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        expectation.fulfill()
+        return HTTPStubsResponse(
+            data: Data("""
+            {
+              "id": "\(tankId)",
+              "operation": "update_tank_progress",
+              "page": \(progress),
+              "lastreadtime": 123943543,
+              "success": 1
+            }
+            """.utf8),
+            statusCode: 200,
+            headers: ["Content-Type": "application/json"]
+        )
     }
 }
 
