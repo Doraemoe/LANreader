@@ -664,9 +664,17 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     return .none
                 }
                 let pageNumber = currentPage.pageNumber
-                return .run { [id = state.currentArchiveId] send in
-                    _ = try await service.updateArchiveThumbnail(id: id, page: pageNumber).value
-                    guard let thumbnailData = try await service.retrieveArchiveThumbnail(id: id) else {
+                let isTank = Self.isTankoubonArchiveId(state.currentArchiveId)
+                return .run { [id = state.currentArchiveId, pageNumber, isTank] send in
+                    let thumbnailData: Data?
+                    if isTank {
+                        _ = try await service.updateTankoubonThumbnail(id: id, page: pageNumber).value
+                        thumbnailData = try await service.retrieveTankoubonThumbnail(id: id)
+                    } else {
+                        _ = try await service.updateArchiveThumbnail(id: id, page: pageNumber).value
+                        thumbnailData = try await service.retrieveArchiveThumbnail(id: id)
+                    }
+                    guard let thumbnailData else {
                         throw ArchiveReaderError.thumbnailUnavailableAfterUpdate
                     }
                     var archiveThumbnail = ArchiveThumbnail(

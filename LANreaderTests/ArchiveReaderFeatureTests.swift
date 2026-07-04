@@ -551,6 +551,77 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testSetThumbnailUsesArchiveEndpointForNormalArchive() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let archiveId = "archive"
+        let thumbnailData = Data([0xFF, 0xD8, 0xFF, 0xDB])
+        stubArchiveThumbnailUpdate(archiveId: archiveId, page: 2)
+        stubReaderArchiveThumbnail(archiveId: archiveId, data: thumbnailData)
+
+        let database = try makeInMemoryDatabase()
+        var initialState = makeState(archiveId: archiveId)
+        initialState.pages = makePageStates(count: 3, archiveId: archiveId)
+        initialState.currentPageIndex = 1
+        let store = makeTestStore(initialState: initialState) {
+            $0.appDatabase = database
+        }
+
+        await store.send(.setThumbnail) {
+            $0.settingThumbnail = true
+        }
+        await store.receive(.setSuccess(String(localized: "archive.thumbnail.set"))) {
+            $0.successMessage = String(localized: "archive.thumbnail.set")
+        }
+        await store.receive(.finishThumbnailLoading) {
+            $0.settingThumbnail = false
+            $0.allArchives[id: archiveId]?.withLock {
+                $0.refresh = true
+            }
+        }
+
+        let savedThumbnail = try database.readArchiveThumbnail(archiveId)
+        XCTAssertEqual(savedThumbnail?.thumbnail, thumbnailData)
+    }
+
+    @MainActor
+    func testSetThumbnailUsesTankoubonEndpointForTankArchive() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let tankId = "TANK_1783084742"
+        let sourceArchives = makeTankSourceArchives()
+        let thumbnailData = Data([0x89, 0x50, 0x4E, 0x47])
+        stubTankoubonThumbnailUpdate(tankId: tankId, page: 3)
+        stubReaderTankoubonThumbnail(tankId: tankId, data: thumbnailData)
+
+        let database = try makeInMemoryDatabase()
+        var initialState = makeState(archiveId: tankId)
+        initialState.pages = makePageStates(archiveId: tankId, sourceArchives: sourceArchives)
+        initialState.currentPageIndex = 2
+        let store = makeTestStore(initialState: initialState) {
+            $0.appDatabase = database
+        }
+
+        await store.send(.setThumbnail) {
+            $0.settingThumbnail = true
+        }
+        await store.receive(.setSuccess(String(localized: "archive.thumbnail.set"))) {
+            $0.successMessage = String(localized: "archive.thumbnail.set")
+        }
+        await store.receive(.finishThumbnailLoading) {
+            $0.settingThumbnail = false
+            $0.allArchives[id: tankId]?.withLock {
+                $0.refresh = true
+            }
+        }
+
+        let savedThumbnail = try database.readArchiveThumbnail(tankId)
+        XCTAssertEqual(savedThumbnail?.thumbnail, thumbnailData)
+    }
+
+    @MainActor
     func testVisiblePageChangedUpdatesProgressAndClearsNewFlag() async {
         configureReaderDefaults()
         let clock = TestClock()
@@ -1693,6 +1764,55 @@ private func configureFinishedThumbnailPolling(
             statusCode: 200,
             headers: ["Content-Type": "application/json"]
         )
+    }
+}
+
+private func stubArchiveThumbnailUpdate(archiveId: String, page _: Int) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/archives/\(archiveId)/thumbnail")
+            && isMethodPUT()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        HTTPStubsResponse(data: Data("OK".utf8), statusCode: 200, headers: nil)
+    }
+}
+
+private func stubReaderArchiveThumbnail(archiveId: String, data: Data) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/archives/\(archiveId)/thumbnail")
+            && containsQueryParams(["no_fallback": "true", "page": "0"])
+            && isMethodGET()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        HTTPStubsResponse(data: data, statusCode: 200, headers: ["Content-Type": "image/jpeg"])
+    }
+}
+
+private func stubTankoubonThumbnailUpdate(tankId: String, page: Int) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/tankoubons/\(tankId)/thumbnail")
+            && containsQueryParams(["page": "\(page)"])
+            && isMethodPUT()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        HTTPStubsResponse(
+            data: Data("""
+            {
+              "operation": "update_tankoubon_thumbnail",
+              "success": 1,
+              "new_thumbnail": "thumb.jpg"
+            }
+            """.utf8),
+            statusCode: 200,
+            headers: ["Content-Type": "application/json"]
+        )
+    }
+}
+
+private func stubReaderTankoubonThumbnail(tankId: String, data: Data) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/tankoubons/\(tankId)/thumbnail")
+            && containsQueryParams(["no_fallback": "true"])
+            && isMethodGET()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        HTTPStubsResponse(data: data, statusCode: 200, headers: ["Content-Type": "image/png"])
     }
 }
 
