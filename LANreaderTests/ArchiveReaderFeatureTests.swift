@@ -371,14 +371,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         }
         await store.receive(.prepareSliderPreviewThumbnails)
         await store.receive(
-            .sliderPreviewThumbnailsQueued(
-                PageThumbnailQueueResponse(
-                    job: nil,
-                    message: "No job queued, all thumbnails already exist.",
-                    operation: "generate_page_thumbnails",
-                    success: "1"
-                )
-            )
+            .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
         }
@@ -405,14 +398,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         }
         await store.receive(.prepareSliderPreviewThumbnails)
         await store.receive(
-            .sliderPreviewThumbnailsQueued(
-                PageThumbnailQueueResponse(
-                    job: nil,
-                    message: "No job queued, all thumbnails already exist.",
-                    operation: "generate_page_thumbnails",
-                    success: "1"
-                )
-            )
+            .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
         }
@@ -438,14 +424,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         }
         await store.receive(.prepareSliderPreviewThumbnails)
         await store.receive(
-            .sliderPreviewThumbnailsQueued(
-                PageThumbnailQueueResponse(
-                    job: nil,
-                    message: "No job queued, all thumbnails already exist.",
-                    operation: "generate_page_thumbnails",
-                    success: "1"
-                )
-            )
+            .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
         }
@@ -472,14 +451,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         }
         await store.receive(.prepareSliderPreviewThumbnails)
         await store.receive(
-            .sliderPreviewThumbnailsQueued(
-                PageThumbnailQueueResponse(
-                    job: nil,
-                    message: "No job queued, all thumbnails already exist.",
-                    operation: "generate_page_thumbnails",
-                    success: "1"
-                )
-            )
+            .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4])
         }
@@ -524,7 +496,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         }
         await store.receive(.prepareSliderPreviewThumbnails)
         await store.receive(
-            .tankSliderPreviewThumbnailsQueued(readyThumbnailQueueResults(for: sourceArchives))
+            .sliderPreviewThumbnailsQueued(readyThumbnailQueueResults(for: sourceArchives))
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3])
         }
@@ -545,7 +517,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
 
         await store.send(.prepareSliderPreviewThumbnails)
         await store.receive(
-            .tankSliderPreviewThumbnailsQueued(readyThumbnailQueueResults(for: sourceArchives))
+            .sliderPreviewThumbnailsQueued(readyThumbnailQueueResults(for: sourceArchives))
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3])
         }
@@ -637,6 +609,24 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             $0.allArchives[id: "archive"]?.withLock {
                 $0.progress = 2
                 $0.isNew = false
+            }
+        }
+    }
+
+    @MainActor
+    func testVisiblePageChangedDoesNotClearNewFlagForTankArchive() async {
+        configureReaderDefaults()
+
+        let tankId = "TANK_1783084742"
+        let sourceArchives = makeTankSourceArchives()
+        var initialState = makeState(archiveId: tankId, progress: 0, cached: true, isNew: true)
+        initialState.pages = makePageStates(archiveId: tankId, sourceArchives: sourceArchives)
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.visiblePageChanged(1)) {
+            $0.currentPageIndex = 1
+            $0.allArchives[id: tankId]?.withLock {
+                $0.progress = 2
             }
         }
     }
@@ -1268,7 +1258,6 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         initialState.sliderPreviewPageIndex = 1
         initialState.sliderPreviewImageURL = URL(fileURLWithPath: "/tmp/preview.jpg")
         initialState.sliderPreviewLoading = true
-        initialState.sliderThumbnailJobId = 42
         initialState.sliderThumbnailJobsById = [42: "archive"]
         initialState.sliderReadyThumbnailPages = Set([1, 2])
 
@@ -1285,7 +1274,6 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         XCTAssertEqual(store.sliderPreviewPageIndex, 1)
         XCTAssertEqual(store.sliderPreviewImageURL, URL(fileURLWithPath: "/tmp/preview.jpg"))
         XCTAssertTrue(store.sliderPreviewLoading)
-        XCTAssertEqual(store.sliderThumbnailJobId, 42)
         XCTAssertEqual(store.sliderThumbnailJobsById, [42: "archive"])
         XCTAssertEqual(store.sliderReadyThumbnailPages, Set([1, 2]))
     }
@@ -1299,7 +1287,6 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         initialState.sliderPreviewPageIndex = 1
         initialState.sliderPreviewImageURL = URL(fileURLWithPath: "/tmp/preview.jpg")
         initialState.sliderPreviewLoading = true
-        initialState.sliderThumbnailJobId = 42
         initialState.sliderThumbnailJobsById = [42: "archive"]
         initialState.sliderReadyThumbnailPages = Set([1, 2])
 
@@ -1316,7 +1303,6 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         XCTAssertNil(store.sliderPreviewPageIndex)
         XCTAssertNil(store.sliderPreviewImageURL)
         XCTAssertFalse(store.sliderPreviewLoading)
-        XCTAssertNil(store.sliderThumbnailJobId)
         XCTAssertTrue(store.sliderThumbnailJobsById.isEmpty)
         XCTAssertTrue(store.sliderReadyThumbnailPages.isEmpty)
     }
@@ -1362,20 +1348,15 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         let store = makeTestStore(initialState: initialState)
 
         await store.send(
-            .sliderPreviewThumbnailsQueued(
-                PageThumbnailQueueResponse(
-                    job: 42,
-                    message: nil,
-                    operation: "generate_page_thumbnails",
-                    success: "1"
-                )
-            )
+            .sliderPreviewThumbnailsQueued([queuedThumbnailQueueResult()])
         ) {
-            $0.sliderThumbnailJobId = 42
+            $0.sliderThumbnailJobsById = [42: "archive"]
         }
-        await store.receive(.pollSliderPreviewThumbnailJob(42))
+        await store.receive(.pollSliderPreviewThumbnailJob(42, archiveId: "archive"))
         await store.receive(
             .sliderPreviewThumbnailJobStatus(
+                42,
+                "archive",
                 BasicJobStatus(
                     task: "generate_page_thumbnails",
                     state: "finished",
@@ -1384,7 +1365,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 )
             )
         ) {
-            $0.sliderThumbnailJobId = nil
+            $0.sliderThumbnailJobsById = [:]
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4])
         }
     }
@@ -1409,20 +1390,15 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         let store = makeTestStore(initialState: initialState)
 
         await store.send(
-            .sliderPreviewThumbnailsQueued(
-                PageThumbnailQueueResponse(
-                    job: 42,
-                    message: nil,
-                    operation: "generate_page_thumbnails",
-                    success: "1"
-                )
-            )
+            .sliderPreviewThumbnailsQueued([queuedThumbnailQueueResult()])
         ) {
-            $0.sliderThumbnailJobId = 42
+            $0.sliderThumbnailJobsById = [42: "archive"]
         }
-        await store.receive(.pollSliderPreviewThumbnailJob(42))
+        await store.receive(.pollSliderPreviewThumbnailJob(42, archiveId: "archive"))
         await store.receive(
             .sliderPreviewThumbnailJobStatus(
+                42,
+                "archive",
                 BasicJobStatus(
                     task: "generate_page_thumbnails",
                     state: "finished",
@@ -1431,7 +1407,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 )
             )
         ) {
-            $0.sliderThumbnailJobId = nil
+            $0.sliderThumbnailJobsById = [:]
             $0.sliderReadyThumbnailPages = Set([1, 2, 3])
         }
     }
@@ -1441,11 +1417,13 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         configureReaderDefaults()
         var initialState = makeState(progress: 2)
         initialState.pages = makePageStates(count: 4)
-        initialState.sliderThumbnailJobId = 42
+        initialState.sliderThumbnailJobsById = [42: "archive"]
         let store = makeTestStore(initialState: initialState)
 
         await store.send(
             .sliderPreviewThumbnailJobStatus(
+                42,
+                "archive",
                 BasicJobStatus(
                     task: "generate_page_thumbnails",
                     state: "finished",
@@ -1460,7 +1438,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 )
             )
         ) {
-            $0.sliderThumbnailJobId = nil
+            $0.sliderThumbnailJobsById = [:]
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4])
         }
     }
@@ -1470,11 +1448,13 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         configureReaderDefaults()
         var initialState = makeState(progress: 2)
         initialState.pages = makeSplitPageStates()
-        initialState.sliderThumbnailJobId = 42
+        initialState.sliderThumbnailJobsById = [42: "archive"]
         let store = makeTestStore(initialState: initialState)
 
         await store.send(
             .sliderPreviewThumbnailJobStatus(
+                42,
+                "archive",
                 BasicJobStatus(
                     task: "generate_page_thumbnails",
                     state: "finished",
@@ -1486,7 +1466,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 )
             )
         ) {
-            $0.sliderThumbnailJobId = nil
+            $0.sliderThumbnailJobsById = [:]
             $0.sliderReadyThumbnailPages = Set([1, 2, 3])
         }
     }
@@ -1499,14 +1479,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         let store = makeTestStore(initialState: initialState)
 
         await store.send(
-            .sliderPreviewThumbnailsQueued(
-                PageThumbnailQueueResponse(
-                    job: nil,
-                    message: "No job queued, all thumbnails already exist.",
-                    operation: "generate_page_thumbnails",
-                    success: "1"
-                )
-            )
+            .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4])
         }
@@ -1519,7 +1492,6 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         let sourceArchives = makeTankSourceArchives(secondPageCount: 2)
         var initialState = makeState(archiveId: tankId, progress: 1)
         initialState.pages = makePageStates(archiveId: tankId, sourceArchives: sourceArchives)
-        initialState.sliderThumbnailJobId = 41
         initialState.sliderThumbnailJobsById = [
             41: "first",
             42: "second"
@@ -1527,7 +1499,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         let store = makeTestStore(initialState: initialState)
 
         await store.send(
-            .tankSliderPreviewThumbnailJobStatus(
+            .sliderPreviewThumbnailJobStatus(
                 42,
                 "second",
                 BasicJobStatus(
@@ -1544,7 +1516,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         }
 
         await store.send(
-            .tankSliderPreviewThumbnailJobStatus(
+            .sliderPreviewThumbnailJobStatus(
                 42,
                 "second",
                 BasicJobStatus(
@@ -1700,7 +1672,6 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         state.sliderPreviewPageIndex = 1
         state.sliderPreviewImageURL = URL(fileURLWithPath: "/tmp/preview.jpg")
         state.sliderPreviewLoading = true
-        state.sliderThumbnailJobId = 42
         state.sliderThumbnailJobsById = [42: "archive"]
         state.sliderReadyThumbnailPages = Set([1, 2])
 
@@ -1718,7 +1689,6 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         XCTAssertNil(state.sliderPreviewPageIndex)
         XCTAssertNil(state.sliderPreviewImageURL)
         XCTAssertFalse(state.sliderPreviewLoading)
-        XCTAssertNil(state.sliderThumbnailJobId)
         XCTAssertTrue(state.sliderThumbnailJobsById.isEmpty)
         XCTAssertTrue(state.sliderReadyThumbnailPages.isEmpty)
     }
@@ -1784,6 +1754,28 @@ private func readyThumbnailQueueResponse() -> PageThumbnailQueueResponse {
         message: "No job queued, all thumbnails already exist.",
         operation: "generate_page_thumbnails",
         success: "1"
+    )
+}
+
+private func readyThumbnailQueueResult(archiveId: String = "archive") -> SliderPreviewThumbnailQueueResult {
+    SliderPreviewThumbnailQueueResult(
+        archiveId: archiveId,
+        response: readyThumbnailQueueResponse()
+    )
+}
+
+private func queuedThumbnailQueueResult(
+    archiveId: String = "archive",
+    jobId: Int = 42
+) -> SliderPreviewThumbnailQueueResult {
+    SliderPreviewThumbnailQueueResult(
+        archiveId: archiveId,
+        response: PageThumbnailQueueResponse(
+            job: jobId,
+            message: nil,
+            operation: "generate_page_thumbnails",
+            success: "1"
+        )
     )
 }
 
@@ -2022,10 +2014,7 @@ private func readyThumbnailQueueResults(
     for sourceArchives: [SourceArchiveFixture]
 ) -> [SliderPreviewThumbnailQueueResult] {
     sourceArchives.map {
-        SliderPreviewThumbnailQueueResult(
-            archiveId: $0.id,
-            response: readyThumbnailQueueResponse()
-        )
+        readyThumbnailQueueResult(archiveId: $0.id)
     }
 }
 

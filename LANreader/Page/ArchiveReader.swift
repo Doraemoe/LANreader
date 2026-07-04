@@ -70,7 +70,6 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         var sliderPreviewPageIndex: Int?
         var sliderPreviewImageURL: URL?
         var sliderPreviewLoading = false
-        var sliderThumbnailJobId: Int?
         var sliderThumbnailJobsById: [Int: String] = [:]
         var sliderReadyThumbnailPages: Set<Int> = []
 
@@ -129,14 +128,10 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         case collectionScrollStarted
         case collectionScrollEnded
         case prepareSliderPreviewThumbnails
-        case sliderPreviewThumbnailsQueued(PageThumbnailQueueResponse)
-        case tankSliderPreviewThumbnailsQueued([SliderPreviewThumbnailQueueResult])
-        case pollSliderPreviewThumbnailJob(Int)
-        case sliderPreviewThumbnailJobStatus(BasicJobStatus)
-        case sliderPreviewThumbnailPollingFailed
-        case pollTankSliderPreviewThumbnailJob(Int, archiveId: String)
-        case tankSliderPreviewThumbnailJobStatus(Int, String, BasicJobStatus)
-        case tankSliderPreviewThumbnailPollingFailed(Int, String)
+        case sliderPreviewThumbnailsQueued([SliderPreviewThumbnailQueueResult])
+        case pollSliderPreviewThumbnailJob(Int, archiveId: String)
+        case sliderPreviewThumbnailJobStatus(Int, String, BasicJobStatus)
+        case sliderPreviewThumbnailPollingFailed(Int, String)
         case sliderDragStarted
         case sliderDragChanged(Int)
         case sliderDragEnded
@@ -314,7 +309,8 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                       let page = state.currentPage else { return .none }
 
                 let pageNumber = page.pageNumber
-                let shouldClearNewFlag = pageNumber > 1 && currentArchive.wrappedValue.isNew
+                let isTank = Self.isTankoubonArchiveId(state.currentArchiveId)
+                let shouldClearNewFlag = !isTank && pageNumber > 1 && currentArchive.wrappedValue.isNew
                 currentArchive.withLock {
                     $0.progress = pageNumber
                     if shouldClearNewFlag {
@@ -324,7 +320,6 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                 if state.cached {
                     return .none
                 }
-                let isTank = Self.isTankoubonArchiveId(state.currentArchiveId)
                 return .run(priority: .background) { [state] _ in
                     try await clock.sleep(for: .seconds(0.5))
                     if state.serverProgress {
@@ -364,48 +359,26 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                 return .none
             case .prepareSliderPreviewThumbnails:
                 guard !state.cached, !state.pages.isEmpty else { return .none }
-                guard state.sliderThumbnailJobId == nil,
-                      state.sliderThumbnailJobsById.isEmpty,
+                guard state.sliderThumbnailJobsById.isEmpty,
                       state.sliderReadyThumbnailPages.count < state.archivePageCount else {
                     return .none
                 }
 
-                if Self.isTankoubonArchiveId(state.currentArchiveId) {
-                    let sourceArchiveIds = Array(OrderedSet(state.pages.map(\.sourceArchiveId)))
-                    return .run { send in
-                        var results: [SliderPreviewThumbnailQueueResult] = []
-                        for archiveId in sourceArchiveIds {
-                            let response = try await service.queuePageThumbnails(id: archiveId).value
-                            results.append(
-                                SliderPreviewThumbnailQueueResult(archiveId: archiveId, response: response)
-                            )
-                        }
-                        await send(.tankSliderPreviewThumbnailsQueued(results))
-                    } catch: { [archiveId = state.currentArchiveId] error, _ in
-                        logger.warning("failed to queue tank slider preview thumbnails. id=\(archiveId) \(error)")
+                let sourceArchiveIds = Array(OrderedSet(state.pages.map(\.sourceArchiveId)))
+                return .run { send in
+                    var results: [SliderPreviewThumbnailQueueResult] = []
+                    for archiveId in sourceArchiveIds {
+                        let response = try await service.queuePageThumbnails(id: archiveId).value
+                        results.append(
+                            SliderPreviewThumbnailQueueResult(archiveId: archiveId, response: response)
+                        )
                     }
-                    .cancellable(id: CancelId.sliderPreviewThumbnailQueue, cancelInFlight: true)
-                }
-
-                return .run { [archiveId = state.currentArchiveId] send in
-                    let response = try await service.queuePageThumbnails(id: archiveId).value
-                    await send(.sliderPreviewThumbnailsQueued(response))
+                    await send(.sliderPreviewThumbnailsQueued(results))
                 } catch: { [archiveId = state.currentArchiveId] error, _ in
                     logger.warning("failed to queue slider preview thumbnails. id=\(archiveId) \(error)")
                 }
                 .cancellable(id: CancelId.sliderPreviewThumbnailQueue, cancelInFlight: true)
-            case let .sliderPreviewThumbnailsQueued(response):
-                if let jobId = response.job {
-                    state.sliderThumbnailJobId = jobId
-                    return .send(.pollSliderPreviewThumbnailJob(jobId))
-                }
-                state.sliderThumbnailJobId = nil
-                state.sliderReadyThumbnailPages = state.archivePageNumbers
-                if let previewPageIndex = state.sliderPreviewPageIndex {
-                    return .send(.loadSliderPreview(previewPageIndex))
-                }
-                return .none
-            case let .tankSliderPreviewThumbnailsQueued(results):
+            case let .sliderPreviewThumbnailsQueued(results):
                 state.sliderThumbnailJobsById = [:]
                 var effect: Effect<Action> = .none
 
@@ -414,7 +387,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                         state.sliderThumbnailJobsById[jobId] = result.archiveId
                         effect = .merge(
                             effect,
-                            .send(.pollTankSliderPreviewThumbnailJob(jobId, archiveId: result.archiveId))
+                            .send(.pollSliderPreviewThumbnailJob(jobId, archiveId: result.archiveId))
                         )
                     } else {
                         state.sliderReadyThumbnailPages.formUnion(
@@ -423,60 +396,26 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     }
                 }
 
-                state.sliderThumbnailJobId = state.sliderThumbnailJobsById.keys.sorted().first
                 if let previewPageIndex = state.sliderPreviewPageIndex {
                     effect = .merge(effect, .send(.loadSliderPreview(previewPageIndex)))
                 }
                 return effect
-            case let .pollSliderPreviewThumbnailJob(jobId):
+            case let .pollSliderPreviewThumbnailJob(jobId, archiveId):
                 return .run { send in
                     while true {
                         let status = try await service.checkBasicJobStatus(id: jobId).value
-                        await send(.sliderPreviewThumbnailJobStatus(status))
-                        if status.state == "finished" || status.state == "failed" {
-                            return
-                        }
-                        try await clock.sleep(for: .seconds(1))
-                    }
-                } catch: { [archiveId = state.currentArchiveId] error, send in
-                    logger.warning("failed to poll slider preview thumbnail job. id=\(archiveId) \(error)")
-                    await send(.sliderPreviewThumbnailPollingFailed)
-                }
-                .cancellable(id: CancelId.sliderPreviewThumbnailPolling, cancelInFlight: true)
-            case let .sliderPreviewThumbnailJobStatus(status):
-                state.sliderReadyThumbnailPages.formUnion(status.processedPages)
-                if status.state == "finished" {
-                    state.sliderReadyThumbnailPages.formUnion(state.archivePageNumbers)
-                    state.sliderThumbnailJobId = nil
-                } else if status.state == "failed" {
-                    state.sliderThumbnailJobId = nil
-                }
-                if let previewPageIndex = state.sliderPreviewPageIndex {
-                    return .send(.loadSliderPreview(previewPageIndex))
-                }
-                return .none
-            case .sliderPreviewThumbnailPollingFailed:
-                state.sliderThumbnailJobId = nil
-                if let previewPageIndex = state.sliderPreviewPageIndex {
-                    return .send(.loadSliderPreview(previewPageIndex))
-                }
-                return .none
-            case let .pollTankSliderPreviewThumbnailJob(jobId, archiveId):
-                return .run { send in
-                    while true {
-                        let status = try await service.checkBasicJobStatus(id: jobId).value
-                        await send(.tankSliderPreviewThumbnailJobStatus(jobId, archiveId, status))
+                        await send(.sliderPreviewThumbnailJobStatus(jobId, archiveId, status))
                         if status.state == "finished" || status.state == "failed" {
                             return
                         }
                         try await clock.sleep(for: .seconds(1))
                     }
                 } catch: { error, send in
-                    logger.warning("failed to poll tank slider preview thumbnail job. id=\(archiveId) \(error)")
-                    await send(.tankSliderPreviewThumbnailPollingFailed(jobId, archiveId))
+                    logger.warning("failed to poll slider preview thumbnail job. id=\(archiveId) \(error)")
+                    await send(.sliderPreviewThumbnailPollingFailed(jobId, archiveId))
                 }
                 .cancellable(id: CancelId.sliderPreviewThumbnailPolling)
-            case let .tankSliderPreviewThumbnailJobStatus(jobId, archiveId, status):
+            case let .sliderPreviewThumbnailJobStatus(jobId, archiveId, status):
                 state.sliderReadyThumbnailPages.formUnion(
                     Self.readerPageNumbers(
                         in: state.pages,
@@ -492,14 +431,12 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                 } else if status.state == "failed" {
                     state.sliderThumbnailJobsById[jobId] = nil
                 }
-                state.sliderThumbnailJobId = state.sliderThumbnailJobsById.keys.sorted().first
                 if let previewPageIndex = state.sliderPreviewPageIndex {
                     return .send(.loadSliderPreview(previewPageIndex))
                 }
                 return .none
-            case let .tankSliderPreviewThumbnailPollingFailed(jobId, _):
+            case let .sliderPreviewThumbnailPollingFailed(jobId, _):
                 state.sliderThumbnailJobsById[jobId] = nil
-                state.sliderThumbnailJobId = state.sliderThumbnailJobsById.keys.sorted().first
                 if let previewPageIndex = state.sliderPreviewPageIndex {
                     return .send(.loadSliderPreview(previewPageIndex))
                 }
@@ -1077,13 +1014,12 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
 
     private func resetSliderPreviewArchiveState(state: inout State) {
         resetSliderPreviewDisplayState(state: &state)
-        state.sliderThumbnailJobId = nil
         state.sliderThumbnailJobsById = [:]
         state.sliderReadyThumbnailPages = []
     }
 
     private func hasPendingSliderPreviewThumbnailJobs(state: State) -> Bool {
-        state.sliderThumbnailJobId != nil || !state.sliderThumbnailJobsById.isEmpty
+        !state.sliderThumbnailJobsById.isEmpty
     }
 
     private func previewFileURL(state: State, pageIndex: Int) -> URL? {
