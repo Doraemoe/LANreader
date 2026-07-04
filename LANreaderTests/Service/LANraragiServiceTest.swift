@@ -8,11 +8,13 @@ import OHHTTPStubsSwift
 import SwiftUI
 @testable import LANreader
 
-// swiftlint:disable type_body_length
+// swiftlint:disable type_body_length file_length
 class LANraragiServiceTest: XCTestCase {
 
     private let url = "https://localhost"
     private let apiKey = "apiKey"
+    private let tankId = "TANK_1783084742"
+    private let archiveId = "0123456789012345678901234567890123456789"
 
     private var service: LANraragiService!
 
@@ -277,6 +279,46 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(actual.recordsTotal, 1234)
     }
 
+    func testSearchArchiveDecodesTankResultAndCanDisableGrouping() async throws {
+        try await configureVerifiedClient()
+
+        let tankId = self.tankId
+        let body = Data("""
+        {
+          "data": [{
+            "archive_count": 2,
+            "arcid": "\(tankId)",
+            "extension": ".tank",
+            "filename": "",
+            "isnew": "false",
+            "lastreadtime": 1783084725,
+            "pagecount": 47,
+            "progress": 1,
+            "size": 77747883,
+            "summary": "summary",
+            "tags": "artist:test",
+            "title": "test"
+          }],
+          "draw": 0,
+          "recordsFiltered": 1,
+          "recordsTotal": 1
+        }
+        """.utf8)
+
+        stub(condition: isHost("localhost")
+                && isPath("/api/search")
+                && containsQueryParams(["category": "SET_12345678", "groupby_tanks": "false"])
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(data: body, statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+
+        let actual = try await service.searchArchive(category: "SET_12345678", groupByTanks: false).value
+        XCTAssertEqual(actual.data[0].arcid, tankId)
+        XCTAssertEqual(actual.data[0].archiveCount, 2)
+        XCTAssertEqual(actual.data[0].extension, ".tank")
+    }
+
     func testSearchArchiveIndexUnauthorized() async throws {
         try await configureVerifiedClient()
 
@@ -292,6 +334,139 @@ class LANraragiServiceTest: XCTestCase {
 
         let actual = try? await service.searchArchive(category: "SET_12345678").value
         XCTAssertNil(actual)
+    }
+
+    func testRetrieveTankoubonMetadata() async throws {
+        try await configureVerifiedClient()
+
+        let tankId = self.tankId
+        let archiveId = self.archiveId
+        let tankBody = Data("""
+        {
+          "id": "\(tankId)",
+          "name": "Tank",
+          "summary": "Summary",
+          "tags": "artist:test",
+          "archives": ["\(archiveId)"],
+          "progress": 3
+        }
+        """.utf8)
+        stub(condition: isHost("localhost") && isPath("/api/tankoubons/\(tankId)")) { _ in
+            HTTPStubsResponse(data: tankBody, statusCode: 200, headers: nil)
+        }
+
+        let tank = try await service.retrieveTankoubon(id: tankId).value
+
+        XCTAssertEqual(tank.id, tankId)
+        XCTAssertEqual(tank.archives, [archiveId])
+    }
+
+    func testRetrieveFullTankoubonAndThumbnail() async throws {
+        try await configureVerifiedClient()
+
+        let tankId = self.tankId
+        let archiveId = self.archiveId
+        let fullBody = Data("""
+        {
+          "result": {
+            "id": "\(tankId)",
+            "name": "Tank",
+            "summary": "Summary",
+            "tags": "artist:test",
+            "progress": 3,
+            "archives": ["\(archiveId)"],
+            "full_data": [{
+              "arcid": "\(archiveId)",
+              "extension": "zip",
+              "filename": "archive.zip",
+              "isnew": false,
+              "lastreadtime": 1,
+              "pagecount": 10,
+              "progress": 0,
+              "size": 100,
+              "tags": "artist:test",
+              "title": "Archive"
+            }]
+          },
+          "total": 1,
+          "filtered": 1
+        }
+        """.utf8)
+        let imageData = Data([0xFF, 0xD8, 0xFF, 0xDB])
+
+        stub(condition: isHost("localhost")
+                && isPath("/api/tankoubons/\(tankId)/full")
+                && containsQueryParams(["page": "-1"])) { _ in
+            HTTPStubsResponse(data: fullBody, statusCode: 200, headers: nil)
+        }
+        stub(condition: isHost("localhost")
+                && isPath("/api/tankoubons/\(tankId)/thumbnail")
+                && containsQueryParams(["no_fallback": "true"])) { _ in
+            HTTPStubsResponse(data: imageData, statusCode: 200, headers: ["Content-Type": "image/jpeg"])
+        }
+
+        let full = try await service.retrieveFullTankoubon(id: tankId).value
+        let thumbnail = try await service.retrieveTankoubonThumbnail(id: tankId)
+
+        XCTAssertEqual(full.result.fullData?.first?.arcid, archiveId)
+        XCTAssertEqual(thumbnail, imageData)
+    }
+
+    func testUpdateAndDeleteTankoubon() async throws {
+        try await configureVerifiedClient()
+
+        let tankId = self.tankId
+        let successBody = Data("{ \"success\": 1 }".utf8)
+
+        stub(condition: isHost("localhost")
+                && isPath("/api/tankoubons/\(tankId)")
+                && isMethodPUT()
+                && hasHeaderNamed("Content-Type", value: "application/json")) { _ in
+            HTTPStubsResponse(data: successBody, statusCode: 200, headers: nil)
+        }
+        stub(condition: isHost("localhost")
+                && isPath("/api/tankoubons/\(tankId)")
+                && isMethodDELETE()) { _ in
+            HTTPStubsResponse(data: successBody, statusCode: 200, headers: nil)
+        }
+
+        let update = try await service.updateTankoubon(
+            id: tankId,
+            name: "Tank",
+            summary: "Summary",
+            tags: "artist:test",
+            appendTags: false
+        ).value
+        let delete = try await service.deleteTankoubon(id: tankId).value
+
+        XCTAssertEqual(update.success, 1)
+        XCTAssertEqual(delete.success, 1)
+    }
+
+    func testUpdateThumbnailAndProgress() async throws {
+        try await configureVerifiedClient()
+
+        let tankId = self.tankId
+        stub(condition: isHost("localhost")
+                && isPath("/api/tankoubons/\(tankId)/thumbnail")
+                && containsQueryParams(["page": "4"])
+                && isMethodPUT()) { _ in
+            let body = Data("{ \"operation\": \"update_tankoubon_thumbnail\", \"success\": 1 }".utf8)
+            return HTTPStubsResponse(data: body, statusCode: 200, headers: nil)
+        }
+        stub(condition: isHost("localhost") && isPath("/api/tankoubons/\(tankId)/progress/5")) { _ in
+            let body = Data("""
+            { "id": "\(tankId)", "operation": "update_tank_progress",
+              "page": 5, "lastreadtime": 123943543, "success": 1 }
+            """.utf8)
+            return HTTPStubsResponse(data: body, statusCode: 200, headers: nil)
+        }
+
+        let thumbnail = try await service.updateTankoubonThumbnail(id: tankId, page: 4).value
+        let progress = try await service.updateTankoubonReadProgress(id: tankId, progress: 5).value
+
+        XCTAssertEqual(thumbnail.success, 1)
+        XCTAssertEqual(progress.page, 5)
     }
 
     func testRetrieveCategories() async throws {
@@ -638,4 +813,4 @@ class LANraragiServiceTest: XCTestCase {
     }
 
 }
-// swiftlint:enable type_body_length
+// swiftlint:enable type_body_length file_length
