@@ -1,4 +1,5 @@
 import XCTest
+import ComposableArchitecture
 @testable import LANreader
 
 final class ArchiveDetailsTagParserTests: XCTestCase {
@@ -30,4 +31,82 @@ final class ArchiveDetailsTagParserTests: XCTestCase {
         XCTAssertEqual(sourceTags?.map(\.displayText), ["example.com"])
         XCTAssertEqual(sourceTags?.map(\.raw), ["source: example.com"])
     }
+
+    @MainActor
+    func testArchiveDetailsLoadLocalFieldsUsesTankoubonMetadataTags() async {
+        let archive = Shared(value: makeDetailsArchive(
+            id: "TANK_1783084742",
+            name: "Merged search title",
+            tags: "artist:merged"
+        ))
+        let metadata = TankoubonDetailsMetadata(
+            id: "TANK_1783084742",
+            name: "Tank title",
+            tags: "artist:tank",
+            includedArchiveTags: "artist:first,series:one"
+        )
+        let store = TestStore(
+            initialState: ArchiveDetailsFeature.State(
+                archive: archive,
+                tankoubonMetadata: metadata
+            )
+        ) {
+            ArchiveDetailsFeature()
+        }
+
+        await store.send(.loadLocalFields) {
+            $0.title = "Tank title"
+            $0.editableTags = "artist:tank"
+            $0.readOnlyTags = "artist:first,series:one"
+        }
+    }
+
+    @MainActor
+    func testArchiveDetailsUpdatingLocalTankoubonMetadataKeepsIncludedTagsReadOnly() async {
+        let archive = Shared(value: makeDetailsArchive(
+            id: "TANK_1783084742",
+            name: "Tank title",
+            tags: "artist:tank,artist:first"
+        ))
+        let metadata = TankoubonDetailsMetadata(
+            id: "TANK_1783084742",
+            name: "Tank title",
+            tags: "artist:tank",
+            includedArchiveTags: "artist:first,series:one"
+        )
+        let store = TestStore(
+            initialState: ArchiveDetailsFeature.State(
+                archive: archive,
+                tankoubonMetadata: metadata
+            )
+        ) {
+            ArchiveDetailsFeature()
+        }
+
+        await store.send(.updateLocalTankoubonMetadata("New title", "artist:new,series:one")) {
+            $0.tankoubonMetadata?.name = "New title"
+            $0.tankoubonMetadata?.tags = "artist:new,series:one"
+            $0.$archive.withLock {
+                $0.name = "New title"
+                $0.tags = "artist:new,series:one,artist:first"
+            }
+        }
+    }
+}
+
+private func makeDetailsArchive(
+    id: String = "archive",
+    name: String = "Archive",
+    tags: String = ""
+) -> ArchiveItem {
+    ArchiveItem(
+        id: id,
+        name: name,
+        extension: "zip",
+        tags: tags,
+        isNew: false,
+        progress: 0,
+        pagecount: 10,
+        dateAdded: nil
+    )
 }

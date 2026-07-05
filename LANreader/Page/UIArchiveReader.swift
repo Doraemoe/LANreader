@@ -5,6 +5,7 @@ import ComposableArchitecture
 class UIArchiveReaderController: UIViewController {
     private let store: StoreOf<ArchiveReaderFeature>
     private var hostingController: UIHostingController<ArchiveReader>!
+    private var detailsButton: UIBarButtonItem?
 
     init(
         store: StoreOf<ArchiveReaderFeature>,
@@ -35,9 +36,14 @@ class UIArchiveReaderController: UIViewController {
     func setupToolbar() {
         let detailsAction = UIAction(image: UIImage(systemName: "info.circle")) { [weak self] _ in
             guard let self else { return }
+            guard store.canOpenDetails else { return }
             guard let currentArchive = store.allArchives[id: store.currentArchiveId] else { return }
             let detailsStore = Store(
-                initialState: ArchiveDetailsFeature.State.init(archive: currentArchive, cached: store.cached)
+                initialState: ArchiveDetailsFeature.State.init(
+                    archive: currentArchive,
+                    cached: store.cached,
+                    tankoubonMetadata: store.currentTankoubonDetails
+                )
             ) {
                 ArchiveDetailsFeature()
             }
@@ -56,6 +62,8 @@ class UIArchiveReaderController: UIViewController {
             )
         }
         let detailsButton = UIBarButtonItem(primaryAction: detailsAction)
+        detailsButton.isEnabled = store.canOpenDetails
+        self.detailsButton = detailsButton
 
         navigationItem.rightBarButtonItem = detailsButton
     }
@@ -72,6 +80,11 @@ class UIArchiveReaderController: UIViewController {
             guard let self else { return }
             guard let currentArchive = store.allArchives[id: store.currentArchiveId] else { return }
             navigationItem.title = currentArchive.wrappedValue.name
+        }
+
+        observe { [weak self] in
+            guard let self else { return }
+            detailsButton?.isEnabled = store.canOpenDetails
         }
     }
 

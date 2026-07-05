@@ -16,16 +16,27 @@ import GRDBQuery
 
         var editMode: EditMode = .inactive
         var title = ""
-        var tags = ""
+        var editableTags = ""
+        var readOnlyTags = ""
+        var tankoubonMetadata: TankoubonDetailsMetadata?
         var errorMessage = ""
         var successMessage = ""
         var loading = false
         let cached: Bool
         var showAlert: Bool = false
 
-        init(archive: Shared<ArchiveItem>, cached: Bool = false) {
+        init(
+            archive: Shared<ArchiveItem>,
+            cached: Bool = false,
+            tankoubonMetadata: TankoubonDetailsMetadata? = nil
+        ) {
             self._archive = archive
             self.cached = cached
+            self.tankoubonMetadata = tankoubonMetadata
+        }
+
+        var isTankoubon: Bool {
+            archive.id.hasPrefix("TANK_")
         }
     }
 
@@ -38,6 +49,7 @@ import GRDBQuery
         case addArchiveToCategory(String)
         case removeArchiveFromCategory(String)
         case updateLocalCategoryItems(String, String, Bool)
+        case updateLocalTankoubonMetadata(String, String)
         case setErrorMessage(String)
         case setSuccessMessage(String)
         case confirmDelete
@@ -56,12 +68,21 @@ import GRDBQuery
             switch action {
             case .updateArchiveMetadata:
                 return .run { [state] send in
-                    var archive = state.archive
-                    archive.name = state.title
-                    archive.tags = state.tags
-                    _ = try await service.updateArchive(archive: archive).value
-                    state.$archive.withLock { $0.name = state.title }
-                    state.$archive.withLock { $0.tags = state.tags }
+                    if let tankoubonMetadata = state.tankoubonMetadata {
+                        _ = try await service.updateTankoubon(
+                            id: tankoubonMetadata.id,
+                            name: state.title,
+                            tags: state.editableTags
+                        ).value
+                        await send(.updateLocalTankoubonMetadata(state.title, state.editableTags))
+                    } else {
+                        var archive = state.archive
+                        archive.name = state.title
+                        archive.tags = state.editableTags
+                        _ = try await service.updateArchive(archive: archive).value
+                        state.$archive.withLock { $0.name = state.title }
+                        state.$archive.withLock { $0.tags = state.editableTags }
+                    }
                     await send(.setSuccessMessage(
                         String(localized: "archive.metadata.update.success"))
                     )
@@ -70,8 +91,9 @@ import GRDBQuery
                     await send(.setErrorMessage(error.localizedDescription))
                 }
             case .loadLocalFields:
-                state.title = state.archive.name
-                state.tags = state.archive.tags
+                state.title = state.tankoubonMetadata?.name ?? state.archive.name
+                state.editableTags = state.tankoubonMetadata?.tags ?? state.archive.tags
+                state.readOnlyTags = state.tankoubonMetadata?.includedArchiveTags ?? ""
                 return .none
             case .deleteButtonTapped:
                 state.showAlert = true
@@ -79,7 +101,11 @@ import GRDBQuery
             case .confirmDelete:
                 state.loading = true
                 return .run { [id = state.archive.id] send in
-                    let response = try await service.deleteArchive(id: id).value
+                    let response = if id.hasPrefix("TANK_") {
+                        try await service.deleteTankoubon(id: id).value
+                    } else {
+                        try await service.deleteArchive(id: id).value
+                    }
                     if response.success == 1 {
                         await send(.deleteSuccess)
                     } else {
@@ -170,6 +196,14 @@ import GRDBQuery
                     }
                 }
                 return .none
+            case let .updateLocalTankoubonMetadata(title, tags):
+                state.tankoubonMetadata?.name = title
+                state.tankoubonMetadata?.tags = tags
+                state.$archive.withLock { $0.name = title }
+                if let tankoubonMetadata = state.tankoubonMetadata {
+                    state.$archive.withLock { $0.tags = tankoubonMetadata.combinedTags }
+                }
+                return .none
             case let .setErrorMessage(message):
                 state.errorMessage = message
                 state.loading = false
@@ -210,6 +244,10 @@ struct ArchiveDetailsV2: View {
     }
 
     var body: some View {
+        let deleteConfirmationTitle: LocalizedStringKey = store.isTankoubon
+            ? "archive.delete.tankoubon.confirm"
+            : "archive.delete.confirm"
+
         ScrollView {
             VStack(spacing: 22) {
                 headerView(store: store)
@@ -265,13 +303,17 @@ struct ArchiveDetailsV2: View {
             }
         }
         .environment(\.editMode, $store.editMode)
-        .alert("archive.delete.confirm", isPresented: $store.showAlert) {
+        .alert(deleteConfirmationTitle, isPresented: $store.showAlert) {
             Button("cancel", role: .cancel) { }
             Button("delete", role: .destructive) {
                 Task {
                     await store.send(.confirmDelete).finish()
                 }
                 onDelete()
+            }
+        } message: {
+            if store.isTankoubon {
+                Text("archive.delete.tankoubon.confirm.message")
             }
         }
         .onChange(of: store.editMode) { oldMode, newMode in
@@ -358,8 +400,9 @@ struct ArchiveDetailsV2: View {
     }
 
     private func tagsView(store: StoreOf<ArchiveDetailsFeature>) -> some View {
-        let groups = ArchiveDetailsTagParser.tagGroups(from: store.tags)
-        let tagCount = groups.reduce(0) { count, group in
+        let editableGroups = ArchiveDetailsTagParser.tagGroups(from: store.editableTags)
+        let readOnlyGroups = ArchiveDetailsTagParser.tagGroups(from: store.readOnlyTags)
+        let tagCount = (editableGroups + readOnlyGroups).reduce(0) { count, group in
             count + group.tags.count
         }
 
@@ -380,32 +423,98 @@ struct ArchiveDetailsV2: View {
                 }
             }
 
-            if store.editMode == .active {
-                TextField("archive.details.tags", text: $store.tags, axis: .vertical)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .font(.body.monospaced())
-                    .lineLimit(5...14)
-                    .padding(14)
-                    .background(
-                        Color(uiColor: .secondarySystemGroupedBackground),
-                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    )
-            } else if groups.isEmpty {
-                Label("archive.tags.empty", systemImage: "tag")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 76)
-                    .background(
-                        Color(uiColor: .secondarySystemGroupedBackground),
-                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    )
+            if store.tankoubonMetadata != nil {
+                tankTagsView(store: store, editableGroups: editableGroups, readOnlyGroups: readOnlyGroups)
             } else {
-                ForEach(groups) { group in
-                    tagGroupView(group)
-                }
+                archiveTagsView(store: store, groups: editableGroups)
             }
         }
+    }
+
+    @ViewBuilder
+    private func archiveTagsView(
+        store: StoreOf<ArchiveDetailsFeature>,
+        groups: [ArchiveTagGroup]
+    ) -> some View {
+        if store.editMode == .active {
+            editableTagsField(store: store)
+        } else if groups.isEmpty {
+            emptyTagsView()
+        } else {
+            ForEach(groups) { group in
+                tagGroupView(group)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func tankTagsView(
+        store: StoreOf<ArchiveDetailsFeature>,
+        editableGroups: [ArchiveTagGroup],
+        readOnlyGroups: [ArchiveTagGroup]
+    ) -> some View {
+        tagSectionHeader("archive.details.tags.tankMetadata")
+
+        if store.editMode == .active {
+            editableTagsField(store: store)
+        } else if editableGroups.isEmpty {
+            emptyTagsView()
+        } else {
+            ForEach(editableGroups) { group in
+                tagGroupView(group)
+            }
+        }
+
+        if !readOnlyGroups.isEmpty {
+            tagSectionHeader("archive.details.tags.included", readOnly: true)
+            ForEach(readOnlyGroups) { group in
+                tagGroupView(group, navigationEnabled: store.editMode != .active)
+            }
+        }
+    }
+
+    private func editableTagsField(store: StoreOf<ArchiveDetailsFeature>) -> some View {
+        TextField("archive.details.tags", text: $store.editableTags, axis: .vertical)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .font(.body.monospaced())
+            .lineLimit(5...14)
+            .padding(14)
+            .background(
+                Color(uiColor: .secondarySystemGroupedBackground),
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            )
+    }
+
+    private func emptyTagsView() -> some View {
+        Label("archive.tags.empty", systemImage: "tag")
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, minHeight: 76)
+            .background(
+                Color(uiColor: .secondarySystemGroupedBackground),
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            )
+    }
+
+    private func tagSectionHeader(_ titleKey: LocalizedStringKey, readOnly: Bool = false) -> some View {
+        HStack(spacing: 8) {
+            Text(titleKey)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            if readOnly {
+                Label("archive.details.tags.readOnly", systemImage: "lock")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5)
+                    .background(.thinMaterial, in: Capsule())
+            }
+        }
+        .padding(.top, 2)
     }
 
     @ViewBuilder
@@ -437,7 +546,11 @@ struct ArchiveDetailsV2: View {
                 role: .destructive,
                 action: { store.send(.deleteButtonTapped) },
                 label: {
-                    Label("archive.delete", systemImage: "trash")
+                    let titleKey: LocalizedStringKey = store.isTankoubon
+                        ? "archive.delete.tankoubon"
+                        : "archive.delete"
+
+                    Label(titleKey, systemImage: "trash")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -452,7 +565,7 @@ struct ArchiveDetailsV2: View {
         }
     }
 
-    private func tagGroupView(_ group: ArchiveTagGroup) -> some View {
+    private func tagGroupView(_ group: ArchiveTagGroup, navigationEnabled: Bool = true) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(group.title)
                 .font(.subheadline.weight(.semibold))
@@ -460,7 +573,7 @@ struct ArchiveDetailsV2: View {
 
             WrappingHStack(horizontalSpacing: 4, verticalSpacing: 4) {
                 ForEach(group.tags) { tag in
-                    tagButton(tag)
+                    tagButton(tag, navigationEnabled: navigationEnabled)
                 }
             }
         }
@@ -476,10 +589,11 @@ struct ArchiveDetailsV2: View {
         }
     }
 
-    private func tagButton(_ tag: ArchiveDetailsTag) -> some View {
+    private func tagButton(_ tag: ArchiveDetailsTag, navigationEnabled: Bool = true) -> some View {
         let tint = tagTint(for: tag.namespaceKey)
 
         return Button {
+            guard navigationEnabled else { return }
             if tag.namespaceKey == ArchiveDetailsTagParser.sourceTag, let url = sourceURL(for: tag) {
                 openURL(url)
             } else {
@@ -508,6 +622,7 @@ struct ArchiveDetailsV2: View {
             }
         }
         .buttonStyle(.plain)
+        .disabled(!navigationEnabled)
         .accessibilityLabel(Text(verbatim: tag.accessibilityLabel))
     }
 
