@@ -111,7 +111,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
 
         var canOpenDetails: Bool {
             guard !extracting else { return false }
-            guard currentArchiveId.hasPrefix("TANK_") else { return true }
+            guard currentArchiveId.isTankoubonArchiveId else { return true }
             guard !cached else { return true }
             return currentTankoubonDetails?.id == currentArchiveId
         }
@@ -233,7 +233,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                 return .run { send in
                     let pages: [ReaderExtractedPage]
                     var tankoubonDetails: TankoubonDetailsMetadata?
-                    if Self.isTankoubonArchiveId(id) {
+                    if id.isTankoubonArchiveId {
                         let tankoubon = try await service.retrieveFullTankoubon(id: id).value
                         tankoubonDetails = TankoubonDetailsMetadata(response: tankoubon)
                         let archiveIds = Self.tankoubonArchiveIds(from: tankoubon)
@@ -320,7 +320,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                       let page = state.currentPage else { return .none }
 
                 let pageNumber = page.pageNumber
-                let isTank = Self.isTankoubonArchiveId(state.currentArchiveId)
+                let isTank = state.currentArchiveId.isTankoubonArchiveId
                 let shouldClearNewFlag = !isTank && pageNumber > 1 && currentArchive.wrappedValue.isNew
                 currentArchive.withLock {
                     $0.progress = pageNumber
@@ -619,7 +619,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     return .none
                 }
                 let pageNumber = currentPage.pageNumber
-                let isTank = Self.isTankoubonArchiveId(state.currentArchiveId)
+                let isTank = state.currentArchiveId.isTankoubonArchiveId
                 return .run { [id = state.currentArchiveId, pageNumber, isTank] send in
                     let thumbnailData: Data?
                     if isTank {
@@ -826,11 +826,6 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         }
         .ifLet(\.$alert, action: \.alert)
     }
-
-    private static func isTankoubonArchiveId(_ id: String) -> Bool {
-        id.hasPrefix("TANK_")
-    }
-
     private static func tankoubonArchiveIds(from response: TankoubonFullResponse) -> [String] {
         if let archives = response.result.archives, !archives.isEmpty {
             return archives

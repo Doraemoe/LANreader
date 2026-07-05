@@ -36,7 +36,7 @@ import GRDBQuery
         }
 
         var isTankoubon: Bool {
-            archive.id.hasPrefix("TANK_")
+            archive.id.isTankoubonArchiveId
         }
     }
 
@@ -101,7 +101,7 @@ import GRDBQuery
             case .confirmDelete:
                 state.loading = true
                 return .run { [id = state.archive.id] send in
-                    let response = if id.hasPrefix("TANK_") {
+                    let response = if id.isTankoubonArchiveId {
                         try await service.deleteTankoubon(id: id).value
                     } else {
                         try await service.deleteArchive(id: id).value

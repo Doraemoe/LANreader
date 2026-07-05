@@ -65,6 +65,12 @@ public struct TankoubonDetailsMetadata: Equatable, Hashable, Sendable {
     }
 }
 
+extension String {
+    var isTankoubonArchiveId: Bool {
+        hasPrefix("TANK_")
+    }
+}
+
 extension ArchiveItem {
     func toArchive() -> Archive {
         Archive(id: id,
