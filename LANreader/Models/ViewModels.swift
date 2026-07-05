@@ -23,6 +23,54 @@ public struct CategoryItem: Identifiable, Equatable, Hashable, Sendable {
     let pinned: String
 }
 
+public struct TankoubonDetailsMetadata: Equatable, Hashable, Sendable {
+    public let id: String
+    public var name: String?
+    public var tags: String
+    public let includedArchiveTags: String
+
+    public init(id: String, name: String? = nil, tags: String = "", includedArchiveTags: String = "") {
+        self.id = id
+        self.name = name
+        self.tags = tags
+        self.includedArchiveTags = includedArchiveTags
+    }
+
+    init(response: TankoubonFullResponse) {
+        self.init(
+            id: response.result.id,
+            name: response.result.name,
+            tags: response.result.tags ?? "",
+            includedArchiveTags: Self.mergedTags(from: response.result.fullData?.map { $0.tags ?? "" } ?? [])
+        )
+    }
+
+    var combinedTags: String {
+        Self.mergedTags(from: [tags, includedArchiveTags])
+    }
+
+    private static func mergedTags(from tagStrings: [String]) -> String {
+        var seen = Set<String>()
+        return tagStrings
+            .flatMap { tagString in
+                tagString.split(separator: ",").map { tag in
+                    tag.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+            }
+            .filter { tag in
+                guard !tag.isEmpty else { return false }
+                return seen.insert(tag).inserted
+            }
+            .joined(separator: ",")
+    }
+}
+
+extension String {
+    var isTankoubonArchiveId: Bool {
+        hasPrefix("TANK_")
+    }
+}
+
 extension ArchiveItem {
     func toArchive() -> Archive {
         Archive(id: id,

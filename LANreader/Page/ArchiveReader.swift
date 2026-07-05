@@ -64,6 +64,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         var cached = false
         var inCache = false
         var removeCacheSuccess = false
+        var currentTankoubonDetails: TankoubonDetailsMetadata?
         var sliderDraftIndex: Int?
         var sliderDragging = false
         var sliderPreviewVisible = false
@@ -107,6 +108,13 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         var archivePageCount: Int {
             archivePageNumbers.count
         }
+
+        var canOpenDetails: Bool {
+            guard !extracting else { return false }
+            guard currentArchiveId.isTankoubonArchiveId else { return true }
+            guard !cached else { return true }
+            return currentTankoubonDetails?.id == currentArchiveId
+        }
     }
 
     public enum Action: Equatable, BindableAction {
@@ -119,7 +127,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         case setLastAutoPageIndex(Int?)
         case page(IdentifiedActionOf<PageFeature>)
         case extractArchive
-        case finishExtracting([ReaderExtractedPage])
+        case finishExtracting([ReaderExtractedPage], TankoubonDetailsMetadata?)
         case toggleControlUi(Bool?)
         case visiblePageChanged(Int)
         case requestJump(Int, source: ReaderNavigationSource)
@@ -224,8 +232,10 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                 }
                 return .run { send in
                     let pages: [ReaderExtractedPage]
-                    if Self.isTankoubonArchiveId(id) {
+                    var tankoubonDetails: TankoubonDetailsMetadata?
+                    if id.isTankoubonArchiveId {
                         let tankoubon = try await service.retrieveFullTankoubon(id: id).value
+                        tankoubonDetails = TankoubonDetailsMetadata(response: tankoubon)
                         let archiveIds = Self.tankoubonArchiveIds(from: tankoubon)
                         var tankPages: [ReaderExtractedPage] = []
 
@@ -253,13 +263,14 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                         let errorMessage = String(localized: "error.page.empty")
                         await send(.setError(errorMessage))
                     }
-                    await send(.finishExtracting(pages))
+                    await send(.finishExtracting(pages, tankoubonDetails))
                 } catch: { error, send in
                     logger.error("failed to extract archive page. id=\(id) \(error)")
                     await send(.setError(error.localizedDescription))
-                    await send(.finishExtracting([]))
+                    await send(.finishExtracting([], nil))
                 }
-            case let .finishExtracting(pages):
+            case let .finishExtracting(pages, tankoubonDetails):
+                state.currentTankoubonDetails = tankoubonDetails
                 if !pages.isEmpty {
                     let pageState = pages.enumerated().map { (index, extractedPage) in
                         let normalizedPagePath = String(extractedPage.path.dropFirst(1))
@@ -309,7 +320,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                       let page = state.currentPage else { return .none }
 
                 let pageNumber = page.pageNumber
-                let isTank = Self.isTankoubonArchiveId(state.currentArchiveId)
+                let isTank = state.currentArchiveId.isTankoubonArchiveId
                 let shouldClearNewFlag = !isTank && pageNumber > 1 && currentArchive.wrappedValue.isNew
                 currentArchive.withLock {
                     $0.progress = pageNumber
@@ -608,7 +619,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     return .none
                 }
                 let pageNumber = currentPage.pageNumber
-                let isTank = Self.isTankoubonArchiveId(state.currentArchiveId)
+                let isTank = state.currentArchiveId.isTankoubonArchiveId
                 return .run { [id = state.currentArchiveId, pageNumber, isTank] send in
                     let thumbnailData: Data?
                     if isTank {
@@ -815,11 +826,6 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         }
         .ifLet(\.$alert, action: \.alert)
     }
-
-    private static func isTankoubonArchiveId(_ id: String) -> Bool {
-        id.hasPrefix("TANK_")
-    }
-
     private static func tankoubonArchiveIds(from response: TankoubonFullResponse) -> [String] {
         if let archives = response.result.archives, !archives.isEmpty {
             return archives
@@ -1073,6 +1079,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         state.inCache = false
         state.errorMessage = ""
         state.successMessage = ""
+        state.currentTankoubonDetails = nil
         resetSliderPreviewArchiveState(state: &state)
     }
 }

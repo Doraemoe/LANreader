@@ -38,7 +38,7 @@ import GRDBQuery
                 if !force && exists == true {
                     return .none
                 }
-                return .run(priority: .utility) { [id = state.id, isTank = Self.isTankoubonArchiveId(state.id)] send in
+                return .run(priority: .utility) { [id = state.id, isTank = state.id.isTankoubonArchiveId] send in
                     let thumbnailData = if isTank {
                         try await service.retrieveTankoubonThumbnail(id: id)
                     } else {
@@ -67,10 +67,6 @@ import GRDBQuery
                 return .none
             }
         }
-    }
-
-    private static func isTankoubonArchiveId(_ id: String) -> Bool {
-        id.hasPrefix("TANK_")
     }
 }
 

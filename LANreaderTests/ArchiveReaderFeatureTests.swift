@@ -356,7 +356,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             )
         )
 
-        await store.send(.finishExtracting(makeExtractedPages(count: 5))) {
+        await store.send(.finishExtracting(makeExtractedPages(count: 5), nil)) {
             $0.pages = makePageStates(count: 5)
             $0.currentPageIndex = 2
             $0.controlUiHidden = true
@@ -383,7 +383,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         try await configureReadyThumbnailQueue()
         let store = makeTestStore(initialState: makeState(progress: 3))
 
-        await store.send(.finishExtracting(makeExtractedPages(count: 5))) {
+        await store.send(.finishExtracting(makeExtractedPages(count: 5), nil)) {
             $0.pages = makePageStates(count: 5)
             $0.currentPageIndex = 2
             $0.controlUiHidden = true
@@ -410,7 +410,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         try await configureReadyThumbnailQueue()
         let store = makeTestStore(initialState: makeState(progress: 4, fromStart: true))
 
-        await store.send(.finishExtracting(makeExtractedPages(count: 5))) {
+        await store.send(.finishExtracting(makeExtractedPages(count: 5), nil)) {
             $0.pages = makePageStates(count: 5)
             $0.controlUiHidden = true
         }
@@ -436,7 +436,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         try await configureReadyThumbnailQueue()
         let store = makeTestStore(initialState: makeState(progress: 99))
 
-        await store.send(.finishExtracting(makeExtractedPages(count: 4))) {
+        await store.send(.finishExtracting(makeExtractedPages(count: 4), nil)) {
             $0.pages = makePageStates(count: 4)
             $0.currentPageIndex = 3
             $0.controlUiHidden = true
@@ -465,12 +465,16 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         let tankId = "TANK_1783084742"
         let sourceArchives = makeTankSourceArchives()
         let extractedPages = makeExtractedPages(sourceArchives: sourceArchives)
+        let expectedMetadata = makeTankoubonDetailsMetadata(tankId: tankId)
 
-        stubTankoubonFull(tankId: tankId, archiveIds: sourceArchives.map(\.id))
-        for sourceArchive in sourceArchives {
-            stubExtractArchive(archiveId: sourceArchive.id, pages: sourceArchive.pages)
-            stubReadyThumbnailQueue(archiveId: sourceArchive.id)
-        }
+        stubTankoubonFull(
+            tankId: tankId,
+            archiveIds: sourceArchives.map(\.id),
+            tags: "artist:tank",
+            fullDataTags: ["artist:first,series:one", "artist:second,series:one"]
+        )
+        stubExtractArchives(for: sourceArchives)
+        stubReadyThumbnailQueues(for: sourceArchives)
 
         let database = try makeInMemoryDatabase()
         let store = makeTestStore(initialState: makeState(archiveId: tankId, progress: 2)) {
@@ -480,11 +484,17 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.send(.extractArchive) {
             $0.extracting = true
         }
-        await store.receive(.finishExtracting(extractedPages)) {
+        await store.receive(
+            .finishExtracting(
+                extractedPages,
+                expectedMetadata
+            )
+        ) {
             $0.pages = makePageStates(archiveId: tankId, sourceArchives: sourceArchives)
             $0.currentPageIndex = 1
             $0.controlUiHidden = true
             $0.extracting = false
+            $0.currentTankoubonDetails = expectedMetadata
         }
         await store.receive(.requestJump(1, source: .initialRestore)) {
             $0.scrollRequest = makeScrollRequest(
@@ -2024,6 +2034,21 @@ private func stubReadyThumbnailQueues(for sourceArchives: [SourceArchiveFixture]
     }
 }
 
+private func stubExtractArchives(for sourceArchives: [SourceArchiveFixture]) {
+    for sourceArchive in sourceArchives {
+        stubExtractArchive(archiveId: sourceArchive.id, pages: sourceArchive.pages)
+    }
+}
+
+private func makeTankoubonDetailsMetadata(tankId: String) -> TankoubonDetailsMetadata {
+    TankoubonDetailsMetadata(
+        id: tankId,
+        name: "Tank",
+        tags: "artist:tank",
+        includedArchiveTags: "artist:first,series:one,artist:second"
+    )
+}
+
 private func makeExtractedPages(count: Int, archiveId: String = "archive") -> [ReaderExtractedPage] {
     (1...count).map {
         ReaderExtractedPage(archiveId: archiveId, path: "p\($0)", archivePageNumber: $0)
@@ -2044,10 +2069,34 @@ private func makeExtractedPages(
     }
 }
 
-private func stubTankoubonFull(tankId: String, archiveIds: [String]) {
+private func stubTankoubonFull(
+    tankId: String,
+    archiveIds: [String],
+    tags: String? = nil,
+    fullDataTags: [String] = []
+) {
     let archiveBody = archiveIds
         .map { "\"\($0)\"" }
         .joined(separator: ",")
+    let tagsBody = tags.map { ",\n                \"tags\": \"\($0)\"" } ?? ""
+    let fullDataBody = fullDataTags.isEmpty ? "" : """
+    ,
+                "full_data": [
+    \(fullDataTags.enumerated().map { index, tags in
+        """
+                  {
+                    "arcid": "\(archiveIds[index])",
+                    "extension": ".zip",
+                    "isnew": "false",
+                    "tags": "\(tags)",
+                    "title": "Source \(index)",
+                    "pagecount": 1,
+                    "progress": 0
+                  }
+        """
+    }.joined(separator: ",\n"))
+                ]
+    """
 
     stub(condition: isHost("localhost")
             && isPath("/api/tankoubons/\(tankId)/full")
@@ -2058,7 +2107,7 @@ private func stubTankoubonFull(tankId: String, archiveIds: [String]) {
               "result": {
                 "id": "\(tankId)",
                 "name": "Tank",
-                "archives": [\(archiveBody)]
+                "archives": [\(archiveBody)]\(tagsBody)\(fullDataBody)
               },
               "total": \(archiveIds.count),
               "filtered": \(archiveIds.count)
