@@ -80,3 +80,6 @@ iOSInjectionProject/
 .idea/
 .DS_Store
 .codex/
+
+# App Store Connect metadata pulls
+metadata/

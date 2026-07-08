@@ -258,6 +258,37 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(actual.success, "1")
     }
 
+    func testQueueUrlDownloadSendsUrlAsQueryParameter() async throws {
+        try await configureVerifiedClient()
+
+        let downloadUrl = "https://example.com/archive.zip"
+        let body = Data("""
+        {
+          "job": 86,
+          "operation": "download_url",
+          "success": 1,
+          "url": "\(downloadUrl)"
+        }
+        """.utf8)
+        stub(condition: isHost("localhost")
+                && isPath("/api/download_url")
+                && containsQueryParams(["url": downloadUrl])
+                && isMethodPOST()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                data: body,
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+
+        let actual = try await service.queueUrlDownload(downloadUrl: downloadUrl).value
+        XCTAssertEqual(actual.job, 86)
+        XCTAssertEqual(actual.operation, "download_url")
+        XCTAssertEqual(actual.success, 1)
+        XCTAssertEqual(actual.url, downloadUrl)
+    }
+
     func testSearchArchive() async throws {
         try await configureVerifiedClient()
 
