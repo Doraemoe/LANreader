@@ -202,6 +202,22 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertNil(actual)
     }
 
+    func testUpdateArchiveThumbnailSendsPageAsQueryParameter() async throws {
+        try await configureVerifiedClient()
+
+        let body = "{ \"operation\": \"update_thumbnail\", \"success\": 1 }"
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/id/thumbnail")
+                && containsQueryParams(["page": "4"])
+                && isMethodPUT()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(data: Data(body.utf8), statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+
+        let actual = try await service.updateArchiveThumbnail(id: "id", page: 4).value
+        XCTAssertEqual(actual, body)
+    }
+
     func testQueuePageThumbnailsReturnsQueuedJob() async throws {
         try await configureVerifiedClient()
 
@@ -657,8 +673,8 @@ class LANraragiServiceTest: XCTestCase {
 
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/metadata")
+                && containsQueryParams(["tags": "tags", "title": "name"])
                 && isMethodPUT()
-                && hasBody(Data("tags=tags&title=name".utf8))
                 && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(
                     fileAtPath: OHPathForFile("SetArchiveMetadataResponse.json", type(of: self))!,
@@ -678,8 +694,8 @@ class LANraragiServiceTest: XCTestCase {
 
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/id/metadata")
+                && containsQueryParams(["tags": "tags", "title": "name"])
                 && isMethodPUT()
-                && hasBody(Data("tags=tags&title=name".utf8))
                 && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(
                     fileAtPath: OHPathForFile("UnauthorizedResponse.json", type(of: self))!,

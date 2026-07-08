@@ -213,7 +213,12 @@ actor LANraragiService {
 
     func updateArchiveThumbnail(id: String, page: Int) -> DataTask<String> {
         let query = ["page": page]
-        return session.request("\(url)/api/archives/\(id)/thumbnail", method: .put, parameters: query)
+        return session.request(
+            "\(url)/api/archives/\(id)/thumbnail",
+            method: .put,
+            parameters: query,
+            encoding: URLEncoding.queryString
+        )
             .validate(statusCode: 200...200)
             .serializingString()
     }
@@ -417,8 +422,12 @@ actor LANraragiService {
         query["title"] = archive.name
         query["tags"] = archive.tags
 
-        return session.request("\(url)/api/archives/\(archive.id)/metadata",
-                               method: .put, parameters: query)
+        return session.request(
+            "\(url)/api/archives/\(archive.id)/metadata",
+            method: .put,
+            parameters: query,
+            encoding: URLEncoding.queryString
+        )
         .validate(statusCode: 200...200)
         .serializingString()
     }
