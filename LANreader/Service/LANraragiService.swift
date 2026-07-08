@@ -438,7 +438,10 @@ actor LANraragiService {
 
     func queueUrlDownload(downloadUrl: String) async -> DataTask<QueueUrlDownloadResponse> {
         let query = ["url": downloadUrl]
-        return session.request("\(url)/api/download_url", method: .post, parameters: query)
+        return session.request("\(url)/api/download_url",
+                               method: .post,
+                               parameters: query,
+                               encoding: URLEncoding.queryString)
             .validate(statusCode: 200...200)
             .serializingDecodable(QueueUrlDownloadResponse.self)
     }
