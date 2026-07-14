@@ -123,6 +123,22 @@ extension ArchiveCache: Codable, FetchableRecord, MutablePersistableRecord {
     }
 }
 
+extension ArchiveCache {
+    func toArchiveItem() -> ArchiveItem {
+        ArchiveItem(
+            id: id,
+            name: title,
+            extension: "",
+            tags: tags,
+            isNew: false,
+            progress: 0,
+            pagecount: totalPages,
+            dateAdded: nil,
+            toc: toc
+        )
+    }
+}
+
 extension ArchiveImage: Codable, FetchableRecord, MutablePersistableRecord {
     internal enum Columns {
         static let id = Column(CodingKeys.id)

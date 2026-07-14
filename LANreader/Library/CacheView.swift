@@ -34,20 +34,9 @@ import NotificationBannerSwift
                         if !cache.cached {
                             state.downloading[cache.id] = PageProgress(current: 0, total: cache.totalPages)
                         }
-                        let item = ArchiveItem(
-                            id: cache.id,
-                            name: cache.title,
-                            extension: "",
-                            tags: cache.tags,
-                            isNew: false,
-                            progress: 0,
-                            pagecount: cache.totalPages,
-                            dateAdded: nil,
-                            toc: cache.toc
-                        )
                         gridStates.append(
                             GridFeature.State(
-                                archive: Shared(value: item),
+                                archive: Shared(value: cache.toArchiveItem()),
                                 cached: true
                             )
                         )

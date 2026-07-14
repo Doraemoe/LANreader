@@ -3,10 +3,10 @@
 import Foundation
 import SwiftUI
 
-public struct ArchiveChapter: Codable, Equatable, Hashable, Identifiable, Sendable {
-    public var id: Int { page }
-    public let name: String
-    public let page: Int
+struct ArchiveChapter: Codable, Equatable, Hashable, Identifiable, Sendable {
+    var id: Int { page }
+    let name: String
+    let page: Int
 }
 
 public struct ArchiveItem: Identifiable, Equatable, Hashable, Sendable {
