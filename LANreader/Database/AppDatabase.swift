@@ -99,6 +99,12 @@ struct AppDatabase {
             }
         }
 
+        migrator.registerMigration("archiveCacheTOC") { database in
+            try database.alter(table: "archiveCache") { table in
+                table.add(column: "toc", .text)
+            }
+        }
+
         return migrator
     }
 

@@ -110,8 +110,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         }
 
         var chapters: [ArchiveChapter] {
-            guard !cached,
-                  let currentArchive = allArchives[id: currentArchiveId] else {
+            guard let currentArchive = allArchives[id: currentArchiveId] else {
                 return []
             }
             return currentArchive.wrappedValue.toc ?? []
@@ -753,13 +752,15 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                         requested.append(page.pageId)
                     }
                     guard let currentArchive = state.allArchives[id: state.currentArchiveId] else { return }
+                    let archive = currentArchive.wrappedValue
                     var cache = ArchiveCache(
                         id: state.currentArchiveId,
-                        title: currentArchive.wrappedValue.name,
-                        tags: currentArchive.wrappedValue.tags,
+                        title: archive.name,
+                        tags: archive.tags,
                         thumbnail: Data(),
                         cached: false,
                         totalPages: requested.count,
+                        toc: archive.toc,
                         lastUpdate: Date()
                     )
                     try database.saveCache(&cache)

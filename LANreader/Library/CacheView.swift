@@ -42,7 +42,8 @@ import NotificationBannerSwift
                             isNew: false,
                             progress: 0,
                             pagecount: cache.totalPages,
-                            dateAdded: nil
+                            dateAdded: nil,
+                            toc: cache.toc
                         )
                         gridStates.append(
                             GridFeature.State(

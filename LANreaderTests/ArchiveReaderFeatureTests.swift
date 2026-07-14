@@ -859,19 +859,101 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testCachedReaderDoesNotExposeOrNavigateChapters() async {
+    func testCachedReaderExposesAndNavigatesChapters() async {
         configureReaderDefaults()
+        let chapters = [
+            ArchiveChapter(name: "Opening", page: 1),
+            ArchiveChapter(name: "Second chapter", page: 3)
+        ]
         var initialState = makeState(
             cached: true,
-            allArchives: [
-                makeArchive(toc: [ArchiveChapter(name: "Opening", page: 1)])
-            ]
+            allArchives: [makeArchive(toc: chapters)]
         )
-        initialState.pages = makePageStates(count: 3)
+        initialState.pages = makeSplitPageStates()
         let store = makeTestStore(initialState: initialState)
 
-        XCTAssertTrue(store.state.chapters.isEmpty)
-        await store.send(.chapterSelected(1))
+        XCTAssertEqual(store.state.chapters, chapters)
+
+        await store.send(.chapterSelected(3))
+        await store.receive(.requestJump(3, source: .chapter)) {
+            $0.scrollRequest = makeScrollRequest(
+                id: 0,
+                targetPageIndex: 3,
+                source: .chapter,
+                animated: true
+            )
+        }
+    }
+
+    func testArchiveCachePersistsChapters() throws {
+        let chapters = [
+            ArchiveChapter(name: "Opening", page: 1),
+            ArchiveChapter(name: "Second chapter", page: 3)
+        ]
+        let database = try makeInMemoryDatabase()
+        var cache = ArchiveCache(
+            id: "archive",
+            title: "Archive",
+            tags: "artist:test",
+            thumbnail: nil,
+            cached: true,
+            totalPages: 5,
+            toc: chapters,
+            lastUpdate: Date(timeIntervalSince1970: 1)
+        )
+
+        try database.saveCache(&cache)
+
+        XCTAssertEqual(try database.readCache(cache.id)?.toc, chapters)
+    }
+
+    @MainActor
+    func testCacheFeatureLoadRestoresChapters() async throws {
+        let chapters = [
+            ArchiveChapter(name: "Opening", page: 1),
+            ArchiveChapter(name: "Second chapter", page: 3)
+        ]
+        let database = try makeInMemoryDatabase()
+        var cache = ArchiveCache(
+            id: "archive",
+            title: "Archive",
+            tags: "artist:test",
+            thumbnail: nil,
+            cached: true,
+            totalPages: 5,
+            toc: chapters,
+            lastUpdate: Date(timeIntervalSince1970: 1)
+        )
+        try database.saveCache(&cache)
+        let clock = TestClock()
+        let store = TestStore(initialState: CacheFeature.State()) {
+            CacheFeature()
+        } withDependencies: {
+            $0.appDatabase = database
+            $0.continuousClock = clock
+        }
+
+        await store.send(.load) {
+            $0.archives = [
+                GridFeature.State(
+                    archive: Shared(value: ArchiveItem(
+                        id: "archive",
+                        name: "Archive",
+                        extension: "",
+                        tags: "artist:test",
+                        isNew: false,
+                        progress: 0,
+                        pagecount: 5,
+                        dateAdded: nil,
+                        toc: chapters
+                    )),
+                    cached: true
+                )
+            ]
+        }
+        await store.receive(.refreshProgress)
+        await clock.advance(by: .seconds(2))
+        await store.finish()
     }
 
     @MainActor
