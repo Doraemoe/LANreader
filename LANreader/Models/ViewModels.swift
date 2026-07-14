@@ -3,7 +3,7 @@
 import Foundation
 import SwiftUI
 
-public struct ArchiveChapter: Decodable, Equatable, Hashable, Identifiable, Sendable {
+public struct ArchiveChapter: Codable, Equatable, Hashable, Identifiable, Sendable {
     public var id: Int { page }
     public let name: String
     public let page: Int
