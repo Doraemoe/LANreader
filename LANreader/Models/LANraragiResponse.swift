@@ -11,6 +11,7 @@ struct ArchiveIndexResponse: Decodable, Equatable {
     let pagecount: Int
     let progress: Int
     let archiveCount: Int?
+    let toc: [ArchiveChapter]?
 
     private enum CodingKeys: String, CodingKey {
         case arcid
@@ -21,6 +22,7 @@ struct ArchiveIndexResponse: Decodable, Equatable {
         case pagecount
         case progress
         case archiveCount = "archive_count"
+        case toc
     }
 
     init(from decoder: Decoder) throws {
@@ -33,6 +35,7 @@ struct ArchiveIndexResponse: Decodable, Equatable {
         self.pagecount = try container.decode(Int.self, forKey: .pagecount)
         self.progress = try container.decode(Int.self, forKey: .progress)
         self.archiveCount = try container.decodeIfPresent(Int.self, forKey: .archiveCount)
+        self.toc = try container.decodeIfPresent([ArchiveChapter].self, forKey: .toc)
     }
 }
 
@@ -348,7 +351,8 @@ extension ArchiveIndexResponse {
                 isNew: isnew == "true",
                 progress: progress,
                 pagecount: pagecount,
-                dateAdded: extractDateAdded(tags: tags ?? ""))
+                dateAdded: extractDateAdded(tags: tags ?? ""),
+                toc: toc)
     }
 
     func toArchive() -> Archive {

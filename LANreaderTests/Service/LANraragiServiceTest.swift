@@ -324,6 +324,14 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(actual.draw, 0)
         XCTAssertEqual(actual.recordsFiltered, 1)
         XCTAssertEqual(actual.recordsTotal, 1234)
+        XCTAssertEqual(
+            actual.data[0].toc,
+            [
+                ArchiveChapter(name: "Chapter 1", page: 1),
+                ArchiveChapter(name: "Chapter 2", page: 5)
+            ]
+        )
+        XCTAssertEqual(actual.data[0].toArchiveItem().toc, actual.data[0].toc)
     }
 
     func testSearchArchiveDecodesTankResultAndCanDisableGrouping() async throws {

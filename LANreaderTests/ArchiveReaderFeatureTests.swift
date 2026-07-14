@@ -321,6 +321,39 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         )
     }
 
+    func testSliderPreviewPositioningAccountsForChapterMenuInset() {
+        XCTAssertEqual(
+            SliderPreviewPositioning.bubbleLeadingX(
+                pageIndex: 2,
+                pageCount: 5,
+                track: SliderPreviewTrackGeometry(
+                    rowWidth: 320,
+                    sliderHorizontalPadding: 16,
+                    bubbleWidth: 100,
+                    leadingInset: 54
+                ),
+                isRightToLeft: false
+            ),
+            137,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            SliderPreviewPositioning.bubbleLeadingX(
+                pageIndex: 2,
+                pageCount: 5,
+                track: SliderPreviewTrackGeometry(
+                    rowWidth: 320,
+                    sliderHorizontalPadding: 16,
+                    bubbleWidth: 100,
+                    trailingInset: 54
+                ),
+                isRightToLeft: true
+            ),
+            83,
+            accuracy: 0.001
+        )
+    }
+
     func testSliderPreviewPositioningMapsRightEdgeToFirstPageInRTL() {
         XCTAssertEqual(
             SliderPreviewPositioning.pageIndex(
@@ -797,6 +830,48 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
+    }
+
+    @MainActor
+    func testChapterSelectionJumpsToOneBasedPageAfterSplitInsertion() async {
+        configureReaderDefaults()
+        let chapters = [
+            ArchiveChapter(name: "Opening", page: 1),
+            ArchiveChapter(name: "Second chapter", page: 3)
+        ]
+        var initialState = makeState(
+            allArchives: [makeArchive(toc: chapters)]
+        )
+        initialState.pages = makeSplitPageStates()
+        let store = makeTestStore(initialState: initialState)
+
+        XCTAssertEqual(store.state.chapters, chapters)
+
+        await store.send(.chapterSelected(3))
+        await store.receive(.requestJump(3, source: .chapter)) {
+            $0.scrollRequest = makeScrollRequest(
+                id: 0,
+                targetPageIndex: 3,
+                source: .chapter,
+                animated: true
+            )
+        }
+    }
+
+    @MainActor
+    func testCachedReaderDoesNotExposeOrNavigateChapters() async {
+        configureReaderDefaults()
+        var initialState = makeState(
+            cached: true,
+            allArchives: [
+                makeArchive(toc: [ArchiveChapter(name: "Opening", page: 1)])
+            ]
+        )
+        initialState.pages = makePageStates(count: 3)
+        let store = makeTestStore(initialState: initialState)
+
+        XCTAssertTrue(store.state.chapters.isEmpty)
+        await store.send(.chapterSelected(1))
     }
 
     @MainActor
@@ -1985,7 +2060,8 @@ private func makeState(
 private func makeArchive(
     id: String = "archive",
     progress: Int = 0,
-    isNew: Bool = false
+    isNew: Bool = false,
+    toc: [ArchiveChapter]? = nil
 ) -> ArchiveItem {
     ArchiveItem(
         id: id,
@@ -1995,7 +2071,8 @@ private func makeArchive(
         isNew: isNew,
         progress: progress,
         pagecount: 10,
-        dateAdded: nil
+        dateAdded: nil,
+        toc: toc
     )
 }
 

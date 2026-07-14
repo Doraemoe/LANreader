@@ -109,6 +109,14 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
             archivePageNumbers.count
         }
 
+        var chapters: [ArchiveChapter] {
+            guard !cached,
+                  let currentArchive = allArchives[id: currentArchiveId] else {
+                return []
+            }
+            return currentArchive.wrappedValue.toc ?? []
+        }
+
         var canOpenDetails: Bool {
             guard !extracting else { return false }
             guard currentArchiveId.isTankoubonArchiveId else { return true }
@@ -130,6 +138,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         case finishExtracting([ReaderExtractedPage], TankoubonDetailsMetadata?)
         case toggleControlUi(Bool?)
         case visiblePageChanged(Int)
+        case chapterSelected(Int)
         case requestJump(Int, source: ReaderNavigationSource)
         case navigate(ReaderNavigationDirection, source: ReaderNavigationSource)
         case scrollRequestHandled(UUID)
@@ -351,6 +360,12 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     logger.error("failed to update archive progress. id=\(state.currentArchiveId) \(error)")
                 }
                 .cancellable(id: CancelId.updateProgress, cancelInFlight: true)
+            case let .chapterSelected(pageNumber):
+                guard state.chapters.contains(where: { $0.page == pageNumber }),
+                      let pageIndex = state.pages.firstIndex(where: { $0.pageNumber == pageNumber }) else {
+                    return .none
+                }
+                return .send(.requestJump(pageIndex, source: .chapter))
             case let .requestJump(index, source):
                 guard !state.pages.isEmpty else { return .none }
                 let clampedIndex = ReaderPositioning.clampedPageIndex(index, pageCount: state.pages.count)
@@ -1214,9 +1229,9 @@ struct ArchiveReader: View {
                     sliderPreviewRow(
                         store: store,
                         displayIndex: displayIndex,
-                        isRightToLeft: isRightToLeft,
+                        sliderContext: sliderContext,
                         bubbleLayout: bubbleLayout,
-                        sliderHorizontalPadding: sliderHorizontalPadding
+                        showsChapterMenu: !store.chapters.isEmpty
                     )
                 }
 
@@ -1235,20 +1250,23 @@ struct ArchiveReader: View {
     private func sliderPreviewRow(
         store: StoreOf<ArchiveReaderFeature>,
         displayIndex: Int,
-        isRightToLeft: Bool,
+        sliderContext: ReaderSliderContext,
         bubbleLayout: SliderPreviewBubbleLayout,
-        sliderHorizontalPadding: CGFloat
+        showsChapterMenu: Bool
     ) -> some View {
         GeometryReader { geometry in
+            let chapterMenuInset = showsChapterMenu ? ReaderToolbarMetrics.chapterMenuInset : 0
             let bubbleLeadingX = SliderPreviewPositioning.bubbleLeadingX(
                 pageIndex: displayIndex,
                 pageCount: store.pages.count,
                 track: SliderPreviewTrackGeometry(
                     rowWidth: geometry.size.width,
-                    sliderHorizontalPadding: sliderHorizontalPadding,
-                    bubbleWidth: bubbleLayout.width
+                    sliderHorizontalPadding: sliderContext.horizontalPadding,
+                    bubbleWidth: bubbleLayout.width,
+                    leadingInset: sliderContext.isRightToLeft ? 0 : chapterMenuInset,
+                    trailingInset: sliderContext.isRightToLeft ? chapterMenuInset : 0
                 ),
-                isRightToLeft: isRightToLeft
+                isRightToLeft: sliderContext.isRightToLeft
             )
 
             SliderPreviewBubble(
@@ -1407,51 +1425,82 @@ struct ArchiveReader: View {
         store: StoreOf<ArchiveReaderFeature>,
         context: ReaderSliderContext
     ) -> some View {
-        GeometryReader { geometry in
-            let sliderWidth = max(geometry.size.width - context.horizontalPadding * 2, 1)
-
-            ZStack {
-                Slider(
-                    value: .constant(context.displayValue),
-                    in: 0...Double(context.maxIndex),
-                    step: 1
-                )
-                .tint(Color(uiColor: .systemBlue))
-                .padding(.horizontal, context.horizontalPadding)
-                .scaleEffect(x: context.isRightToLeft ? -1 : 1, y: 1)
-                .allowsHitTesting(false)
-
-                Rectangle()
-                    .fill(Color.clear)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { value in
-                                if !store.sliderDragging {
-                                    store.send(.sliderDragStarted)
-                                }
-                                sendSliderDragChanged(
-                                    store: store,
-                                    locationX: value.location.x,
-                                    sliderWidth: sliderWidth,
-                                    context: context
-                                )
-                            }
-                            .onEnded { value in
-                                sendSliderDragChanged(
-                                    store: store,
-                                    locationX: value.location.x,
-                                    sliderWidth: sliderWidth,
-                                    context: context
-                                )
-                                store.send(.sliderDragEnded)
-                            }
-                    )
+        HStack(spacing: ReaderToolbarMetrics.chapterMenuSpacing) {
+            if !store.chapters.isEmpty {
+                readerChapterMenu(store: store)
             }
+
+            GeometryReader { geometry in
+                let sliderWidth = max(geometry.size.width - context.horizontalPadding * 2, 1)
+
+                ZStack {
+                    Slider(
+                        value: .constant(context.displayValue),
+                        in: 0...Double(context.maxIndex),
+                        step: 1
+                    )
+                    .tint(Color(uiColor: .systemBlue))
+                    .padding(.horizontal, context.horizontalPadding)
+                    .scaleEffect(x: context.isRightToLeft ? -1 : 1, y: 1)
+                    .allowsHitTesting(false)
+
+                    Rectangle()
+                        .fill(Color.clear)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { value in
+                                    if !store.sliderDragging {
+                                        store.send(.sliderDragStarted)
+                                    }
+                                    sendSliderDragChanged(
+                                        store: store,
+                                        locationX: value.location.x,
+                                        sliderWidth: sliderWidth,
+                                        context: context
+                                    )
+                                }
+                                .onEnded { value in
+                                    sendSliderDragChanged(
+                                        store: store,
+                                        locationX: value.location.x,
+                                        sliderWidth: sliderWidth,
+                                        context: context
+                                    )
+                                    store.send(.sliderDragEnded)
+                                }
+                        )
+                }
+            }
+            .frame(height: 34)
+            .environment(\.layoutDirection, .leftToRight)
+            .accessibilityLabel(Text("archive.reader.page.slider"))
         }
-        .frame(height: 34)
-        .environment(\.layoutDirection, .leftToRight)
-        .accessibilityLabel(Text("archive.reader.page.slider"))
+        .frame(height: store.chapters.isEmpty ? 34 : ReaderToolbarMetrics.buttonSize)
+    }
+
+    private func readerChapterMenu(
+        store: StoreOf<ArchiveReaderFeature>
+    ) -> some View {
+        Menu {
+            ForEach(store.chapters) { chapter in
+                Button(chapter.name) {
+                    store.send(.chapterSelected(chapter.page))
+                }
+            }
+        } label: {
+            Label("archive.reader.chapters", systemImage: "list.bullet.rectangle")
+                .labelStyle(.iconOnly)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Color.indigo)
+                .frame(width: ReaderToolbarMetrics.buttonSize, height: ReaderToolbarMetrics.buttonSize)
+                .background(Color(uiColor: .secondarySystemBackground).opacity(0.82), in: Circle())
+                .overlay {
+                    Circle()
+                        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                }
+        }
+        .menuOrder(.fixed)
     }
 
     private func sendSliderDragChanged(
@@ -1507,6 +1556,8 @@ private enum ReaderToolbarMetrics {
     static let previewBottomSpacing: CGFloat = 12
     static let sliderHorizontalPadding: CGFloat = 16
     static let buttonSize: CGFloat = 44
+    static let chapterMenuSpacing: CGFloat = 10
+    static let chapterMenuInset = buttonSize + chapterMenuSpacing
 }
 
 enum SliderPreviewPositioning {
@@ -1527,8 +1578,14 @@ enum SliderPreviewPositioning {
         track: SliderPreviewTrackGeometry,
         isRightToLeft: Bool
     ) -> CGFloat {
-        let sliderWidth = max(track.rowWidth - track.sliderHorizontalPadding * 2, 1)
-        let thumbCenterX = track.sliderHorizontalPadding + (
+        let sliderWidth = max(
+            track.rowWidth
+                - track.leadingInset
+                - track.trailingInset
+                - track.sliderHorizontalPadding * 2,
+            1
+        )
+        let thumbCenterX = track.leadingInset + track.sliderHorizontalPadding + (
             sliderWidth * visualNormalized(
                 pageIndex: pageIndex,
                 pageCount: pageCount,
@@ -1560,6 +1617,22 @@ struct SliderPreviewTrackGeometry {
     let rowWidth: CGFloat
     let sliderHorizontalPadding: CGFloat
     let bubbleWidth: CGFloat
+    let leadingInset: CGFloat
+    let trailingInset: CGFloat
+
+    init(
+        rowWidth: CGFloat,
+        sliderHorizontalPadding: CGFloat,
+        bubbleWidth: CGFloat,
+        leadingInset: CGFloat = 0,
+        trailingInset: CGFloat = 0
+    ) {
+        self.rowWidth = rowWidth
+        self.sliderHorizontalPadding = sliderHorizontalPadding
+        self.bubbleWidth = bubbleWidth
+        self.leadingInset = leadingInset
+        self.trailingInset = trailingInset
+    }
 }
 
 private struct SliderPreviewBubble: View {

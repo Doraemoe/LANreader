@@ -3,6 +3,7 @@ import Foundation
 public enum ReaderNavigationSource: Equatable, Sendable {
     case initialRestore
     case slider
+    case chapter
     case tap
     case keyboard
     case autoPage
