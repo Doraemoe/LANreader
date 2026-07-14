@@ -936,17 +936,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.send(.load) {
             $0.archives = [
                 GridFeature.State(
-                    archive: Shared(value: ArchiveItem(
-                        id: "archive",
-                        name: "Archive",
-                        extension: "",
-                        tags: "artist:test",
-                        isNew: false,
-                        progress: 0,
-                        pagecount: 5,
-                        dateAdded: nil,
-                        toc: chapters
-                    )),
+                    archive: Shared(value: cache.toArchiveItem()),
                     cached: true
                 )
             ]

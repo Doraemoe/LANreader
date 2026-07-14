@@ -360,8 +360,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                 }
                 .cancellable(id: CancelId.updateProgress, cancelInFlight: true)
             case let .chapterSelected(pageNumber):
-                guard state.chapters.contains(where: { $0.page == pageNumber }),
-                      let pageIndex = state.pages.firstIndex(where: { $0.pageNumber == pageNumber }) else {
+                guard let pageIndex = state.pages.firstIndex(where: { $0.pageNumber == pageNumber }) else {
                     return .none
                 }
                 return .send(.requestJump(pageIndex, source: .chapter))
