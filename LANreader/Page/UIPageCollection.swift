@@ -167,7 +167,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         switch request.source {
         case .initialRestore, .slider:
             return .centeredHorizontally
-        case .tap, .keyboard, .autoPage:
+        case .chapter, .tap, .keyboard, .autoPage:
             return .left
         }
     }

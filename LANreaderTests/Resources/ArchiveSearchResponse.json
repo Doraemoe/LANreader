@@ -7,7 +7,17 @@
             "tags": "artist:abc, language:def, parody:ghi, category:jkl",
             "title": "title",
             "pagecount": 12,
-            "progress": 2
+            "progress": 2,
+            "toc": [
+                {
+                    "name": "Chapter 1",
+                    "page": 1
+                },
+                {
+                    "name": "Chapter 2",
+                    "page": 5
+                }
+            ]
         }
     ],
     "draw": 0,

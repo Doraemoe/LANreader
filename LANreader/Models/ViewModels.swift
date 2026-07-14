@@ -3,6 +3,12 @@
 import Foundation
 import SwiftUI
 
+public struct ArchiveChapter: Decodable, Equatable, Hashable, Identifiable, Sendable {
+    public var id: Int { page }
+    public let name: String
+    public let page: Int
+}
+
 public struct ArchiveItem: Identifiable, Equatable, Hashable, Sendable {
     public let id: String
     var name: String
@@ -12,6 +18,7 @@ public struct ArchiveItem: Identifiable, Equatable, Hashable, Sendable {
     var progress: Int
     let pagecount: Int
     let dateAdded: Int?
+    var toc: [ArchiveChapter]?
     var refresh: Bool = false
 }
 
