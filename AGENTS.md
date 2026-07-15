@@ -59,7 +59,7 @@ Use this file as the source of truth for Codex-style work in this repository.
 - Chapter metadata follows the full path from the LANraragi response to `ArchiveItem.toc`, then to `ArchiveCache.toc` for offline reading. Keep the property optional so older servers and existing cache rows remain valid.
 - Opening a cached archive must remain offline. Do not add a network request to recover missing chapter metadata or other optional metadata; if it was not persisted when the archive was cached, leave the related UI unavailable.
 - Persisted cache-model changes require an additive GRDB migration in `AppDatabase.swift` and backward-compatible decoding. Do not rewrite or rename an existing migration after it may have shipped.
-- Tankoubon chapter aggregation is intentionally not supported yet. Do not synthesize a Tankoubon TOC from its contained archives unless the task explicitly adds that feature.
+- Tankoubon chapter navigation flattens the real TOCs from its contained archives. Offset each one-based local chapter page by the actual number of extracted pages from preceding archives, and ignore entries outside their source archive's extracted page range. Add the included archive title as a default chapter at its first page unless a valid manual chapter already starts there.
 
 ## Tankoubon Boundaries
 

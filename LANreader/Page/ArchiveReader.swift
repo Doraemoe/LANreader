@@ -243,9 +243,14 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     var tankoubonDetails: TankoubonDetailsMetadata?
                     if id.isTankoubonArchiveId {
                         let tankoubon = try await service.retrieveFullTankoubon(id: id).value
-                        tankoubonDetails = TankoubonDetailsMetadata(response: tankoubon)
+                        var details = TankoubonDetailsMetadata(response: tankoubon)
                         let archiveIds = Self.tankoubonArchiveIds(from: tankoubon)
+                        let archiveMetadata = Dictionary(
+                            (tankoubon.result.fullData ?? []).map { ($0.arcid, $0) },
+                            uniquingKeysWith: { first, _ in first }
+                        )
                         var tankPages: [ReaderExtractedPage] = []
+                        var tankChapters: [ArchiveChapter] = []
 
                         if archiveIds.isEmpty {
                             logger.error("tankoubon returned no archives. id=\(id)")
@@ -256,10 +261,21 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                             if extractResponse.pages.isEmpty {
                                 logger.error("server returned empty pages. id=\(archiveId)")
                             }
-                            tankPages.append(
-                                contentsOf: Self.extractedPages(from: extractResponse.pages, archiveId: archiveId)
+                            let extractedPages = Self.extractedPages(
+                                from: extractResponse.pages,
+                                archiveId: archiveId
                             )
+                            tankChapters.append(
+                                contentsOf: Self.tankoubonChapters(
+                                    from: archiveMetadata[archiveId],
+                                    pageOffset: tankPages.count,
+                                    extractedPageCount: extractedPages.count
+                                )
+                            )
+                            tankPages.append(contentsOf: extractedPages)
                         }
+                        details.toc = tankChapters.isEmpty ? nil : tankChapters
+                        tankoubonDetails = details
                         pages = tankPages
                     } else {
                         let extractResponse = try await service.extractArchive(id: id).value
@@ -292,6 +308,11 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     }
                     state.pages.append(contentsOf: pageState)
                     guard let currentArchive = state.allArchives[id: state.currentArchiveId] else { return .none }
+                    if state.currentArchiveId.isTankoubonArchiveId {
+                        currentArchive.withLock {
+                            $0.toc = tankoubonDetails?.toc
+                        }
+                    }
                     let pageIndexToShow = ReaderPositioning.initialPageIndex(
                         progress: currentArchive.wrappedValue.progress,
                         pageCount: state.pages.count,
@@ -371,7 +392,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     id: uuid(),
                     targetPageIndex: clampedIndex,
                     source: source,
-                    animated: source != .slider && source != .initialRestore
+                    animated: source != .slider && source != .initialRestore && source != .chapter
                 )
                 return .none
             case .collectionScrollStarted:
@@ -852,6 +873,27 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         pages.enumerated().map { index, path in
             ReaderExtractedPage(archiveId: archiveId, path: path, archivePageNumber: index + 1)
         }
+    }
+
+    private static func tankoubonChapters(
+        from archiveMetadata: ArchiveIndexResponse?,
+        pageOffset: Int,
+        extractedPageCount: Int
+    ) -> [ArchiveChapter] {
+        guard extractedPageCount > 0, let archiveMetadata else { return [] }
+        var chapters: [ArchiveChapter] = (archiveMetadata.toc ?? []).compactMap { chapter in
+            guard (1...extractedPageCount).contains(chapter.page) else { return nil }
+            return ArchiveChapter(name: chapter.name, page: pageOffset + chapter.page)
+        }
+        let firstPage = pageOffset + 1
+        if !archiveMetadata.title.isEmpty,
+           !chapters.contains(where: { $0.page == firstPage }) {
+            chapters.insert(
+                ArchiveChapter(name: archiveMetadata.title, page: firstPage),
+                at: 0
+            )
+        }
+        return chapters
     }
 
     private static func readerPageNumbers(
@@ -1501,6 +1543,8 @@ struct ArchiveReader: View {
                 }
         }
         .menuOrder(.fixed)
+        .buttonStyle(.plain)
+        .clipShape(Circle())
     }
 
     private func sendSliderDragChanged(
