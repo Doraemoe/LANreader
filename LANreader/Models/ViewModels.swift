@@ -35,12 +35,14 @@ public struct TankoubonDetailsMetadata: Equatable, Hashable, Sendable {
     public var name: String?
     public var tags: String
     public let includedArchiveTags: String
+    var toc: [ArchiveChapter]?
 
     public init(id: String, name: String? = nil, tags: String = "", includedArchiveTags: String = "") {
         self.id = id
         self.name = name
         self.tags = tags
         self.includedArchiveTags = includedArchiveTags
+        self.toc = nil
     }
 
     init(response: TankoubonFullResponse) {

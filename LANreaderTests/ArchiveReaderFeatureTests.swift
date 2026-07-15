@@ -491,23 +491,20 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testExtractTankoubonExtractsUnderlyingArchivesInOrder() async throws {
+    func testExtractTankoubonExtractsUnderlyingArchivesAndAggregatesManualAndDefaultChapters() async throws {
         configureReaderDefaults()
         try await configureVerifiedClient()
 
         let tankId = "TANK_1783084742"
-        let sourceArchives = makeTankSourceArchives()
+        let sourceArchives = makeTankSourceArchives(secondPageCount: 2)
         let extractedPages = makeExtractedPages(sourceArchives: sourceArchives)
-        let expectedMetadata = makeTankoubonDetailsMetadata(tankId: tankId)
+        let chapterFixture = makeTankoubonChapterFixture(tankId: tankId)
 
-        stubTankoubonFull(
+        stubTankoubonReader(
             tankId: tankId,
-            archiveIds: sourceArchives.map(\.id),
-            tags: "artist:tank",
-            fullDataTags: ["artist:first,series:one", "artist:second,series:one"]
+            sourceArchives: sourceArchives,
+            sourceTOCs: chapterFixture.sourceTOCs
         )
-        stubExtractArchives(for: sourceArchives)
-        stubReadyThumbnailQueues(for: sourceArchives)
 
         let database = try makeInMemoryDatabase()
         let store = makeTestStore(initialState: makeState(archiveId: tankId, progress: 2)) {
@@ -520,15 +517,19 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.receive(
             .finishExtracting(
                 extractedPages,
-                expectedMetadata
+                chapterFixture.metadata
             )
         ) {
             $0.pages = makePageStates(archiveId: tankId, sourceArchives: sourceArchives)
             $0.currentPageIndex = 1
             $0.controlUiHidden = true
             $0.extracting = false
-            $0.currentTankoubonDetails = expectedMetadata
+            $0.currentTankoubonDetails = chapterFixture.metadata
+            $0.allArchives[id: tankId]?.withLock {
+                $0.toc = chapterFixture.expectedChapters
+            }
         }
+        XCTAssertEqual(store.state.chapters, chapterFixture.expectedChapters)
         await store.receive(.requestJump(1, source: .initialRestore)) {
             $0.scrollRequest = makeScrollRequest(
                 id: 0,
@@ -541,7 +542,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.receive(
             .sliderPreviewThumbnailsQueued(readyThumbnailQueueResults(for: sourceArchives))
         ) {
-            $0.sliderReadyThumbnailPages = Set([1, 2, 3])
+            $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4])
         }
     }
 
@@ -853,25 +854,28 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 id: 0,
                 targetPageIndex: 3,
                 source: .chapter,
-                animated: true
+                animated: false
             )
         }
     }
 
     @MainActor
-    func testCachedReaderExposesAndNavigatesChapters() async {
+    func testCachedTankoubonReaderUsesPersistedChaptersWithoutTankMetadata() async {
         configureReaderDefaults()
+        let tankId = "TANK_1783084742"
         let chapters = [
             ArchiveChapter(name: "Opening", page: 1),
             ArchiveChapter(name: "Second chapter", page: 3)
         ]
         var initialState = makeState(
+            archiveId: tankId,
             cached: true,
-            allArchives: [makeArchive(toc: chapters)]
+            allArchives: [makeArchive(id: tankId, toc: chapters)]
         )
-        initialState.pages = makeSplitPageStates()
+        initialState.pages = makeSplitPageStates(archiveId: tankId)
         let store = makeTestStore(initialState: initialState)
 
+        XCTAssertNil(store.state.currentTankoubonDetails)
         XCTAssertEqual(store.state.chapters, chapters)
 
         await store.send(.chapterSelected(3))
@@ -880,7 +884,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 id: 0,
                 targetPageIndex: 3,
                 source: .chapter,
-                animated: true
+                animated: false
             )
         }
     }
@@ -2189,12 +2193,63 @@ private func stubExtractArchives(for sourceArchives: [SourceArchiveFixture]) {
     }
 }
 
-private func makeTankoubonDetailsMetadata(tankId: String) -> TankoubonDetailsMetadata {
-    TankoubonDetailsMetadata(
+private func stubTankoubonReader(
+    tankId: String,
+    sourceArchives: [SourceArchiveFixture],
+    sourceTOCs: [[ArchiveChapter]?]
+) {
+    stubTankoubonFull(
+        tankId: tankId,
+        archiveIds: sourceArchives.map(\.id),
+        tags: "artist:tank",
+        fullDataTags: ["artist:first,series:one", "artist:second,series:one"],
+        fullDataTOCs: sourceTOCs
+    )
+    stubExtractArchives(for: sourceArchives)
+    stubReadyThumbnailQueues(for: sourceArchives)
+}
+
+private func makeTankoubonDetailsMetadata(
+    tankId: String,
+    toc: [ArchiveChapter]? = nil
+) -> TankoubonDetailsMetadata {
+    var metadata = TankoubonDetailsMetadata(
         id: tankId,
         name: "Tank",
         tags: "artist:tank",
         includedArchiveTags: "artist:first,series:one,artist:second"
+    )
+    metadata.toc = toc
+    return metadata
+}
+
+private struct TankoubonChapterFixture {
+    let sourceTOCs: [[ArchiveChapter]?]
+    let expectedChapters: [ArchiveChapter]
+    let metadata: TankoubonDetailsMetadata
+}
+
+private func makeTankoubonChapterFixture(tankId: String) -> TankoubonChapterFixture {
+    let sourceTOCs: [[ArchiveChapter]?] = [
+        [
+            ArchiveChapter(name: "Opening", page: 1),
+            ArchiveChapter(name: "First ending", page: 2)
+        ],
+        [
+            ArchiveChapter(name: "Bonus", page: 2),
+            ArchiveChapter(name: "Out of range", page: 3)
+        ]
+    ]
+    let expectedChapters = [
+        ArchiveChapter(name: "Opening", page: 1),
+        ArchiveChapter(name: "First ending", page: 2),
+        ArchiveChapter(name: "Source 1", page: 3),
+        ArchiveChapter(name: "Bonus", page: 4)
+    ]
+    return TankoubonChapterFixture(
+        sourceTOCs: sourceTOCs,
+        expectedChapters: expectedChapters,
+        metadata: makeTankoubonDetailsMetadata(tankId: tankId, toc: expectedChapters)
     )
 }
 
@@ -2222,50 +2277,82 @@ private func stubTankoubonFull(
     tankId: String,
     archiveIds: [String],
     tags: String? = nil,
-    fullDataTags: [String] = []
+    fullDataTags: [String] = [],
+    fullDataTOCs: [[ArchiveChapter]?] = []
 ) {
-    let archiveBody = archiveIds
-        .map { "\"\($0)\"" }
-        .joined(separator: ",")
-    let tagsBody = tags.map { ",\n                \"tags\": \"\($0)\"" } ?? ""
-    let fullDataBody = fullDataTags.isEmpty ? "" : """
-    ,
-                "full_data": [
-    \(fullDataTags.enumerated().map { index, tags in
-        """
-                  {
-                    "arcid": "\(archiveIds[index])",
-                    "extension": ".zip",
-                    "isnew": "false",
-                    "tags": "\(tags)",
-                    "title": "Source \(index)",
-                    "pagecount": 1,
-                    "progress": 0
-                  }
-        """
-    }.joined(separator: ",\n"))
-                ]
-    """
+    let data = makeTankoubonFullResponseData(
+        tankId: tankId,
+        archiveIds: archiveIds,
+        tags: tags,
+        fullDataTags: fullDataTags,
+        fullDataTOCs: fullDataTOCs
+    )
 
     stub(condition: isHost("localhost")
             && isPath("/api/tankoubons/\(tankId)/full")
             && isMethodGET()) { _ in
         HTTPStubsResponse(
-            data: Data("""
-            {
-              "result": {
-                "id": "\(tankId)",
-                "name": "Tank",
-                "archives": [\(archiveBody)]\(tagsBody)\(fullDataBody)
-              },
-              "total": \(archiveIds.count),
-              "filtered": \(archiveIds.count)
-            }
-            """.utf8),
+            data: data,
             statusCode: 200,
             headers: ["Content-Type": "application/json"]
         )
     }
+}
+
+private func makeTankoubonFullResponseData(
+    tankId: String,
+    archiveIds: [String],
+    tags: String?,
+    fullDataTags: [String],
+    fullDataTOCs: [[ArchiveChapter]?]
+) -> Data {
+    var result: [String: Any] = [
+        "id": tankId,
+        "name": "Tank",
+        "archives": archiveIds
+    ]
+    if let tags {
+        result["tags"] = tags
+    }
+    if !fullDataTags.isEmpty || !fullDataTOCs.isEmpty {
+        result["full_data"] = archiveIds.enumerated().map { index, archiveId in
+            makeTankoubonArchiveMetadata(
+                id: archiveId,
+                index: index,
+                tags: fullDataTags,
+                tocs: fullDataTOCs
+            )
+        }
+    }
+    let response: [String: Any] = [
+        "result": result,
+        "total": archiveIds.count,
+        "filtered": archiveIds.count
+    ]
+    return (try? JSONSerialization.data(withJSONObject: response)) ?? Data()
+}
+
+private func makeTankoubonArchiveMetadata(
+    id: String,
+    index: Int,
+    tags: [String],
+    tocs: [[ArchiveChapter]?]
+) -> [String: Any] {
+    var metadata: [String: Any] = [
+        "arcid": id,
+        "extension": ".zip",
+        "isnew": "false",
+        "tags": tags.indices.contains(index) ? tags[index] : "",
+        "title": "Source \(index)",
+        "pagecount": 1,
+        "progress": 0
+    ]
+    if tocs.indices.contains(index), let toc = tocs[index] {
+        metadata["toc"] = toc.map { chapter in
+            ["name": chapter.name, "page": chapter.page] as [String: Any]
+        }
+    }
+    return metadata
 }
 
 private func stubExtractArchive(archiveId: String, pages: [String]) {
