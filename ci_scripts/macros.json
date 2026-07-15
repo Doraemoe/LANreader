@@ -15,7 +15,7 @@
     "targetName" : "DependenciesMacrosPlugin"
   },
   {
-    "fingerprint" : "25ac73741c3436605d61eceb5207e896973918e7",
+    "fingerprint" : "de219a1cf34e958134e75a9ebb134cf09bf52fc6",
     "packageIdentity" : "swift-perception",
     "targetName" : "PerceptionMacros"
   },
