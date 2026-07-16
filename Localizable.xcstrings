@@ -368,7 +368,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "캐시에서 아카이브를 제거할까요?\n서버의 아카이브는 삭제되지 않습니다"
+            "value" : "캐시에서 아카이브를 제거하시겠습니까?\n서버의 아카이브는 삭제되지 않습니다"
           }
         },
         "zh-Hans" : {
@@ -397,7 +397,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アーカイブをカテゴリーに追加できませんでした"
+            "value" : "アーカイブをカテゴリに追加できませんでした"
           }
         },
         "ko" : {
@@ -432,7 +432,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アーカイブをカテゴリーに追加しました"
+            "value" : "アーカイブをカテゴリに追加しました"
           }
         },
         "ko" : {
@@ -467,13 +467,13 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アーカイブのカテゴリーを追加/削除"
+            "value" : "アーカイブのカテゴリを編集"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "아카이브 카테고리 추가/제거"
+            "value" : "아카이브 카테고리 편집"
           }
         },
         "zh-Hans" : {
@@ -502,7 +502,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アーカイブをカテゴリーから削除できませんでした"
+            "value" : "アーカイブをカテゴリから削除できませんでした"
           }
         },
         "ko" : {
@@ -537,7 +537,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アーカイブをカテゴリーから削除しました"
+            "value" : "アーカイブをカテゴリから削除しました"
           }
         },
         "ko" : {
@@ -648,7 +648,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "단행본을 삭제할까요?"
+            "value" : "단행본을 삭제하시겠습니까?"
           }
         },
         "zh-Hans" : {
@@ -718,7 +718,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이 아카이브를 삭제할까요?"
+            "value" : "이 아카이브를 삭제하시겠습니까?"
           }
         },
         "zh-Hans" : {
@@ -1303,7 +1303,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "チャプター"
+            "value" : "区切り"
           }
         },
         "ko" : {
@@ -1548,7 +1548,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "選択したアーカイブをカテゴリーに追加"
+            "value" : "選択したアーカイブをカテゴリに追加"
           }
         },
         "ko" : {
@@ -1583,7 +1583,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "一部のアーカイブをカテゴリーに追加できませんでした"
+            "value" : "一部のアーカイブをカテゴリに追加できませんでした"
           }
         },
         "ko" : {
@@ -1618,7 +1618,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アーカイブをカテゴリーに追加しました"
+            "value" : "アーカイブをカテゴリに追加しました"
           }
         },
         "ko" : {
@@ -1653,13 +1653,13 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "選択したアーカイブをカテゴリーから削除してもよろしいですか？"
+            "value" : "選択したアーカイブをカテゴリから削除してもよろしいですか？"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "선택한 아카이브를 카테고리에서 제거할까요?"
+            "value" : "선택한 아카이브를 카테고리에서 제거하시겠습니까?"
           }
         },
         "zh-Hans" : {
@@ -1688,7 +1688,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "一部のアーカイブをカテゴリーから削除できませんでした"
+            "value" : "一部のアーカイブをカテゴリから削除できませんでした"
           }
         },
         "ko" : {
@@ -1723,7 +1723,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "選択したアーカイブをカテゴリーから削除しました"
+            "value" : "選択したアーカイブをカテゴリから削除しました"
           }
         },
         "ko" : {
@@ -1764,7 +1764,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "선택한 항목을 모두 삭제할까요?"
+            "value" : "선택한 아카이브를 모두 삭제하시겠습니까?"
           }
         },
         "zh-Hans" : {
@@ -1904,7 +1904,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "추가한 날짜"
+            "value" : "추가 날짜"
           }
         },
         "zh-Hans" : {
@@ -1974,7 +1974,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "현재 페이지를 썸네일로 설정"
+            "value" : "현재 페이지를 섬네일로 설정"
           }
         },
         "zh-Hans" : {
@@ -2009,7 +2009,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "현재 페이지를 썸네일로 설정했습니다"
+            "value" : "현재 페이지를 섬네일로 설정했습니다"
           }
         },
         "zh-Hans" : {
@@ -2108,7 +2108,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "カテゴリー"
+            "value" : "カテゴリ"
           }
         },
         "ko" : {
@@ -2143,7 +2143,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "カテゴリーなし"
+            "value" : "カテゴリなし"
           }
         },
         "ko" : {
@@ -2248,7 +2248,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "固定済み"
+            "value" : "ピン留め済み"
           }
         },
         "ko" : {
@@ -2422,13 +2422,13 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ダウンロードを追加しました。進行状況は 設定 - ホスト - アーカイブをアップロード で確認できます"
+            "value" : "ダウンロードを追加しました。進行状況は「設定」>「ホスト設定」>「アーカイブをアップロード」で確認できます"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "다운로드가 추가되었습니다. 진행 상황은 설정 - 호스트 - 아카이브 업로드에서 확인하세요"
+            "value" : "다운로드가 추가되었습니다. 진행 상황은 설정 > 호스트 설정 > 아카이브 업로드에서 확인할 수 있습니다"
           }
         },
         "zh-Hans" : {
@@ -3877,13 +3877,13 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アーティスト"
+            "value" : "作者"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "아티스트"
+            "value" : "작가"
           }
         },
         "zh-Hans" : {
@@ -4163,7 +4163,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "마지막으로 읽은 항목"
+            "value" : "최근 읽은 순"
           }
         },
         "zh-Hans" : {
@@ -4857,7 +4857,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "保留中"
+            "value" : "待機中"
           }
         },
         "ko" : {
@@ -5137,7 +5137,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "読む方向"
+            "value" : "ページ送り方向"
           }
         },
         "ko" : {
@@ -5178,7 +5178,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "왼쪽에서 오른쪽"
+            "value" : "왼쪽에서 오른쪽으로"
           }
         },
         "zh-Hans" : {
@@ -5213,7 +5213,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "오른쪽에서 왼쪽"
+            "value" : "오른쪽에서 왼쪽으로"
           }
         },
         "zh-Hans" : {
@@ -6592,13 +6592,13 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このアーカイブはRAR形式のようです。RARアーカイブは作成方法によってはLANraragiで正しく動作しない場合があります。読み込み中にエラーが発生する場合は、アーカイブをZIPに変換することを検討してください。"
+            "value" : "このアーカイブは RAR 形式のようです。RAR アーカイブは、作成方法によっては LANraragi で正常に動作しない場合があります。閲覧中にエラーが発生する場合は、ZIP 形式への変換を検討してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이 아카이브는 RAR 형식인 것 같습니다. RAR 아카이브는 만들어진 방식에 따라 LANraragi에서 제대로 작동하지 않을 수 있습니다. 읽는 중 오류가 발생하면 아카이브를 ZIP으로 변환해 보세요."
+            "value" : "이 아카이브는 RAR 형식인 것 같습니다. RAR 아카이브는 만들어진 방식에 따라 LANraragi에서 제대로 작동하지 않을 수 있습니다. 읽기 중 오류가 발생하면 아카이브를 ZIP 형식으로 변환해 보세요."
           }
         },
         "zh-Hans" : {
