@@ -7,6 +7,10 @@ class UIArchiveReaderController: UIViewController {
     private var hostingController: UIHostingController<ArchiveReader>!
     private var detailsButton: UIBarButtonItem?
 
+    override var prefersStatusBarHidden: Bool {
+        store.controlUiHidden
+    }
+
     init(
         store: StoreOf<ArchiveReaderFeature>,
         navigationHelper: NavigationHelper? = nil
@@ -74,6 +78,7 @@ class UIArchiveReaderController: UIViewController {
             let controlUiHidden = store.controlUiHidden
             guard self.navigationController?.topViewController === self else { return }
             self.navigationController?.setNavigationBarHidden(controlUiHidden, animated: false)
+            self.setNeedsStatusBarAppearanceUpdate()
         }
 
         observe { [weak self] in
