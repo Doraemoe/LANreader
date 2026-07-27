@@ -5324,13 +5324,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "页面适应宽度"
+            "value" : "适应页面宽度"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "頁面適應寬度"
+            "value" : "適應頁面寬度"
           }
         }
       }

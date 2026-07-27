@@ -98,6 +98,7 @@ When asked to create a pull request:
 - When changing reader, archive grid, or cache-list behavior, inspect the SwiftUI wrapper and the UIKit controller/cell together before deciding where the fix belongs.
 - Prefer narrow fixes. This repo has some legacy naming and release automation debt; do not normalize unrelated names unless the task is explicitly about release tooling or rebranding.
 - Add user-facing strings to `Localizable.xcstrings`; do not hard-code new English UI copy in Swift views.
+- When adding translations, check LANraragi's Weblate project for established terminology and adapt it to concise app UI copy.
 - If you need a local build, use the scripts in `scripts/`. They use the normal Xcode folders by default and support repo-local cache overrides when needed.
 - Before committing, review `git diff` and `git status` so unrelated or pre-existing worktree changes are not included.
 - If you touch CI or release automation, treat `.github/workflows/ci.yml` and `.github/workflows/manual-ipa-release.yml` as the active sources of truth.
