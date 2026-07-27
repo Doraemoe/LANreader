@@ -11,6 +11,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     override func tearDown() {
         UserDefaults.standard.removeObject(forKey: SettingsKey.readDirection)
         UserDefaults.standard.removeObject(forKey: SettingsKey.doublePageLayout)
+        UserDefaults.standard.removeObject(forKey: SettingsKey.fitPageWidth)
         UserDefaults.standard.removeObject(forKey: SettingsKey.autoPageInterval)
         UserDefaults.standard.removeObject(forKey: SettingsKey.splitWideImage)
         UserDefaults.standard.removeObject(forKey: SettingsKey.splitPiorityLeft)
@@ -63,6 +64,15 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.send(.splitWideImageChanged(false)) {
             $0.$splitWideImage.withLock { $0 = false }
         }
+    }
+
+    @MainActor
+    func testUIPageCellFitWidthAspectRatio() {
+        XCTAssertEqual(
+            UIPageCell.fitWidthAspectRatio(for: CGSize(width: 1_000, height: 1_500)),
+            1.5
+        )
+        XCTAssertNil(UIPageCell.fitWidthAspectRatio(for: CGSize(width: 0, height: 1_500)))
     }
 
     func testReaderPositioningSinglePageMath() {

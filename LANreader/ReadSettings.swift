@@ -13,6 +13,7 @@ import SwiftUI
         @Shared(.appStorage(SettingsKey.splitWideImage)) var splitWideImage = false
         @Shared(.appStorage(SettingsKey.splitPiorityLeft)) var splitPiorityLeft = false
         @Shared(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
+        @Shared(.appStorage(SettingsKey.fitPageWidth)) var fitPageWidth = false
     }
     public enum Action: BindableAction {
         case binding(BindingAction<State>)
@@ -78,6 +79,8 @@ struct ReadSettings: View {
                 Text("settings.read.double.page")
             }
             .padding()
+            Toggle("settings.read.fit.page.width", isOn: Binding(self.store.$fitPageWidth))
+                .padding()
         }
         Toggle(isOn: Binding(
             get: { self.store.splitWideImage },

@@ -45,6 +45,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
         @SharedReader(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
         @SharedReader(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
+        @SharedReader(.appStorage(SettingsKey.fitPageWidth)) var fitPageWidth = false
 
         var currentArchiveId = ""
         var currentPageIndex = 0

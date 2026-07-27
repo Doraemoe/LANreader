@@ -137,7 +137,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         let cellRegistration = UICollectionView
             .CellRegistration<UIPageCell, String> { [weak self] cell, _, pageId in
                 guard let self, let pageStore = self.pageStore(id: pageId) else { return }
-                cell.configure(with: pageStore)
+                cell.configure(with: pageStore, fitPageWidth: self.usesFitPageWidth)
             }
 
         dataSource = UICollectionViewDiffableDataSource<Section, String>(
@@ -163,6 +163,10 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     private var resolvedReadDirection: ReadDirection {
         ReadDirection(rawValue: store.readDirection) ?? .leftRight
     }
+    private var usesFitPageWidth: Bool {
+        resolvedReadDirection != .upDown && store.fitPageWidth
+    }
+
     private func scrollPosition(for request: ScrollRequest) -> UICollectionView.ScrollPosition {
         switch request.source {
         case .initialRestore, .slider:
@@ -236,6 +240,13 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             guard let self else { return }
             guard store.scrollRequest != nil else { return }
             consumePendingScrollRequestIfPossible()
+        }
+        observe { [weak self] in
+            guard let self else { return }
+            let fitPageWidth = usesFitPageWidth
+            collectionView.visibleCells
+                .compactMap { $0 as? UIPageCell }
+                .forEach { $0.setFitPageWidth(fitPageWidth) }
         }
     }
     private func setupGesture() {
