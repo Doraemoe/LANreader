@@ -39,6 +39,9 @@ class UIPageCell: UICollectionViewCell {
     }()
 
     private var observationTokens: Set<ObserveToken> = []
+    private var fitPageWidth = false
+    private var fitScreenHeightConstraint: NSLayoutConstraint!
+    private var fitWidthAspectConstraint: NSLayoutConstraint?
 
     private let scrollView: UIScrollView = {
         let view = UIScrollView()
@@ -48,6 +51,8 @@ class UIPageCell: UICollectionViewCell {
         view.showsVerticalScrollIndicator = false
         return view
     }()
+
+    private let imageContainerView = UIView()
 
     private let imageView: UIImageView = {
         let view = UIImageView()
@@ -97,18 +102,24 @@ class UIPageCell: UICollectionViewCell {
 
     private func setupImageView() {
         contentView.addSubview(scrollView)
-        scrollView.addSubview(imageView)
-        scrollView.addSubview(animatedImageView)
+        scrollView.addSubview(imageContainerView)
+        imageContainerView.addSubview(imageView)
+        imageContainerView.addSubview(animatedImageView)
         contentView.addSubview(progressView)
         contentView.addSubview(progressViewLabel)
 
         scrollView.delegate = self
 
         scrollView.translatesAutoresizingMaskIntoConstraints = false
+        imageContainerView.translatesAutoresizingMaskIntoConstraints = false
         imageView.translatesAutoresizingMaskIntoConstraints = false
         animatedImageView.translatesAutoresizingMaskIntoConstraints = false
         progressView.translatesAutoresizingMaskIntoConstraints = false
         progressViewLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        fitScreenHeightConstraint = imageContainerView.heightAnchor.constraint(
+            equalTo: scrollView.frameLayoutGuide.heightAnchor
+        )
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: contentView.topAnchor),
@@ -119,21 +130,22 @@ class UIPageCell: UICollectionViewCell {
             scrollView.bottomAnchor.constraint(
                 equalTo: contentView.bottomAnchor),
 
-            imageView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
-            imageView.leadingAnchor.constraint(
-                equalTo: scrollView.contentLayoutGuide.leadingAnchor),
-            imageView.trailingAnchor.constraint(
-                equalTo: scrollView.contentLayoutGuide.trailingAnchor),
-            imageView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
-            imageView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
-            imageView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor),
+            imageContainerView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            imageContainerView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            imageContainerView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            imageContainerView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            imageContainerView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+            fitScreenHeightConstraint,
 
-            animatedImageView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
-            animatedImageView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
-            animatedImageView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
-            animatedImageView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
-            animatedImageView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
-            animatedImageView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor),
+            imageView.topAnchor.constraint(equalTo: imageContainerView.topAnchor),
+            imageView.leadingAnchor.constraint(equalTo: imageContainerView.leadingAnchor),
+            imageView.trailingAnchor.constraint(equalTo: imageContainerView.trailingAnchor),
+            imageView.bottomAnchor.constraint(equalTo: imageContainerView.bottomAnchor),
+
+            animatedImageView.topAnchor.constraint(equalTo: imageContainerView.topAnchor),
+            animatedImageView.leadingAnchor.constraint(equalTo: imageContainerView.leadingAnchor),
+            animatedImageView.trailingAnchor.constraint(equalTo: imageContainerView.trailingAnchor),
+            animatedImageView.bottomAnchor.constraint(equalTo: imageContainerView.bottomAnchor),
 
             progressView.centerXAnchor.constraint(
                 equalTo: contentView.centerXAnchor),
@@ -149,10 +161,12 @@ class UIPageCell: UICollectionViewCell {
         ])
     }
 
-    func configure(with store: StoreOf<PageFeature>) {
+    func configure(with store: StoreOf<PageFeature>, fitPageWidth: Bool) {
         // Tear down any existing observation from a previous page assignment
         cancelSubscriptions()
         animatedImageView.resetFirstFrameState()
+        self.fitPageWidth = fitPageWidth
+        resetImageLayout()
         self.store = store
         imageView.image = nil
         imageView.isHidden = true
@@ -162,8 +176,16 @@ class UIPageCell: UICollectionViewCell {
         progressView.isHidden = true
         progressViewLabel.isHidden = true
         scrollView.zoomScale = 1.0
+        scrollView.setContentOffset(.zero, animated: false)
         setupObserve(store: store)
         renderCurrentState(store: store)
+    }
+
+    func setFitPageWidth(_ fitPageWidth: Bool) {
+        guard self.fitPageWidth != fitPageWidth else { return }
+        self.fitPageWidth = fitPageWidth
+        scrollView.zoomScale = 1.0
+        updateImageLayout(for: imageView.image?.size)
     }
 
     func setupObserve(store: StoreOf<PageFeature>) {
@@ -226,6 +248,7 @@ class UIPageCell: UICollectionViewCell {
             imageView.isHidden = false
             animatedImageView.image = nil
             animatedImageView.isHidden = true
+            updateImageLayout(for: imageView.image?.size)
             return
         }
 
@@ -235,6 +258,7 @@ class UIPageCell: UICollectionViewCell {
             imageView.isHidden = false
             animatedImageView.image = nil
             animatedImageView.isHidden = true
+            updateImageLayout(for: imageView.image?.size)
             return
         }
 
@@ -274,6 +298,7 @@ class UIPageCell: UICollectionViewCell {
             animatedImageView.image = nil
             animatedImageView.isHidden = true
         }
+        updateImageLayout(for: imageView.image?.size)
     }
     // swiftlint:enable function_body_length
 
@@ -325,6 +350,37 @@ class UIPageCell: UICollectionViewCell {
         return UIImage(cgImage: cgImage)
     }
 
+    private func resetImageLayout() {
+        fitWidthAspectConstraint?.isActive = false
+        fitWidthAspectConstraint = nil
+        fitScreenHeightConstraint.isActive = true
+    }
+
+    private func updateImageLayout(for imageSize: CGSize?) {
+        resetImageLayout()
+        guard fitPageWidth,
+              let imageSize,
+              let aspectRatio = Self.fitWidthAspectRatio(for: imageSize) else {
+            contentView.layoutIfNeeded()
+            scrollView.setContentOffset(.zero, animated: false)
+            return
+        }
+
+        fitScreenHeightConstraint.isActive = false
+        fitWidthAspectConstraint = imageContainerView.heightAnchor.constraint(
+            equalTo: imageContainerView.widthAnchor,
+            multiplier: aspectRatio
+        )
+        fitWidthAspectConstraint?.isActive = true
+        contentView.layoutIfNeeded()
+        scrollView.setContentOffset(.zero, animated: false)
+    }
+
+    static func fitWidthAspectRatio(for imageSize: CGSize) -> CGFloat? {
+        guard imageSize.width > 0, imageSize.height > 0 else { return nil }
+        return imageSize.height / imageSize.width
+    }
+
     override func prepareForReuse() {
         super.prepareForReuse()
         cancelSubscriptions()
@@ -338,6 +394,9 @@ class UIPageCell: UICollectionViewCell {
         progressView.isHidden = true
         progressViewLabel.isHidden = true
         scrollView.zoomScale = 1.0
+        scrollView.setContentOffset(.zero, animated: false)
+        fitPageWidth = false
+        resetImageLayout()
     }
 
     override func preferredLayoutAttributesFitting(
@@ -355,6 +414,6 @@ class UIPageCell: UICollectionViewCell {
 
 extension UIPageCell: UIScrollViewDelegate {
     func viewForZooming(in scrollView: UIScrollView) -> UIView? {
-        return animatedImageView.isHidden ? imageView : animatedImageView
+        return imageContainerView
     }
 }
