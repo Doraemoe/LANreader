@@ -5,8 +5,6 @@ import ComposableArchitecture
     @ObservableState
     public struct State: Equatable, Sendable {
         @Shared(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
-
-        var showAutomaticPage: Bool = false
     }
 
     public enum Action: Equatable, BindableAction {
@@ -18,13 +16,6 @@ import ComposableArchitecture
 
     public var body: some Reducer<State, Action> {
         BindingReducer()
-
-        Reduce { _, action in
-            switch action {
-            default:
-                return .none
-            }
-        }
     }
 }
 

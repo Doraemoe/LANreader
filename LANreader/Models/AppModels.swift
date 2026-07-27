@@ -98,7 +98,6 @@ struct SettingsKey {
     static let tapRightKey = "settings:read:tap:right"
     static let readDirection = "settings:read:direction"
     static let showOriginal = "settings:read:image:showOriginal"
-    static let fallbackReader = "settings:read:fallback"
     static let splitWideImage = "settings:read:split:Image"
     static let splitPiorityLeft = "settings:read:split:piorityLeft"
     static let autoPageInterval = "settings:read:auto:page:interval"
@@ -127,13 +126,6 @@ struct SettingsKey {
     static let translationRenderTextDirection = "settings:advanced:translation:renderTextDirection"
     static let translationInpaintingSize = "settings:advanced:translation:inpaintingSize"
     static let translationInpainter = "settings:advanced:translation:inpainter"
-}
-
-extension Double {
-    var int: Int {
-        get { Int(self) }
-        set { self = Double(newValue) }
-    }
 }
 
 extension SharedReaderKey where Self == InMemoryKey<IdentifiedArrayOf<CategoryItem>> {
