@@ -34,6 +34,7 @@ struct ArchiveCache: Identifiable, Equatable {
     var totalPages: Int
     var toc: [ArchiveChapter]?
     var lastUpdate: Date
+    var progress: Int = 0
 }
 
 struct ArchiveImage: Identifiable, Equatable {
@@ -120,6 +121,7 @@ extension ArchiveCache: Codable, FetchableRecord, MutablePersistableRecord {
         static let totalPages = Column(CodingKeys.totalPages)
         static let toc = Column(CodingKeys.toc)
         static let lastUpdate = Column(CodingKeys.lastUpdate)
+        static let progress = Column(CodingKeys.progress)
     }
 }
 
@@ -131,7 +133,7 @@ extension ArchiveCache {
             extension: "",
             tags: tags,
             isNew: false,
-            progress: 0,
+            progress: progress,
             pagecount: totalPages,
             dateAdded: nil,
             toc: toc
