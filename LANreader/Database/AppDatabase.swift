@@ -105,6 +105,12 @@ struct AppDatabase {
             }
         }
 
+        migrator.registerMigration("archiveCacheProgress") { database in
+            try database.alter(table: "archiveCache") { table in
+                table.add(column: "progress", .integer).notNull().defaults(to: 0)
+            }
+        }
+
         return migrator
     }
 
@@ -145,6 +151,14 @@ extension AppDatabase {
             try ArchiveCache
                 .filter(id: id)
                 .updateAll(database, Column("cached").set(to: true))
+        }
+    }
+
+    func updateCacheProgress(_ id: String, progress: Int) throws -> Int {
+        try dbWriter.write { database in
+            try ArchiveCache
+                .filter(id: id)
+                .updateAll(database, Column("progress").set(to: progress))
         }
     }
 

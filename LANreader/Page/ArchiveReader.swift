@@ -218,8 +218,11 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                            $0.pageNumber < $1.pageNumber
                        }
                    state.pages.append(contentsOf: pageState)
-                   state.currentPageIndex = ReaderPositioning.defaultStartPageIndex(
+                   let cachedProgress = state.allArchives[id: id]?.wrappedValue.progress ?? 0
+                   state.currentPageIndex = ReaderPositioning.initialPageIndex(
+                       progress: cachedProgress,
                        pageCount: state.pages.count,
+                       fromStart: state.fromStart,
                        readDirection: state.resolvedReadDirection,
                        doublePageLayout: state.doublePageLayout
                    )
@@ -359,6 +362,11 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     }
                 }
                 if state.cached {
+                    do {
+                        _ = try database.updateCacheProgress(state.currentArchiveId, progress: pageNumber)
+                    } catch {
+                        logger.error("failed to update cached archive progress. id=\(state.currentArchiveId) \(error)")
+                    }
                     return .none
                 }
                 return .run(priority: .background) { [state] _ in
@@ -782,7 +790,8 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                         cached: false,
                         totalPages: requested.count,
                         toc: archive.toc,
-                        lastUpdate: Date()
+                        lastUpdate: Date(),
+                        progress: archive.progress
                     )
                     try database.saveCache(&cache)
                     await send(.finishDownloadPages)
