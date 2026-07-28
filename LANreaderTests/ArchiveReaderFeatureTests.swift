@@ -676,6 +676,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 $0.isNew = false
             }
         }
+        await store.finish()
 
         XCTAssertEqual(try database.readCache("archive")?.progress, 2)
     }
@@ -710,6 +711,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 $0.progress = 2
             }
         }
+        await store.finish()
 
         XCTAssertEqual(try database.readCache(tankId)?.progress, 2)
     }

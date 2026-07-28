@@ -362,12 +362,12 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     }
                 }
                 if state.cached {
-                    do {
-                        _ = try database.updateCacheProgress(state.currentArchiveId, progress: pageNumber)
-                    } catch {
+                    return .run(priority: .background) { [id = state.currentArchiveId] _ in
+                        _ = try database.updateCacheProgress(id, progress: pageNumber)
+                    } catch: { [state] error, _ in
                         logger.error("failed to update cached archive progress. id=\(state.currentArchiveId) \(error)")
                     }
-                    return .none
+                    .cancellable(id: CancelId.updateProgress, cancelInFlight: true)
                 }
                 return .run(priority: .background) { [state] _ in
                     try await clock.sleep(for: .seconds(0.5))
