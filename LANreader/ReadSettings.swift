@@ -14,6 +14,7 @@ import SwiftUI
         @Shared(.appStorage(SettingsKey.splitPiorityLeft)) var splitPiorityLeft = false
         @Shared(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
         @Shared(.appStorage(SettingsKey.fitPageWidth)) var fitPageWidth = false
+        @Shared(.appStorage(SettingsKey.restartFinished)) var restartFinished = false
     }
     public enum Action: BindableAction {
         case binding(BindingAction<State>)
@@ -95,6 +96,10 @@ struct ReadSettings: View {
             }
             .padding()
         }
+        Toggle(isOn: Binding(self.store.$restartFinished)) {
+            Text("settings.read.restart.finished")
+        }
+        .padding()
     }
 
     var pageControlSelectionView: some View = Group {

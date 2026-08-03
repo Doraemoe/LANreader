@@ -5370,6 +5370,41 @@
         }
       }
     },
+    "settings.read.restart.finished" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart finished archives"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読了したアーカイブを最初から開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다 읽은 아카이브를 처음부터 열기"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从头阅读已读文档"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "從頭閱讀已讀文檔"
+          }
+        }
+      }
+    },
     "settings.read.split.page" : {
       "extractionState" : "manual",
       "localizations" : {
