@@ -15,6 +15,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: SettingsKey.autoPageInterval)
         UserDefaults.standard.removeObject(forKey: SettingsKey.splitWideImage)
         UserDefaults.standard.removeObject(forKey: SettingsKey.splitPiorityLeft)
+        UserDefaults.standard.removeObject(forKey: SettingsKey.restartFinished)
         UserDefaults.standard.removeObject(forKey: SettingsKey.serverProgress)
         UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiUrl)
         UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiApiKey)
@@ -73,6 +74,65 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             1.5
         )
         XCTAssertNil(UIPageCell.fitWidthAspectRatio(for: CGSize(width: 0, height: 1_500)))
+    }
+
+    func testReaderPositioningFinishedMath() {
+        // Progress is one-based, so an archive counts as finished only at the last page.
+        XCTAssertTrue(ReaderPositioning.isFinished(progress: 5, archivePageCount: 5))
+        XCTAssertFalse(ReaderPositioning.isFinished(progress: 4, archivePageCount: 5))
+        XCTAssertFalse(ReaderPositioning.isFinished(progress: 6, archivePageCount: 5))
+        XCTAssertFalse(ReaderPositioning.isFinished(progress: 0, archivePageCount: 0))
+    }
+
+    func testReaderPositioningRestartFinishedMath() {
+        // Finished archive restarts when the setting is on.
+        XCTAssertEqual(
+            ReaderPositioning.initialPageIndex(
+                progress: 5,
+                pageCount: 5,
+                fromStart: false,
+                restartFinishedArchive: true,
+                readDirection: .leftRight,
+                doublePageLayout: false
+            ),
+            0
+        )
+        // Partially read archive still resumes where it left off.
+        XCTAssertEqual(
+            ReaderPositioning.initialPageIndex(
+                progress: 4,
+                pageCount: 5,
+                fromStart: false,
+                restartFinishedArchive: false,
+                readDirection: .leftRight,
+                doublePageLayout: false
+            ),
+            3
+        )
+        // Setting off keeps the existing resume behaviour for a finished archive.
+        XCTAssertEqual(
+            ReaderPositioning.initialPageIndex(
+                progress: 5,
+                pageCount: 5,
+                fromStart: false,
+                restartFinishedArchive: false,
+                readDirection: .leftRight,
+                doublePageLayout: false
+            ),
+            4
+        )
+        // Restarting still honours double-page spread alignment.
+        XCTAssertEqual(
+            ReaderPositioning.initialPageIndex(
+                progress: 6,
+                pageCount: 6,
+                fromStart: false,
+                restartFinishedArchive: true,
+                readDirection: .rightLeft,
+                doublePageLayout: true
+            ),
+            1
+        )
     }
 
     func testReaderPositioningSinglePageMath() {
@@ -474,10 +534,92 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testFinishExtractingClampsOutOfRangeProgress() async throws {
+    func testFinishExtractingRestartsFinishedArchiveWhenSettingEnabled() async throws {
+        configureReaderDefaults(restartFinished: true)
+        try await configureReadyThumbnailQueue()
+        let store = makeTestStore(
+            initialState: makeState(progress: 5, archivePageCount: 5, restartFinished: true)
+        )
+
+        await store.send(.finishExtracting(makeExtractedPages(count: 5), nil)) {
+            $0.pages = makePageStates(count: 5)
+            $0.controlUiHidden = true
+        }
+        await store.receive(.requestJump(0, source: .initialRestore)) {
+            $0.scrollRequest = makeScrollRequest(
+                id: 0,
+                targetPageIndex: 0,
+                source: .initialRestore,
+                animated: false
+            )
+        }
+        await store.receive(.prepareSliderPreviewThumbnails)
+        await store.receive(
+            .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
+        ) {
+            $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
+        }
+    }
+
+    @MainActor
+    func testFinishExtractingUsesArchiveMetadataToDetermineFinishedState() async throws {
+        configureReaderDefaults(restartFinished: true)
+        try await configureReadyThumbnailQueue()
+        let store = makeTestStore(initialState: makeState(progress: 5, restartFinished: true))
+
+        await store.send(.finishExtracting(makeExtractedPages(count: 5), nil)) {
+            $0.pages = makePageStates(count: 5)
+            $0.currentPageIndex = 4
+            $0.controlUiHidden = true
+        }
+        await store.receive(.requestJump(4, source: .initialRestore)) {
+            $0.scrollRequest = makeScrollRequest(
+                id: 0,
+                targetPageIndex: 4,
+                source: .initialRestore,
+                animated: false
+            )
+        }
+        await store.receive(.prepareSliderPreviewThumbnails)
+        await store.receive(
+            .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
+        ) {
+            $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
+        }
+    }
+
+    @MainActor
+    func testFinishExtractingKeepsFinishedProgressWhenRestartDisabled() async throws {
         configureReaderDefaults()
         try await configureReadyThumbnailQueue()
-        let store = makeTestStore(initialState: makeState(progress: 99))
+        let store = makeTestStore(initialState: makeState(progress: 5, archivePageCount: 5))
+
+        await store.send(.finishExtracting(makeExtractedPages(count: 5), nil)) {
+            $0.pages = makePageStates(count: 5)
+            $0.currentPageIndex = 4
+            $0.controlUiHidden = true
+        }
+        await store.receive(.requestJump(4, source: .initialRestore)) {
+            $0.scrollRequest = makeScrollRequest(
+                id: 0,
+                targetPageIndex: 4,
+                source: .initialRestore,
+                animated: false
+            )
+        }
+        await store.receive(.prepareSliderPreviewThumbnails)
+        await store.receive(
+            .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
+        ) {
+            $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
+        }
+    }
+
+    @MainActor
+    func testFinishExtractingClampsOutOfRangeProgress() async throws {
+        configureReaderDefaults(restartFinished: true)
+        try await configureReadyThumbnailQueue()
+        let store = makeTestStore(initialState: makeState(progress: 99, restartFinished: true))
 
         await store.send(.finishExtracting(makeExtractedPages(count: 4), nil)) {
             $0.pages = makePageStates(count: 4)
@@ -963,6 +1105,90 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             $0.scrollRequest = makeScrollRequest(
                 id: 0,
                 targetPageIndex: 2,
+                source: .initialRestore,
+                animated: false
+            )
+        }
+    }
+
+    @MainActor
+    func testLoadCachedFromStartIgnoresPersistedProgress() async throws {
+        configureReaderDefaults()
+        let id = "cachedFromStartArchive"
+        let cacheFolder = LANraragiService.cachePath!.appendingPathComponent(id, conformingTo: .folder)
+        try? FileManager.default.removeItem(at: cacheFolder)
+        try FileManager.default.createDirectory(at: cacheFolder, withIntermediateDirectories: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: cacheFolder)
+        }
+        for page in 1...5 {
+            FileManager.default.createFile(
+                atPath: cacheFolder.appendingPathComponent("\(page)").path,
+                contents: Data()
+            )
+        }
+
+        let initialState = makeState(archiveId: id, progress: 3, fromStart: true, cached: true)
+        let store = makeTestStore(initialState: initialState)
+
+        let expectedPages = IdentifiedArray(uniqueElements: (1...5).map {
+            PageFeature.State(archiveId: id, pageId: "\($0)", pageNumber: $0, cached: true)
+        })
+
+        await store.send(.loadCached) {
+            $0.pages = expectedPages
+            $0.currentPageIndex = 0
+            $0.controlUiHidden = true
+        }
+        await store.receive(.requestJump(0, source: .initialRestore)) {
+            $0.scrollRequest = makeScrollRequest(
+                id: 0,
+                targetPageIndex: 0,
+                source: .initialRestore,
+                animated: false
+            )
+        }
+    }
+
+    @MainActor
+    func testLoadCachedRestartsFinishedArchiveWhenSettingEnabled() async throws {
+        configureReaderDefaults(restartFinished: true)
+        let id = "cachedRestartFinishedArchive"
+        let cacheFolder = LANraragiService.cachePath!.appendingPathComponent(id, conformingTo: .folder)
+        try? FileManager.default.removeItem(at: cacheFolder)
+        try FileManager.default.createDirectory(at: cacheFolder, withIntermediateDirectories: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: cacheFolder)
+        }
+        for page in 1...5 {
+            FileManager.default.createFile(
+                atPath: cacheFolder.appendingPathComponent("\(page)").path,
+                contents: Data()
+            )
+        }
+
+        let initialState = makeState(
+            archiveId: id,
+            progress: 5,
+            cached: true,
+            archivePageCount: 5,
+            restartFinished: true
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        let expectedPages = IdentifiedArray(uniqueElements: (1...5).map {
+            PageFeature.State(archiveId: id, pageId: "\($0)", pageNumber: $0, cached: true)
+        })
+
+        await store.send(.loadCached) {
+            $0.pages = expectedPages
+            $0.currentPageIndex = 0
+            $0.controlUiHidden = true
+        }
+        await store.receive(.requestJump(0, source: .initialRestore)) {
+            $0.scrollRequest = makeScrollRequest(
+                id: 0,
+                targetPageIndex: 0,
                 source: .initialRestore,
                 animated: false
             )
@@ -1903,6 +2129,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         )
         state.pages = makePageStates(count: 3, archiveId: "one")
         state.currentPageIndex = 2
+        state.fromStart = true
         state.scrollRequest = ScrollRequest(targetPageIndex: 2, source: .slider, animated: false)
         state.inCache = true
         state.errorMessage = "error"
@@ -1920,6 +2147,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
 
         XCTAssertTrue(state.pages.isEmpty)
         XCTAssertEqual(state.currentPageIndex, 0)
+        XCTAssertFalse(state.fromStart)
         XCTAssertNil(state.scrollRequest)
         XCTAssertFalse(state.inCache)
         XCTAssertEqual(state.errorMessage, "")
@@ -1940,13 +2168,15 @@ private func configureReaderDefaults(
     doublePageLayout: Bool = false,
     autoPageInterval: Double = 5,
     splitWideImage: Bool = false,
-    splitPiorityLeft: Bool = false
+    splitPiorityLeft: Bool = false,
+    restartFinished: Bool = false
 ) {
     UserDefaults.standard.set(readDirection.rawValue, forKey: SettingsKey.readDirection)
     UserDefaults.standard.set(doublePageLayout, forKey: SettingsKey.doublePageLayout)
     UserDefaults.standard.set(autoPageInterval, forKey: SettingsKey.autoPageInterval)
     UserDefaults.standard.set(splitWideImage, forKey: SettingsKey.splitWideImage)
     UserDefaults.standard.set(splitPiorityLeft, forKey: SettingsKey.splitPiorityLeft)
+    UserDefaults.standard.set(restartFinished, forKey: SettingsKey.restartFinished)
 }
 
 private func configureVerifiedClient() async throws {
@@ -2198,9 +2428,13 @@ private func makeState(
     allArchives: [ArchiveItem]? = nil,
     readDirection: ReadDirection = .leftRight,
     doublePageLayout: Bool = false,
-    autoPageInterval: Double = 5
+    autoPageInterval: Double = 5,
+    archivePageCount: Int = 10,
+    restartFinished: Bool = false
 ) -> ArchiveReaderFeature.State {
-    let archives = allArchives ?? [makeArchive(id: archiveId, progress: progress, isNew: isNew)]
+    let archives = allArchives ?? [
+        makeArchive(id: archiveId, progress: progress, isNew: isNew, pageCount: archivePageCount)
+    ]
     let state = ArchiveReaderFeature.State(
         currentArchiveId: archiveId,
         allArchives: archives.map { Shared(value: $0) },
@@ -2210,6 +2444,7 @@ private func makeState(
     state.$readDirection = SharedReader(value: readDirection.rawValue)
     state.$doublePageLayout = SharedReader(value: doublePageLayout)
     state.$autoPageInterval = SharedReader(value: autoPageInterval)
+    state.$restartFinished = SharedReader(value: restartFinished)
     return state
 }
 
@@ -2217,6 +2452,7 @@ private func makeArchive(
     id: String = "archive",
     progress: Int = 0,
     isNew: Bool = false,
+    pageCount: Int = 10,
     toc: [ArchiveChapter]? = nil
 ) -> ArchiveItem {
     ArchiveItem(
@@ -2226,7 +2462,7 @@ private func makeArchive(
         tags: "",
         isNew: isNew,
         progress: progress,
-        pagecount: 10,
+        pagecount: pageCount,
         dateAdded: nil,
         toc: toc
     )

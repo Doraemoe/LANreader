@@ -34,15 +34,24 @@ public struct ScrollRequest: Equatable, Sendable, Identifiable {
 }
 
 enum ReaderPositioning {
+    /// Returns true when stored progress indicates the archive was read to the end.
+    /// Progress is a one-based page number, so it only counts as finished once it reaches the last page.
+    static func isFinished(progress: Int, archivePageCount: Int) -> Bool {
+        guard archivePageCount > 0 else { return false }
+        return progress == archivePageCount
+    }
+
     static func initialPageIndex(
         progress: Int,
         pageCount: Int,
         fromStart: Bool,
+        restartFinishedArchive: Bool = false,
         readDirection: ReadDirection,
         doublePageLayout: Bool
     ) -> Int {
         guard pageCount > 0 else { return 0 }
-        let storedIndex = fromStart ? 0 : max(progress - 1, 0)
+        let restart = fromStart || restartFinishedArchive
+        let storedIndex = restart ? 0 : max(progress - 1, 0)
         let clampedIndex = clampedPageIndex(storedIndex, pageCount: pageCount)
         guard usesTrailingSpreadProgress(
             readDirection: readDirection,

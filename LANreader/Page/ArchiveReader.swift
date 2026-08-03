@@ -46,6 +46,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         @SharedReader(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
         @SharedReader(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
         @SharedReader(.appStorage(SettingsKey.fitPageWidth)) var fitPageWidth = false
+        @SharedReader(.appStorage(SettingsKey.restartFinished)) var restartFinished = false
 
         var currentArchiveId = ""
         var currentPageIndex = 0
@@ -218,11 +219,17 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                            $0.pageNumber < $1.pageNumber
                        }
                    state.pages.append(contentsOf: pageState)
-                   let cachedProgress = state.allArchives[id: id]?.wrappedValue.progress ?? 0
+                   let cachedArchive = state.allArchives[id: id]?.wrappedValue
+                   let cachedProgress = cachedArchive?.progress ?? 0
+                   let restartFinishedArchive = state.restartFinished && ReaderPositioning.isFinished(
+                       progress: cachedProgress,
+                       archivePageCount: cachedArchive?.pagecount ?? 0
+                   )
                    state.currentPageIndex = ReaderPositioning.initialPageIndex(
                        progress: cachedProgress,
                        pageCount: state.pages.count,
                        fromStart: state.fromStart,
+                       restartFinishedArchive: restartFinishedArchive,
                        readDirection: state.resolvedReadDirection,
                        doublePageLayout: state.doublePageLayout
                    )
@@ -317,10 +324,16 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                             $0.toc = tankoubonDetails?.toc
                         }
                     }
+                    let archive = currentArchive.wrappedValue
+                    let restartFinishedArchive = state.restartFinished && ReaderPositioning.isFinished(
+                        progress: archive.progress,
+                        archivePageCount: archive.pagecount
+                    )
                     let pageIndexToShow = ReaderPositioning.initialPageIndex(
-                        progress: currentArchive.wrappedValue.progress,
+                        progress: archive.progress,
                         pageCount: state.pages.count,
                         fromStart: state.fromStart,
+                        restartFinishedArchive: restartFinishedArchive,
                         readDirection: state.resolvedReadDirection,
                         doublePageLayout: state.doublePageLayout
                     )
@@ -1140,6 +1153,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
     func resetState(state: inout State) {
         state.pages = []
         state.currentPageIndex = 0
+        state.fromStart = false
         state.scrollRequest = nil
         state.collectionScrolling = false
         state.pendingSplitResolutions = [:]
