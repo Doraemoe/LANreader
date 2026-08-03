@@ -5,7 +5,7 @@
     "targetName" : "CasePathsMacros"
   },
   {
-    "fingerprint" : "e2fa1df6cd9eec6fa6314aa20513e47da576f24e",
+    "fingerprint" : "ead11e04e5011c437722c1990d22f80d87056978",
     "packageIdentity" : "swift-composable-architecture",
     "targetName" : "ComposableArchitectureMacros"
   },
