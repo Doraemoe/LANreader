@@ -74,12 +74,14 @@ private struct SelectableLogTextView: UIViewRepresentable {
     }
 }
 
-private enum LogTextRenderer {
+enum LogTextRenderer {
     private static let messageMarker = " message="
 
     static func attributedLog(from log: String) -> NSAttributedString {
         let attributedLog = NSMutableAttributedString()
-        let lines = log.split(separator: "\n", omittingEmptySubsequences: false)
+        // Puppy writes CRLF line endings, and "\r\n" is a single Swift Character,
+        // so splitting on the literal "\n" would never match.
+        let lines = log.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
 
         for (index, line) in lines.enumerated() {
             attributedLog.append(attributedLine(from: String(line)))
