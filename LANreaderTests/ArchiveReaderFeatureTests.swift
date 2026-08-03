@@ -969,6 +969,45 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         }
     }
 
+    @MainActor
+    func testLoadCachedFromStartIgnoresPersistedProgress() async throws {
+        configureReaderDefaults()
+        let id = "cachedFromStartArchive"
+        let cacheFolder = LANraragiService.cachePath!.appendingPathComponent(id, conformingTo: .folder)
+        try? FileManager.default.removeItem(at: cacheFolder)
+        try FileManager.default.createDirectory(at: cacheFolder, withIntermediateDirectories: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: cacheFolder)
+        }
+        for page in 1...5 {
+            FileManager.default.createFile(
+                atPath: cacheFolder.appendingPathComponent("\(page)").path,
+                contents: Data()
+            )
+        }
+
+        let initialState = makeState(archiveId: id, progress: 3, fromStart: true, cached: true)
+        let store = makeTestStore(initialState: initialState)
+
+        let expectedPages = IdentifiedArray(uniqueElements: (1...5).map {
+            PageFeature.State(archiveId: id, pageId: "\($0)", pageNumber: $0, cached: true)
+        })
+
+        await store.send(.loadCached) {
+            $0.pages = expectedPages
+            $0.currentPageIndex = 0
+            $0.controlUiHidden = true
+        }
+        await store.receive(.requestJump(0, source: .initialRestore)) {
+            $0.scrollRequest = makeScrollRequest(
+                id: 0,
+                targetPageIndex: 0,
+                source: .initialRestore,
+                animated: false
+            )
+        }
+    }
+
     func testArchiveCachePersistsChapters() throws {
         let chapters = [
             ArchiveChapter(name: "Opening", page: 1),
@@ -1903,6 +1942,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         )
         state.pages = makePageStates(count: 3, archiveId: "one")
         state.currentPageIndex = 2
+        state.fromStart = true
         state.scrollRequest = ScrollRequest(targetPageIndex: 2, source: .slider, animated: false)
         state.inCache = true
         state.errorMessage = "error"
@@ -1920,6 +1960,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
 
         XCTAssertTrue(state.pages.isEmpty)
         XCTAssertEqual(state.currentPageIndex, 0)
+        XCTAssertFalse(state.fromStart)
         XCTAssertNil(state.scrollRequest)
         XCTAssertFalse(state.inCache)
         XCTAssertEqual(state.errorMessage, "")

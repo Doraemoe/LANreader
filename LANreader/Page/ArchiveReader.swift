@@ -1140,6 +1140,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
     func resetState(state: inout State) {
         state.pages = []
         state.currentPageIndex = 0
+        state.fromStart = false
         state.scrollRequest = nil
         state.collectionScrolling = false
         state.pendingSplitResolutions = [:]

@@ -149,12 +149,41 @@ struct CacheView: View {
         }
     }
 
-    private func contextMenu(gridStore: StoreOf<GridFeature>) -> some View {
-        Button {
-            store.send(.removeCache(gridStore.state.id))
-        } label: {
-            Label("archive.cache.remove", systemImage: "trash")
+    private func contextMenu(
+        gridStore: StoreOf<GridFeature>,
+        inProgress: Bool
+    ) -> some View {
+        Group {
+            Button {
+                openReader(gridStore: gridStore, fromStart: true)
+            } label: {
+                Label("archive.read.fromStart", systemImage: "arrow.left.to.line.compact")
+            }
+            .disabled(inProgress)
+            Button {
+                store.send(.removeCache(gridStore.state.id))
+            } label: {
+                Label("archive.cache.remove", systemImage: "trash")
+            }
         }
+    }
+
+    private func openReader(gridStore: StoreOf<GridFeature>, fromStart: Bool = false) {
+        let allArchives = store.archives.map { $0.$archive }
+        let readerStore = Store(
+            initialState: ArchiveReaderFeature.State.init(
+                currentArchiveId: gridStore.archive.id,
+                allArchives: allArchives,
+                fromStart: fromStart,
+                cached: true
+            )
+        ) {
+            ArchiveReaderFeature()
+        }
+        let readerController = UIArchiveReaderController(
+            store: readerStore, navigationHelper: navigation
+        )
+        navigation.push(readerController)
     }
 
     private func grid(
@@ -187,21 +216,11 @@ struct CacheView: View {
                 : nil
             }
             .contextMenu {
-                contextMenu(gridStore: gridStore)
+                contextMenu(gridStore: gridStore, inProgress: inProgress)
             }
             .onTapGesture {
                 if !inProgress {
-                    let allArchives = store.archives.map { $0.$archive }
-                    let readerStore = Store(
-                        initialState: ArchiveReaderFeature.State.init(
-                            currentArchiveId: gridStore.archive.id, allArchives: allArchives, cached: true)
-                    ) {
-                        ArchiveReaderFeature()
-                    }
-                    let readerController = UIArchiveReaderController(
-                        store: readerStore, navigationHelper: navigation
-                    )
-                    navigation.push(readerController)
+                    openReader(gridStore: gridStore)
                 }
             }
     }

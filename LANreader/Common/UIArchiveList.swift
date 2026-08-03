@@ -888,11 +888,33 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
     ) {
         guard let selectedItemStore = dataSource.itemIdentifier(for: indexPath)
         else { return }
+        openReader(for: selectedItemStore)
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        contextMenuConfigurationForItemAt indexPath: IndexPath,
+        point: CGPoint
+    ) -> UIContextMenuConfiguration? {
+        guard let itemStore = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+            let readFromStart = UIAction(
+                title: String(localized: "archive.read.fromStart"),
+                image: UIImage(systemName: "arrow.left.to.line.compact")
+            ) { _ in
+                self?.openReader(for: itemStore, fromStart: true)
+            }
+            return UIMenu(title: "", children: [readFromStart])
+        }
+    }
+
+    private func openReader(for itemStore: StoreOf<GridFeature>, fromStart: Bool = false) {
         let allArchives = dataSource.snapshot().itemIdentifiers(inSection: .main).map { $0.$archive }
         let readerStore = Store(
             initialState: ArchiveReaderFeature.State.init(
-                currentArchiveId: selectedItemStore.archive.id,
-                allArchives: allArchives
+                currentArchiveId: itemStore.archive.id,
+                allArchives: allArchives,
+                fromStart: fromStart
             )
         ) {
             ArchiveReaderFeature()
