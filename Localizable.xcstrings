@@ -2795,6 +2795,76 @@
         }
       }
     },
+    "lanraragi.config.error.insecure.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iOS blocked this connection because it is not encrypted. Only addresses on your local network can use http. Addresses reached through a VPN, such as Tailscale, are not local. Use an https:// address to connect to this server."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暗号化されていないため、iOS がこの接続をブロックしました。http を使用できるのはローカルネットワーク上のアドレスのみです。Tailscale などの VPN 経由のアドレスはローカルとはみなされません。このサーバーには https:// のアドレスで接続してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "암호화되지 않은 연결이므로 iOS가 차단했습니다. http는 로컬 네트워크의 주소에서만 사용할 수 있습니다. Tailscale과 같은 VPN을 통한 주소는 로컬로 간주되지 않습니다. 이 서버에 연결하려면 https:// 주소를 사용하세요."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由于连接未加密，iOS 已阻止此连接。只有本地网络内的地址才能使用 http。通过 Tailscale 等 VPN 访问的地址不属于本地网络。请使用 https:// 地址连接此服务器。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由於連接未加密，iOS 已阻止此連接。只有本地網絡內的地址才能使用 http。通過 Tailscale 等 VPN 訪問的地址不屬於本地網絡。請使用 https:// 地址連接此服務器。"
+          }
+        }
+      }
+    },
+    "lanraragi.config.error.insecure.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTPS Required"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTPS が必要です"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTPS 필요"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要使用 HTTPS"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要使用 HTTPS"
+          }
+        }
+      }
+    },
     "lanraragi.config.submit" : {
       "extractionState" : "manual",
       "localizations" : {
