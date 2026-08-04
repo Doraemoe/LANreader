@@ -1,4 +1,5 @@
 //  Created 23/8/20.
+import Alamofire
 import ComposableArchitecture
 import SwiftUI
 import NotificationBannerSwift
@@ -13,6 +14,8 @@ import Logging
         @Shared(.appStorage(SettingsKey.lanraragiUrl)) var url = ""
         @Shared(.appStorage(SettingsKey.lanraragiApiKey)) var apiKey = ""
 
+        @Presents var alert: AlertState<Action.Alert>?
+
         var formUrl = ""
         var formKey = ""
 
@@ -26,16 +29,28 @@ import Logging
         case verifyServer
         case saveComplate
         case setErrorMessage(String)
+        case showInsecureConnectionAlert
+        case alert(PresentationAction<Alert>)
 
         case setFormValue
         case setServerProgress(Bool)
         case setLanraragiUrl(String)
         case setLanraragiApiKey(String)
+
+        public enum Alert: Equatable, Sendable {}
     }
 
     @Dependency(\.lanraragiService) var lanraragiService
     @Dependency(\.isPresented) var isPresented
     @Dependency(\.dismiss) var dismiss
+
+    // App Transport Security rejects plain HTTP to anything it does not consider local, which
+    // includes the 100.64.0.0/10 range Tailscale assigns. Alamofire wraps the URL error once.
+    static func isInsecureConnectionFailure(_ error: Error) -> Bool {
+        let underlying = (error.asAFError?.underlyingError ?? error) as NSError
+        return underlying.domain == NSURLErrorDomain
+            && underlying.code == NSURLErrorAppTransportSecurityRequiresSecureConnection
+    }
 
     public var body: some Reducer<State, Action> {
         BindingReducer()
@@ -57,8 +72,22 @@ import Logging
                     await send(.saveComplate)
                 } catch: { error, send in
                     logger.error("failed to verify lanraragi server. \(error)")
-                    await send(.setErrorMessage(error.localizedDescription))
+                    if Self.isInsecureConnectionFailure(error) {
+                        await send(.showInsecureConnectionAlert)
+                    } else {
+                        await send(.setErrorMessage(error.localizedDescription))
+                    }
                 }
+            case .showInsecureConnectionAlert:
+                state.isVerifying = false
+                state.alert = AlertState {
+                    TextState("lanraragi.config.error.insecure.title")
+                } message: {
+                    TextState("lanraragi.config.error.insecure.message")
+                }
+                return .none
+            case .alert:
+                return .none
             case .saveComplate:
                 state.isVerifying = false
                 state.successVerifed = true
@@ -94,6 +123,7 @@ import Logging
                 return .none
             }
         }
+        .ifLet(\.$alert, action: \.alert)
     }
 }
 
@@ -158,6 +188,7 @@ struct LANraragiConfigView: View {
                 navigation?.pop()
             }
         }
+        .alert($store.scope(\.$alert, action: \.alert))
     }
 }
 
