@@ -11,12 +11,12 @@ public struct SearchFilter: Equatable, Sendable {
     let filter: String?
 }
 
-public struct TagWithType: Equatable {
+public struct TagWithType: Equatable, Sendable {
     let tag: String
     let type: TagType
 }
 
-enum TagType {
+enum TagType: Sendable {
     case suggested
     case popular
 }

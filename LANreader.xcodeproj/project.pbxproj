@@ -82,6 +82,8 @@
 		E9C354E42CA646D7004C10CD /* UILibraryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C354E32CA646D3004C10CD /* UILibraryList.swift */; };
 		E9C3550F2CA65101004C10CD /* UIArchiveCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9C3550E2CA650FE004C10CD /* UIArchiveCell.swift */; };
 		E9CA49D02F80000100A53A54 /* SearchSuggestionCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9CA49D12F80000100A53A54 /* SearchSuggestionCell.swift */; };
+		F1A2B3D62F90000100AAA001 /* SearchKeyword.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3D72F90000100AAA001 /* SearchKeyword.swift */; };
+		F1A2B3D82F90000200AAA001 /* SearchFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3D92F90000200AAA001 /* SearchFeatureTests.swift */; };
 		E9CA49E62E81FF3000A53A54 /* UISearchViewV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9CA49E52E81FF2B00A53A54 /* UISearchViewV2.swift */; };
 		E9CBC0F02A3DD62F00CCD592 /* LogFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9CBC0EF2A3DD62F00CCD592 /* LogFormatter.swift */; };
 		E9DA93612C16960E003272B9 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E9DA93602C16960E003272B9 /* Localizable.xcstrings */; };
@@ -228,6 +230,8 @@
 		F1A2B3CB2F60000300AAA001 /* ArchiveDetailsTagParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveDetailsTagParser.swift; sourceTree = "<group>"; };
 		F1A2B3CD2F70000100AAA001 /* ArchiveListFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveListFeatureTests.swift; sourceTree = "<group>"; };
 		F1A2B3CF2F80000100AAA001 /* LogTextRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogTextRendererTests.swift; sourceTree = "<group>"; };
+		F1A2B3D72F90000100AAA001 /* SearchKeyword.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchKeyword.swift; sourceTree = "<group>"; };
+		F1A2B3D92F90000200AAA001 /* SearchFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchFeatureTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -372,6 +376,7 @@
 			children = (
 				E9CA49E52E81FF2B00A53A54 /* UISearchViewV2.swift */,
 				E9CA49D12F80000100A53A54 /* SearchSuggestionCell.swift */,
+				F1A2B3D72F90000100AAA001 /* SearchKeyword.swift */,
 			);
 			path = Search;
 			sourceTree = "<group>";
@@ -439,6 +444,7 @@
 				F1A2B3C92F60000200AAA001 /* ArchiveDetailsTagParserTests.swift */,
 				F1A2B3CD2F70000100AAA001 /* ArchiveListFeatureTests.swift */,
 				F1A2B3CF2F80000100AAA001 /* LogTextRendererTests.swift */,
+				F1A2B3D92F90000200AAA001 /* SearchFeatureTests.swift */,
 				7D354CB824F1316E00617F4A /* Info.plist */,
 				4BD820A697A4726B7B747BFD /* Service */,
 			);
@@ -739,6 +745,7 @@
 				4BD82C7F9CB71CAF8F33C171 /* ViewSettings.swift in Sources */,
 				E9CA49E62E81FF3000A53A54 /* UISearchViewV2.swift in Sources */,
 				E9CA49D02F80000100A53A54 /* SearchSuggestionCell.swift in Sources */,
+				F1A2B3D62F90000100AAA001 /* SearchKeyword.swift in Sources */,
 				E9965AAA2D6830DB00114E32 /* UICacheView.swift in Sources */,
 				E9A452242D90F0D60010CEE3 /* SupportView.swift in Sources */,
 				4BD82CED54A4C9689B0E9E55 /* ContentView.swift in Sources */,
@@ -772,6 +779,7 @@
 				F1A2B3C62F60000200AAA001 /* ArchiveDetailsTagParserTests.swift in Sources */,
 				F1A2B3CC2F70000100AAA001 /* ArchiveListFeatureTests.swift in Sources */,
 				F1A2B3CE2F80000100AAA001 /* LogTextRendererTests.swift in Sources */,
+				F1A2B3D82F90000200AAA001 /* SearchFeatureTests.swift in Sources */,
 				4BD82555CE41A0467CCC6411 /* LANraragiServiceTest.swift in Sources */,
 				7DF6FFAA252DC3BB009280A5 /* FileUtils.swift in Sources */,
 			);
@@ -947,7 +955,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreader.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 199;
+				CURRENT_PROJECT_VERSION = 200;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -958,7 +966,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.9.4;
+				MARKETING_VERSION = 3.9.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -975,7 +983,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreaderRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 199;
+				CURRENT_PROJECT_VERSION = 200;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -986,7 +994,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.9.4;
+				MARKETING_VERSION = 3.9.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1049,7 +1057,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 199;
+				CURRENT_PROJECT_VERSION = 200;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1061,7 +1069,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.9.4;
+				MARKETING_VERSION = 3.9.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1079,7 +1087,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 199;
+				CURRENT_PROJECT_VERSION = 200;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1091,7 +1099,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.9.4;
+				MARKETING_VERSION = 3.9.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

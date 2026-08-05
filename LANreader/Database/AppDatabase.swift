@@ -198,11 +198,37 @@ extension AppDatabase {
         }
     }
 
+    // `%` and `_` are LIKE wildcards, so a keyword containing them must be escaped or it matches
+    // every tag instead of the literal text the user typed.
+    private static let likeEscape = "\\"
+
+    private static func escapedForLike(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: likeEscape, with: likeEscape + likeEscape)
+            .replacingOccurrences(of: "%", with: likeEscape + "%")
+            .replacingOccurrences(of: "_", with: likeEscape + "_")
+    }
+
     func searchTag(keyword: String) throws -> [TagItem] {
+        // Every word must match somewhere in the tag, so `artist auo` still finds `artist:e auo`.
+        let words = keyword.split(separator: " ").map(String.init)
+        guard !words.isEmpty else {
+            return []
+        }
+        let escape = Self.likeEscape
+        let prefixPattern = "\(Self.escapedForLike(keyword))%"
         return try dbReader.read { database in
-            try TagItem
-                .filter(Column("tag").like("%\(keyword)%"))
-                .order(Column("count").desc)
+            var request = TagItem.all()
+            for word in words {
+                request = request.filter(
+                    Column("tag").like("%\(Self.escapedForLike(word))%", escape: escape)
+                )
+            }
+            return try request
+                .order(
+                    Column("tag").like(prefixPattern, escape: escape).desc,
+                    Column("count").desc
+                )
                 .limit(20)
                 .fetchAll(database)
         }
