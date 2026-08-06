@@ -1218,6 +1218,63 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testCachedReadUpdatesCacheGridProgress() async throws {
+        configureReaderDefaults()
+        let id = "cachedGridProgressArchive"
+        let cacheFolder = LANraragiService.cachePath!.appendingPathComponent(id, conformingTo: .folder)
+        try? FileManager.default.removeItem(at: cacheFolder)
+        try FileManager.default.createDirectory(at: cacheFolder, withIntermediateDirectories: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: cacheFolder)
+        }
+        for page in 1...5 {
+            FileManager.default.createFile(
+                atPath: cacheFolder.appendingPathComponent("\(page)").path,
+                contents: Data()
+            )
+        }
+        let database = try makeInMemoryDatabase()
+        var cache = ArchiveCache(
+            id: id,
+            title: "Archive",
+            tags: "",
+            thumbnail: nil,
+            cached: true,
+            totalPages: 5,
+            toc: nil,
+            lastUpdate: Date(timeIntervalSince1970: 1)
+        )
+        try database.saveCache(&cache)
+        let cacheStore = TestStore(initialState: CacheFeature.State()) {
+            CacheFeature()
+        } withDependencies: {
+            $0.appDatabase = database
+            $0.continuousClock = TestClock()
+        }
+        cacheStore.exhaustivity = .off
+        await cacheStore.send(.load)
+
+        let sharedArchive = try XCTUnwrap(cacheStore.state.archives[id: id]?.$archive)
+        let readerStore = makeTestStore(
+            initialState: ArchiveReaderFeature.State(
+                currentArchiveId: id,
+                allArchives: [sharedArchive],
+                cached: true
+            )
+        ) {
+            $0.appDatabase = database
+        }
+        readerStore.exhaustivity = .off
+
+        await readerStore.send(.loadCached)
+        await readerStore.send(.visiblePageChanged(3))
+        await readerStore.finish()
+
+        XCTAssertEqual(try database.readCache(id)?.progress, 4)
+        XCTAssertEqual(cacheStore.state.archives[id: id]?.archive.progress, 4)
+    }
+
+    @MainActor
     func testCacheFeatureLoadRestoresChapters() async throws {
         let chapters = [
             ArchiveChapter(name: "Opening", page: 1),

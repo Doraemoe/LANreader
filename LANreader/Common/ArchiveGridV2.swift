@@ -219,8 +219,7 @@ struct ArchiveGridV2: View {
     }
 
     private var progressFraction: Double? {
-        guard store.cached == false,
-              store.archive.pagecount > 0,
+        guard store.archive.pagecount > 0,
               store.archive.progress > 1 else {
             return nil
         }
