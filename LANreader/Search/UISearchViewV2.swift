@@ -157,6 +157,7 @@ class UISearchViewV2Controller: UIViewController {
     // Constraints for animated height changes
     private var suggestionsHeightConstraint: NSLayoutConstraint?
     private var hasRenderedSuggestions = false
+    private var isEditingSearchText = false
 
     // Constants
     private let maxSuggestionsHeight: CGFloat = {
@@ -296,10 +297,19 @@ class UISearchViewV2Controller: UIViewController {
         )
     }
 
+    private var activeSearchBar: UISearchBar {
+        UIDevice.current.userInterfaceIdiom == .phone ? searchController.searchBar : searchBar
+    }
+
     private func setupObserve() {
         observe { [weak self] in
             guard let self else { return }
             _ = store.suggestedTag
+            let isFieldEmpty = activeSearchBar.text?.isEmpty ?? true
+            guard isEditingSearchText || isFieldEmpty else {
+                hideSuggestions(animated: false)
+                return
+            }
             suggestionsTableView.reloadData()
             updateSuggestionsVisibility(animated: hasRenderedSuggestions)
             hasRenderedSuggestions = true
@@ -350,7 +360,16 @@ class UISearchViewV2Controller: UIViewController {
 
 // MARK: - UISearchBarDelegate
 extension UISearchViewV2Controller: UISearchBarDelegate {
+    func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
+        isEditingSearchText = true
+    }
+
+    func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
+        isEditingSearchText = false
+    }
+
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        isEditingSearchText = true
         store.send(.binding(.set(\.keyword, searchText)))
         store.send(.generateSuggestion(searchText))
     }
@@ -383,11 +402,7 @@ extension UISearchViewV2Controller: UITableViewDataSource, UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let suggestion = store.suggestedTag[indexPath.row]
         store.send(.suggestionTapped(suggestion))
-        if UIDevice.current.userInterfaceIdiom == .phone {
-            searchController.searchBar.text = store.keyword
-        } else {
-            searchBar.text = store.keyword
-        }
+        activeSearchBar.text = store.keyword
         hideSuggestions()
         tableView.deselectRow(at: indexPath, animated: true)
     }
