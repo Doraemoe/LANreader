@@ -1,8 +1,11 @@
 import ComposableArchitecture
+import Logging
 import SwiftUI
 import UIKit
 
-@Reducer public struct SearchFeature {
+@Reducer public struct SearchFeature: Sendable {
+    private let logger = Logger(label: "SearchFeature")
+
     @ObservableState
     public struct State: Equatable {
         var keyword = ""
@@ -18,6 +21,7 @@ import UIKit
     public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
         case generateSuggestion(String)
+        case suggestionsUpdated([TagWithType])
         case loadPopularTag
         case suggestionTapped(TagWithType)
         case searchSubmit(String)
@@ -26,6 +30,7 @@ import UIKit
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
+    @Dependency(\.continuousClock) var clock
 
     enum CancelId { case search }
 
@@ -39,22 +44,27 @@ import UIKit
         Reduce { state, action in
             switch action {
             case let .generateSuggestion(searchText):
-                let lastToken = searchText.split(
-                    separator: " ",
-                    omittingEmptySubsequences: false
-                ).last.map(String.init) ?? ""
-                guard !lastToken.isEmpty else {
-                    state.suggestedTag = state.popularTag
-                    return .none
+                let query = SearchKeyword.suggestionQuery(in: searchText)
+                let popularTag = state.popularTag
+                guard !query.isEmpty else {
+                    state.suggestedTag = popularTag
+                    return .cancel(id: CancelId.search)
                 }
-                do {
-                    let result = try database.searchTag(keyword: lastToken)
-                    state.suggestedTag = result.map {
+                // Tag lookup is a full table scan, so keep it off the main thread and debounce it
+                // instead of running one scan per keystroke.
+                return .run(priority: .background) { send in
+                    try await clock.sleep(for: .milliseconds(150))
+                    let tags = try database.searchTag(keyword: query).map {
                         TagWithType(tag: $0.tag, type: .suggested)
                     }
-                } catch {
-                    state.suggestedTag = state.popularTag
+                    await send(.suggestionsUpdated(tags))
+                } catch: { error, send in
+                    logger.error("failed to generate search suggestion. \(error)")
+                    await send(.suggestionsUpdated(popularTag))
                 }
+                .cancellable(id: CancelId.search, cancelInFlight: true)
+            case let .suggestionsUpdated(tags):
+                state.suggestedTag = tags
                 return .none
             case .loadPopularTag:
                 if let result = try? database.popularTag() {
@@ -65,19 +75,14 @@ import UIKit
                 }
                 return .none
             case let .suggestionTapped(tagWithType):
-                let validKeyword = if tagWithType.type == .suggested {
-                    state.keyword.split(separator: " ").dropLast(1).joined(separator: " ")
-                } else {
-                    state.keyword.trimmingCharacters(in: .whitespaces)
-                }
-                state.keyword = "\(validKeyword) \(tagWithType.tag)$,"
-                return .none
+                state.keyword = SearchKeyword.completing(state.keyword, with: tagWithType.tag)
+                return .cancel(id: CancelId.search)
             case let .searchSubmit(keyword):
                 guard !keyword.isEmpty else {
                     return .none
                 }
                 state.archiveList.filter = SearchFilter(category: nil, filter: keyword)
-                return .none
+                return .cancel(id: CancelId.search)
             case .binding:
                 return .none
             case .archiveList:
@@ -151,6 +156,7 @@ class UISearchViewV2Controller: UIViewController {
 
     // Constraints for animated height changes
     private var suggestionsHeightConstraint: NSLayoutConstraint?
+    private var hasRenderedSuggestions = false
 
     // Constants
     private let maxSuggestionsHeight: CGFloat = {
@@ -293,21 +299,15 @@ class UISearchViewV2Controller: UIViewController {
     private func setupObserve() {
         observe { [weak self] in
             guard let self else { return }
-            var searchText: String?
-            if UIDevice.current.userInterfaceIdiom == .phone {
-                searchText = searchController.searchBar.text
-            } else {
-                searchText = searchBar.text
-            }
-            if searchText?.isEmpty == true && !store.popularTag.isEmpty {
-                suggestionsTableView.reloadData()
-                updateSuggestionsVisibility(for: searchText ?? "", animated: false)
-            }
+            _ = store.suggestedTag
+            suggestionsTableView.reloadData()
+            updateSuggestionsVisibility(animated: hasRenderedSuggestions)
+            hasRenderedSuggestions = true
         }
     }
 
     // MARK: - Suggestions Handling
-    private func updateSuggestionsVisibility(for _: String, animated: Bool = true) {
+    private func updateSuggestionsVisibility(animated: Bool = true) {
         if !store.suggestedTag.isEmpty {
             let contentHeight = CGFloat(store.suggestedTag.count) * suggestionsRowHeight + suggestionsVerticalPadding
             let newHeight = min(contentHeight, maxSuggestionsHeight)
@@ -351,14 +351,8 @@ class UISearchViewV2Controller: UIViewController {
 // MARK: - UISearchBarDelegate
 extension UISearchViewV2Controller: UISearchBarDelegate {
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        Task { [weak self] in
-            guard let self else { return }
-            // Bind keyword into store state
-            store.send(.binding(.set(\.keyword, searchText)))
-            await store.send(.generateSuggestion(searchText)).finish()
-            suggestionsTableView.reloadData()
-            updateSuggestionsVisibility(for: searchText)
-        }
+        store.send(.binding(.set(\.keyword, searchText)))
+        store.send(.generateSuggestion(searchText))
     }
 
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
