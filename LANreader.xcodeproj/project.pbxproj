@@ -45,6 +45,7 @@
 		E902FC4E2CD870530071106B /* UICategoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = E902FC4D2CD8704E0071106B /* UICategoryList.swift */; };
 		E902FC502CD87A780071106B /* UICategoryArchiveGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = E902FC4F2CD87A710071106B /* UICategoryArchiveGrid.swift */; };
 		E90576B629F6BF8700C3CE3F /* WrappingHStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90576B529F6BF8700C3CE3F /* WrappingHStack.swift */; };
+		E9AA10022E0000020000AA02 /* TagTokenField.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AA10012E0000010000AA01 /* TagTokenField.swift */; };
 		E90576BF29F8C10700C3CE3F /* Puppy in Frameworks */ = {isa = PBXBuildFile; productRef = E90576BE29F8C10700C3CE3F /* Puppy */; };
 		E90C26CB2C1A7A6D00BE87D9 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = E90C26CA2C1A7A6D00BE87D9 /* ComposableArchitecture */; };
 		E91EE6832CAB78ED0046853C /* UIArchiveReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E91EE6822CAB78E80046853C /* UIArchiveReader.swift */; };
@@ -178,6 +179,7 @@
 		E902FC4D2CD8704E0071106B /* UICategoryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICategoryList.swift; sourceTree = "<group>"; };
 		E902FC4F2CD87A710071106B /* UICategoryArchiveGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICategoryArchiveGrid.swift; sourceTree = "<group>"; };
 		E90576B529F6BF8700C3CE3F /* WrappingHStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WrappingHStack.swift; sourceTree = "<group>"; };
+		E9AA10012E0000010000AA01 /* TagTokenField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagTokenField.swift; sourceTree = "<group>"; };
 		E91EE6822CAB78E80046853C /* UIArchiveReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIArchiveReader.swift; sourceTree = "<group>"; };
 		E91EE6842CAB94F60046853C /* UIPageCollection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIPageCollection.swift; sourceTree = "<group>"; };
 		E93C0F862D93ACF400B030AE /* TransactionObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionObserver.swift; sourceTree = "<group>"; };
@@ -313,6 +315,7 @@
 				E9BFA2062AF52C3300DDE107 /* PageImageV2.swift */,
 				F1A2B3C72F60000100AAA001 /* ReaderPositioning.swift */,
 				E90576B529F6BF8700C3CE3F /* WrappingHStack.swift */,
+				E9AA10012E0000010000AA01 /* TagTokenField.swift */,
 				E9BFA2042AF51DB500DDE107 /* ArchiveReader.swift */,
 				E9A8612C2BF31534003534FA /* AutomaticPageConfig.swift */,
 			);
@@ -754,6 +757,7 @@
 				E9886A6E2DDAEAF20086370F /* TranslatorService.swift in Sources */,
 				E9C3550F2CA65101004C10CD /* UIArchiveCell.swift in Sources */,
 				E90576B629F6BF8700C3CE3F /* WrappingHStack.swift in Sources */,
+				E9AA10022E0000020000AA02 /* TagTokenField.swift in Sources */,
 				E9810CD52DDC0641002B047A /* AdvancedSettings.swift in Sources */,
 				E9BE57B22942CFEC00A3AEA0 /* LockScreen.swift in Sources */,
 				E9BFA2072AF52C3300DDE107 /* PageImageV2.swift in Sources */,
@@ -955,7 +959,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreader.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202;
+				CURRENT_PROJECT_VERSION = 203;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -983,7 +987,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreaderRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202;
+				CURRENT_PROJECT_VERSION = 203;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1057,7 +1061,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202;
+				CURRENT_PROJECT_VERSION = 203;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1087,7 +1091,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202;
+				CURRENT_PROJECT_VERSION = 203;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;

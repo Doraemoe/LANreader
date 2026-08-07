@@ -6,6 +6,27 @@ enum ArchiveDetailsTagParser {
     static let dateTag = "date_added"
     static let otherTag = "other"
 
+    static func isTagSeparator(_ character: Character) -> Bool {
+        character == "," || character.isNewline
+    }
+
+    static func tokens(from tags: String) -> [String] {
+        tags
+            .split(whereSeparator: isTagSeparator)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    static func tagsString(from tokens: [String]) -> String {
+        tokens.joined(separator: ", ")
+    }
+
+    static func namespaceKey(for tag: String) -> String {
+        let tagPair = tag.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
+        let rawNamespace = tagPair.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return tagPair.count == 2 && !rawNamespace.isEmpty ? rawNamespace.lowercased() : otherTag
+    }
+
     static func tagGroups(from tags: String) -> [ArchiveTagGroup] {
         let parsedTags = tags
             .split(separator: ",")
@@ -45,9 +66,9 @@ enum ArchiveDetailsTagParser {
         }
 
         let tagPair = raw.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
-        let rawNamespace = tagPair.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let hasNamespace = tagPair.count == 2 && !rawNamespace.isEmpty
-        let namespaceKey = hasNamespace ? rawNamespace.lowercased() : otherTag
+        let hasNamespace = tagPair.count == 2
+            && !(tagPair[0].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        let namespaceKey = namespaceKey(for: raw)
         let value = hasNamespace
             ? tagPair[1].trimmingCharacters(in: .whitespacesAndNewlines)
             : raw

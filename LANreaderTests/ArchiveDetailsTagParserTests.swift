@@ -32,6 +32,27 @@ final class ArchiveDetailsTagParserTests: XCTestCase {
         XCTAssertEqual(sourceTags?.map(\.raw), ["source: example.com"])
     }
 
+    func testTokensSplitOnCommasAndNewlinesAndDropBlanks() {
+        XCTAssertEqual(
+            ArchiveDetailsTagParser.tokens(from: " artist: Bob ,,\n plain tag \n source:example.com,"),
+            ["artist: Bob", "plain tag", "source:example.com"]
+        )
+        XCTAssertEqual(ArchiveDetailsTagParser.tokens(from: " , \n "), [])
+    }
+
+    func testTagsStringJoinsTokens() {
+        XCTAssertEqual(
+            ArchiveDetailsTagParser.tagsString(from: ["artist:bob", "series:one"]),
+            "artist:bob, series:one"
+        )
+    }
+
+    func testNamespaceKeyMatchesGroupNamespace() {
+        XCTAssertEqual(ArchiveDetailsTagParser.namespaceKey(for: " Artist: Bob "), "artist")
+        XCTAssertEqual(ArchiveDetailsTagParser.namespaceKey(for: "plain tag"), "other")
+        XCTAssertEqual(ArchiveDetailsTagParser.namespaceKey(for: ":no namespace"), "other")
+    }
+
     @MainActor
     func testArchiveDetailsLoadLocalFieldsUsesTankoubonMetadataTags() async {
         let archive = Shared(value: makeDetailsArchive(

@@ -474,16 +474,7 @@ struct ArchiveDetailsV2: View {
     }
 
     private func editableTagsField(store: StoreOf<ArchiveDetailsFeature>) -> some View {
-        TextField("archive.details.tags", text: $store.editableTags, axis: .vertical)
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
-            .font(.body.monospaced())
-            .lineLimit(5...14)
-            .padding(14)
-            .background(
-                Color(uiColor: .secondarySystemGroupedBackground),
-                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-            )
+        TagTokenField(text: $store.editableTags)
     }
 
     private func emptyTagsView() -> some View {
@@ -590,7 +581,7 @@ struct ArchiveDetailsV2: View {
     }
 
     private func tagButton(_ tag: ArchiveDetailsTag, navigationEnabled: Bool = true) -> some View {
-        let tint = tagTint(for: tag.namespaceKey)
+        let tint = ArchiveTagStyle.tint(for: tag.namespaceKey)
 
         return Button {
             guard navigationEnabled else { return }
@@ -601,7 +592,7 @@ struct ArchiveDetailsV2: View {
             }
         } label: {
             HStack(spacing: 6) {
-                if let iconName = tagIconName(for: tag.namespaceKey) {
+                if let iconName = ArchiveTagStyle.iconName(for: tag.namespaceKey) {
                     Image(systemName: iconName)
                         .font(.caption2.weight(.bold))
                 }
@@ -624,32 +615,6 @@ struct ArchiveDetailsV2: View {
         .buttonStyle(.plain)
         .disabled(!navigationEnabled)
         .accessibilityLabel(Text(verbatim: tag.accessibilityLabel))
-    }
-
-    private func tagTint(for namespaceKey: String) -> Color {
-        switch namespaceKey {
-        case ArchiveDetailsTagParser.artistTag:
-            return .orange
-        case ArchiveDetailsTagParser.sourceTag:
-            return .teal
-        case ArchiveDetailsTagParser.dateTag:
-            return .indigo
-        case ArchiveDetailsTagParser.otherTag:
-            return .secondary
-        default:
-            return .blue
-        }
-    }
-
-    private func tagIconName(for namespaceKey: String) -> String? {
-        switch namespaceKey {
-        case ArchiveDetailsTagParser.sourceTag:
-            return "link"
-        case ArchiveDetailsTagParser.dateTag:
-            return "calendar"
-        default:
-            return nil
-        }
     }
 
     private func sourceURL(for tag: ArchiveDetailsTag) -> URL? {
