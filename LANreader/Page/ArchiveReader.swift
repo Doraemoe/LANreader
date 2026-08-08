@@ -44,7 +44,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
         @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
         @SharedReader(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
-        @SharedReader(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
+        @Shared(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
         @SharedReader(.appStorage(SettingsKey.fitPageWidth)) var fitPageWidth = false
         @SharedReader(.appStorage(SettingsKey.restartFinished)) var restartFinished = false
 
@@ -124,6 +124,12 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
             guard !cached else { return true }
             return currentTankoubonDetails?.id == currentArchiveId
         }
+
+        /// Double page layout only applies to horizontal reading, and split wide images is the mutually
+        /// exclusive alternative enforced by the read settings screen.
+        var canToggleDoublePageLayout: Bool {
+            !pages.isEmpty && resolvedReadDirection != .upDown && !splitImage
+        }
     }
 
     public enum Action: Equatable, BindableAction {
@@ -138,6 +144,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         case extractArchive
         case finishExtracting([ReaderExtractedPage], TankoubonDetailsMetadata?)
         case toggleControlUi(Bool?)
+        case toggleDoublePageLayout
         case visiblePageChanged(Int)
         case chapterSelected(Int)
         case requestJump(Int, source: ReaderNavigationSource)
@@ -356,6 +363,17 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     .cancel(id: CancelId.autoPage),
                     .cancel(id: CancelId.sliderPreviewLoad)
                 )
+            case .toggleDoublePageLayout:
+                guard state.canToggleDoublePageLayout else { return .none }
+                let enabled = !state.doublePageLayout
+                state.$doublePageLayout.withLock { $0 = enabled }
+                let targetIndex = ReaderPositioning.canonicalPageIndex(
+                    forVisibleIndex: state.currentPageIndex,
+                    pageCount: state.pages.count,
+                    readDirection: state.resolvedReadDirection,
+                    doublePageLayout: enabled
+                )
+                return .send(.requestJump(targetIndex, source: .layoutChange))
             case let .visiblePageChanged(index):
                 guard !state.pages.isEmpty else { return .none }
                 let clampedIndex = ReaderPositioning.clampedPageIndex(index, pageCount: state.pages.count)
@@ -414,7 +432,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     id: uuid(),
                     targetPageIndex: clampedIndex,
                     source: source,
-                    animated: source != .slider && source != .initialRestore && source != .chapter
+                    animated: source.usesAnimatedScroll
                 )
                 return .none
             case .collectionScrollStarted:
@@ -1307,6 +1325,7 @@ struct ArchiveReader: View {
                     sliderContext: sliderContext
                 )
             }
+            .frame(maxWidth: ReaderToolbarMetrics.maxPanelWidth)
             .padding(.horizontal, ReaderToolbarMetrics.outerHorizontalPadding)
             .padding(.bottom, ReaderToolbarMetrics.bottomPadding)
             .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -1382,7 +1401,6 @@ struct ArchiveReader: View {
         store: StoreOf<ArchiveReaderFeature>,
         displayPageNumber: Int
     ) -> some View {
-        let cacheActionRemoves = store.cached || store.inCache
         let autoPageDisabled = store.readDirection == ReadDirection.upDown.rawValue
 
         return HStack(spacing: 10) {
@@ -1415,26 +1433,55 @@ struct ArchiveReader: View {
             Spacer(minLength: 2)
 
             readerToolbarButton(
-                systemImage: cacheActionRemoves ? "trash.fill" : "tray.and.arrow.down.fill",
-                tint: cacheActionRemoves ? Color(uiColor: .systemRed) : Color(uiColor: .systemOrange),
-                accessibilityLabel: cacheActionRemoves ? "archive.reader.cache.remove" : "archive.reader.pages.download"
+                systemImage: store.doublePageLayout
+                    ? "rectangle.split.2x1.fill"
+                    : "rectangle.portrait.fill",
+                tint: Color(uiColor: .systemGreen),
+                disabled: !store.canToggleDoublePageLayout,
+                accessibilityLabel: store.doublePageLayout
+                    ? "archive.reader.doublePage.disable"
+                    : "archive.reader.doublePage.enable"
             ) {
-                if cacheActionRemoves {
-                    store.send(.removeCache)
-                } else {
-                    store.send(.downloadPages)
-                }
+                store.send(.toggleDoublePageLayout)
             }
 
-            readerToolbarButton(
-                systemImage: "photo.artframe",
-                tint: Color(uiColor: .systemTeal),
-                disabled: store.settingThumbnail || store.cached,
-                accessibilityLabel: "archive.thumbnail.current"
-            ) {
-                store.send(.setThumbnail)
-            }
+            readerMoreMenu(store: store)
         }
+    }
+
+    private func readerMoreMenu(
+        store: StoreOf<ArchiveReaderFeature>
+    ) -> some View {
+        let cacheActionRemoves = store.cached || store.inCache
+
+        return Menu {
+            Button {
+                store.send(.setThumbnail)
+            } label: {
+                Label("archive.thumbnail.current", systemImage: "photo.artframe")
+            }
+            .disabled(store.settingThumbnail || store.cached)
+
+            if cacheActionRemoves {
+                Button(role: .destructive) {
+                    store.send(.removeCache)
+                } label: {
+                    Label("archive.cache.remove", systemImage: "trash")
+                }
+            } else {
+                Button {
+                    store.send(.downloadPages)
+                } label: {
+                    Label("archive.cache.add", systemImage: "tray.and.arrow.down")
+                }
+            }
+        } label: {
+            readerToolbarGlyph(systemImage: "ellipsis", tint: Color.primary)
+        }
+        .menuOrder(.fixed)
+        .buttonStyle(.plain)
+        .clipShape(Circle())
+        .accessibilityLabel(Text("archive.reader.more"))
     }
 
     private func pageCounter(currentPage: Int, pageCount: Int) -> some View {
@@ -1471,20 +1518,28 @@ struct ArchiveReader: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(disabled ? Color.secondary : tint)
-                .frame(width: ReaderToolbarMetrics.buttonSize, height: ReaderToolbarMetrics.buttonSize)
-                .background(Color(uiColor: .secondarySystemBackground).opacity(0.82), in: Circle())
-                .overlay {
-                    Circle()
-                        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-                }
+            readerToolbarGlyph(systemImage: systemImage, tint: tint, disabled: disabled)
         }
         .buttonStyle(.plain)
         .disabled(disabled)
         .opacity(disabled ? 0.42 : 1)
         .accessibilityLabel(Text(accessibilityLabel))
+    }
+
+    private func readerToolbarGlyph(
+        systemImage: String,
+        tint: Color,
+        disabled: Bool = false
+    ) -> some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundStyle(disabled ? Color.secondary : tint)
+            .frame(width: ReaderToolbarMetrics.buttonSize, height: ReaderToolbarMetrics.buttonSize)
+            .background(Color(uiColor: .secondarySystemBackground).opacity(0.82), in: Circle())
+            .overlay {
+                Circle()
+                    .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+            }
     }
 
     private func readerPageSlider(
@@ -1496,53 +1551,60 @@ struct ArchiveReader: View {
                 readerChapterMenu(store: store)
             }
 
-            GeometryReader { geometry in
-                let sliderWidth = max(geometry.size.width - context.horizontalPadding * 2, 1)
-
-                ZStack {
-                    Slider(
-                        value: .constant(context.displayValue),
-                        in: 0...Double(context.maxIndex),
-                        step: 1
-                    )
-                    .tint(Color(uiColor: .systemBlue))
-                    .padding(.horizontal, context.horizontalPadding)
-                    .scaleEffect(x: context.isRightToLeft ? -1 : 1, y: 1)
-                    .allowsHitTesting(false)
-
-                    Rectangle()
-                        .fill(Color.clear)
-                        .contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { value in
-                                    if !store.sliderDragging {
-                                        store.send(.sliderDragStarted)
-                                    }
-                                    sendSliderDragChanged(
-                                        store: store,
-                                        locationX: value.location.x,
-                                        sliderWidth: sliderWidth,
-                                        context: context
-                                    )
-                                }
-                                .onEnded { value in
-                                    sendSliderDragChanged(
-                                        store: store,
-                                        locationX: value.location.x,
-                                        sliderWidth: sliderWidth,
-                                        context: context
-                                    )
-                                    store.send(.sliderDragEnded)
-                                }
-                        )
-                }
-            }
-            .frame(height: 34)
-            .environment(\.layoutDirection, .leftToRight)
-            .accessibilityLabel(Text("archive.reader.page.slider"))
+            readerSliderTrack(store: store, context: context)
         }
         .frame(height: store.chapters.isEmpty ? 34 : ReaderToolbarMetrics.buttonSize)
+    }
+
+    private func readerSliderTrack(
+        store: StoreOf<ArchiveReaderFeature>,
+        context: ReaderSliderContext
+    ) -> some View {
+        GeometryReader { geometry in
+            let sliderWidth = max(geometry.size.width - context.horizontalPadding * 2, 1)
+
+            ZStack {
+                Slider(
+                    value: .constant(context.displayValue),
+                    in: 0...Double(context.maxIndex),
+                    step: 1
+                )
+                .tint(Color(uiColor: .systemBlue))
+                .padding(.horizontal, context.horizontalPadding)
+                .scaleEffect(x: context.isRightToLeft ? -1 : 1, y: 1)
+                .allowsHitTesting(false)
+
+                Rectangle()
+                    .fill(Color.clear)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                if !store.sliderDragging {
+                                    store.send(.sliderDragStarted)
+                                }
+                                sendSliderDragChanged(
+                                    store: store,
+                                    locationX: value.location.x,
+                                    sliderWidth: sliderWidth,
+                                    context: context
+                                )
+                            }
+                            .onEnded { value in
+                                sendSliderDragChanged(
+                                    store: store,
+                                    locationX: value.location.x,
+                                    sliderWidth: sliderWidth,
+                                    context: context
+                                )
+                                store.send(.sliderDragEnded)
+                            }
+                    )
+            }
+        }
+        .frame(height: 34)
+        .environment(\.layoutDirection, .leftToRight)
+        .accessibilityLabel(Text("archive.reader.page.slider"))
     }
 
     private func readerChapterMenu(
@@ -1555,20 +1617,12 @@ struct ArchiveReader: View {
                 }
             }
         } label: {
-            Label("archive.reader.chapters", systemImage: "list.bullet.rectangle")
-                .labelStyle(.iconOnly)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Color.indigo)
-                .frame(width: ReaderToolbarMetrics.buttonSize, height: ReaderToolbarMetrics.buttonSize)
-                .background(Color(uiColor: .secondarySystemBackground).opacity(0.82), in: Circle())
-                .overlay {
-                    Circle()
-                        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-                }
+            readerToolbarGlyph(systemImage: "list.bullet.rectangle", tint: Color.indigo)
         }
         .menuOrder(.fixed)
         .buttonStyle(.plain)
         .clipShape(Circle())
+        .accessibilityLabel(Text("archive.reader.chapters"))
     }
 
     private func sendSliderDragChanged(
@@ -1620,6 +1674,7 @@ private struct ReaderSliderContext {
 private enum ReaderToolbarMetrics {
     static let outerHorizontalPadding: CGFloat = 12
     static let bottomPadding: CGFloat = 12
+    static let maxPanelWidth: CGFloat = 700
     static let panelCornerRadius: CGFloat = 26
     static let previewBottomSpacing: CGFloat = 12
     static let sliderHorizontalPadding: CGFloat = 16

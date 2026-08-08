@@ -7,6 +7,18 @@ public enum ReaderNavigationSource: Equatable, Sendable {
     case tap
     case keyboard
     case autoPage
+    case layoutChange
+
+    /// Repositioning after a restore, an explicit jump, or a layout change should land instantly,
+    /// while page-by-page navigation animates.
+    var usesAnimatedScroll: Bool {
+        switch self {
+        case .initialRestore, .slider, .chapter, .layoutChange:
+            return false
+        case .tap, .keyboard, .autoPage:
+            return true
+        }
+    }
 }
 
 public enum ReaderNavigationDirection: Equatable, Sendable {

@@ -2218,6 +2218,64 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         XCTAssertTrue(state.sliderThumbnailJobsById.isEmpty)
         XCTAssertTrue(state.sliderReadyThumbnailPages.isEmpty)
     }
+
+    @MainActor
+    func testToggleDoublePageLayoutEnablesLayoutAndJumpsToSpreadCanonicalPage() async {
+        configureReaderDefaults()
+        var initialState = makeState(progress: 3)
+        initialState.pages = makePageStates(count: 5)
+        initialState.currentPageIndex = 2
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.toggleDoublePageLayout) {
+            $0.$doublePageLayout.withLock { $0 = true }
+        }
+        await store.receive(.requestJump(3, source: .layoutChange)) {
+            $0.scrollRequest = makeScrollRequest(
+                id: 0,
+                targetPageIndex: 3,
+                source: .layoutChange,
+                animated: false
+            )
+        }
+    }
+
+    @MainActor
+    func testToggleDoublePageLayoutDisablesLayoutAndKeepsCurrentPage() async {
+        configureReaderDefaults(doublePageLayout: true)
+        var initialState = makeState(progress: 4, doublePageLayout: true)
+        initialState.pages = makePageStates(count: 5)
+        initialState.currentPageIndex = 3
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.toggleDoublePageLayout) {
+            $0.$doublePageLayout.withLock { $0 = false }
+        }
+        await store.receive(.requestJump(3, source: .layoutChange)) {
+            $0.scrollRequest = makeScrollRequest(
+                id: 0,
+                targetPageIndex: 3,
+                source: .layoutChange,
+                animated: false
+            )
+        }
+    }
+
+    @MainActor
+    func testToggleDoublePageLayoutIgnoredInVerticalModeAndWhenSplitEnabled() async {
+        configureReaderDefaults(readDirection: .upDown)
+        var verticalState = makeState(readDirection: .upDown)
+        verticalState.pages = makePageStates(count: 4)
+        let verticalStore = makeTestStore(initialState: verticalState)
+        await verticalStore.send(.toggleDoublePageLayout)
+
+        configureReaderDefaults(splitWideImage: true)
+        var splitState = makeState()
+        splitState.pages = makePageStates(count: 4)
+        splitState.$splitImage = SharedReader(value: true)
+        let splitStore = makeTestStore(initialState: splitState)
+        await splitStore.send(.toggleDoublePageLayout)
+    }
 }
 
 private func configureReaderDefaults(
@@ -2499,7 +2557,7 @@ private func makeState(
         cached: cached
     )
     state.$readDirection = SharedReader(value: readDirection.rawValue)
-    state.$doublePageLayout = SharedReader(value: doublePageLayout)
+    state.$doublePageLayout = Shared(value: doublePageLayout)
     state.$autoPageInterval = SharedReader(value: autoPageInterval)
     state.$restartFinished = SharedReader(value: restartFinished)
     return state
