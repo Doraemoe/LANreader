@@ -14,6 +14,7 @@ import Logging
         @SharedReader(.appStorage(SettingsKey.lanraragiUrl)) var lanraragiUrl = ""
         @SharedReader(.appStorage(SettingsKey.searchSortCustom)) var searchSortCustom = ""
         @Shared(.appStorage(SettingsKey.hideRead)) var hideRead = false
+        @Shared(.appStorage(SettingsKey.paginateArchiveList)) var paginateArchiveList = false
         @Shared(.appStorage(SettingsKey.searchSort)) var searchSort = SearchSort.dateAdded.rawValue
         @Shared(.appStorage(SettingsKey.searchSortOrder)) var searchSortOrder = SearchSortOrder.asc.rawValue
         @Shared(.appStorage(SettingsKey.lastTagRefresh)) var lastTagRefresh = 0.0
@@ -33,6 +34,17 @@ import Logging
         var currentTab: TabName
 
         var archivesToDisplay: IdentifiedArrayOf<GridFeature.State> = []
+
+        /// Zero-based index of the page currently shown in pagination mode.
+        var currentPage = 0
+        var pendingPage: Int?
+        /// Items returned per request. LANraragi has no page-size parameter, so this is
+        /// discovered from a page-zero response rather than chosen by the app.
+        var serverPageSize = 0
+
+        var pageCount: Int {
+            PaginationPositioning.pageCount(total: total, pageSize: serverPageSize)
+        }
 
         // Library/category can load an unfiltered list; Search treats an empty filter as no query yet.
         var canLoadArchives: Bool {
@@ -72,6 +84,7 @@ import Logging
         case setSearchSortOrder(String)
         case setSearchSort(String)
         case toggleHideRead
+        case goToPage(Int)
 
         case deleteButtonTapped
         case deleteSuccess(Set<String>)
@@ -97,6 +110,8 @@ import Logging
             case .resetArchives:
                 state.archivesToDisplay = .init()
                 state.archives = .init()
+                state.currentPage = 0
+                state.pendingPage = nil
                 return .none
             case let .load(showLoading):
                 guard state.canLoadArchives else {
@@ -110,11 +125,19 @@ import Logging
                 if showLoading {
                     state.showLoading = showLoading
                 }
+                // A reload keeps the page the user is on, so pull-to-refresh reloads what is on
+                // screen. Every path that means "start over" sends `resetArchives` first, which
+                // is what puts the pager back on the first page.
+                let page = state.paginationActive
+                    ? PaginationPositioning.clampedPage(state.currentPage, pageCount: state.pageCount)
+                    : 0
+                state.currentPage = page
+                let start = PaginationPositioning.itemOffset(page: page, pageSize: state.serverPageSize)
                 let sortby = state.searchSort
                 let order = state.searchSortOrder
                 self.populateTags(state: &state)
                 return self.search(
-                    searchFilter: state.filter, sortby: sortby, start: "0", order: order, append: false
+                    searchFilter: state.filter, sortby: sortby, start: String(start), order: order, append: false
                 )
             case let .appendArchives(start):
                 guard state.canLoadArchives else {
@@ -136,7 +159,7 @@ import Logging
                 state.$archiveItems.withLock {
                     _ = $0.remove(id: id)
                 }
-                return .none
+                return reloadPageAfterRemoval(state: &state, removedCount: 1)
             case let .populateArchives(archives, total, append):
                 archives.forEach { item in
                     state.$archiveItems.withLock {
@@ -148,12 +171,23 @@ import Logging
                 }.map {
                     GridFeature.State(archive: $0)
                 }
+                if let pendingPage = state.pendingPage {
+                    state.currentPage = pendingPage
+                    state.pendingPage = nil
+                }
                 if !append {
                     state.archives = .init()
                     state.archivesToDisplay = .init()
                     state.total = 0
                 }
                 state.archives.append(contentsOf: gridFeatureState)
+
+                // LANraragi exposes no page-size parameter, so the size is inferred from a
+                // full page-zero response. Later pages can be short, which is why only page
+                // zero is trusted to define it.
+                if !append, state.currentPage == 0, !archives.isEmpty {
+                    state.serverPageSize = archives.count
+                }
 
                 if state.hideRead {
                     let result = state.archives.filter {
@@ -167,6 +201,15 @@ import Logging
                 state.total = total
                 state.loading = false
                 state.showLoading = false
+
+                // Archives removed elsewhere can shrink the list past the page being reloaded.
+                // Fall back to the last valid page instead of leaving an empty grid behind.
+                if !append, state.paginationActive, state.pageCount > 0, state.currentPage >= state.pageCount {
+                    state.currentPage = PaginationPositioning.clampedPage(
+                        state.currentPage, pageCount: state.pageCount
+                    )
+                    return .send(.load(false))
+                }
                 return .none
             case let .refreshThumbnail(archiveId):
                 if state.archivesToDisplay.contains(where: { $0.id == archiveId }) {
@@ -177,6 +220,7 @@ import Logging
             case let .setErrorMessage(message):
                 state.loading = false
                 state.showLoading = false
+                state.pendingPage = nil
                 state.errorMessage = message
                 return .none
             case let .setSuccessMessage(message):
@@ -185,6 +229,7 @@ import Logging
             case .grid:
                 return .none
             case .cancelSearch:
+                state.pendingPage = nil
                 if state.loading {
                     state.loading = false
                     state.showLoading = false
@@ -266,7 +311,7 @@ import Logging
                     state.archives.remove(id: id)
                 }
                 state.loading = false
-                return .none
+                return reloadPageAfterRemoval(state: &state, removedCount: archiveIds.count)
             case .alert(.presented(.confirmDelete)):
                 state.loading = true
                 return .run { [state] send in
@@ -321,6 +366,26 @@ import Logging
                     state.archivesToDisplay = state.archives
                 }
                 return .none
+            case let .goToPage(page):
+                guard state.canLoadArchives, state.paginationActive else { return .none }
+                guard state.loading == false else { return .none }
+                let targetPage = PaginationPositioning.clampedPage(page, pageCount: state.pageCount)
+                guard targetPage != state.currentPage else { return .none }
+
+                state.loading = true
+                state.showLoading = true
+                state.pendingPage = targetPage
+                let start = PaginationPositioning.itemOffset(
+                    page: targetPage,
+                    pageSize: state.serverPageSize
+                )
+                return self.search(
+                    searchFilter: state.filter,
+                    sortby: state.searchSort,
+                    start: String(start),
+                    order: state.searchSortOrder,
+                    append: false
+                )
             case .deleteButtonTapped:
                 state.alert = AlertState {
                     TextState("archive.selected.delete")
@@ -355,7 +420,7 @@ import Logging
                     }
                 }
                 state.loading = false
-                return .none
+                return reloadPageAfterRemoval(state: &state, removedCount: archiveIds.count)
             case .loadCategory:
                 return .run { send in
                     let categories = try await service.retrieveCategories().value
@@ -436,13 +501,30 @@ import Logging
         }
         .ifLet(\.$alert, action: \.alert)
     }
+}
 
+extension ArchiveListFeature {
     func clearArchives(state: inout State) {
         state.archivesToDisplay = .init()
         state.archives = .init()
         state.total = 0
+        state.currentPage = 0
+        state.pendingPage = nil
         state.loading = false
         state.showLoading = false
+    }
+
+    private func reloadPageAfterRemoval(
+        state: inout State,
+        removedCount: Int
+    ) -> EffectOf<Self> {
+        guard state.paginationActive, removedCount > 0 else { return .none }
+        state.total = max(state.total - removedCount, 0)
+        state.currentPage = PaginationPositioning.clampedPage(
+            state.currentPage,
+            pageCount: state.pageCount
+        )
+        return .send(.load(false))
     }
 
     func populateTags(state: inout State) {
@@ -517,6 +599,18 @@ import Logging
     }
 }
 
+extension ArchiveListFeature.State {
+    /// Random sort is served by an endpoint that has no offset paging, so the pager
+    /// stays hidden there even when the mode is enabled.
+    var paginationActive: Bool {
+        paginateArchiveList && searchSort != SearchSort.random.rawValue
+    }
+
+    var showsPager: Bool {
+        paginationActive && pageCount > 1
+    }
+}
+
 class UIArchiveListViewController: UIViewController {
     let store: StoreOf<ArchiveListFeature>
 
@@ -530,6 +624,8 @@ class UIArchiveListViewController: UIViewController {
     private var lastObservedSearchSort: String?
     private var lastObservedSearchSortOrder: String?
     private var lastObservedFilter: SearchFilter?
+    private var lastObservedPaginateArchiveList: Bool?
+    private let paginationBar = PaginationBar()
 
     init(store: StoreOf<ArchiveListFeature>) {
         self.store = store
@@ -554,6 +650,40 @@ class UIArchiveListViewController: UIViewController {
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
+    }
+
+    private func setupPaginationBar() {
+        paginationBar.translatesAutoresizingMaskIntoConstraints = false
+        paginationBar.isHidden = true
+        view.addSubview(paginationBar)
+
+        // Soft side margins: the strip is sized by its content, so on the narrowest phone
+        // with the largest text these would be unsatisfiable rather than compressing it.
+        let leading = paginationBar.leadingAnchor.constraint(
+            greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 12
+        )
+        let trailing = paginationBar.trailingAnchor.constraint(
+            lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12
+        )
+        leading.priority = .defaultHigh
+        trailing.priority = .defaultHigh
+
+        NSLayoutConstraint.activate([
+            paginationBar.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            paginationBar.bottomAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12
+            ),
+            leading,
+            trailing
+        ])
+    }
+
+    /// Keeps the last row scrollable clear of the floating bar instead of hiding under it.
+    private func updateContentInsetForPaginationBar() {
+        let inset = paginationBar.isHidden ? 0 : paginationBar.bounds.height + 24
+        guard collectionView.contentInset.bottom != inset else { return }
+        collectionView.contentInset.bottom = inset
+        collectionView.verticalScrollIndicatorInsets.bottom = inset
     }
 
     private func makeCollectionViewLayout() -> UICollectionViewCompositionalLayout {
@@ -677,6 +807,70 @@ class UIArchiveListViewController: UIViewController {
         }
     }
 
+    private func goToPage(_ page: Int) {
+        let target = PaginationPositioning.clampedPage(page, pageCount: store.pageCount)
+        guard store.paginationActive, store.loading == false, target != store.currentPage else { return }
+        Task {
+            // Reuses the pull-to-refresh spinner, which also parks the list back at the top.
+            refreshControl.beginRefreshing()
+            let offsetPoint = CGPoint(
+                x: 0,
+                y: -collectionView.adjustedContentInset.top - refreshControl.frame.height
+            )
+            collectionView.setContentOffset(offsetPoint, animated: true)
+            await store.send(.goToPage(target)).finish()
+            refreshControl.endRefreshing()
+        }
+    }
+
+    private func renderPaginationBar() {
+        paginationBar.isHidden = !store.showsPager
+        if store.showsPager {
+            paginationBar.configure(
+                currentPage: store.currentPage,
+                pageCount: store.pageCount,
+                onSelectPage: { [weak self] page in
+                    self?.goToPage(page)
+                },
+                onRequestPageInput: { [weak self] in
+                    self?.presentPageInput()
+                }
+            )
+            paginationBar.layoutIfNeeded()
+        }
+        updateContentInsetForPaginationBar()
+    }
+
+    private func presentPageInput() {
+        let pageCount = store.pageCount
+        guard pageCount > 1 else { return }
+
+        let alert = UIAlertController(
+            title: String(localized: "archive.list.page.jump.title"),
+            message: String(
+                format: String(localized: "archive.list.page.jump.message %lld"), Int64(pageCount)
+            ),
+            preferredStyle: .alert
+        )
+        alert.addTextField { field in
+            field.keyboardType = .numberPad
+            field.textAlignment = .center
+            field.text = String(self.store.currentPage + 1)
+            field.clearButtonMode = .whileEditing
+        }
+        alert.addAction(UIAlertAction(title: String(localized: "cancel"), style: .cancel))
+        let goAction = UIAlertAction(
+            title: String(localized: "archive.list.page.jump.go"), style: .default
+        ) { [weak self, weak alert] _ in
+            guard let self, let text = alert?.textFields?.first?.text,
+                  let requested = Int(text.trimmingCharacters(in: .whitespaces)) else { return }
+            // Displayed page numbers are one-based; the reducer works in zero-based pages.
+            goToPage(requested - 1)
+        }
+        alert.addAction(goAction)
+        present(alert, animated: true)
+    }
+
     // swiftlint:disable function_body_length
     func setupToolbar() {
         let actions = SearchSort.allCases.filter { $0 != SearchSort.random }.map { sort in
@@ -736,7 +930,9 @@ class UIArchiveListViewController: UIViewController {
             store.send(.toggleHideRead)
         }
 
-        let otherGroup = UIMenu(title: "", options: .displayInline, children: [randomAction, hideReadAction])
+        let otherGroup = UIMenu(
+            title: "", options: .displayInline, children: [randomAction, hideReadAction]
+        )
 
         // Create a menu with the actions
         let menu = UIMenu(title: "", children: [sortGroup, otherGroup])
@@ -773,13 +969,18 @@ class UIArchiveListViewController: UIViewController {
 
         observe { [weak self] in
             guard let self else { return }
+            // `observe` only re-runs when the state read here changes, and rendering the bar
+            // is idempotent, so no change tracking of its own is needed.
+            renderPaginationBar()
+        }
+
+        observe { [weak self] in
+            guard let self else { return }
             let lanraragiUrl = store.lanraragiUrl
             defer { lastObservedLanraragiUrl = lanraragiUrl }
 
             guard lanraragiUrl != lastObservedLanraragiUrl, !lanraragiUrl.isEmpty else { return }
-            store.send(.cancelSearch)
-            store.send(.resetArchives)
-            manualTriggerPullToRefresh()
+            reloadFromFirstPage()
         }
 
         observe { [weak self] in
@@ -788,9 +989,7 @@ class UIArchiveListViewController: UIViewController {
             defer { lastObservedSearchSort = searchSort }
 
             guard searchSort != lastObservedSearchSort else { return }
-            store.send(.cancelSearch)
-            store.send(.resetArchives)
-            manualTriggerPullToRefresh()
+            reloadFromFirstPage()
         }
 
         observe { [weak self] in
@@ -799,9 +998,18 @@ class UIArchiveListViewController: UIViewController {
             defer { lastObservedSearchSortOrder = searchSortOrder }
 
             guard searchSortOrder != lastObservedSearchSortOrder else { return }
-            store.send(.cancelSearch)
-            store.send(.resetArchives)
-            manualTriggerPullToRefresh()
+            reloadFromFirstPage()
+        }
+
+        observe { [weak self] in
+            guard let self else { return }
+            let paginate = store.paginateArchiveList
+            let previous = lastObservedPaginateArchiveList
+            defer { lastObservedPaginateArchiveList = paginate }
+
+            // The two modes hold different slices of the result set, so reload from the top.
+            guard let previous, previous != paginate else { return }
+            reloadFromFirstPage()
         }
 
         observe { [weak self] in
@@ -812,9 +1020,7 @@ class UIArchiveListViewController: UIViewController {
 
             guard filter.filter?.isEmpty == false else { return }
             guard previousFilter?.filter != filter.filter else { return }
-            store.send(.cancelSearch)
-            store.send(.resetArchives)
-            manualTriggerPullToRefresh()
+            reloadFromFirstPage()
         }
     }
     // swiftlint:enable function_body_length
@@ -825,6 +1031,7 @@ class UIArchiveListViewController: UIViewController {
         setupCollectionView()
         setupRefresh()
         setupCell()
+        setupPaginationBar()
         setupObserve()
 
         collectionView.delegate = self
@@ -856,6 +1063,12 @@ class UIArchiveListViewController: UIViewController {
         collectionView.refreshControl?.sendActions(for: .valueChanged)
     }
 
+    private func reloadFromFirstPage() {
+        store.send(.cancelSearch)
+        store.send(.resetArchives)
+        manualTriggerPullToRefresh()
+    }
+
     enum Section {
         case main
     }
@@ -867,7 +1080,8 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
         willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath
     ) {
         if indexPath.item == collectionView.numberOfItems(inSection: 0) - 1 {
-            if store.searchSort != SearchSort.random.rawValue
+            if store.paginationActive == false
+                && store.searchSort != SearchSort.random.rawValue
                 && store.loading == false
                 && store.archives.count < store.total {
                 Task {
