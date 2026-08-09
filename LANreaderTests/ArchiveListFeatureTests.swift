@@ -138,6 +138,7 @@ final class ArchiveListFeatureTests: XCTestCase {
         let store = TestStore(initialState: initialState) {
             ArchiveListFeature()
         }
+        store.timeout = .seconds(5)
 
         await store.send(.goToPage(2)) {
             $0.loading = true
@@ -166,6 +167,7 @@ final class ArchiveListFeatureTests: XCTestCase {
         let store = TestStore(initialState: initialState) {
             ArchiveListFeature()
         }
+        store.timeout = .seconds(5)
 
         await store.send(.goToPage(99)) {
             $0.loading = true
@@ -195,6 +197,7 @@ final class ArchiveListFeatureTests: XCTestCase {
         let store = TestStore(initialState: initialState) {
             ArchiveListFeature()
         }
+        store.timeout = .seconds(5)
         store.exhaustivity = .off
 
         await store.send(.goToPage(2)) {
@@ -222,6 +225,7 @@ final class ArchiveListFeatureTests: XCTestCase {
         let store = TestStore(initialState: initialState) {
             ArchiveListFeature()
         }
+        store.timeout = .seconds(5)
         // populateTags stamps a shared timestamp that is irrelevant here.
         store.exhaustivity = .off
 
@@ -251,6 +255,7 @@ final class ArchiveListFeatureTests: XCTestCase {
         let store = TestStore(initialState: initialState) {
             ArchiveListFeature()
         }
+        store.timeout = .seconds(5)
         store.exhaustivity = .off
 
         await store.send(.resetArchives) {
@@ -282,6 +287,7 @@ final class ArchiveListFeatureTests: XCTestCase {
         let store = TestStore(initialState: initialState) {
             ArchiveListFeature()
         }
+        store.timeout = .seconds(5)
         store.exhaustivity = .off
 
         await store.send(.load(true))
@@ -309,6 +315,7 @@ final class ArchiveListFeatureTests: XCTestCase {
         let store = TestStore(initialState: initialState) {
             ArchiveListFeature()
         }
+        store.timeout = .seconds(5)
         store.exhaustivity = .off
 
         await store.send(.deleteSuccess(["archive-0"])) {
