@@ -86,13 +86,11 @@ final class PaginationBar: UIView {
             withConfiguration: symbol
         )
 
-        previousButton.accessibilityLabel = String(localized: "archive.list.page.previous")
         previousButton.addAction(
             UIAction { [weak self] _ in self?.step(-1) },
             for: .touchUpInside
         )
 
-        nextButton.accessibilityLabel = String(localized: "archive.list.page.next")
         nextButton.addAction(
             UIAction { [weak self] _ in self?.step(1) },
             for: .touchUpInside
@@ -132,10 +130,6 @@ final class PaginationBar: UIView {
         nextButton.isEnabled = currentPage < pageCount - 1
         positionButton.configuration?.title = String(
             format: String(localized: "archive.list.page.position %1$lld %2$lld"),
-            Int64(currentPage + 1), Int64(pageCount)
-        )
-        positionButton.accessibilityLabel = String(
-            format: String(localized: "archive.list.page.position.accessibility %1$lld %2$lld"),
             Int64(currentPage + 1), Int64(pageCount)
         )
     }
