@@ -61,7 +61,12 @@ struct ViewSettings: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
         } label: {
-            Text("settings.archive.list.order.custom.title")
+            VStack(alignment: .leading, spacing: 2) {
+                Text("settings.archive.list.order.custom.title")
+                Text("settings.archive.list.order.custom.explain")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding()
         Toggle(isOn: Binding(self.store.$blurInterfaceWhenInactive), label: {

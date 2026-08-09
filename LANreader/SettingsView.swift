@@ -52,10 +52,7 @@ struct SettingsView: View {
             Section(header: Text("settings.host")) {
                 ServerSettings()
             }
-            Section(
-                header: Text("settings.view"),
-                footer: Text("settings.archive.list.order.custom.explain")
-            ) {
+            Section(header: Text("settings.view")) {
                 ViewSettings(store: self.store.scope(\.view, action: \.view))
             }
             Section(
