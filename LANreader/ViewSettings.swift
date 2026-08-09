@@ -9,6 +9,7 @@ import SwiftUI
 
         @Shared(.appStorage(SettingsKey.searchSortCustom)) var searchSortCustom = ""
         @Shared(.appStorage(SettingsKey.blurInterfaceWhenInactive)) var blurInterfaceWhenInactive = false
+        @Shared(.appStorage(SettingsKey.paginateArchiveList)) var paginateArchiveList = false
         @Shared(.appStorage(SettingsKey.enablePasscode)) var enablePasscode = false
         @Shared(.appStorage(SettingsKey.passcode)) var storedPasscode = ""
     }
@@ -65,6 +66,15 @@ struct ViewSettings: View {
         .padding()
         Toggle(isOn: Binding(self.store.$blurInterfaceWhenInactive), label: {
             Text("settings.view.blur.inactive")
+        })
+        .padding()
+        Toggle(isOn: Binding(self.store.$paginateArchiveList), label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("settings.view.paginate")
+                Text("settings.view.paginate.description")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         })
         .padding()
         Toggle(isOn: Binding(self.store.$enablePasscode), label: {
