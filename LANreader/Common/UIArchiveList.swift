@@ -121,8 +121,7 @@ import Logging
                     clearArchives(state: &state)
                     return .cancel(id: CancelId.search)
                 }
-                let load = loadArchives(state: &state, page: 0, showLoading: true)
-                return .concatenate(.cancel(id: CancelId.search), load)
+                return loadArchives(state: &state, page: 0, showLoading: true)
             case let .load(showLoading):
                 guard state.canLoadArchives else {
                     clearArchives(state: &state)
@@ -622,7 +621,7 @@ extension ArchiveListFeature {
                 await send(.setErrorMessage(error.localizedDescription))
             }
         }
-        .cancellable(id: CancelId.search)
+        .cancellable(id: CancelId.search, cancelInFlight: true)
     }
 }
 
