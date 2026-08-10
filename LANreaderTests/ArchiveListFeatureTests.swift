@@ -243,6 +243,40 @@ final class ArchiveListFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testReloadFromFirstPageRestartsWhileAnotherRequestIsLoading() async throws {
+        try await configureVerifiedClient()
+        stubSearchExpectingStart("0", recordsFiltered: 250)
+
+        var initialState = makePaginatedState()
+        initialState.serverPageSize = 100
+        initialState.total = 250
+        initialState.currentPage = 2
+        initialState.pendingPage = 2
+        initialState.loading = true
+        initialState.showLoading = true
+        initialState.archives = expectedGridStates(in: &initialState, count: 1)
+        initialState.archivesToDisplay = initialState.archives
+
+        let store = TestStore(initialState: initialState) {
+            ArchiveListFeature()
+        }
+        store.timeout = .seconds(5)
+        // populateTags stamps a shared timestamp that is irrelevant here.
+        store.exhaustivity = .off
+
+        await store.send(.reloadFromFirstPage) {
+            $0.archives = []
+            $0.archivesToDisplay = []
+            $0.currentPage = 0
+            $0.pendingPage = nil
+        }
+        await store.receive(.populateArchives([], 250, false))
+
+        XCTAssertEqual(store.state.currentPage, 0)
+        XCTAssertFalse(store.state.loading)
+    }
+
+    @MainActor
     func testResetArchivesSendsLoadBackToFirstPage() async throws {
         try await configureVerifiedClient()
         stubSearchExpectingStart("0", recordsFiltered: 250)
@@ -342,6 +376,36 @@ final class ArchiveListFeatureTests: XCTestCase {
         state.total = 180
         XCTAssertEqual(state.pageCount, 2)
         XCTAssertTrue(state.showsPager)
+    }
+
+    @MainActor
+    func testReadFilterEmptyStateRequiresLoadedReadArchives() {
+        var state = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: nil),
+            loadOnAppear: false,
+            currentTab: .library
+        )
+        state.$hideRead = Shared(value: true)
+        let archive = ArchiveItem(
+            id: "read-archive",
+            name: "Read Archive",
+            extension: "zip",
+            tags: "",
+            isNew: false,
+            progress: 10,
+            pagecount: 10,
+            dateAdded: nil
+        )
+        state.archives = [GridFeature.State(archive: Shared(value: archive))]
+
+        XCTAssertTrue(state.showsReadFilterEmptyState)
+
+        state.loading = true
+        XCTAssertFalse(state.showsReadFilterEmptyState)
+
+        state.loading = false
+        state.archives = []
+        XCTAssertFalse(state.showsReadFilterEmptyState)
     }
 
     @MainActor

@@ -110,33 +110,13 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         view.addSubview(collectionView)
     }
 
-    /// Swapping between single and double page changes how many items share a screen, so the old
-    /// content offset points at the wrong pages. Re-anchor before letting visibility be reported again.
-    private func applyDoublePageLayoutChange(doublePageLayout: Bool) {
-        let pageCount = store.pages.count
-        let targetPageIndex = ReaderPositioning.canonicalPageIndex(
-            forVisibleIndex: store.currentPageIndex,
-            pageCount: pageCount,
-            readDirection: resolvedReadDirection,
-            doublePageLayout: doublePageLayout
-        )
-
+    private func applyDoublePageLayoutChange() {
         isApplyingSnapshot = true
         collectionView.setCollectionViewLayout(makeLayout(), animated: false)
         collectionView.layoutIfNeeded()
-        resnap(to: IndexPath(
-            row: ReaderPositioning.scrollAnchorIndex(
-                forPageIndex: targetPageIndex,
-                pageCount: pageCount,
-                readDirection: resolvedReadDirection,
-                doublePageLayout: doublePageLayout
-            ),
-            section: 0
-        ))
         isApplyingSnapshot = false
-
         lastReportedVisiblePageIndex = nil
-        reportVisiblePageIfNeeded()
+        consumePendingScrollRequestIfPossible()
     }
 
     private func setupCollectionView() {
@@ -242,6 +222,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     }
     private func consumePendingScrollRequestIfPossible() {
         guard let scrollRequest = store.scrollRequest else { return }
+        guard appliedDoublePageLayout == store.doublePageLayout else { return }
         guard scrollToPage(for: scrollRequest) else { return }
         store.send(.scrollRequestHandled(scrollRequest.id))
     }
@@ -252,7 +233,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             guard appliedDoublePageLayout != doublePageLayout else { return }
             appliedDoublePageLayout = doublePageLayout
             guard resolvedReadDirection != .upDown else { return }
-            applyDoublePageLayoutChange(doublePageLayout: doublePageLayout)
+            applyDoublePageLayoutChange()
         }
         observe { [weak self] in
             guard let self else { return }
