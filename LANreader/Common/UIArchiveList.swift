@@ -51,6 +51,10 @@ import Logging
             currentTab != .search || hasSearchFilter
         }
 
+        var showsReadFilterEmptyState: Bool {
+            hideRead && !loading && !archives.isEmpty && archivesToDisplay.isEmpty
+        }
+
         private var hasSearchFilter: Bool {
             guard currentTab == .search else { return true }
             if filter.category != nil {
@@ -69,6 +73,7 @@ import Logging
         case updateLocalCategory(String, Set<String>)
         case setFilter(SearchFilter)
         case resetArchives
+        case reloadFromFirstPage
         case load(Bool)
         case populateArchives([ArchiveItem], Int, Bool)
         case refreshThumbnail(String)
@@ -108,11 +113,16 @@ import Logging
                 state.filter = filter
                 return .none
             case .resetArchives:
-                state.archivesToDisplay = .init()
-                state.archives = .init()
-                state.currentPage = 0
-                state.pendingPage = nil
+                resetArchives(state: &state)
                 return .none
+            case .reloadFromFirstPage:
+                resetArchives(state: &state)
+                guard state.canLoadArchives else {
+                    clearArchives(state: &state)
+                    return .cancel(id: CancelId.search)
+                }
+                let load = loadArchives(state: &state, page: 0, showLoading: true)
+                return .concatenate(.cancel(id: CancelId.search), load)
             case let .load(showLoading):
                 guard state.canLoadArchives else {
                     clearArchives(state: &state)
@@ -121,24 +131,13 @@ import Logging
                 guard state.loading == false else {
                     return .none
                 }
-                state.loading = true
-                if showLoading {
-                    state.showLoading = showLoading
-                }
                 // A reload keeps the page the user is on, so pull-to-refresh reloads what is on
                 // screen. Every path that means "start over" sends `resetArchives` first, which
                 // is what puts the pager back on the first page.
                 let page = state.paginationActive
                     ? PaginationPositioning.clampedPage(state.currentPage, pageCount: state.pageCount)
                     : 0
-                state.currentPage = page
-                let start = PaginationPositioning.itemOffset(page: page, pageSize: state.serverPageSize)
-                let sortby = state.searchSort
-                let order = state.searchSortOrder
-                self.populateTags(state: &state)
-                return self.search(
-                    searchFilter: state.filter, sortby: sortby, start: String(start), order: order, append: false
-                )
+                return loadArchives(state: &state, page: page, showLoading: showLoading)
             case let .appendArchives(start):
                 guard state.canLoadArchives else {
                     return .none
@@ -504,6 +503,34 @@ import Logging
 }
 
 extension ArchiveListFeature {
+    private func resetArchives(state: inout State) {
+        state.archivesToDisplay = .init()
+        state.archives = .init()
+        state.currentPage = 0
+        state.pendingPage = nil
+    }
+
+    private func loadArchives(
+        state: inout State,
+        page: Int,
+        showLoading: Bool
+    ) -> EffectOf<Self> {
+        state.loading = true
+        if showLoading {
+            state.showLoading = true
+        }
+        state.currentPage = page
+        let start = PaginationPositioning.itemOffset(page: page, pageSize: state.serverPageSize)
+        populateTags(state: &state)
+        return search(
+            searchFilter: state.filter,
+            sortby: state.searchSort,
+            start: String(start),
+            order: state.searchSortOrder,
+            append: false
+        )
+    }
+
     func clearArchives(state: inout State) {
         state.archivesToDisplay = .init()
         state.archives = .init()
@@ -626,6 +653,13 @@ class UIArchiveListViewController: UIViewController {
     private var lastObservedFilter: SearchFilter?
     private var lastObservedPaginateArchiveList: Bool?
     private let paginationBar = PaginationBar()
+    private lazy var readFilterEmptyView: UIContentUnavailableView = {
+        var configuration = UIContentUnavailableConfiguration.empty()
+        configuration.image = UIImage(systemName: "checkmark.circle")
+        configuration.text = String(localized: "archive.list.hideRead.empty.title")
+        configuration.secondaryText = String(localized: "archive.list.hideRead.empty.message")
+        return UIContentUnavailableView(configuration: configuration)
+    }()
 
     init(store: StoreOf<ArchiveListFeature>) {
         self.store = store
@@ -810,17 +844,8 @@ class UIArchiveListViewController: UIViewController {
     private func goToPage(_ page: Int) {
         let target = PaginationPositioning.clampedPage(page, pageCount: store.pageCount)
         guard store.paginationActive, store.loading == false, target != store.currentPage else { return }
-        Task {
-            // Reuses the pull-to-refresh spinner, which also parks the list back at the top.
-            refreshControl.beginRefreshing()
-            let offsetPoint = CGPoint(
-                x: 0,
-                y: -collectionView.adjustedContentInset.top - refreshControl.frame.height
-            )
-            collectionView.setContentOffset(offsetPoint, animated: true)
-            await store.send(.goToPage(target)).finish()
-            refreshControl.endRefreshing()
-        }
+        beginRefreshingAtTop()
+        store.send(.goToPage(target))
     }
 
     private func renderPaginationBar() {
@@ -963,6 +988,20 @@ class UIArchiveListViewController: UIViewController {
 
         observe { [weak self] in
             guard let self else { return }
+            collectionView.backgroundView = store.showsReadFilterEmptyState
+                ? readFilterEmptyView
+                : nil
+        }
+
+        observe { [weak self] in
+            guard let self else { return }
+            if !store.loading {
+                refreshControl.endRefreshing()
+            }
+        }
+
+        observe { [weak self] in
+            guard let self else { return }
             guard !store.archives.isEmpty else { return }
             setupToolbar()
         }
@@ -1049,24 +1088,24 @@ class UIArchiveListViewController: UIViewController {
 
     @objc
     private func didPullToRefresh(_ sender: Any) {
-        Task {
-            await store.send(.load(true)).finish()
-            refreshControl.endRefreshing()
-        }
+        store.send(.load(true))
     }
 
     private func manualTriggerPullToRefresh() {
         guard collectionView.refreshControl?.isRefreshing == false else { return }
-        collectionView.refreshControl?.beginRefreshing()
-        let offsetPoint = CGPoint(x: 0, y: -collectionView.adjustedContentInset.top - refreshControl.frame.height)
-        collectionView.setContentOffset(offsetPoint, animated: true)
+        beginRefreshingAtTop()
         collectionView.refreshControl?.sendActions(for: .valueChanged)
     }
 
+    private func beginRefreshingAtTop() {
+        collectionView.refreshControl?.beginRefreshing()
+        let offsetPoint = CGPoint(x: 0, y: -collectionView.adjustedContentInset.top - refreshControl.frame.height)
+        collectionView.setContentOffset(offsetPoint, animated: true)
+    }
+
     private func reloadFromFirstPage() {
-        store.send(.cancelSearch)
-        store.send(.resetArchives)
-        manualTriggerPullToRefresh()
+        beginRefreshingAtTop()
+        store.send(.reloadFromFirstPage)
     }
 
     enum Section {
