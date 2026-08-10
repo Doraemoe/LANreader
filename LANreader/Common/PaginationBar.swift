@@ -8,6 +8,13 @@ final class PaginationBar: UIView {
     private var pageCount = 0
 
     private let background: UIVisualEffectView = {
+        if #available(iOS 26.0, *) {
+            let glass = UIGlassEffect(style: .regular)
+            glass.isInteractive = true
+            let view = UIVisualEffectView(effect: glass)
+            view.cornerConfiguration = .capsule()
+            return view
+        }
         let view = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
         view.clipsToBounds = true
         return view
@@ -51,6 +58,9 @@ final class PaginationBar: UIView {
         ])
 
         setupButtons()
+        registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (bar: Self, _) in
+            bar.render()
+        }
     }
 
     required init?(coder: NSCoder) {
@@ -59,7 +69,9 @@ final class PaginationBar: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        background.layer.cornerRadius = bounds.height / 2
+        if #unavailable(iOS 26.0) {
+            background.layer.cornerRadius = bounds.height / 2
+        }
     }
 
     func configure(
@@ -96,18 +108,19 @@ final class PaginationBar: UIView {
             for: .touchUpInside
         )
 
-        positionButton.configuration?.baseForegroundColor = .label
-        positionButton.configuration?.titleTextAttributesTransformer =
-            UIConfigurationTextAttributesTransformer { incoming in
-                var outgoing = incoming
-                outgoing.font = .preferredFont(forTextStyle: .headline)
-                return outgoing
-            }
         positionButton.accessibilityHint = String(localized: "archive.list.page.jump.title")
         positionButton.addAction(
             UIAction { [weak self] _ in self?.onRequestPageInput?() },
             for: .touchUpInside
         )
+
+        [previousButton, nextButton].forEach { button in
+            // The glass capsule carries the affordance, so the arrows stay monochrome and
+            // lean on a deliberately faint disabled colour to mark the first and last page.
+            button.configurationUpdateHandler = { button in
+                button.configuration?.baseForegroundColor = button.isEnabled ? .label : .quaternaryLabel
+            }
+        }
 
         [previousButton, positionButton, nextButton].forEach { button in
             button.translatesAutoresizingMaskIntoConstraints = false
@@ -128,9 +141,47 @@ final class PaginationBar: UIView {
 
         previousButton.isEnabled = currentPage > 0
         nextButton.isEnabled = currentPage < pageCount - 1
-        positionButton.configuration?.title = String(
-            format: String(localized: "archive.list.page.position %1$lld %2$lld"),
-            Int64(currentPage + 1), Int64(pageCount)
+        positionButton.configuration?.attributedTitle = AttributedString(
+            position(
+                String(
+                    format: String(localized: "archive.list.page.position %1$lld %2$lld"),
+                    Int64(currentPage + 1), Int64(pageCount)
+                )
+            )
         )
+    }
+
+    /// Gives the current page the visual weight and demotes the total to supporting text.
+    private func position(_ text: String) -> NSAttributedString {
+        let attributed = NSMutableAttributedString(
+            string: text,
+            attributes: [
+                .font: UIFont.preferredFont(forTextStyle: .subheadline),
+                .foregroundColor: UIColor.secondaryLabel
+            ]
+        )
+
+        let range = (text as NSString).range(of: String(currentPage + 1))
+        if range.location != NSNotFound {
+            attributed.addAttributes(
+                [.font: pageFont, .foregroundColor: UIColor.label],
+                range: range
+            )
+        }
+        return attributed
+    }
+
+    /// Rounded, monospaced digits so the capsule keeps its width as the page changes.
+    private var pageFont: UIFont {
+        let size = UIFont.preferredFont(forTextStyle: .title3).pointSize
+        var descriptor = UIFont.systemFont(ofSize: size, weight: .semibold).fontDescriptor
+        descriptor = descriptor.withDesign(.rounded) ?? descriptor
+        descriptor = descriptor.addingAttributes([
+            .featureSettings: [[
+                UIFontDescriptor.FeatureKey.type: kNumberSpacingType,
+                UIFontDescriptor.FeatureKey.selector: kMonospacedNumbersSelector
+            ]]
+        ])
+        return UIFont(descriptor: descriptor, size: 0)
     }
 }
