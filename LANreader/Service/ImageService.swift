@@ -56,6 +56,38 @@ final class ImageService: Sendable {
         return matched.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }).first
     }
 
+    /// Reads only the image header, so this never decodes pixel data and stays cheap enough to run
+    /// for every page of an archive up front.
+    func imageAspectRatio(imageUrl: URL) -> Double? {
+        guard let imageSize = imagePixelSize(imageUrl: imageUrl) else { return nil }
+        return ReaderPageLayout.aspectRatio(for: imageSize)
+    }
+
+    /// Aspect ratios of every already stored page in `folderUrl`, keyed by page number.
+    /// The directory is listed once so priming an archive stays linear in the number of pages.
+    func storedImageAspectRatios(folderUrl: URL?) -> [Int: Double] {
+        guard let folderUrl else { return [:] }
+
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: folderUrl,
+            includingPropertiesForKeys: nil
+        ) else {
+            return [:]
+        }
+
+        var aspectRatios: [Int: Double] = [:]
+        for url in files.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
+            guard !url.hasDirectoryPath,
+                  let pageNumber = Int(url.deletingPathExtension().lastPathComponent),
+                  aspectRatios[pageNumber] == nil,
+                  let aspectRatio = imageAspectRatio(imageUrl: url) else {
+                continue
+            }
+            aspectRatios[pageNumber] = aspectRatio
+        }
+        return aspectRatios
+    }
+
     func splitImage(imageUrl: URL, side: ImageSplitSide) -> UIImage? {
         guard let image = UIImage(contentsOfFile: imageUrl.path(percentEncoded: false)),
               let cgImage = image.cgImage else {
