@@ -76,6 +76,46 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         XCTAssertNil(UIPageCell.fitWidthAspectRatio(for: CGSize(width: 0, height: 1_500)))
     }
 
+    func testReaderPageLayoutValidatedAspectRatio() {
+        XCTAssertEqual(ReaderPageLayout.validatedAspectRatio(nil), ReaderPageLayout.defaultAspectRatio)
+        XCTAssertEqual(ReaderPageLayout.validatedAspectRatio(0), ReaderPageLayout.defaultAspectRatio)
+        XCTAssertEqual(ReaderPageLayout.validatedAspectRatio(-1), ReaderPageLayout.defaultAspectRatio)
+        XCTAssertEqual(ReaderPageLayout.validatedAspectRatio(.nan), ReaderPageLayout.defaultAspectRatio)
+        XCTAssertEqual(ReaderPageLayout.validatedAspectRatio(.infinity), ReaderPageLayout.defaultAspectRatio)
+        XCTAssertEqual(ReaderPageLayout.validatedAspectRatio(0.01), 0.01)
+        XCTAssertEqual(ReaderPageLayout.validatedAspectRatio(100), 100)
+        XCTAssertEqual(ReaderPageLayout.validatedAspectRatio(1.6), 1.6)
+    }
+
+    func testReaderPageLayoutAspectRatioForSize() {
+        XCTAssertEqual(ReaderPageLayout.aspectRatio(for: CGSize(width: 1_000, height: 1_400)), 1.4)
+        XCTAssertNil(ReaderPageLayout.aspectRatio(for: CGSize(width: 0, height: 1_400)))
+        XCTAssertNil(ReaderPageLayout.aspectRatio(for: CGSize(width: 1_000, height: 0)))
+    }
+
+    func testReaderPageLayoutSplitAspectRatioDoublesSource() {
+        // A split page shows half the source width at the same height.
+        XCTAssertEqual(ReaderPageLayout.splitAspectRatio(for: 0.7), 1.4)
+    }
+
+    func testReaderPageLayoutMedianAspectRatio() {
+        XCTAssertNil(ReaderPageLayout.medianAspectRatio([]))
+        XCTAssertNil(ReaderPageLayout.medianAspectRatio([0, -1, .nan]))
+        XCTAssertEqual(ReaderPageLayout.medianAspectRatio([1.5]), 1.5)
+        XCTAssertEqual(ReaderPageLayout.medianAspectRatio([1.8, 1.2, 1.5]), 1.5)
+        XCTAssertEqual(ReaderPageLayout.medianAspectRatio([1.0, 2.0, 1.4, 1.6]), 1.6)
+    }
+
+    func testReaderPageLayoutItemHeight() {
+        XCTAssertEqual(ReaderPageLayout.itemHeight(width: 100, aspectRatio: 1.4), 140)
+        XCTAssertEqual(ReaderPageLayout.itemHeight(width: 100, aspectRatio: 1.406), 141)
+        // Long-strip webtoon pages must keep their full-width rendered height.
+        XCTAssertEqual(ReaderPageLayout.itemHeight(width: 100, aspectRatio: 20), 2_000)
+        // Unmeasured pages fall back to the default ratio rather than collapsing to zero height.
+        XCTAssertEqual(ReaderPageLayout.itemHeight(width: 100, aspectRatio: nil), 140)
+        XCTAssertEqual(ReaderPageLayout.itemHeight(width: 0, aspectRatio: 1.4), 0)
+    }
+
     func testReaderPositioningFinishedMath() {
         // Progress is one-based, so an archive counts as finished only at the last page.
         XCTAssertTrue(ReaderPositioning.isFinished(progress: 5, archivePageCount: 5))
@@ -472,6 +512,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
+        await store.receive(.primePageAspectRatios)
         await store.receive(.prepareSliderPreviewThumbnails)
         await store.receive(
             .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
@@ -499,6 +540,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
+        await store.receive(.primePageAspectRatios)
         await store.receive(.prepareSliderPreviewThumbnails)
         await store.receive(
             .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
@@ -525,6 +567,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
+        await store.receive(.primePageAspectRatios)
         await store.receive(.prepareSliderPreviewThumbnails)
         await store.receive(
             .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
@@ -553,6 +596,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
+        await store.receive(.primePageAspectRatios)
         await store.receive(.prepareSliderPreviewThumbnails)
         await store.receive(
             .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
@@ -580,6 +624,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
+        await store.receive(.primePageAspectRatios)
         await store.receive(.prepareSliderPreviewThumbnails)
         await store.receive(
             .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
@@ -607,6 +652,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
+        await store.receive(.primePageAspectRatios)
         await store.receive(.prepareSliderPreviewThumbnails)
         await store.receive(
             .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
@@ -634,6 +680,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
+        await store.receive(.primePageAspectRatios)
         await store.receive(.prepareSliderPreviewThumbnails)
         await store.receive(
             .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
@@ -690,6 +737,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
+        await store.receive(.primePageAspectRatios)
         await store.receive(.prepareSliderPreviewThumbnails)
         await store.receive(
             .sliderPreviewThumbnailsQueued(readyThumbnailQueueResults(for: sourceArchives))
@@ -1109,6 +1157,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
+        await store.receive(.primePageAspectRatios)
     }
 
     @MainActor
@@ -1148,6 +1197,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
+        await store.receive(.primePageAspectRatios)
     }
 
     @MainActor
@@ -1193,6 +1243,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 animated: false
             )
         }
+        await store.receive(.primePageAspectRatios)
     }
 
     func testArchiveCachePersistsChapters() throws {
@@ -1311,6 +1362,76 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.receive(.refreshProgress)
         await clock.advance(by: .seconds(2))
         await store.finish()
+    }
+
+    @MainActor
+    func testPageAspectRatiosPrimedAssignsRatiosAndMedianEstimate() async {
+        configureReaderDefaults(readDirection: .upDown)
+        var initialState = makeState(readDirection: .upDown)
+        initialState.pages = makePageStates(count: 3)
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.pageAspectRatiosPrimed([1: 1.2, 2: 1.5, 3: 1.8])) {
+            $0.pages[0].imageAspectRatio = 1.2
+            $0.pages[1].imageAspectRatio = 1.5
+            $0.pages[2].imageAspectRatio = 1.8
+            $0.estimatedPageAspectRatio = 1.5
+        }
+    }
+
+    @MainActor
+    func testPageAspectRatiosPrimedLeavesAlreadyMeasuredPagesUntouched() async {
+        configureReaderDefaults(readDirection: .upDown)
+        var initialState = makeState(readDirection: .upDown)
+        initialState.pages = makePageStates(count: 2)
+        initialState.pages[0].imageAspectRatio = 2.0
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.pageAspectRatiosPrimed([1: 1.2, 2: 1.4])) {
+            $0.pages[1].imageAspectRatio = 1.4
+            $0.estimatedPageAspectRatio = 2.0
+        }
+    }
+
+    @MainActor
+    func testPrimePageAspectRatiosWithoutPagesDoesNothing() async {
+        configureReaderDefaults(readDirection: .upDown)
+        let store = makeTestStore(initialState: makeState(readDirection: .upDown))
+
+        await store.send(.primePageAspectRatios)
+    }
+
+    @MainActor
+    func testSplitPageResolutionCopiesAspectRatioToInsertedSibling() async {
+        configureReaderDefaults(splitWideImage: true)
+        var initialState = makeState(progress: 1)
+        initialState.$splitImage = SharedReader(value: true)
+        initialState.pages = makePageStates(count: 2)
+        initialState.pages[0].imageAspectRatio = 0.7
+        initialState.currentPageIndex = 0
+        let splittingPageId = initialState.pages[0].id
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.page(.element(
+            id: splittingPageId,
+            action: .storedImageResolved(shouldDisplayAsSplitPages: true)
+        ))) {
+            $0.pages[0].pageMode = .right
+            $0.pages[0].imageLoaded = true
+            var sibling = loadedPageState(
+                archiveId: "archive",
+                pageId: "1",
+                pageNumber: 1,
+                pageMode: .left
+            )
+            sibling.imageAspectRatio = 0.7
+            $0.pages.insert(sibling, at: 1)
+            $0.estimatedPageAspectRatio = 0.7
+        }
+
+        // A split page shows half the source width, so it renders twice as tall relative to its width.
+        XCTAssertEqual(store.state.pages[0].displayAspectRatio, 1.4)
+        XCTAssertEqual(store.state.pages[1].displayAspectRatio, 1.4)
     }
 
     @MainActor

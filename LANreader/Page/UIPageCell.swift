@@ -398,18 +398,6 @@ class UIPageCell: UICollectionViewCell {
         fitPageWidth = false
         resetImageLayout()
     }
-
-    override func preferredLayoutAttributesFitting(
-        _ layoutAttributes: UICollectionViewLayoutAttributes
-    ) -> UICollectionViewLayoutAttributes {
-        let attributes = super.preferredLayoutAttributesFitting(layoutAttributes)
-        if let image = imageView.image {
-            let width = layoutAttributes.frame.width
-            let height = width * (image.size.height / image.size.width)
-            attributes.frame.size.height = height
-        }
-        return attributes
-    }
 }
 
 extension UIPageCell: UIScrollViewDelegate {
