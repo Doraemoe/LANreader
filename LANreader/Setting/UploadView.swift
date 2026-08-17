@@ -223,6 +223,15 @@ struct UploadView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .disabled(!hasUploadInput || store.isQueueing)
+
+            Label {
+                Text("settings.host.upload.shareTip")
+                    .fixedSize(horizontal: false, vertical: true)
+            } icon: {
+                Image(systemName: "square.and.arrow.up")
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
         }
         .padding(18)
         .background(
