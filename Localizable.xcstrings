@@ -5230,6 +5230,41 @@
         }
       }
     },
+    "settings.host.upload.shareTip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From another app, choose “Upload to LANraragi” in the Share menu to send a URL directly to LANreader."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ほかのアプリの共有メニューで「LANraragiにアップロード」を選ぶと、URLをLANreaderに直接送信できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다른 앱의 공유 메뉴에서 ‘LANraragi에 업로드’를 선택하면 URL을 LANreader로 바로 보낼 수 있습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在其他App的共享菜单中选择“上传至LANraragi”，即可将URL直接发送到LANreader。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在其他App的分享選單中選擇「上傳至LANraragi」，即可將URL直接傳送到LANreader。"
+          }
+        }
+      }
+    },
     "settings.host.upload.status.active" : {
       "extractionState" : "manual",
       "localizations" : {
