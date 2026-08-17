@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_REF="${1:-${LANREADER_BASE_REF:-}}"
+
+echo "==> Repository checks"
+"$SCRIPT_DIR/check-repo" "$BASE_REF"
+
+echo "==> SwiftLint"
+"$SCRIPT_DIR/lint"
+
+echo "==> iOS tests"
+"$SCRIPT_DIR/test-ios"
+
+echo "Full verification passed."
