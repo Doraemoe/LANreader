@@ -19,8 +19,13 @@ jobs:
     runs-on: macOS-26
     timeout-minutes: 45
 
+    # Preserve the matrix-generated check name required by master branch protection.
+    strategy:
+      matrix:
+        destination: ['platform=iOS Simulator,OS=26.5,name=iPad Pro 11-inch (M5)']
+
     env:
-      LANREADER_DESTINATION: platform=iOS Simulator,OS=26.5,name=iPad Pro 11-inch (M5)
+      LANREADER_DESTINATION: ${{ matrix.destination }}
 
     steps:
       - name: Checkout

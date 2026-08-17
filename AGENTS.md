@@ -24,6 +24,7 @@ Use this file as the source of truth for Codex-style work in this repository.
 - Test target: `LANreaderTests`
 - CI selects Xcode 26.6 from `/Applications/Xcode_26.6.app`.
 - CI simulator destination: `platform=iOS Simulator,OS=26.5,name=iPad Pro 11-inch (M5)`
+- Branch protection requires the matrix-generated `verify (platform=iOS Simulator,OS=26.5,name=iPad Pro 11-inch (M5))` check name; preserve that identity when editing CI.
 - CI verification command: `./scripts/verify`
 - Current active GitHub workflows are `ci.yml` and `manual-ipa-release.yml`.
 - Local unsigned IPA packaging is supported.
