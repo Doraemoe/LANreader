@@ -92,8 +92,8 @@ Use this file as the source of truth for Codex-style work in this repository.
 - Treat executable checks as the source of truth. Do not claim a command, scenario, or result was verified unless it actually ran; report skipped checks and remaining gaps explicitly.
 - Test the real behavior entry path, not only a newly extracted helper. Reader changes should exercise reducer intent, pure positioning, and UIKit scrolling at the ownership layer affected by the change.
 - Match evidence to risk: API changes need complete request-contract tests; persistence changes need migration and backward-compatibility coverage; reader changes need layout, direction, cache, and Tankoubon cases as applicable; localized copy needs catalog validation and a compiling app target.
-- Keep changes narrow enough to review. When a change alters an architectural invariant, ownership boundary, or long-lived tradeoff, add a short record under `docs/decisions/`.
-- When a defect escapes a merged change or recurs, add a regression test first. Use `docs/postmortems/` for user-impacting or systemic failures, and promote only reusable lessons into executable checks or this guide.
+- Keep changes narrow enough to review. Encode reusable lessons in the narrowest useful regression test or automated guardrail when practical.
+- Add a concise rule to this guide only when future contributors need non-obvious context that executable checks cannot provide. Formal decision records and postmortems are not required.
 - In pull requests, provide exact commands and outcomes plus behavior evidence such as focused test names, screenshots, or a concise manual scenario. The author summary is evidence to verify, not proof by itself.
 
 ## Pull Request Versioning

@@ -36,12 +36,9 @@ Passing tests are necessary but not automatically sufficient. A helper-only test
 
 ## Durable knowledge
 
-Use three layers, in this order:
+Keep the learning loop proportional to a small project:
 
 1. Encode mechanically checkable rules in scripts, lint, tests, or CI.
-2. Put stable repository invariants and ownership guidance in `AGENTS.md`.
-3. Capture decisions that explain a long-lived tradeoff in `docs/decisions/`.
+2. Put a concise invariant or ownership note in `AGENTS.md` only when future contributors need context that the executable check cannot provide.
 
-Do not create a decision record for routine implementation detail. Use one when future contributors might reasonably undo the choice without understanding its constraints. Start from [the decision template](../decisions/TEMPLATE.md).
-
-For a user-impacting or systemic escaped defect, start from [the postmortem template](../postmortems/TEMPLATE.md). A postmortem is complete only when it identifies why existing gates missed the issue and links the regression test or guardrail that now detects it.
+Decision records and formal postmortems are not required. When a defect escapes or recurs, fix it, add the narrowest useful regression test or guardrail when practical, and update `AGENTS.md` only for a reusable, non-obvious lesson. If none of those additions would prevent future work, stop after the fix and verification.

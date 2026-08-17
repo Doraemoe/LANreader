@@ -19,10 +19,6 @@ Behavior evidence (focused test names, screenshots, or manual scenario):
 
 Checks not run or known gaps:
 
-## Durable learning
+## Durable learning (only when applicable)
 
-- [ ] No new architectural invariant or reusable lesson
-- [ ] Decision record or `AGENTS.md` update linked below
-- [ ] Escaped/systemic defect includes a regression test and, when warranted, a postmortem
-
-Links:
+Regression test, automated guard, or concise `AGENTS.md` update:
