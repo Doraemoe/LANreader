@@ -76,6 +76,10 @@ done < <(
     -type f \( -name '*.yml' -o -name '*.yaml' \) -print0
 )
 
+echo "==> Validating GitHub Actions"
+require_command actionlint
+actionlint -no-color
+
 echo "==> Validating shell syntax"
 while IFS= read -r -d '' file; do
   shebang="$(head -n 1 "$file")"

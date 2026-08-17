@@ -15,7 +15,7 @@ LANreader optimizes for fast iteration without asking reviewers to trust the amo
 
 | Tier | Typical changes | Checks |
 | --- | --- | --- |
-| Fast | Documentation, contribution templates, localization catalogs | Whitespace plus JSON, string catalog, property list, Xcode project, YAML, and shell syntax validation |
+| Fast | Documentation, contribution templates, localization catalogs | Whitespace plus JSON, string catalog, property list, Xcode project, YAML, GitHub Actions semantics, and shell syntax validation |
 | Lint | SwiftLint configuration | Fast checks plus strict SwiftLint |
 | Full | App, extension, tests, Xcode project, dependency, build/quality scripts, CI workflows, macro trust, or unknown files | Fast checks, strict SwiftLint, and the iOS test suite |
 

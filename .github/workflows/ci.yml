@@ -21,7 +21,6 @@ jobs:
 
     env:
       LANREADER_DESTINATION: platform=iOS Simulator,OS=26.5,name=iPad Pro 11-inch (M5)
-      LANREADER_RESULTS_DIR: ${{ runner.temp }}/lanreader-results
 
     steps:
       - name: Checkout
@@ -34,11 +33,15 @@ jobs:
           sudo xcode-select -switch /Applications/Xcode_26.6.app
           xcodebuild -version
 
-      - name: Install SwiftLint
+      - name: Install verification tools
         run: |
-          if ! command -v swiftlint >/dev/null 2>&1; then
-            brew install swiftlint
+          packages=()
+          command -v actionlint >/dev/null 2>&1 || packages+=(actionlint)
+          command -v swiftlint >/dev/null 2>&1 || packages+=(swiftlint)
+          if (( ${#packages[@]} )); then
+            brew install "${packages[@]}"
           fi
+          actionlint -version
           swiftlint version
 
       - name: Resolve comparison base
@@ -54,6 +57,8 @@ jobs:
 
       - name: Verify repository
         run: ./scripts/verify
+        env:
+          LANREADER_RESULTS_DIR: ${{ runner.temp }}/lanreader-results
 
       - name: Upload test result bundle
         if: failure()

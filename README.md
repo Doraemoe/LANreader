@@ -60,6 +60,8 @@ Use the repository commands so local development and Continuous Integration (CI)
 - `./scripts/verify` runs repository validation, strict SwiftLint, and the complete iOS test suite.
 - `./scripts/check-repo` runs fast structural checks for catalogs, data files, project files, workflows, scripts, and changed-line whitespace.
 
+Install the local verification tools with `brew install actionlint swiftlint`.
+
 The full workflow, risk-to-evidence guide, and learning loop are documented in [AI-native quality](docs/engineering/ai-native-quality.md).
 
 ## Donation

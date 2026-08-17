@@ -40,9 +40,11 @@ jobs:
             exit 1
           fi
 
-          echo "marketing_version=$marketing_version" >> "$GITHUB_OUTPUT"
-          echo "current_project_version=$current_project_version" >> "$GITHUB_OUTPUT"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          {
+            echo "marketing_version=$marketing_version"
+            echo "current_project_version=$current_project_version"
+            echo "tag=$tag"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create and push tag
         run: |
