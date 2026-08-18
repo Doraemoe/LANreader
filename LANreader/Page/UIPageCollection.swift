@@ -20,12 +20,18 @@ public struct UIPageCollection: UIViewControllerRepresentable {
     }
 }
 
+enum ReaderCollectionItem: Hashable {
+    case spreadPlaceholder
+    case page(String)
+}
+
 class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     let store: StoreOf<ArchiveReaderFeature>
     var collectionView: UICollectionView!
-    var dataSource: UICollectionViewDiffableDataSource<Section, String>!
+    var dataSource: UICollectionViewDiffableDataSource<Section, ReaderCollectionItem>!
     private var lastReportedVisiblePageIndex: Int?
     private var appliedPageIds: [String] = []
+    private var appliedCollectionItems: [ReaderCollectionItem] = []
     private var appliedDoublePageLayout: Bool?
     private var appliedAspectRatios: [Double] = []
     private var isApplyingSnapshot = false
@@ -132,7 +138,9 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         collectionView.layoutIfNeeded()
         isApplyingSnapshot = false
         lastReportedVisiblePageIndex = nil
-        consumePendingScrollRequestIfPossible()
+        if appliedCollectionItems == collectionItems() {
+            consumePendingScrollRequestIfPossible()
+        }
     }
 
     private func setupCollectionView() {
@@ -163,20 +171,33 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             UIPageCell.self, forCellWithReuseIdentifier: "Page"
         )
 
-        let cellRegistration = UICollectionView
+        let pageCellRegistration = UICollectionView
             .CellRegistration<UIPageCell, String> { [weak self] cell, _, pageId in
                 guard let self, let pageStore = self.pageStore(id: pageId) else { return }
                 cell.configure(with: pageStore, fitPageWidth: self.usesFitPageWidth)
             }
+        let placeholderCellRegistration = UICollectionView
+            .CellRegistration<UICollectionViewCell, ReaderCollectionItem> { cell, _, _ in
+                cell.contentView.backgroundColor = .clear
+            }
 
-        dataSource = UICollectionViewDiffableDataSource<Section, String>(
+        dataSource = UICollectionViewDiffableDataSource<Section, ReaderCollectionItem>(
             collectionView: collectionView
-        ) { collectionView, indexPath, pageId in
-            collectionView.dequeueConfiguredReusableCell(
-                using: cellRegistration,
-                for: indexPath,
-                item: pageId
-            )
+        ) { collectionView, indexPath, item in
+            switch item {
+            case .spreadPlaceholder:
+                return collectionView.dequeueConfiguredReusableCell(
+                    using: placeholderCellRegistration,
+                    for: indexPath,
+                    item: item
+                )
+            case let .page(pageId):
+                return collectionView.dequeueConfiguredReusableCell(
+                    using: pageCellRegistration,
+                    for: indexPath,
+                    item: pageId
+                )
+            }
         }
     }
 
@@ -185,7 +206,8 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     }
 
     private func pageStore(at indexPath: IndexPath) -> StoreOf<PageFeature>? {
-        guard let pageId = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        guard let item = dataSource.itemIdentifier(for: indexPath),
+              case let .page(pageId) = item else { return nil }
         return pageStore(id: pageId)
     }
 
@@ -238,20 +260,30 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
     private func scrollToPage(for request: ScrollRequest) -> Bool {
         guard collectionView.numberOfSections > 0 else { return false }
-        let numberOfItems = collectionView.numberOfItems(inSection: 0)
-        guard numberOfItems > 0 else { return false }
-        let idx = ReaderPositioning.scrollAnchorIndex(
+        guard !store.pages.isEmpty else { return false }
+        let pageIndex = ReaderPositioning.scrollAnchorIndex(
             forPageIndex: request.targetPageIndex,
-            pageCount: numberOfItems,
+            pageCount: store.pages.count,
             readDirection: resolvedReadDirection,
-            doublePageLayout: store.doublePageLayout
+            doublePageLayout: store.doublePageLayout,
+            spreadOffset: store.spreadPairingOffset
         )
-        let indexPath = IndexPath(row: idx, section: 0)
+        guard store.pages.indices.contains(pageIndex),
+              let pageIndexPath = dataSource.indexPath(for: .page(store.pages[pageIndex].id)) else {
+            return false
+        }
+        let indexPath = startOfGroupIndexPath(for: pageIndexPath)
         collectionView.layoutIfNeeded()
         guard collectionView.layoutAttributesForItem(at: indexPath) != nil else {
             return false
         }
-        activeAnimatedScrollTargetPageId = request.animated ? dataSource.itemIdentifier(for: indexPath) : nil
+        if request.animated,
+           let item = dataSource.itemIdentifier(for: indexPath),
+           case let .page(pageId) = item {
+            activeAnimatedScrollTargetPageId = pageId
+        } else {
+            activeAnimatedScrollTargetPageId = nil
+        }
         if request.animated {
             store.send(.collectionScrollStarted)
         }
@@ -272,6 +304,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     private func consumePendingScrollRequestIfPossible() {
         guard let scrollRequest = store.scrollRequest else { return }
         guard appliedDoublePageLayout == store.doublePageLayout else { return }
+        guard appliedCollectionItems == collectionItems() else { return }
         guard scrollToPage(for: scrollRequest) else { return }
         store.send(.scrollRequestHandled(scrollRequest.id))
     }
@@ -288,8 +321,9 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             guard let self else { return }
             guard !store.pages.isEmpty else { return }
             let pageIds = store.pages.map(\.id)
-            guard pageIds != appliedPageIds else { return }
-            applyPageSnapshot(pageIds: pageIds)
+            let items = collectionItems(pageIds: pageIds)
+            guard items != appliedCollectionItems else { return }
+            applyPageSnapshot(pageIds: pageIds, items: items)
         }
         observe { [weak self] in
             guard let self else { return }
@@ -315,14 +349,15 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         }
     }
 
-    private func applyPageSnapshot(pageIds: [String]) {
+    private func applyPageSnapshot(pageIds: [String], items: [ReaderCollectionItem]) {
         let snapshotAnchor = currentSnapshotAnchor()
         appliedPageIds = pageIds
+        appliedCollectionItems = items
         appliedAspectRatios = currentAspectRatios()
 
-        var snapshot = NSDiffableDataSourceSnapshot<Section, String>()
+        var snapshot = NSDiffableDataSourceSnapshot<Section, ReaderCollectionItem>()
         snapshot.appendSections([.main])
-        snapshot.appendItems(pageIds)
+        snapshot.appendItems(items)
         isApplyingSnapshot = true
         UIView.performWithoutAnimation {
             dataSource.apply(snapshot, animatingDifferences: false) { [weak self] in
@@ -393,17 +428,26 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
     private func reportVisiblePageIfNeeded() {
         guard !isApplyingSnapshot else { return }
-        guard let visibleIndex = currentVisibleItemIndex() else { return }
+        guard let visibleItemIndex = currentVisibleItemIndex(),
+              let visiblePageIndex = pageIndex(atCollectionItemIndex: visibleItemIndex) else { return }
         let pageIndex = ReaderPositioning.canonicalPageIndex(
-            forVisibleIndex: visibleIndex,
+            forVisibleIndex: visiblePageIndex,
             pageCount: store.pages.count,
             readDirection: resolvedReadDirection,
-            doublePageLayout: store.doublePageLayout
+            doublePageLayout: store.doublePageLayout,
+            spreadOffset: store.spreadPairingOffset
         )
 
         guard pageIndex != lastReportedVisiblePageIndex else { return }
         lastReportedVisiblePageIndex = pageIndex
         store.send(.visiblePageChanged(pageIndex))
+    }
+
+    private func pageIndex(atCollectionItemIndex itemIndex: Int) -> Int? {
+        let indexPath = IndexPath(row: itemIndex, section: 0)
+        guard let item = dataSource.itemIdentifier(for: indexPath),
+              case let .page(pageId) = item else { return nil }
+        return store.pages.index(id: pageId)
     }
 
     private func currentVisibleItemIndex() -> Int? {
@@ -447,7 +491,8 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
         if let visibleIndex = currentVisibleItemIndex() {
             let indexPath = IndexPath(row: visibleIndex, section: 0)
-            guard let pageId = dataSource.itemIdentifier(for: indexPath),
+            guard let item = dataSource.itemIdentifier(for: indexPath),
+                  case let .page(pageId) = item,
                   let attributes = collectionView.layoutAttributesForItem(at: indexPath) else {
                 return nil
             }
@@ -462,12 +507,13 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             )
         }
 
-        guard appliedPageIds.isEmpty else { return nil }
+        guard appliedCollectionItems.isEmpty else { return nil }
         let anchorIndex = ReaderPositioning.scrollAnchorIndex(
             forPageIndex: store.currentPageIndex,
             pageCount: store.pages.count,
             readDirection: resolvedReadDirection,
-            doublePageLayout: store.doublePageLayout
+            doublePageLayout: store.doublePageLayout,
+            spreadOffset: store.spreadPairingOffset
         )
         guard store.pages.indices.contains(anchorIndex) else { return nil }
         return SnapshotAnchor(
@@ -479,12 +525,11 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
     private func restoreSnapshotAnchor(_ anchor: SnapshotAnchor?) {
         guard let anchor,
-              let pageIndex = store.pages.firstIndex(where: { $0.id == anchor.pageId }) else {
+              let indexPath = dataSource.indexPath(for: .page(anchor.pageId)) else {
             return
         }
 
         collectionView.layoutIfNeeded()
-        let indexPath = IndexPath(row: pageIndex, section: 0)
         guard let attributes = collectionView.layoutAttributesForItem(at: indexPath) else { return }
 
         let proposedOffset = CGPoint(
@@ -561,6 +606,22 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
     enum Section {
         case main
+    }
+}
+
+private extension UIPageCollectionController {
+    var usesShiftedSpreadPairing: Bool {
+        resolvedReadDirection != .upDown
+            && store.doublePageLayout
+            && store.spreadPairingOffset == 1
+    }
+
+    func collectionItems(pageIds: [String]? = nil) -> [ReaderCollectionItem] {
+        var items = (pageIds ?? store.pages.map(\.id)).map(ReaderCollectionItem.page)
+        if usesShiftedSpreadPairing {
+            items.insert(.spreadPlaceholder, at: 0)
+        }
+        return items
     }
 }
 
@@ -702,7 +763,8 @@ extension UIPageCollectionController {
         return store.currentPageIndex <= ReaderPositioning.firstVisualPageIndex(
             pageCount: store.pages.count,
             readDirection: resolvedReadDirection,
-            doublePageLayout: store.doublePageLayout
+            doublePageLayout: store.doublePageLayout,
+            spreadOffset: store.spreadPairingOffset
         )
     }
 
@@ -980,9 +1042,10 @@ extension UIPageCollectionController {
 
     func resetCollectionView() {
         let snapshot = NSDiffableDataSourceSnapshot<
-            Section, String
+            Section, ReaderCollectionItem
         >()
         appliedPageIds = []
+        appliedCollectionItems = []
         appliedAspectRatios = []
         activeAnimatedScrollTargetPageId = nil
         dataSource.apply(snapshot, animatingDifferences: false)
@@ -1052,7 +1115,8 @@ extension UIPageCollectionController: UICollectionViewDelegateFlowLayout {
         sizeForItemAt indexPath: IndexPath
     ) -> CGSize {
         let width = availableItemWidth()
-        guard let pageId = dataSource.itemIdentifier(for: indexPath),
+        guard let item = dataSource.itemIdentifier(for: indexPath),
+              case let .page(pageId) = item,
               let page = store.pages[id: pageId] else {
             return CGSize(
                 width: width,

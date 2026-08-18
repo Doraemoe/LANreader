@@ -59,7 +59,8 @@ enum ReaderPositioning {
         fromStart: Bool,
         restartFinishedArchive: Bool = false,
         readDirection: ReadDirection,
-        doublePageLayout: Bool
+        doublePageLayout: Bool,
+        spreadOffset: Int = 0
     ) -> Int {
         guard pageCount > 0 else { return 0 }
         let restart = fromStart || restartFinishedArchive
@@ -75,21 +76,24 @@ enum ReaderPositioning {
             forVisibleIndex: clampedIndex,
             pageCount: pageCount,
             readDirection: readDirection,
-            doublePageLayout: doublePageLayout
+            doublePageLayout: doublePageLayout,
+            spreadOffset: spreadOffset
         )
     }
 
     static func defaultStartPageIndex(
         pageCount: Int,
         readDirection: ReadDirection,
-        doublePageLayout: Bool
+        doublePageLayout: Bool,
+        spreadOffset: Int = 0
     ) -> Int {
         initialPageIndex(
             progress: 0,
             pageCount: pageCount,
             fromStart: true,
             readDirection: readDirection,
-            doublePageLayout: doublePageLayout
+            doublePageLayout: doublePageLayout,
+            spreadOffset: spreadOffset
         )
     }
 
@@ -99,14 +103,16 @@ enum ReaderPositioning {
     }
 
     /// Returns the canonical page index for a given visible item index.
-    /// In double-page (spread) layout the canonical index is the trailing (right) page of the spread,
-    /// e.g. visible index 0 maps to canonical index 1 for spread [0, 1].
+    /// In double-page (spread) layout the canonical index is the later logical page of the spread,
+    /// e.g. visible index 0 maps to canonical index 1 for spread [0, 1]. A one-item spread offset
+    /// shifts the sequence to [blank, 0], [1, 2], [3, 4], and so on.
     /// In single-page or vertical layout the canonical index equals the visible index.
     static func canonicalPageIndex(
         forVisibleIndex visibleIndex: Int,
         pageCount: Int,
         readDirection: ReadDirection,
-        doublePageLayout: Bool
+        doublePageLayout: Bool,
+        spreadOffset: Int = 0
     ) -> Int {
         let clampedIndex = clampedPageIndex(visibleIndex, pageCount: pageCount)
         guard usesTrailingSpreadProgress(
@@ -116,15 +122,17 @@ enum ReaderPositioning {
             return clampedIndex
         }
 
-        let spreadStart = clampedIndex.isMultiple(of: 2) ? clampedIndex : clampedIndex - 1
-        return min(pageCount - 1, spreadStart + 1)
+        let normalizedOffset = normalizedSpreadOffset(spreadOffset)
+        let spreadStart = ((clampedIndex + normalizedOffset) / 2) * 2 - normalizedOffset
+        return clampedPageIndex(spreadStart + 1, pageCount: pageCount)
     }
 
     static func scrollAnchorIndex(
         forPageIndex pageIndex: Int,
         pageCount: Int,
         readDirection: ReadDirection,
-        doublePageLayout: Bool
+        doublePageLayout: Bool,
+        spreadOffset: Int = 0
     ) -> Int {
         let clampedIndex = clampedPageIndex(pageIndex, pageCount: pageCount)
         guard usesTrailingSpreadProgress(
@@ -134,11 +142,9 @@ enum ReaderPositioning {
             return clampedIndex
         }
 
-        let lastIndex = pageCount - 1
-        if clampedIndex == lastIndex, lastIndex.isMultiple(of: 2) {
-            return clampedIndex
-        }
-        return max(0, clampedIndex - 1)
+        let normalizedOffset = normalizedSpreadOffset(spreadOffset)
+        let spreadStart = ((clampedIndex + normalizedOffset) / 2) * 2 - normalizedOffset
+        return max(0, spreadStart)
     }
 
     static func adjacentPageIndex(
@@ -146,7 +152,8 @@ enum ReaderPositioning {
         direction: ReaderNavigationDirection,
         pageCount: Int,
         readDirection: ReadDirection,
-        doublePageLayout: Bool
+        doublePageLayout: Bool,
+        spreadOffset: Int = 0
     ) -> Int? {
         guard pageCount > 0 else { return nil }
         let currentIndex = clampedPageIndex(currentPageIndex, pageCount: pageCount)
@@ -158,13 +165,15 @@ enum ReaderPositioning {
                 forVisibleIndex: currentIndex,
                 pageCount: pageCount,
                 readDirection: readDirection,
-                doublePageLayout: doublePageLayout
+                doublePageLayout: doublePageLayout,
+                spreadOffset: spreadOffset
             )
             let currentAnchor = scrollAnchorIndex(
                 forPageIndex: currentCanonicalIndex,
                 pageCount: pageCount,
                 readDirection: readDirection,
-                doublePageLayout: doublePageLayout
+                doublePageLayout: doublePageLayout,
+                spreadOffset: spreadOffset
             )
             let targetAnchor: Int
             switch direction {
@@ -179,7 +188,8 @@ enum ReaderPositioning {
                 forVisibleIndex: clampedAnchor,
                 pageCount: pageCount,
                 readDirection: readDirection,
-                doublePageLayout: doublePageLayout
+                doublePageLayout: doublePageLayout,
+                spreadOffset: spreadOffset
             )
             guard targetIndex != currentCanonicalIndex else { return nil }
             return targetIndex
@@ -201,14 +211,20 @@ enum ReaderPositioning {
     static func firstVisualPageIndex(
         pageCount: Int,
         readDirection: ReadDirection,
-        doublePageLayout: Bool
+        doublePageLayout: Bool,
+        spreadOffset: Int = 0
     ) -> Int {
         canonicalPageIndex(
             forVisibleIndex: 0,
             pageCount: pageCount,
             readDirection: readDirection,
-            doublePageLayout: doublePageLayout
+            doublePageLayout: doublePageLayout,
+            spreadOffset: spreadOffset
         )
+    }
+
+    private static func normalizedSpreadOffset(_ spreadOffset: Int) -> Int {
+        min(max(spreadOffset, 0), 1)
     }
 
     private static func usesTrailingSpreadProgress(
