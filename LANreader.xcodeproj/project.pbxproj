@@ -109,6 +109,7 @@
 		F1A2B3E12FA0000100AAA001 /* PaginationPositioning.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3E22FA0000100AAA001 /* PaginationPositioning.swift */; };
 		F1A2B3E32FA0000100AAA001 /* PaginationBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3E42FA0000100AAA001 /* PaginationBar.swift */; };
 		F1A2B3E52FA0000100AAA001 /* PaginationPositioningTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3E62FA0000100AAA001 /* PaginationPositioningTests.swift */; };
+		F1A2B3F22FC0000100AAA001 /* ReaderPositioningInvariantTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3F32FC0000100AAA001 /* ReaderPositioningInvariantTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -240,6 +241,7 @@
 		F1A2B3E22FA0000100AAA001 /* PaginationPositioning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaginationPositioning.swift; sourceTree = "<group>"; };
 		F1A2B3E42FA0000100AAA001 /* PaginationBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaginationBar.swift; sourceTree = "<group>"; };
 		F1A2B3E62FA0000100AAA001 /* PaginationPositioningTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaginationPositioningTests.swift; sourceTree = "<group>"; };
+		F1A2B3F32FC0000100AAA001 /* ReaderPositioningInvariantTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderPositioningInvariantTests.swift; sourceTree = "<group>"; };
 		F1A2B3D72F90000100AAA001 /* SearchKeyword.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchKeyword.swift; sourceTree = "<group>"; };
 		F1A2B3D92F90000200AAA001 /* SearchFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchFeatureTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -460,6 +462,7 @@
 				F1A2B3CF2F80000100AAA001 /* LogTextRendererTests.swift */,
 				F1A2B3D92F90000200AAA001 /* SearchFeatureTests.swift */,
 				F1A2B3E62FA0000100AAA001 /* PaginationPositioningTests.swift */,
+				F1A2B3F32FC0000100AAA001 /* ReaderPositioningInvariantTests.swift */,
 				7D354CB824F1316E00617F4A /* Info.plist */,
 				4BD820A697A4726B7B747BFD /* Service */,
 			);
@@ -799,6 +802,7 @@
 				F1A2B3CC2F70000100AAA001 /* ArchiveListFeatureTests.swift in Sources */,
 				F1A2B3CE2F80000100AAA001 /* LogTextRendererTests.swift in Sources */,
 				F1A2B3E52FA0000100AAA001 /* PaginationPositioningTests.swift in Sources */,
+				F1A2B3F22FC0000100AAA001 /* ReaderPositioningInvariantTests.swift in Sources */,
 				F1A2B3D82F90000200AAA001 /* SearchFeatureTests.swift in Sources */,
 				4BD82555CE41A0467CCC6411 /* LANraragiServiceTest.swift in Sources */,
 				7DF6FFAA252DC3BB009280A5 /* FileUtils.swift in Sources */,
@@ -975,7 +979,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreader.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 211;
+				CURRENT_PROJECT_VERSION = 212;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1003,7 +1007,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreaderRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 211;
+				CURRENT_PROJECT_VERSION = 212;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1077,7 +1081,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 211;
+				CURRENT_PROJECT_VERSION = 212;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1107,7 +1111,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 211;
+				CURRENT_PROJECT_VERSION = 212;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;

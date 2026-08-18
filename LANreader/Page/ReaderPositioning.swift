@@ -154,8 +154,14 @@ enum ReaderPositioning {
             readDirection: readDirection,
             doublePageLayout: doublePageLayout
         ) {
+            let currentCanonicalIndex = canonicalPageIndex(
+                forVisibleIndex: currentIndex,
+                pageCount: pageCount,
+                readDirection: readDirection,
+                doublePageLayout: doublePageLayout
+            )
             let currentAnchor = scrollAnchorIndex(
-                forPageIndex: currentIndex,
+                forPageIndex: currentCanonicalIndex,
                 pageCount: pageCount,
                 readDirection: readDirection,
                 doublePageLayout: doublePageLayout
@@ -169,13 +175,14 @@ enum ReaderPositioning {
             }
 
             let clampedAnchor = clampedPageIndex(targetAnchor, pageCount: pageCount)
-            guard clampedAnchor != currentAnchor else { return nil }
-            return canonicalPageIndex(
+            let targetIndex = canonicalPageIndex(
                 forVisibleIndex: clampedAnchor,
                 pageCount: pageCount,
                 readDirection: readDirection,
                 doublePageLayout: doublePageLayout
             )
+            guard targetIndex != currentCanonicalIndex else { return nil }
+            return targetIndex
         }
 
         let targetIndex: Int
