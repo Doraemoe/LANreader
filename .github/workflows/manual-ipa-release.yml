@@ -11,13 +11,34 @@ jobs:
     runs-on: macos-26
 
     steps:
-      - name: Checkout master
+      - name: Checkout release source
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Require master
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/master" ]]; then
+            echo "Releases must be dispatched from master; got $GITHUB_REF."
+            exit 1
+          fi
 
       - name: Select Xcode version
         run: |
           sudo xcode-select -s /Applications/Xcode_26.6.app
           xcodebuild -version
+
+      - name: Install verification tools
+        run: |
+          packages=()
+          command -v actionlint >/dev/null 2>&1 || packages+=(actionlint)
+          command -v swiftlint >/dev/null 2>&1 || packages+=(swiftlint)
+          if (( ${#packages[@]} )); then
+            brew install "${packages[@]}"
+          fi
+          actionlint -version
+          swiftlint version
 
       - name: Resolve app versions
         id: versions
@@ -46,7 +67,7 @@ jobs:
             echo "tag=$tag"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Create and push tag
+      - name: Confirm release tag is available
         run: |
           tag="${{ steps.versions.outputs.tag }}"
 
@@ -60,12 +81,14 @@ jobs:
             exit 1
           fi
 
-          git tag "$tag"
-          git push origin "$tag"
-
       - name: Trust Swift macros
         working-directory: ci_scripts
         run: zsh ci_post_clone.sh
+
+      - name: Verify repository
+        run: ./scripts/verify
+        env:
+          LANREADER_RESULTS_DIR: ${{ runner.temp }}/lanreader-results
 
       - name: Build unsigned Release app for Any iOS Device (arm64)
         run: |
@@ -101,6 +124,8 @@ jobs:
             zip -qry "$ipa_path" Payload
           )
 
+          unzip -tq "$ipa_path"
+
           echo "ipa_path=$ipa_path" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub release and upload IPA
@@ -108,5 +133,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ steps.versions.outputs.tag }}" "${{ steps.package.outputs.ipa_path }}#LANreader.ipa" \
+            --target "$GITHUB_SHA" \
             --title "v${{ steps.versions.outputs.marketing_version }}" \
             --generate-notes
