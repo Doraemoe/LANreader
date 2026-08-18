@@ -135,6 +135,94 @@ final class ReaderPositioningInvariantTests: XCTestCase {
         }
     }
 
+    func testPositioningAlgebraAcrossPageCounts() {
+        for pageCount in 1...100 {
+            for readDirection in ReadDirection.allCases {
+                for doublePageLayout in [false, true] {
+                    assertPositioningAlgebra(
+                        in: PositioningAlgebraCase(
+                            pageCount: pageCount,
+                            readDirection: readDirection,
+                            doublePageLayout: doublePageLayout
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private func assertPositioningAlgebra(in testCase: PositioningAlgebraCase) {
+        let canonicalPages = Array(Set((0..<testCase.pageCount).map {
+            ReaderPositioning.canonicalPageIndex(
+                forVisibleIndex: $0,
+                pageCount: testCase.pageCount,
+                readDirection: testCase.readDirection,
+                doublePageLayout: testCase.doublePageLayout
+            )
+        })).sorted()
+
+        XCTAssertTrue(
+            canonicalPages.allSatisfy { (0..<testCase.pageCount).contains($0) },
+            testCase.context
+        )
+        for (offset, canonicalPage) in canonicalPages.enumerated() {
+            let scrollAnchor = ReaderPositioning.scrollAnchorIndex(
+                forPageIndex: canonicalPage,
+                pageCount: testCase.pageCount,
+                readDirection: testCase.readDirection,
+                doublePageLayout: testCase.doublePageLayout
+            )
+            XCTAssertEqual(
+                ReaderPositioning.canonicalPageIndex(
+                    forVisibleIndex: scrollAnchor,
+                    pageCount: testCase.pageCount,
+                    readDirection: testCase.readDirection,
+                    doublePageLayout: testCase.doublePageLayout
+                ),
+                canonicalPage,
+                testCase.context
+            )
+            assertPositioningAdjacency(
+                from: canonicalPage,
+                at: offset,
+                in: canonicalPages,
+                testCase: testCase
+            )
+        }
+    }
+
+    private func assertPositioningAdjacency(
+        from canonicalPage: Int,
+        at offset: Int,
+        in canonicalPages: [Int],
+        testCase: PositioningAlgebraCase
+    ) {
+        let previous = offset > 0 ? canonicalPages[offset - 1] : nil
+        let next = offset < canonicalPages.count - 1 ? canonicalPages[offset + 1] : nil
+        XCTAssertEqual(
+            ReaderPositioning.adjacentPageIndex(
+                from: canonicalPage,
+                direction: .previous,
+                pageCount: testCase.pageCount,
+                readDirection: testCase.readDirection,
+                doublePageLayout: testCase.doublePageLayout
+            ),
+            previous,
+            testCase.context
+        )
+        XCTAssertEqual(
+            ReaderPositioning.adjacentPageIndex(
+                from: canonicalPage,
+                direction: .next,
+                pageCount: testCase.pageCount,
+                readDirection: testCase.readDirection,
+                doublePageLayout: testCase.doublePageLayout
+            ),
+            next,
+            testCase.context
+        )
+    }
+
     private func assertAdjacentNavigation(in testCase: NavigationCase) {
         for (offset, pageIndex) in testCase.canonicalPages.enumerated() {
             let previous = offset > 0 ? testCase.canonicalPages[offset - 1] : nil
@@ -288,6 +376,16 @@ private struct NavigationCase {
         self.readDirection = readDirection
         self.doublePageLayout = doublePageLayout
         self.canonicalPages = canonicalPages
+    }
+}
+
+private struct PositioningAlgebraCase {
+    let pageCount: Int
+    let readDirection: ReadDirection
+    let doublePageLayout: Bool
+
+    var context: String {
+        "pages=\(pageCount), direction=\(readDirection), double=\(doublePageLayout)"
     }
 }
 
