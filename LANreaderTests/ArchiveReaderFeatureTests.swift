@@ -1799,6 +1799,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         controller.loadViewIfNeeded()
         await Task.yield()
         await Task.yield()
+        await waitForScrollRequestToFinish(store)
 
         XCTAssertNil(store.scrollRequest)
     }
@@ -1847,12 +1848,50 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.send(.toggleDoublePageLayout).finish()
         await Task.yield()
         await Task.yield()
+        await waitForScrollRequestToFinish(store)
 
         XCTAssertEqual(store.spreadPairingOffset, 1)
         let collectionItems = controller.dataSource.snapshot().itemIdentifiers
         XCTAssertEqual(collectionItems, expectedItems)
         XCTAssertEqual(collectionItems[2], .page(initialState.pages[1].id))
         XCTAssertEqual(collectionItems[3], .page(initialState.pages[2].id))
+        XCTAssertNil(store.scrollRequest)
+    }
+
+    @MainActor
+    func testUIPageCollectionRepeatedDoublePageTogglesStayAlignedToSpreadBoundary() async {
+        configureReaderDefaults()
+        var initialState = makeState(progress: 2)
+        initialState.pages = makePageStates(count: 5)
+        initialState.currentPageIndex = 1
+
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        } withDependencies: {
+            $0.continuousClock = ImmediateClock()
+            $0.uuid = .incrementing
+        }
+        let controller = UIPageCollectionController(store: store)
+
+        controller.loadViewIfNeeded()
+        controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 480)
+        controller.view.layoutIfNeeded()
+        await Task.yield()
+        await Task.yield()
+
+        store.send(.toggleDoublePageLayout)
+        store.send(.toggleDoublePageLayout)
+        store.send(.toggleDoublePageLayout)
+        await Task.yield()
+        await Task.yield()
+        await Task.yield()
+        await waitForScrollRequestToFinish(store)
+        controller.collectionView.layoutIfNeeded()
+
+        let viewportWidth = controller.collectionView.bounds.width
+        let remainder = controller.collectionView.contentOffset.x
+            .truncatingRemainder(dividingBy: viewportWidth)
+        XCTAssertEqual(remainder, 0, accuracy: 1)
         XCTAssertNil(store.scrollRequest)
     }
 
@@ -2527,6 +2566,13 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         splitState.$splitImage = SharedReader(value: true)
         let splitStore = makeTestStore(initialState: splitState)
         await splitStore.send(.toggleDoublePageLayout)
+    }
+}
+
+@MainActor
+private func waitForScrollRequestToFinish(_ store: StoreOf<ArchiveReaderFeature>) async {
+    for _ in 0..<100 where store.scrollRequest != nil {
+        try? await Task<Never, Never>.sleep(for: .milliseconds(10))
     }
 }
 

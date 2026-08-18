@@ -35,6 +35,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     private var appliedDoublePageLayout: Bool?
     private var appliedAspectRatios: [Double] = []
     private var isApplyingSnapshot = false
+    private var snapshotGeneration = 0
     private var activeAnimatedScrollTargetPageId: String?
 
     private struct SnapshotAnchor {
@@ -133,10 +134,11 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     }
 
     private func applyDoublePageLayoutChange() {
+        let snapshotWasInFlight = isApplyingSnapshot
         isApplyingSnapshot = true
         collectionView.setCollectionViewLayout(makeLayout(), animated: false)
         collectionView.layoutIfNeeded()
-        isApplyingSnapshot = false
+        isApplyingSnapshot = snapshotWasInFlight
         lastReportedVisiblePageIndex = nil
         if appliedCollectionItems == collectionItems() {
             consumePendingScrollRequestIfPossible()
@@ -301,13 +303,6 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         }
         return true
     }
-    private func consumePendingScrollRequestIfPossible() {
-        guard let scrollRequest = store.scrollRequest else { return }
-        guard appliedDoublePageLayout == store.doublePageLayout else { return }
-        guard appliedCollectionItems == collectionItems() else { return }
-        guard scrollToPage(for: scrollRequest) else { return }
-        store.send(.scrollRequestHandled(scrollRequest.id))
-    }
     private func setupObserve() {
         observe { [weak self] in
             guard let self else { return }
@@ -354,6 +349,8 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         appliedPageIds = pageIds
         appliedCollectionItems = items
         appliedAspectRatios = currentAspectRatios()
+        snapshotGeneration += 1
+        let generation = snapshotGeneration
 
         var snapshot = NSDiffableDataSourceSnapshot<Section, ReaderCollectionItem>()
         snapshot.appendSections([.main])
@@ -362,9 +359,10 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         UIView.performWithoutAnimation {
             dataSource.apply(snapshot, animatingDifferences: false) { [weak self] in
                 guard let self else { return }
+                guard self.snapshotGeneration == generation else { return }
                 self.restoreSnapshotAnchor(snapshotAnchor)
-                self.consumePendingScrollRequestIfPossible()
                 self.isApplyingSnapshot = false
+                self.consumePendingScrollRequestIfPossible()
             }
             collectionView.layoutIfNeeded()
             restoreSnapshotAnchor(snapshotAnchor)
@@ -610,6 +608,16 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 }
 
 private extension UIPageCollectionController {
+    func consumePendingScrollRequestIfPossible() {
+        guard let scrollRequest = store.scrollRequest else { return }
+        guard !isApplyingSnapshot else { return }
+        guard appliedDoublePageLayout == store.doublePageLayout else { return }
+        guard appliedCollectionItems == collectionItems() else { return }
+        guard dataSource.snapshot().itemIdentifiers == appliedCollectionItems else { return }
+        guard scrollToPage(for: scrollRequest) else { return }
+        store.send(.scrollRequestHandled(scrollRequest.id))
+    }
+
     var usesShiftedSpreadPairing: Bool {
         resolvedReadDirection != .upDown
             && store.doublePageLayout
