@@ -52,6 +52,18 @@ The AppStore version is a paid app. You can still follow [Test on your device](#
 - Open it in Xcode
 - Follow [this guide](https://developer.apple.com/documentation/xcode/running-your-app-in-simulator-or-on-a-device)
 
+## Development quality
+
+Use the repository commands so local development and Continuous Integration (CI) exercise the same checks:
+
+- `./scripts/verify-changes` selects the quickest safe verification tier for the current diff.
+- `./scripts/verify` runs repository validation, strict SwiftLint, and the complete iOS test suite.
+- `./scripts/check-repo` runs fast structural checks for catalogs, data files, project files, workflows, scripts, and changed-line whitespace.
+
+Install the local verification tools with `brew install actionlint swiftlint`.
+
+The full workflow, risk-to-evidence guide, and learning loop are documented in [AI-native quality](docs/engineering/ai-native-quality.md).
+
 ## Donation
 
 BTC: bc1qjzpavhkj3rrd2tc2cdnvyhwms6wpvdze064r6w

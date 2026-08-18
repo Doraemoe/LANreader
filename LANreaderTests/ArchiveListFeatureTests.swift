@@ -226,7 +226,6 @@ final class ArchiveListFeatureTests: XCTestCase {
             ArchiveListFeature()
         }
         store.timeout = .seconds(5)
-        // populateTags stamps a shared timestamp that is irrelevant here.
         store.exhaustivity = .off
 
         await store.send(.load(true)) {
@@ -261,7 +260,6 @@ final class ArchiveListFeatureTests: XCTestCase {
             ArchiveListFeature()
         }
         store.timeout = .seconds(5)
-        // populateTags stamps a shared timestamp that is irrelevant here.
         store.exhaustivity = .off
 
         await store.send(.reloadFromFirstPage) {
@@ -560,6 +558,8 @@ private func makePaginatedState() -> ArchiveListFeature.State {
     state.$searchSort = Shared(value: SearchSort.dateAdded.rawValue)
     state.$searchSortOrder = Shared(value: SearchSortOrder.desc.rawValue)
     state.$hideRead = Shared(value: false)
+    // Pagination tests must not launch the unrelated detached tag-refresh request.
+    state.$lastTagRefresh = Shared(value: Date().timeIntervalSince1970)
     return state
 }
 

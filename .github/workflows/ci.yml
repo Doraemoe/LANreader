@@ -3,29 +3,73 @@ name: CI
 on:
   pull_request:
     branches: [ master ]
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify:
     runs-on: macOS-26
+    timeout-minutes: 45
 
+    # Preserve the matrix-generated check name required by master branch protection.
     strategy:
       matrix:
         destination: ['platform=iOS Simulator,OS=26.5,name=iPad Pro 11-inch (M5)']
+
+    env:
+      LANREADER_DESTINATION: ${{ matrix.destination }}
+
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-      - name: install
-        run: brew install swiftlint
-
-      - name: lint
-        run: swiftlint --strict
-
-      - name: Select Xcode version
+      - name: Select Xcode 26.6
         run: |
           sudo xcode-select -switch /Applications/Xcode_26.6.app
           xcodebuild -version
 
-      - name: Build and test
-        run: xcodebuild clean test -project LANreader.xcodeproj -scheme LANreader -destination "${destination}" -skipMacroValidation
+      - name: Install verification tools
+        run: |
+          packages=()
+          command -v actionlint >/dev/null 2>&1 || packages+=(actionlint)
+          command -v swiftlint >/dev/null 2>&1 || packages+=(swiftlint)
+          if (( ${#packages[@]} )); then
+            brew install "${packages[@]}"
+          fi
+          actionlint -version
+          swiftlint version
+
+      - name: Resolve comparison base
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "LANREADER_BASE_REF=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_ENV"
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
+            echo "LANREADER_BASE_REF=${{ github.event.before }}" >> "$GITHUB_ENV"
+          elif git rev-parse --verify --quiet HEAD^ >/dev/null; then
+            echo "LANREADER_BASE_REF=HEAD^" >> "$GITHUB_ENV"
+          fi
+
+      - name: Verify repository
+        run: ./scripts/verify
         env:
-          destination: ${{ matrix.destination }}
+          LANREADER_RESULTS_DIR: ${{ runner.temp }}/lanreader-results
+
+      - name: Upload test result bundle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LANreader-tests-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lanreader-results/LANreader-tests.xcresult
+          if-no-files-found: warn
+          retention-days: 7

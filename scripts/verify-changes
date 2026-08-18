@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+BASE_REF="${1:-${LANREADER_BASE_REF:-}}"
+
+cd "$REPO_ROOT"
+
+if [[ -z "$BASE_REF" ]]; then
+  if git rev-parse --verify --quiet 'origin/master^{commit}' >/dev/null; then
+    BASE_REF="origin/master"
+  else
+    BASE_REF="master"
+  fi
+fi
+
+if ! git rev-parse --verify --quiet "$BASE_REF^{commit}" >/dev/null; then
+  echo "Base ref '$BASE_REF' does not resolve to a commit." >&2
+  exit 1
+fi
+
+MERGE_BASE="$(git merge-base "$BASE_REF" HEAD)"
+CHANGED_FILES="$(mktemp "${TMPDIR:-/tmp}/lanreader-changes.XXXXXX")"
+trap 'rm -f "$CHANGED_FILES"' EXIT
+
+{
+  git diff --name-only --diff-filter=ACMRT "$MERGE_BASE"...HEAD
+  git diff --name-only --diff-filter=ACMRT
+  git diff --cached --name-only --diff-filter=ACMRT
+  git ls-files --others --exclude-standard
+} | awk 'NF && !seen[$0]++' > "$CHANGED_FILES"
+
+if [[ ! -s "$CHANGED_FILES" ]]; then
+  echo "No changes found relative to $BASE_REF."
+  "$SCRIPT_DIR/check-repo" "$BASE_REF"
+  exit 0
+fi
+
+RUN_LINT=0
+RUN_TESTS=0
+
+while IFS= read -r file; do
+  case "$file" in
+    *.swift|.swiftlint.yml)
+      RUN_LINT=1
+      ;;
+  esac
+
+  case "$file" in
+    *.xcstrings)
+      # Catalog syntax is covered by check-repo; CI still runs the full suite.
+      ;;
+    LANreader/*|Action/*|LANreaderTests/*|LANreader.xcodeproj/*|ci_scripts/*|scripts/*|.github/workflows/*|*/Package.resolved)
+      RUN_TESTS=1
+      ;;
+    *.md|docs/*|.github/*|*.yml|*.yaml|LICENSE*)
+      ;;
+    *)
+      # Unknown file types take the safest path.
+      RUN_TESTS=1
+      ;;
+  esac
+done < "$CHANGED_FILES"
+
+echo "Changed files relative to $BASE_REF:"
+sed 's/^/  - /' "$CHANGED_FILES"
+
+if [[ "$RUN_TESTS" == "1" ]]; then
+  echo "Selected tier: full (repository checks, lint, and iOS tests)"
+  "$SCRIPT_DIR/verify" "$BASE_REF"
+elif [[ "$RUN_LINT" == "1" ]]; then
+  echo "Selected tier: lint (repository checks and SwiftLint)"
+  "$SCRIPT_DIR/check-repo" "$BASE_REF"
+  "$SCRIPT_DIR/lint"
+else
+  echo "Selected tier: fast (repository structure and changed-line checks)"
+  "$SCRIPT_DIR/check-repo" "$BASE_REF"
+fi

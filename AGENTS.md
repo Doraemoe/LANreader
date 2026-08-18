@@ -6,8 +6,11 @@ Use this file as the source of truth for Codex-style work in this repository.
 
 - Prefer the repo scripts over retyping `xcodebuild` or CI commands:
   - `./scripts/bootstrap`
+  - `./scripts/check-repo`
   - `./scripts/lint`
   - `./scripts/test-ios`
+  - `./scripts/verify-changes`
+  - `./scripts/verify`
 - The scripts use the normal Xcode folders by default.
 - Set `LANREADER_USE_LOCAL_XCODE_ENV=1` if you explicitly want repo-local caches under `.codex/`.
 - The current project, app, and scheme names are `LANreader`.
@@ -21,8 +24,8 @@ Use this file as the source of truth for Codex-style work in this repository.
 - Test target: `LANreaderTests`
 - CI selects Xcode 26.6 from `/Applications/Xcode_26.6.app`.
 - CI simulator destination: `platform=iOS Simulator,OS=26.5,name=iPad Pro 11-inch (M5)`
-- CI lint command: `swiftlint --strict`
-- CI test command: `xcodebuild clean test -project LANreader.xcodeproj -scheme LANreader ... -skipMacroValidation`
+- Branch protection requires the matrix-generated `verify (platform=iOS Simulator,OS=26.5,name=iPad Pro 11-inch (M5))` check name; preserve that identity when editing CI.
+- CI verification command: `./scripts/verify`
 - Current active GitHub workflows are `ci.yml` and `manual-ipa-release.yml`.
 - Local unsigned IPA packaging is supported.
 - Manual releases derive tags as `<MARKETING_VERSION>-<CURRENT_PROJECT_VERSION>`.
@@ -80,7 +83,18 @@ Use this file as the source of truth for Codex-style work in this repository.
 - Tests clear `UserDefaults` and remove HTTP stubs in teardown.
 - When changing LANraragi API behavior, add or update stubbed tests before relying on simulator-only verification.
 - Reader reducer and positioning behavior belongs in focused `ArchiveReaderFeatureTests` coverage, including relevant single-page, double-page, split-page, RTL, cached, and Tankoubon cases.
-- For behavior, persistence, service, or reader changes, run `./scripts/lint` and `./scripts/test-ios` before creating a PR. Documentation-only changes do not require an Xcode test run.
+- For behavior, persistence, service, or reader changes, run `./scripts/verify` before creating a PR. Documentation-only changes do not require an Xcode test run.
+
+## AI-Native Quality Workflow
+
+- During iteration, run `./scripts/verify-changes [base-ref]`. It selects repository checks, lint, or the full iOS suite from the changed files and defaults unknown code paths to the full suite.
+- Before handing off application, test, project, persistence, service, reader, image, or build changes, run `./scripts/verify`. CI runs the same full command on pull requests and `master` regardless of the local tier.
+- Treat executable checks as the source of truth. Do not claim a command, scenario, or result was verified unless it actually ran; report skipped checks and remaining gaps explicitly.
+- Test the real behavior entry path, not only a newly extracted helper. Reader changes should exercise reducer intent, pure positioning, and UIKit scrolling at the ownership layer affected by the change.
+- Match evidence to risk: API changes need complete request-contract tests; persistence changes need migration and backward-compatibility coverage; reader changes need layout, direction, cache, and Tankoubon cases as applicable; localized copy needs catalog validation and a compiling app target.
+- Keep changes narrow enough to review. Encode reusable lessons in the narrowest useful regression test or automated guardrail when practical.
+- Add a concise rule to this guide only when future contributors need non-obvious context that executable checks cannot provide. Formal decision records and postmortems are not required.
+- In pull requests, provide exact commands and outcomes plus behavior evidence such as focused test names, screenshots, or a concise manual scenario. The author summary is evidence to verify, not proof by itself.
 
 ## Pull Request Versioning
 

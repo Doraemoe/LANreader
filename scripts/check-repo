@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+BASE_REF="${1:-${LANREADER_BASE_REF:-}}"
+
+cd "$REPO_ROOT"
+
+require_command() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "$1 is required for repository checks." >&2
+    exit 1
+  fi
+}
+
+echo "==> Checking changed-line whitespace"
+if [[ -n "$BASE_REF" ]]; then
+  if ! git rev-parse --verify --quiet "$BASE_REF^{commit}" >/dev/null; then
+    echo "Base ref '$BASE_REF' does not resolve to a commit." >&2
+    exit 1
+  fi
+
+  MERGE_BASE="$(git merge-base "$BASE_REF" HEAD)"
+  git diff --check "$MERGE_BASE"...HEAD
+fi
+git diff --check
+git diff --cached --check
+
+UNTRACKED_WHITESPACE_FAILURE=0
+while IFS= read -r -d '' file; do
+  if ! output="$(git diff --no-index --check -- /dev/null "$file" 2>&1)" && [[ -n "$output" ]]; then
+    printf '%s\n' "$output" >&2
+    UNTRACKED_WHITESPACE_FAILURE=1
+  fi
+done < <(git ls-files --others --exclude-standard -z)
+if [[ "$UNTRACKED_WHITESPACE_FAILURE" == "1" ]]; then
+  exit 1
+fi
+
+echo "==> Validating JSON and string catalogs"
+require_command jq
+while IFS= read -r -d '' file; do
+  jq empty "$file"
+done < <(
+  find . \
+    -path './.git' -prune -o \
+    -path './.build' -prune -o \
+    -path './.codex' -prune -o \
+    -path './DerivedData' -prune -o \
+    -path './build' -prune -o \
+    -type f \( -name '*.json' -o -name '*.xcstrings' \) -print0
+)
+
+echo "==> Validating property lists and the Xcode project"
+require_command plutil
+while IFS= read -r -d '' file; do
+  plutil -lint "$file" >/dev/null
+done < <(
+  find Action LANreader LANreaderTests LANreader.xcodeproj \
+    -path '*/xcuserdata/*' -prune -o \
+    -type f \( -name '*.plist' -o -name '*.entitlements' -o -name 'project.pbxproj' \) -print0
+)
+
+echo "==> Validating YAML"
+require_command ruby
+while IFS= read -r -d '' file; do
+  ruby -e 'require "yaml"; Psych.parse_file(ARGV.fetch(0))' "$file"
+done < <(
+  find . \
+    -path './.git' -prune -o \
+    -path './.build' -prune -o \
+    -path './.codex' -prune -o \
+    -path './DerivedData' -prune -o \
+    -path './build' -prune -o \
+    -type f \( -name '*.yml' -o -name '*.yaml' \) -print0
+)
+
+echo "==> Validating GitHub Actions"
+require_command actionlint
+actionlint -no-color
+
+echo "==> Validating shell syntax"
+while IFS= read -r -d '' file; do
+  shebang="$(head -n 1 "$file")"
+  case "$shebang" in
+    *bash*) bash -n "$file" ;;
+    *zsh*) zsh -n "$file" ;;
+  esac
+done < <(find scripts ci_scripts -maxdepth 1 -type f -print0)
+
+echo "Repository checks passed."
