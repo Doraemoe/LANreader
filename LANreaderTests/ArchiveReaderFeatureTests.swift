@@ -1082,6 +1082,41 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testStaleScrollRequestAcknowledgementKeepsNewerRequest() async {
+        configureReaderDefaults()
+        var initialState = makeState(progress: 2)
+        initialState.pages = makePageStates(count: 4)
+        initialState.currentPageIndex = 1
+        let store = makeTestStore(initialState: initialState)
+        let firstRequest = makeScrollRequest(
+            id: 0,
+            targetPageIndex: 1,
+            source: .slider,
+            animated: false
+        )
+        let newerRequest = makeScrollRequest(
+            id: 1,
+            targetPageIndex: 2,
+            source: .chapter,
+            animated: false
+        )
+
+        await store.send(.requestJump(1, source: .slider)) {
+            $0.scrollRequest = firstRequest
+        }
+        await store.send(.requestJump(2, source: .chapter)) {
+            $0.scrollRequest = newerRequest
+        }
+
+        await store.send(.scrollRequestHandled(incrementingUUID(0)))
+        XCTAssertEqual(store.state.scrollRequest, newerRequest)
+
+        await store.send(.scrollRequestHandled(incrementingUUID(1))) {
+            $0.scrollRequest = nil
+        }
+    }
+
+    @MainActor
     func testChapterSelectionJumpsToOneBasedPageAfterSplitInsertion() async {
         configureReaderDefaults()
         let chapters = [
