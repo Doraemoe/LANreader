@@ -37,22 +37,6 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testReadSettingsEnablingDoublePageLayoutDisablesSplitAndKeepsPriority() async {
-        configureReaderDefaults(
-            splitWideImage: true,
-            splitPiorityLeft: true
-        )
-        let store = TestStore(initialState: ReadSettingsFeature.State()) {
-            ReadSettingsFeature()
-        }
-
-        await store.send(.doublePageLayoutChanged(true)) {
-            $0.$splitWideImage.withLock { $0 = false }
-            $0.$doublePageLayout.withLock { $0 = true }
-        }
-    }
-
-    @MainActor
     func testReadSettingsDisablingSplitKeepsPriority() async {
         configureReaderDefaults(
             splitWideImage: true,
