@@ -991,6 +991,23 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testNavigateNextAtFinalEvenSpreadDoesNothing() async {
+        configureReaderDefaults(doublePageLayout: true)
+        var initialState = makeState(
+            progress: 6,
+            readDirection: .leftRight,
+            doublePageLayout: true
+        )
+        initialState.pages = makePageStates(count: 6)
+        initialState.currentPageIndex = 5
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.navigate(.next, source: .tap))
+
+        XCTAssertNil(store.state.scrollRequest)
+    }
+
+    @MainActor
     func testNavigatePreviousUsesCanonicalDoublePageIndex() async {
         configureReaderDefaults(
             readDirection: .rightLeft,

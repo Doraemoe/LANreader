@@ -1,0 +1,300 @@
+import XCTest
+@testable import LANreader
+
+final class ReaderPositioningInvariantTests: XCTestCase {
+    func testInitialPageIndexMatrix() {
+        let cases: [InitialPageCase] = [
+            .init("empty archive", 0, 0, false, false, .leftRight, false, 0),
+            .init("negative progress", -3, 5, false, false, .leftRight, false, 0),
+            .init("progress beyond last page", 99, 5, false, false, .rightLeft, false, 4),
+            .init("one-page double layout", 1, 1, false, false, .rightLeft, true, 0),
+            .init("first even spread", 0, 2, false, false, .leftRight, true, 1),
+            .init("middle odd spread", 3, 5, false, false, .rightLeft, true, 3),
+            .init("last even spread", 6, 6, false, false, .leftRight, true, 5),
+            .init("vertical reader", 3, 5, false, false, .upDown, true, 2),
+            .init("from-start first spread", 5, 5, true, false, .leftRight, true, 1),
+            .init("finished restart first spread", 6, 6, false, true, .rightLeft, true, 1)
+        ]
+
+        for testCase in cases {
+            XCTAssertEqual(
+                ReaderPositioning.initialPageIndex(
+                    progress: testCase.progress,
+                    pageCount: testCase.pageCount,
+                    fromStart: testCase.fromStart,
+                    restartFinishedArchive: testCase.restartFinishedArchive,
+                    readDirection: testCase.readDirection,
+                    doublePageLayout: testCase.doublePageLayout
+                ),
+                testCase.expected,
+                testCase.name
+            )
+        }
+    }
+
+    func testCanonicalPageAndScrollAnchorMatrix() {
+        let cases: [PageMappingCase] = [
+            .init("empty archive", 0, .leftRight, false, [0], [0]),
+            .init("one-page spread", 1, .rightLeft, true, [0], [0]),
+            .init("two-page spread", 2, .leftRight, true, [1, 1], [0, 0]),
+            .init("odd final spread", 5, .rightLeft, true, [1, 1, 3, 3, 4], [0, 0, 2, 2, 4]),
+            .init("even final spread", 6, .leftRight, true, [1, 1, 3, 3, 5, 5], [0, 0, 2, 2, 4, 4]),
+            .init("vertical reader", 5, .upDown, true, [0, 1, 2, 3, 4], [0, 1, 2, 3, 4]),
+            .init("single-page reader", 5, .leftRight, false, [0, 1, 2, 3, 4], [0, 1, 2, 3, 4])
+        ]
+
+        for testCase in cases {
+            let indices = testCase.pageCount == 0 ? [0] : Array(0..<testCase.pageCount)
+            let canonicalPages = indices.map {
+                ReaderPositioning.canonicalPageIndex(
+                    forVisibleIndex: $0,
+                    pageCount: testCase.pageCount,
+                    readDirection: testCase.readDirection,
+                    doublePageLayout: testCase.doublePageLayout
+                )
+            }
+            let scrollAnchors = canonicalPages.map {
+                ReaderPositioning.scrollAnchorIndex(
+                    forPageIndex: $0,
+                    pageCount: testCase.pageCount,
+                    readDirection: testCase.readDirection,
+                    doublePageLayout: testCase.doublePageLayout
+                )
+            }
+
+            XCTAssertEqual(canonicalPages, testCase.canonicalPages, testCase.name)
+            XCTAssertEqual(scrollAnchors, testCase.scrollAnchors, testCase.name)
+        }
+    }
+
+    func testAdjacentNavigationMatrix() {
+        let cases: [NavigationCase] = [
+            .init("empty archive", 0, .leftRight, false, []),
+            .init("one-page spread", 1, .rightLeft, true, [0]),
+            .init("single-page reader", 5, .leftRight, false, [0, 1, 2, 3, 4]),
+            .init("vertical reader", 5, .upDown, true, [0, 1, 2, 3, 4]),
+            .init("odd spread reader", 5, .leftRight, true, [1, 3, 4]),
+            .init("even spread reader", 6, .rightLeft, true, [1, 3, 5])
+        ]
+
+        for testCase in cases {
+            guard !testCase.canonicalPages.isEmpty else {
+                XCTAssertNil(adjacentPageIndex(in: testCase, from: 0, direction: .next), testCase.name)
+                XCTAssertNil(adjacentPageIndex(in: testCase, from: 0, direction: .previous), testCase.name)
+                continue
+            }
+            assertAdjacentNavigation(in: testCase)
+        }
+    }
+
+    func testHorizontalReadingDirectionsShareLogicalPositioning() {
+        for pageCount in 0...8 {
+            for doublePageLayout in [false, true] {
+                for pageIndex in -1...pageCount {
+                    let context = "pages=\(pageCount), index=\(pageIndex), double=\(doublePageLayout)"
+                    XCTAssertEqual(
+                        positioningSnapshot(
+                            pageIndex: pageIndex,
+                            pageCount: pageCount,
+                            readDirection: .leftRight,
+                            doublePageLayout: doublePageLayout
+                        ),
+                        positioningSnapshot(
+                            pageIndex: pageIndex,
+                            pageCount: pageCount,
+                            readDirection: .rightLeft,
+                            doublePageLayout: doublePageLayout
+                        ),
+                        context
+                    )
+                }
+            }
+        }
+    }
+
+    func testVerticalReaderIgnoresDoublePageLayout() {
+        for pageCount in 0...8 {
+            for pageIndex in -1...pageCount {
+                let context = "pages=\(pageCount), index=\(pageIndex)"
+                XCTAssertEqual(
+                    positioningSnapshot(
+                        pageIndex: pageIndex,
+                        pageCount: pageCount,
+                        readDirection: .upDown,
+                        doublePageLayout: false
+                    ),
+                    positioningSnapshot(
+                        pageIndex: pageIndex,
+                        pageCount: pageCount,
+                        readDirection: .upDown,
+                        doublePageLayout: true
+                    ),
+                    context
+                )
+            }
+        }
+    }
+
+    private func assertAdjacentNavigation(in testCase: NavigationCase) {
+        for (offset, pageIndex) in testCase.canonicalPages.enumerated() {
+            let previous = offset > 0 ? testCase.canonicalPages[offset - 1] : nil
+            let next = offset < testCase.canonicalPages.count - 1
+                ? testCase.canonicalPages[offset + 1]
+                : nil
+
+            XCTAssertEqual(
+                adjacentPageIndex(in: testCase, from: pageIndex, direction: .previous),
+                previous,
+                "\(testCase.name), previous from \(pageIndex)"
+            )
+            XCTAssertEqual(
+                adjacentPageIndex(in: testCase, from: pageIndex, direction: .next),
+                next,
+                "\(testCase.name), next from \(pageIndex)"
+            )
+        }
+    }
+
+    private func adjacentPageIndex(
+        in testCase: NavigationCase,
+        from pageIndex: Int,
+        direction: ReaderNavigationDirection
+    ) -> Int? {
+        ReaderPositioning.adjacentPageIndex(
+            from: pageIndex,
+            direction: direction,
+            pageCount: testCase.pageCount,
+            readDirection: testCase.readDirection,
+            doublePageLayout: testCase.doublePageLayout
+        )
+    }
+
+    private func positioningSnapshot(
+        pageIndex: Int,
+        pageCount: Int,
+        readDirection: ReadDirection,
+        doublePageLayout: Bool
+    ) -> PositioningSnapshot {
+        PositioningSnapshot(
+            initialPage: ReaderPositioning.initialPageIndex(
+                progress: pageIndex + 1,
+                pageCount: pageCount,
+                fromStart: false,
+                readDirection: readDirection,
+                doublePageLayout: doublePageLayout
+            ),
+            canonicalPage: ReaderPositioning.canonicalPageIndex(
+                forVisibleIndex: pageIndex,
+                pageCount: pageCount,
+                readDirection: readDirection,
+                doublePageLayout: doublePageLayout
+            ),
+            scrollAnchor: ReaderPositioning.scrollAnchorIndex(
+                forPageIndex: pageIndex,
+                pageCount: pageCount,
+                readDirection: readDirection,
+                doublePageLayout: doublePageLayout
+            ),
+            previousPage: ReaderPositioning.adjacentPageIndex(
+                from: pageIndex,
+                direction: .previous,
+                pageCount: pageCount,
+                readDirection: readDirection,
+                doublePageLayout: doublePageLayout
+            ),
+            nextPage: ReaderPositioning.adjacentPageIndex(
+                from: pageIndex,
+                direction: .next,
+                pageCount: pageCount,
+                readDirection: readDirection,
+                doublePageLayout: doublePageLayout
+            )
+        )
+    }
+}
+
+private struct InitialPageCase {
+    let name: String
+    let progress: Int
+    let pageCount: Int
+    let fromStart: Bool
+    let restartFinishedArchive: Bool
+    let readDirection: ReadDirection
+    let doublePageLayout: Bool
+    let expected: Int
+
+    init(
+        _ name: String,
+        _ progress: Int,
+        _ pageCount: Int,
+        _ fromStart: Bool,
+        _ restartFinishedArchive: Bool,
+        _ readDirection: ReadDirection,
+        _ doublePageLayout: Bool,
+        _ expected: Int
+    ) {
+        self.name = name
+        self.progress = progress
+        self.pageCount = pageCount
+        self.fromStart = fromStart
+        self.restartFinishedArchive = restartFinishedArchive
+        self.readDirection = readDirection
+        self.doublePageLayout = doublePageLayout
+        self.expected = expected
+    }
+}
+
+private struct PageMappingCase {
+    let name: String
+    let pageCount: Int
+    let readDirection: ReadDirection
+    let doublePageLayout: Bool
+    let canonicalPages: [Int]
+    let scrollAnchors: [Int]
+
+    init(
+        _ name: String,
+        _ pageCount: Int,
+        _ readDirection: ReadDirection,
+        _ doublePageLayout: Bool,
+        _ canonicalPages: [Int],
+        _ scrollAnchors: [Int]
+    ) {
+        self.name = name
+        self.pageCount = pageCount
+        self.readDirection = readDirection
+        self.doublePageLayout = doublePageLayout
+        self.canonicalPages = canonicalPages
+        self.scrollAnchors = scrollAnchors
+    }
+}
+
+private struct NavigationCase {
+    let name: String
+    let pageCount: Int
+    let readDirection: ReadDirection
+    let doublePageLayout: Bool
+    let canonicalPages: [Int]
+
+    init(
+        _ name: String,
+        _ pageCount: Int,
+        _ readDirection: ReadDirection,
+        _ doublePageLayout: Bool,
+        _ canonicalPages: [Int]
+    ) {
+        self.name = name
+        self.pageCount = pageCount
+        self.readDirection = readDirection
+        self.doublePageLayout = doublePageLayout
+        self.canonicalPages = canonicalPages
+    }
+}
+
+private struct PositioningSnapshot: Equatable {
+    let initialPage: Int
+    let canonicalPage: Int
+    let scrollAnchor: Int
+    let previousPage: Int?
+    let nextPage: Int?
+}
