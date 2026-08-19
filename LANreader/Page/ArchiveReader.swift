@@ -50,6 +50,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
 
         var currentArchiveId = ""
         var currentPageIndex = 0
+        var spreadPairingOffset = 0
         var scrollRequest: ScrollRequest?
         var pages: IdentifiedArrayOf<PageFeature.State> = []
         var collectionScrolling = false
@@ -244,7 +245,8 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                        fromStart: state.fromStart,
                        restartFinishedArchive: restartFinishedArchive,
                        readDirection: state.resolvedReadDirection,
-                       doublePageLayout: state.doublePageLayout
+                       doublePageLayout: state.doublePageLayout,
+                       spreadOffset: state.spreadPairingOffset
                    )
                    state.controlUiHidden = true
                    state.extracting = false
@@ -351,7 +353,8 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                         fromStart: state.fromStart,
                         restartFinishedArchive: restartFinishedArchive,
                         readDirection: state.resolvedReadDirection,
-                        doublePageLayout: state.doublePageLayout
+                        doublePageLayout: state.doublePageLayout,
+                        spreadOffset: state.spreadPairingOffset
                     )
                     state.currentPageIndex = pageIndexToShow
                     state.controlUiHidden = true
@@ -395,12 +398,14 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
             case .toggleDoublePageLayout:
                 guard state.canToggleDoublePageLayout else { return .none }
                 let enabled = !state.doublePageLayout
+                state.spreadPairingOffset = enabled ? state.safeCurrentPageIndex % 2 : 0
                 state.$doublePageLayout.withLock { $0 = enabled }
                 let targetIndex = ReaderPositioning.canonicalPageIndex(
                     forVisibleIndex: state.currentPageIndex,
                     pageCount: state.pages.count,
                     readDirection: state.resolvedReadDirection,
-                    doublePageLayout: enabled
+                    doublePageLayout: enabled,
+                    spreadOffset: state.spreadPairingOffset
                 )
                 return .send(.requestJump(targetIndex, source: .layoutChange))
             case let .visiblePageChanged(index):
@@ -699,7 +704,8 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     direction: direction,
                     pageCount: state.pages.count,
                     readDirection: state.resolvedReadDirection,
-                    doublePageLayout: state.doublePageLayout
+                    doublePageLayout: state.doublePageLayout,
+                    spreadOffset: state.spreadPairingOffset
                 ) else {
                     return .none
                 }
@@ -1210,6 +1216,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
     func resetState(state: inout State) {
         state.pages = []
         state.currentPageIndex = 0
+        state.spreadPairingOffset = 0
         state.fromStart = false
         state.scrollRequest = nil
         state.collectionScrolling = false

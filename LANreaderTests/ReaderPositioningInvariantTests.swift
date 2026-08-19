@@ -13,7 +13,8 @@ final class ReaderPositioningInvariantTests: XCTestCase {
             .init("last even spread", 6, 6, false, false, .leftRight, true, 5),
             .init("vertical reader", 3, 5, false, false, .upDown, true, 2),
             .init("from-start first spread", 5, 5, true, false, .leftRight, true, 1),
-            .init("finished restart first spread", 6, 6, false, true, .rightLeft, true, 1)
+            .init("finished restart first spread", 6, 6, false, true, .rightLeft, true, 1),
+            .init("shifted spread restore", 2, 5, false, false, .leftRight, true, 2, 1)
         ]
 
         for testCase in cases {
@@ -24,7 +25,8 @@ final class ReaderPositioningInvariantTests: XCTestCase {
                     fromStart: testCase.fromStart,
                     restartFinishedArchive: testCase.restartFinishedArchive,
                     readDirection: testCase.readDirection,
-                    doublePageLayout: testCase.doublePageLayout
+                    doublePageLayout: testCase.doublePageLayout,
+                    spreadOffset: testCase.spreadOffset
                 ),
                 testCase.expected,
                 testCase.name
@@ -39,6 +41,8 @@ final class ReaderPositioningInvariantTests: XCTestCase {
             .init("two-page spread", 2, .leftRight, true, [1, 1], [0, 0]),
             .init("odd final spread", 5, .rightLeft, true, [1, 1, 3, 3, 4], [0, 0, 2, 2, 4]),
             .init("even final spread", 6, .leftRight, true, [1, 1, 3, 3, 5, 5], [0, 0, 2, 2, 4, 4]),
+            .init("shifted odd spread", 5, .leftRight, true, [0, 2, 2, 4, 4], [0, 1, 1, 3, 3], 1),
+            .init("shifted even spread", 6, .rightLeft, true, [0, 2, 2, 4, 4, 5], [0, 1, 1, 3, 3, 5], 1),
             .init("vertical reader", 5, .upDown, true, [0, 1, 2, 3, 4], [0, 1, 2, 3, 4]),
             .init("single-page reader", 5, .leftRight, false, [0, 1, 2, 3, 4], [0, 1, 2, 3, 4])
         ]
@@ -50,7 +54,8 @@ final class ReaderPositioningInvariantTests: XCTestCase {
                     forVisibleIndex: $0,
                     pageCount: testCase.pageCount,
                     readDirection: testCase.readDirection,
-                    doublePageLayout: testCase.doublePageLayout
+                    doublePageLayout: testCase.doublePageLayout,
+                    spreadOffset: testCase.spreadOffset
                 )
             }
             let scrollAnchors = canonicalPages.map {
@@ -58,7 +63,8 @@ final class ReaderPositioningInvariantTests: XCTestCase {
                     forPageIndex: $0,
                     pageCount: testCase.pageCount,
                     readDirection: testCase.readDirection,
-                    doublePageLayout: testCase.doublePageLayout
+                    doublePageLayout: testCase.doublePageLayout,
+                    spreadOffset: testCase.spreadOffset
                 )
             }
 
@@ -74,7 +80,9 @@ final class ReaderPositioningInvariantTests: XCTestCase {
             .init("single-page reader", 5, .leftRight, false, [0, 1, 2, 3, 4]),
             .init("vertical reader", 5, .upDown, true, [0, 1, 2, 3, 4]),
             .init("odd spread reader", 5, .leftRight, true, [1, 3, 4]),
-            .init("even spread reader", 6, .rightLeft, true, [1, 3, 5])
+            .init("even spread reader", 6, .rightLeft, true, [1, 3, 5]),
+            .init("shifted odd spread reader", 5, .leftRight, true, [0, 2, 4], 1),
+            .init("shifted even spread reader", 6, .rightLeft, true, [0, 2, 4, 5], 1)
         ]
 
         for testCase in cases {
@@ -90,20 +98,52 @@ final class ReaderPositioningInvariantTests: XCTestCase {
     func testHorizontalReadingDirectionsShareLogicalPositioning() {
         for pageCount in 0...8 {
             for doublePageLayout in [false, true] {
+                for spreadOffset in 0...1 {
+                    for pageIndex in -1...pageCount {
+                        let context = "pages=\(pageCount), index=\(pageIndex), "
+                            + "double=\(doublePageLayout), offset=\(spreadOffset)"
+                        XCTAssertEqual(
+                            positioningSnapshot(
+                                pageIndex: pageIndex,
+                                pageCount: pageCount,
+                                readDirection: .leftRight,
+                                doublePageLayout: doublePageLayout,
+                                spreadOffset: spreadOffset
+                            ),
+                            positioningSnapshot(
+                                pageIndex: pageIndex,
+                                pageCount: pageCount,
+                                readDirection: .rightLeft,
+                                doublePageLayout: doublePageLayout,
+                                spreadOffset: spreadOffset
+                            ),
+                            context
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    func testVerticalReaderIgnoresDoublePageLayout() {
+        for pageCount in 0...8 {
+            for spreadOffset in 0...1 {
                 for pageIndex in -1...pageCount {
-                    let context = "pages=\(pageCount), index=\(pageIndex), double=\(doublePageLayout)"
+                    let context = "pages=\(pageCount), index=\(pageIndex), offset=\(spreadOffset)"
                     XCTAssertEqual(
                         positioningSnapshot(
                             pageIndex: pageIndex,
                             pageCount: pageCount,
-                            readDirection: .leftRight,
-                            doublePageLayout: doublePageLayout
+                            readDirection: .upDown,
+                            doublePageLayout: false,
+                            spreadOffset: spreadOffset
                         ),
                         positioningSnapshot(
                             pageIndex: pageIndex,
                             pageCount: pageCount,
-                            readDirection: .rightLeft,
-                            doublePageLayout: doublePageLayout
+                            readDirection: .upDown,
+                            doublePageLayout: true,
+                            spreadOffset: spreadOffset
                         ),
                         context
                     )
@@ -112,40 +152,20 @@ final class ReaderPositioningInvariantTests: XCTestCase {
         }
     }
 
-    func testVerticalReaderIgnoresDoublePageLayout() {
-        for pageCount in 0...8 {
-            for pageIndex in -1...pageCount {
-                let context = "pages=\(pageCount), index=\(pageIndex)"
-                XCTAssertEqual(
-                    positioningSnapshot(
-                        pageIndex: pageIndex,
-                        pageCount: pageCount,
-                        readDirection: .upDown,
-                        doublePageLayout: false
-                    ),
-                    positioningSnapshot(
-                        pageIndex: pageIndex,
-                        pageCount: pageCount,
-                        readDirection: .upDown,
-                        doublePageLayout: true
-                    ),
-                    context
-                )
-            }
-        }
-    }
-
     func testPositioningAlgebraAcrossPageCounts() {
         for pageCount in 1...100 {
             for readDirection in ReadDirection.allCases {
                 for doublePageLayout in [false, true] {
-                    assertPositioningAlgebra(
-                        in: PositioningAlgebraCase(
-                            pageCount: pageCount,
-                            readDirection: readDirection,
-                            doublePageLayout: doublePageLayout
+                    for spreadOffset in 0...1 {
+                        assertPositioningAlgebra(
+                            in: PositioningAlgebraCase(
+                                pageCount: pageCount,
+                                readDirection: readDirection,
+                                doublePageLayout: doublePageLayout,
+                                spreadOffset: spreadOffset
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
@@ -157,7 +177,8 @@ final class ReaderPositioningInvariantTests: XCTestCase {
                 forVisibleIndex: $0,
                 pageCount: testCase.pageCount,
                 readDirection: testCase.readDirection,
-                doublePageLayout: testCase.doublePageLayout
+                doublePageLayout: testCase.doublePageLayout,
+                spreadOffset: testCase.spreadOffset
             )
         })).sorted()
 
@@ -170,14 +191,16 @@ final class ReaderPositioningInvariantTests: XCTestCase {
                 forPageIndex: canonicalPage,
                 pageCount: testCase.pageCount,
                 readDirection: testCase.readDirection,
-                doublePageLayout: testCase.doublePageLayout
+                doublePageLayout: testCase.doublePageLayout,
+                spreadOffset: testCase.spreadOffset
             )
             XCTAssertEqual(
                 ReaderPositioning.canonicalPageIndex(
                     forVisibleIndex: scrollAnchor,
                     pageCount: testCase.pageCount,
                     readDirection: testCase.readDirection,
-                    doublePageLayout: testCase.doublePageLayout
+                    doublePageLayout: testCase.doublePageLayout,
+                    spreadOffset: testCase.spreadOffset
                 ),
                 canonicalPage,
                 testCase.context
@@ -205,7 +228,8 @@ final class ReaderPositioningInvariantTests: XCTestCase {
                 direction: .previous,
                 pageCount: testCase.pageCount,
                 readDirection: testCase.readDirection,
-                doublePageLayout: testCase.doublePageLayout
+                doublePageLayout: testCase.doublePageLayout,
+                spreadOffset: testCase.spreadOffset
             ),
             previous,
             testCase.context
@@ -216,7 +240,8 @@ final class ReaderPositioningInvariantTests: XCTestCase {
                 direction: .next,
                 pageCount: testCase.pageCount,
                 readDirection: testCase.readDirection,
-                doublePageLayout: testCase.doublePageLayout
+                doublePageLayout: testCase.doublePageLayout,
+                spreadOffset: testCase.spreadOffset
             ),
             next,
             testCase.context
@@ -253,7 +278,8 @@ final class ReaderPositioningInvariantTests: XCTestCase {
             direction: direction,
             pageCount: testCase.pageCount,
             readDirection: testCase.readDirection,
-            doublePageLayout: testCase.doublePageLayout
+            doublePageLayout: testCase.doublePageLayout,
+            spreadOffset: testCase.spreadOffset
         )
     }
 
@@ -261,7 +287,8 @@ final class ReaderPositioningInvariantTests: XCTestCase {
         pageIndex: Int,
         pageCount: Int,
         readDirection: ReadDirection,
-        doublePageLayout: Bool
+        doublePageLayout: Bool,
+        spreadOffset: Int = 0
     ) -> PositioningSnapshot {
         PositioningSnapshot(
             initialPage: ReaderPositioning.initialPageIndex(
@@ -269,33 +296,38 @@ final class ReaderPositioningInvariantTests: XCTestCase {
                 pageCount: pageCount,
                 fromStart: false,
                 readDirection: readDirection,
-                doublePageLayout: doublePageLayout
+                doublePageLayout: doublePageLayout,
+                spreadOffset: spreadOffset
             ),
             canonicalPage: ReaderPositioning.canonicalPageIndex(
                 forVisibleIndex: pageIndex,
                 pageCount: pageCount,
                 readDirection: readDirection,
-                doublePageLayout: doublePageLayout
+                doublePageLayout: doublePageLayout,
+                spreadOffset: spreadOffset
             ),
             scrollAnchor: ReaderPositioning.scrollAnchorIndex(
                 forPageIndex: pageIndex,
                 pageCount: pageCount,
                 readDirection: readDirection,
-                doublePageLayout: doublePageLayout
+                doublePageLayout: doublePageLayout,
+                spreadOffset: spreadOffset
             ),
             previousPage: ReaderPositioning.adjacentPageIndex(
                 from: pageIndex,
                 direction: .previous,
                 pageCount: pageCount,
                 readDirection: readDirection,
-                doublePageLayout: doublePageLayout
+                doublePageLayout: doublePageLayout,
+                spreadOffset: spreadOffset
             ),
             nextPage: ReaderPositioning.adjacentPageIndex(
                 from: pageIndex,
                 direction: .next,
                 pageCount: pageCount,
                 readDirection: readDirection,
-                doublePageLayout: doublePageLayout
+                doublePageLayout: doublePageLayout,
+                spreadOffset: spreadOffset
             )
         )
     }
@@ -310,6 +342,7 @@ private struct InitialPageCase {
     let readDirection: ReadDirection
     let doublePageLayout: Bool
     let expected: Int
+    let spreadOffset: Int
 
     init(
         _ name: String,
@@ -319,7 +352,8 @@ private struct InitialPageCase {
         _ restartFinishedArchive: Bool,
         _ readDirection: ReadDirection,
         _ doublePageLayout: Bool,
-        _ expected: Int
+        _ expected: Int,
+        _ spreadOffset: Int = 0
     ) {
         self.name = name
         self.progress = progress
@@ -329,6 +363,7 @@ private struct InitialPageCase {
         self.readDirection = readDirection
         self.doublePageLayout = doublePageLayout
         self.expected = expected
+        self.spreadOffset = spreadOffset
     }
 }
 
@@ -339,6 +374,7 @@ private struct PageMappingCase {
     let doublePageLayout: Bool
     let canonicalPages: [Int]
     let scrollAnchors: [Int]
+    let spreadOffset: Int
 
     init(
         _ name: String,
@@ -346,7 +382,8 @@ private struct PageMappingCase {
         _ readDirection: ReadDirection,
         _ doublePageLayout: Bool,
         _ canonicalPages: [Int],
-        _ scrollAnchors: [Int]
+        _ scrollAnchors: [Int],
+        _ spreadOffset: Int = 0
     ) {
         self.name = name
         self.pageCount = pageCount
@@ -354,6 +391,7 @@ private struct PageMappingCase {
         self.doublePageLayout = doublePageLayout
         self.canonicalPages = canonicalPages
         self.scrollAnchors = scrollAnchors
+        self.spreadOffset = spreadOffset
     }
 }
 
@@ -363,19 +401,22 @@ private struct NavigationCase {
     let readDirection: ReadDirection
     let doublePageLayout: Bool
     let canonicalPages: [Int]
+    let spreadOffset: Int
 
     init(
         _ name: String,
         _ pageCount: Int,
         _ readDirection: ReadDirection,
         _ doublePageLayout: Bool,
-        _ canonicalPages: [Int]
+        _ canonicalPages: [Int],
+        _ spreadOffset: Int = 0
     ) {
         self.name = name
         self.pageCount = pageCount
         self.readDirection = readDirection
         self.doublePageLayout = doublePageLayout
         self.canonicalPages = canonicalPages
+        self.spreadOffset = spreadOffset
     }
 }
 
@@ -383,9 +424,11 @@ private struct PositioningAlgebraCase {
     let pageCount: Int
     let readDirection: ReadDirection
     let doublePageLayout: Bool
+    let spreadOffset: Int
 
     var context: String {
-        "pages=\(pageCount), direction=\(readDirection), double=\(doublePageLayout)"
+        "pages=\(pageCount), direction=\(readDirection), "
+            + "double=\(doublePageLayout), offset=\(spreadOffset)"
     }
 }
 
