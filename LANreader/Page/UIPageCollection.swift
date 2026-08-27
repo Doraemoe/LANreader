@@ -180,7 +180,10 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
                 cell.configure(
                     with: pageStore,
                     fitPageWidth: self.usesFitPageWidth,
-                    showsStamps: self.store.showStamps
+                    showsStamps: self.store.showStamps,
+                    onCreateStamp: { [weak self] position in
+                        self?.store.send(.stampCreationRequested(pageId: pageId, position: position))
+                    }
                 )
             }
         let placeholderCellRegistration = UICollectionView
