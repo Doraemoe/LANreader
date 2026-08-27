@@ -20,6 +20,16 @@ private final class StampCommentLabel: UILabel {
     }
 }
 
+private final class StampMarkerButton: UIButton {
+    private let minimumHitTargetSize = CGSize(width: 44, height: 44)
+
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        let horizontalInset = max(0, (minimumHitTargetSize.width - bounds.width) / 2)
+        let verticalInset = max(0, (minimumHitTargetSize.height - bounds.height) / 2)
+        return bounds.insetBy(dx: -horizontalInset, dy: -verticalInset).contains(point)
+    }
+}
+
 final class StampOverlayView: UIView {
     private struct DisplayedStamp {
         let sourceIndex: Int
@@ -31,7 +41,7 @@ final class StampOverlayView: UIView {
     private let calloutSpacing: CGFloat = 6
     private var stamps: [ArchiveStamp] = []
     private var displayedStamps: [DisplayedStamp] = []
-    private var markerButtons: [UIButton] = []
+    private var markerButtons: [StampMarkerButton] = []
     private var selectedSourceIndex: Int?
     private var imageSize: CGSize?
     private var pageMode: PageMode = .normal
@@ -94,7 +104,9 @@ final class StampOverlayView: UIView {
     }
 
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        markerButtons.contains { !$0.isHidden && $0.frame.insetBy(dx: -4, dy: -4).contains(point) }
+        markerButtons.contains { button in
+            !button.isHidden && button.point(inside: button.convert(point, from: self), with: event)
+        }
     }
 
     override func layoutSubviews() {
@@ -144,7 +156,7 @@ final class StampOverlayView: UIView {
         }
 
         for displayedStamp in displayedStamps {
-            let button = UIButton(type: .system)
+            let button = StampMarkerButton(type: .system)
             button.setImage(UIImage(systemName: "seal.fill"), for: .normal)
             button.tintColor = .white
             button.backgroundColor = .systemOrange
