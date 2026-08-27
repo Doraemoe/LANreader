@@ -151,6 +151,63 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         }
     }
 
+    @MainActor
+    func testUIPageCollectionShowsLoadsAndClearsStampComments() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+        stubArchiveStamps(archiveId: "archive", page: 1)
+
+        var initialState = makeState(progress: 1)
+        initialState.$showStamps = Shared(value: false)
+        var page = PageFeature.State(
+            archiveId: "archive",
+            pageId: "1",
+            pageNumber: 1
+        )
+        page.imageLoaded = true
+        initialState.pages = [page]
+
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        } withDependencies: {
+            $0.continuousClock = ImmediateClock()
+        }
+        let controller = UIPageCollectionController(store: store)
+
+        controller.loadViewIfNeeded()
+        controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 480)
+        controller.view.layoutIfNeeded()
+        await Task.yield()
+        await Task.yield()
+        controller.collectionView.layoutIfNeeded()
+
+        let cell = try XCTUnwrap(controller.collectionView.visibleCells.first as? UIPageCell)
+        XCTAssertNil(stampMarker(in: cell, comment: "Comment"))
+
+        await store.send(.toggleStampsVisibility).finish()
+        await waitForStampsToLoad(store, pageId: "1")
+        controller.view.layoutIfNeeded()
+        controller.collectionView.layoutIfNeeded()
+        await Task.yield()
+
+        let marker = try XCTUnwrap(stampMarker(in: cell, comment: "Comment"))
+        XCTAssertFalse(isEffectivelyHidden(marker))
+
+        marker.sendActions(for: .touchUpInside)
+        marker.superview?.layoutIfNeeded()
+        let comment = try XCTUnwrap(stampComment(in: cell, text: "Comment"))
+        XCTAssertFalse(isEffectivelyHidden(comment))
+
+        await store.send(.toggleStampsVisibility).finish()
+        XCTAssertTrue(isEffectivelyHidden(marker))
+        XCTAssertTrue(isEffectivelyHidden(comment))
+
+        cell.prepareForReuse()
+        XCTAssertNil(cell.store)
+        XCTAssertNil(stampMarker(in: cell, comment: "Comment"))
+        XCTAssertNil(stampComment(in: cell, text: "Comment"))
+    }
+
     func testReaderPageLayoutValidatedAspectRatio() {
         XCTAssertEqual(ReaderPageLayout.validatedAspectRatio(nil), ReaderPageLayout.defaultAspectRatio)
         XCTAssertEqual(ReaderPageLayout.validatedAspectRatio(0), ReaderPageLayout.defaultAspectRatio)
@@ -2649,6 +2706,58 @@ private func waitForScrollRequestToFinish(_ store: StoreOf<ArchiveReaderFeature>
     for _ in 0..<100 where store.scrollRequest != nil {
         try? await Task<Never, Never>.sleep(for: .milliseconds(10))
     }
+}
+
+@MainActor
+private func waitForStampsToLoad(
+    _ store: StoreOf<ArchiveReaderFeature>,
+    pageId: String
+) async {
+    for _ in 0..<100 where store.pages[id: pageId]?.stampsLoaded != true {
+        try? await Task<Never, Never>.sleep(for: .milliseconds(10))
+    }
+}
+
+@MainActor
+private func stampMarker(in view: UIView, comment: String) -> UIButton? {
+    firstDescendant(in: view) { button in
+        button.accessibilityLabel == comment
+    }
+}
+
+@MainActor
+private func stampComment(in view: UIView, text: String) -> UILabel? {
+    firstDescendant(in: view) { label in
+        label.text == text
+    }
+}
+
+@MainActor
+private func firstDescendant<View: UIView>(
+    in root: UIView,
+    matching predicate: (View) -> Bool
+) -> View? {
+    for subview in root.subviews {
+        if let candidate = subview as? View, predicate(candidate) {
+            return candidate
+        }
+        if let candidate: View = firstDescendant(in: subview, matching: predicate) {
+            return candidate
+        }
+    }
+    return nil
+}
+
+@MainActor
+private func isEffectivelyHidden(_ view: UIView) -> Bool {
+    var currentView: UIView? = view
+    while let current = currentView {
+        if current.isHidden || current.alpha == 0 {
+            return true
+        }
+        currentView = current.superview
+    }
+    return false
 }
 
 private func configureReaderDefaults(

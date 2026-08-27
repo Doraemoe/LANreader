@@ -90,11 +90,12 @@ Use this file as the source of truth for Codex-style work in this repository.
 - During iteration, run `./scripts/verify-changes [base-ref]`. It selects repository checks, lint, or the full iOS suite from the changed files and defaults unknown code paths to the full suite.
 - Before handing off application, test, project, persistence, service, reader, image, or build changes, run `./scripts/verify`. CI runs the same full command on pull requests and `master` regardless of the local tier.
 - Treat executable checks as the source of truth. Do not claim a command, scenario, or result was verified unless it actually ran; report skipped checks and remaining gaps explicitly.
-- Test the real behavior entry path, not only a newly extracted helper. Reader changes should exercise reducer intent, pure positioning, and UIKit scrolling at the ownership layer affected by the change.
+- Test the real behavior entry path, not only a newly extracted helper. Reader changes should exercise reducer intent, pure logic, and the affected UIKit integration or scrolling path; reducer and extracted-helper tests alone are insufficient.
 - Match evidence to risk: API changes need complete request-contract tests; persistence changes need migration and backward-compatibility coverage; reader changes need layout, direction, cache, and Tankoubon cases as applicable; localized copy needs catalog validation and a compiling app target.
 - Keep changes narrow enough to review. Encode reusable lessons in the narrowest useful regression test or automated guardrail when practical.
 - Add a concise rule to this guide only when future contributors need non-obvious context that executable checks cannot provide. Formal decision records and postmortems are not required.
 - In pull requests, provide exact commands and outcomes plus behavior evidence such as focused test names, screenshots, or a concise manual scenario. The author summary is evidence to verify, not proof by itself.
+- Before creating or editing a pull request, read `.github/pull_request_template.md`, preserve its exact headings, order, and checklist, replace its placeholder prompts with specific content, and read back the live body after publication to confirm it still matches the template.
 
 ## Pull Request Versioning
 

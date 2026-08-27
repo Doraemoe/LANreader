@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BODY="$(cat)"
+
+fail() {
+  echo "Pull request description does not follow .github/pull_request_template.md." >&2
+  echo "$1" >&2
+  exit 1
+}
+
+extract_between() {
+  local start_marker="$1"
+  local end_marker="$2"
+  printf '%s\n' "$BODY" | awk -v start="$start_marker" -v end="$end_marker" '
+    $0 == start { capture = 1; next }
+    $0 == end { exit }
+    capture
+  '
+}
+
+require_content_between() {
+  local start_marker="$1"
+  local end_marker="$2"
+  local description="$3"
+  local content
+  content="$(extract_between "$start_marker" "$end_marker")"
+  if [[ -z "${content//[[:space:]]/}" ]]; then
+    fail "$description must not be empty."
+  fi
+}
+
+if [[ -z "${BODY//[[:space:]]/}" ]]; then
+  fail "The body is empty."
+fi
+
+required_markers=(
+  "## Change"
+  "## Risk surface"
+  "## Evidence"
+  "Commands run and outcomes:"
+  "Behavior evidence (focused test names, screenshots, or manual scenario):"
+  "Checks not run or known gaps:"
+  "## Durable learning (only when applicable)"
+)
+
+required_risk_items=(
+  "Reader, navigation, image rendering, cache, or Tankoubon behavior"
+  "LANraragi request or response contract"
+  "Persistence, migration, or offline behavior"
+  "Localized user interface"
+  "Xcode project, dependency, CI, or release automation"
+  "None of the above"
+)
+
+previous_line=0
+for marker in "${required_markers[@]}"; do
+  line="$(printf '%s\n' "$BODY" | awk -v marker="$marker" '$0 == marker { print NR; exit }')"
+  if [[ -z "$line" ]]; then
+    fail "Missing required template line: $marker"
+  fi
+  if (( line <= previous_line )); then
+    fail "Template sections are not in their required order near: $marker"
+  fi
+  previous_line="$line"
+done
+
+for placeholder in \
+  "What changed, and why is this the smallest useful change?" \
+  'Regression test, automated guard, or concise `AGENTS.md` update:'; do
+  if printf '%s\n' "$BODY" | grep -Fqx "$placeholder"; then
+    fail "Replace the template placeholder with PR-specific content: $placeholder"
+  fi
+done
+
+risk_surface="$(extract_between "## Risk surface" "## Evidence")"
+for risk_item in "${required_risk_items[@]}"; do
+  if ! printf '%s\n' "$risk_surface" | grep -Eq "^- \[[ xX]\] ${risk_item}$"; then
+    fail "Missing Risk surface checklist item: $risk_item"
+  fi
+done
+
+checked_risk_count="$(printf '%s\n' "$risk_surface" | grep -Ec '^- \[[xX]\] ' || true)"
+if (( checked_risk_count == 0 )); then
+  fail "Select at least one Risk surface checkbox."
+fi
+if printf '%s\n' "$risk_surface" | grep -Eq '^- \[[xX]\] None of the above$' \
+    && (( checked_risk_count > 1 )); then
+  fail "None of the above cannot be selected with another Risk surface item."
+fi
+
+require_content_between "## Change" "## Risk surface" "The Change section"
+require_content_between \
+  "Commands run and outcomes:" \
+  "Behavior evidence (focused test names, screenshots, or manual scenario):" \
+  "Commands run and outcomes"
+require_content_between \
+  "Behavior evidence (focused test names, screenshots, or manual scenario):" \
+  "Checks not run or known gaps:" \
+  "Behavior evidence"
+require_content_between \
+  "Checks not run or known gaps:" \
+  "## Durable learning (only when applicable)" \
+  "Checks not run or known gaps"
+
+durable_learning="$(printf '%s\n' "$BODY" | awk '
+  $0 == "## Durable learning (only when applicable)" { capture = 1; next }
+  capture
+')"
+if [[ -z "${durable_learning//[[:space:]]/}" ]]; then
+  fail "Durable learning must state the guard added or that it is not applicable."
+fi
+
+echo "Pull request description follows .github/pull_request_template.md."
