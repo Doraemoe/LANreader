@@ -12,6 +12,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: SettingsKey.readDirection)
         UserDefaults.standard.removeObject(forKey: SettingsKey.doublePageLayout)
         UserDefaults.standard.removeObject(forKey: SettingsKey.fitPageWidth)
+        UserDefaults.standard.removeObject(forKey: SettingsKey.showStamps)
         UserDefaults.standard.removeObject(forKey: SettingsKey.autoPageInterval)
         UserDefaults.standard.removeObject(forKey: SettingsKey.splitWideImage)
         UserDefaults.standard.removeObject(forKey: SettingsKey.splitPiorityLeft)
@@ -58,6 +59,96 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             1.5
         )
         XCTAssertNil(UIPageCell.fitWidthAspectRatio(for: CGSize(width: 0, height: 1_500)))
+    }
+
+    func testStampPositionParsesNormalizedCoordinates() {
+        XCTAssertEqual(
+            ArchiveStampPosition(rawValue: " 12.5,100 "),
+            ArchiveStampPosition(rawValue: "12.5,100")
+        )
+        XCTAssertNil(ArchiveStampPosition(rawValue: "-1,50"))
+        XCTAssertNil(ArchiveStampPosition(rawValue: "50,101"))
+        XCTAssertNil(ArchiveStampPosition(rawValue: "not-a-position"))
+    }
+
+    func testStampPositioningMapsStampsOntoSplitPageHalves() {
+        let leftPosition = ArchiveStampPosition(rawValue: "25,30")!
+        let rightPosition = ArchiveStampPosition(rawValue: "75,30")!
+
+        XCTAssertEqual(
+            StampOverlayPositioning.displayedPosition(leftPosition, pageMode: .left),
+            ArchiveStampPosition(rawValue: "50,30")
+        )
+        XCTAssertNil(StampOverlayPositioning.displayedPosition(rightPosition, pageMode: .left))
+        XCTAssertEqual(
+            StampOverlayPositioning.displayedPosition(rightPosition, pageMode: .right),
+            ArchiveStampPosition(rawValue: "50,30")
+        )
+        XCTAssertNil(StampOverlayPositioning.displayedPosition(leftPosition, pageMode: .right))
+    }
+
+    func testStampPositioningUsesRenderedAspectFitImageRect() {
+        XCTAssertEqual(
+            StampOverlayPositioning.aspectFitRect(
+                imageSize: CGSize(width: 1_000, height: 500),
+                in: CGRect(x: 0, y: 0, width: 400, height: 400)
+            ),
+            CGRect(x: 0, y: 100, width: 400, height: 200)
+        )
+    }
+
+    @MainActor
+    func testToggleStampsVisibility() async {
+        let state = makeState()
+        state.$showStamps = Shared(value: false)
+        let store = makeTestStore(initialState: state)
+
+        await store.send(.toggleStampsVisibility) {
+            $0.$showStamps.withLock { $0 = true }
+        }
+    }
+
+    @MainActor
+    func testCachedPageDoesNotLoadStampsFromServer() async {
+        let store = TestStore(
+            initialState: PageFeature.State(
+                archiveId: "archive",
+                pageId: "1",
+                pageNumber: 1,
+                cached: true
+            )
+        ) {
+            PageFeature()
+        }
+
+        await store.send(.loadStamps)
+    }
+
+    @MainActor
+    func testPageLoadsStampsUsingSourceArchiveAndPage() async throws {
+        try await configureVerifiedClient()
+        let stamp = ArchiveStamp(id: "stamp", position: "12,34", content: "Comment")
+        stubArchiveStamps(archiveId: "source", page: 4)
+        let store = TestStore(
+            initialState: PageFeature.State(
+                archiveId: "tank",
+                pageId: "page",
+                pageNumber: 8,
+                sourceArchiveId: "source",
+                sourcePageNumber: 4
+            )
+        ) {
+            PageFeature()
+        }
+
+        await store.send(.loadStamps) {
+            $0.stampsLoading = true
+        }
+        await store.receive(.stampsLoaded([stamp])) {
+            $0.stamps = [stamp]
+            $0.stampsLoading = false
+            $0.stampsLoaded = true
+        }
     }
 
     func testReaderPageLayoutValidatedAspectRatio() {
@@ -3098,6 +3189,25 @@ private func loadedPageState(
     )
     state.imageLoaded = true
     return state
+}
+
+private func stubArchiveStamps(archiveId: String, page: Int) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/archives/\(archiveId)/stamps/\(page)")
+            && isMethodGET()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        HTTPStubsResponse(
+            data: Data("""
+            {
+              "result": [
+                { "id": "stamp", "position": "12,34", "content": "Comment" }
+              ]
+            }
+            """.utf8),
+            statusCode: 200,
+            headers: ["Content-Type": "application/json"]
+        )
+    }
 }
 
 private func makePageStates(

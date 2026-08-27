@@ -118,6 +118,41 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(actual[0].title, "title")
     }
 
+    func testRetrieveStampsUsesOneBasedPagePath() async throws {
+        try await configureVerifiedClient()
+
+        let response = Data("""
+        {
+          "result": [
+            {
+              "id": "STAMPS_3_1777224824662",
+              "position": "12.5,34",
+              "content": "Translation note"
+            }
+          ]
+        }
+        """.utf8)
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/\(archiveId)/stamps/3")
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(data: response, statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+
+        let actual = try await service.retrieveStamps(id: archiveId, page: 3).value
+
+        XCTAssertEqual(
+            actual.result,
+            [
+                ArchiveStamp(
+                    id: "STAMPS_3_1777224824662",
+                    position: "12.5,34",
+                    content: "Translation note"
+                )
+            ]
+        )
+    }
+
     func testRetrieveArchiveThumbnailReturnsImageData() async throws {
         try await configureVerifiedClient()
 

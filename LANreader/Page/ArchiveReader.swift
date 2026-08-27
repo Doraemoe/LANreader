@@ -46,6 +46,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         @SharedReader(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
         @Shared(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
         @SharedReader(.appStorage(SettingsKey.fitPageWidth)) var fitPageWidth = false
+        @Shared(.appStorage(SettingsKey.showStamps)) var showStamps = false
         @SharedReader(.appStorage(SettingsKey.restartFinished)) var restartFinished = false
 
         var currentArchiveId = ""
@@ -151,6 +152,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         case pageAspectRatiosPrimed([Int: Double])
         case toggleControlUi(Bool?)
         case toggleDoublePageLayout
+        case toggleStampsVisibility
         case visiblePageChanged(Int)
         case chapterSelected(Int)
         case requestJump(Int, source: ReaderNavigationSource)
@@ -210,7 +212,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
             AutomaticPageFeature()
         }
 
-        Reduce { state, action in
+        Reduce<State, Action> { (state: inout State, action: Action) -> Effect<Action> in
             switch action {
             case .loadCached:
                state.extracting = true
@@ -221,7 +223,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                if let content = try? FileManager.default.contentsOfDirectory(
                    at: cacheFolder, includingPropertiesForKeys: []
                ) {
-                   let pageState = content.compactMap { url in
+                   let pageState: [PageFeature.State] = content.compactMap { url in
                        let page = url.deletingPathExtension().lastPathComponent
                        if let pageNumber = Int(page) {
                            return PageFeature.State(archiveId: id, pageId: page, pageNumber: pageNumber, cached: true)
@@ -408,6 +410,10 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     spreadOffset: state.spreadPairingOffset
                 )
                 return .send(.requestJump(targetIndex, source: .layoutChange))
+            case .toggleStampsVisibility:
+                let showsStamps = !state.showStamps
+                state.$showStamps.withLock { $0 = showsStamps }
+                return .none
             case let .visiblePageChanged(index):
                 guard !state.pages.isEmpty else { return .none }
                 let clampedIndex = ReaderPositioning.clampedPageIndex(index, pageCount: state.pages.count)
@@ -1502,6 +1508,17 @@ struct ArchiveReader: View {
         let cacheActionRemoves = store.cached || store.inCache
 
         return Menu {
+            Button {
+                store.send(.toggleStampsVisibility)
+            } label: {
+                if store.showStamps {
+                    Label("archive.reader.stamps.hide", systemImage: "mappin.slash")
+                } else {
+                    Label("archive.reader.stamps.show", systemImage: "mappin")
+                }
+            }
+            .disabled(store.cached)
+
             Button {
                 store.send(.setThumbnail)
             } label: {

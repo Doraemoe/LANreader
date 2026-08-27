@@ -43,6 +43,40 @@ struct ArchiveExtractResponse: Decodable {
     let pages: [String]
 }
 
+struct ArchiveStampsResponse: Decodable, Equatable, Sendable {
+    let result: [ArchiveStamp]
+}
+
+public struct ArchiveStamp: Decodable, Equatable, Sendable {
+    let id: String?
+    let position: String
+    let content: String
+
+    var normalizedPosition: ArchiveStampPosition? {
+        ArchiveStampPosition(rawValue: position)
+    }
+}
+
+struct ArchiveStampPosition: Equatable, Sendable {
+    let horizontalPercentage: Double
+    let verticalPercentage: Double
+
+    init?(rawValue: String) {
+        let components = rawValue.split(separator: ",", omittingEmptySubsequences: false)
+        guard components.count == 2,
+              let horizontalPercentage = Double(components[0].trimmingCharacters(in: .whitespaces)),
+              let verticalPercentage = Double(components[1].trimmingCharacters(in: .whitespaces)),
+              horizontalPercentage.isFinite,
+              verticalPercentage.isFinite,
+              (0...100).contains(horizontalPercentage),
+              (0...100).contains(verticalPercentage) else {
+            return nil
+        }
+        self.horizontalPercentage = horizontalPercentage
+        self.verticalPercentage = verticalPercentage
+    }
+}
+
 struct ArchiveCategoriesResponse: Decodable {
     let archives: [String]
     let id: String
