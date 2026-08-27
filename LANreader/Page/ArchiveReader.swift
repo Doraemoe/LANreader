@@ -36,6 +36,13 @@ public struct StampCreationTarget: Equatable, Sendable {
     let position: ArchiveStampPosition
 }
 
+public struct StampEditingTarget: Equatable, Sendable {
+    let pageId: String
+    let stampId: String
+    let sourceArchiveId: String
+    let sourcePageNumber: Int
+}
+
 @Reducer public struct ArchiveReaderFeature: Sendable {
     private let logger = Logger(label: "ArchiveReaderFeature")
 
@@ -90,6 +97,9 @@ public struct StampCreationTarget: Equatable, Sendable {
         var stampCreationTarget: StampCreationTarget?
         var stampComment = ""
         var stampCreationInFlight = false
+        var stampEditingTarget: StampEditingTarget?
+        var stampEditText = ""
+        var stampMutationInFlight = false
 
         var allArchives: IdentifiedArrayOf<Shared<ArchiveItem>> = []
 
@@ -173,6 +183,15 @@ public struct StampCreationTarget: Equatable, Sendable {
             refreshedStamps: [ArchiveStamp]?
         )
         case stampCreationFailed
+        case stampEditingRequested(pageId: String, stamp: ArchiveStamp)
+        case stampEditTextChanged(String)
+        case cancelStampEditing
+        case confirmStampEditing
+        case confirmStampDeletion
+        case stampUpdated(target: StampEditingTarget, content: String)
+        case stampUpdateFailed
+        case stampDeleted(target: StampEditingTarget)
+        case stampDeleteFailed
         case visiblePageChanged(Int)
         case chapterSelected(Int)
         case requestJump(Int, source: ReaderNavigationSource)
@@ -224,6 +243,7 @@ public struct StampCreationTarget: Equatable, Sendable {
         case sliderPreviewLoad
         case primePageAspectRatios
         case stampCreation
+        case stampMutation
     }
 
     public var body: some ReducerOf<Self> {
@@ -438,6 +458,8 @@ public struct StampCreationTarget: Equatable, Sendable {
             case let .stampCreationRequested(pageId, position):
                 guard !state.cached,
                       !state.stampCreationInFlight,
+                      !state.stampMutationInFlight,
+                      state.stampEditingTarget == nil,
                       let page = state.pages[id: pageId],
                       !page.cached,
                       page.imageLoaded else {
@@ -530,6 +552,111 @@ public struct StampCreationTarget: Equatable, Sendable {
             case .stampCreationFailed:
                 state.stampCreationInFlight = false
                 state.errorMessage = String(localized: "archive.reader.stamp.add.failed")
+                return .none
+            case let .stampEditingRequested(pageId, stamp):
+                guard !state.cached,
+                      !state.stampCreationInFlight,
+                      !state.stampMutationInFlight,
+                      state.stampCreationTarget == nil,
+                      let stampId = stamp.id,
+                      !stampId.isEmpty,
+                      let page = state.pages[id: pageId],
+                      !page.cached,
+                      page.stamps.contains(where: { $0.id == stampId }) else {
+                    return .none
+                }
+                state.stampEditingTarget = StampEditingTarget(
+                    pageId: pageId,
+                    stampId: stampId,
+                    sourceArchiveId: page.sourceArchiveId,
+                    sourcePageNumber: page.sourcePageNumber
+                )
+                state.stampEditText = stamp.content
+                return .none
+            case let .stampEditTextChanged(content):
+                state.stampEditText = content
+                return .none
+            case .cancelStampEditing:
+                state.stampEditingTarget = nil
+                state.stampEditText = ""
+                return .none
+            case .confirmStampEditing:
+                guard let target = state.stampEditingTarget else { return .none }
+                let content = state.stampEditText.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !content.isEmpty else { return .none }
+                state.stampEditingTarget = nil
+                state.stampEditText = ""
+                state.stampMutationInFlight = true
+                return .run { send in
+                    do {
+                        let response = try await service.updateStamp(id: target.stampId, content: content).value
+                        guard response.success == 1 else {
+                            logger.warning("server rejected stamp update. stamp=\(target.stampId)")
+                            await send(.stampUpdateFailed)
+                            return
+                        }
+                        await send(.stampUpdated(target: target, content: content))
+                    } catch {
+                        logger.warning("failed to update stamp. stamp=\(target.stampId) \(error.localizedDescription)")
+                        await send(.stampUpdateFailed)
+                    }
+                }
+                .cancellable(id: CancelId.stampMutation, cancelInFlight: true)
+            case .confirmStampDeletion:
+                guard let target = state.stampEditingTarget else { return .none }
+                state.stampEditingTarget = nil
+                state.stampEditText = ""
+                state.stampMutationInFlight = true
+                return .run { send in
+                    do {
+                        let response = try await service.deleteStamp(id: target.stampId).value
+                        guard response.success == 1 else {
+                            logger.warning("server rejected stamp deletion. stamp=\(target.stampId)")
+                            await send(.stampDeleteFailed)
+                            return
+                        }
+                        await send(.stampDeleted(target: target))
+                    } catch {
+                        logger.warning("failed to delete stamp. stamp=\(target.stampId) \(error.localizedDescription)")
+                        await send(.stampDeleteFailed)
+                    }
+                }
+                .cancellable(id: CancelId.stampMutation, cancelInFlight: true)
+            case let .stampUpdated(target, content):
+                state.stampMutationInFlight = false
+                for pageId in state.pages.ids {
+                    guard let page = state.pages[id: pageId],
+                          page.sourceArchiveId == target.sourceArchiveId,
+                          page.sourcePageNumber == target.sourcePageNumber,
+                          let index = page.stamps.firstIndex(where: { $0.id == target.stampId }) else {
+                        continue
+                    }
+                    let stamp = page.stamps[index]
+                    state.pages[id: pageId]?.stamps[index] = ArchiveStamp(
+                        id: stamp.id,
+                        position: stamp.position,
+                        content: content
+                    )
+                }
+                return .none
+            case .stampUpdateFailed:
+                state.stampMutationInFlight = false
+                state.errorMessage = String(localized: "archive.reader.stamp.update.failed")
+                return .none
+            case let .stampDeleted(target):
+                state.stampMutationInFlight = false
+                for pageId in state.pages.ids {
+                    guard let page = state.pages[id: pageId],
+                          page.sourceArchiveId == target.sourceArchiveId,
+                          page.sourcePageNumber == target.sourcePageNumber else {
+                        continue
+                    }
+                    state.pages[id: pageId]?.stamps.removeAll { $0.id == target.stampId }
+                }
+                return .none
+            case .stampDeleteFailed:
+                state.stampMutationInFlight = false
+                state.errorMessage = String(localized: "archive.reader.stamp.delete.failed")
                 return .none
             case let .visiblePageChanged(index):
                 guard !state.pages.isEmpty else { return .none }
@@ -1040,6 +1167,7 @@ public struct StampCreationTarget: Equatable, Sendable {
                     .cancel(id: CancelId.sliderPreviewThumbnailPolling),
                     .cancel(id: CancelId.sliderPreviewLoad),
                     .cancel(id: CancelId.stampCreation),
+                    .cancel(id: CancelId.stampMutation),
                     state.cached ? .send(.loadCached) : .send(.extractArchive)
                 )
             case .loadNextArchive:
@@ -1055,6 +1183,7 @@ public struct StampCreationTarget: Equatable, Sendable {
                     .cancel(id: CancelId.sliderPreviewThumbnailPolling),
                     .cancel(id: CancelId.sliderPreviewLoad),
                     .cancel(id: CancelId.stampCreation),
+                    .cancel(id: CancelId.stampMutation),
                     state.cached ? .send(.loadCached) : .send(.extractArchive)
                 )
             }
@@ -1354,6 +1483,9 @@ public struct StampCreationTarget: Equatable, Sendable {
         state.stampCreationTarget = nil
         state.stampComment = ""
         state.stampCreationInFlight = false
+        state.stampEditingTarget = nil
+        state.stampEditText = ""
+        state.stampMutationInFlight = false
         resetSliderPreviewArchiveState(state: &state)
     }
 }
@@ -1430,6 +1562,35 @@ struct ArchiveReader: View {
                 store.send(.confirmStampCreation)
             }
             .disabled(store.stampComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .alert(
+            "archive.reader.stamp.edit.title",
+            isPresented: Binding(
+                get: { store.stampEditingTarget != nil },
+                set: { isPresented in
+                    if !isPresented, store.stampEditingTarget != nil {
+                        store.send(.cancelStampEditing)
+                    }
+                }
+            )
+        ) {
+            TextField(
+                "archive.reader.stamp.text.placeholder",
+                text: Binding(
+                    get: { store.stampEditText },
+                    set: { store.send(.stampEditTextChanged($0)) }
+                )
+            )
+            Button("delete", role: .destructive) {
+                store.send(.confirmStampDeletion)
+            }
+            Button("cancel", role: .cancel) {
+                store.send(.cancelStampEditing)
+            }
+            Button("save") {
+                store.send(.confirmStampEditing)
+            }
+            .disabled(store.stampEditText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .overlay(content: {
             store.showAutoPageConfig ? AutomaticPageConfig(

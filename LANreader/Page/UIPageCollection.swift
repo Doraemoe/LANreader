@@ -183,6 +183,9 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
                     showsStamps: self.store.showStamps,
                     onCreateStamp: { [weak self] position in
                         self?.store.send(.stampCreationRequested(pageId: pageId, position: position))
+                    },
+                    onEditStamp: { [weak self] stamp in
+                        self?.store.send(.stampEditingRequested(pageId: pageId, stamp: stamp))
                     }
                 )
             }
