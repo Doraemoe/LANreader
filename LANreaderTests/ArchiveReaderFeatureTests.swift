@@ -251,6 +251,97 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testEditStampUpdatesExistingStampText() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let stamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Original text")
+        stubUpdateArchiveStamp(stampId: "stamp", content: "Updated text")
+        var initialState = makeState()
+        var page = PageFeature.State(
+            archiveId: "archive",
+            pageId: "1",
+            pageNumber: 1,
+            pageMode: .left
+        )
+        page.imageLoaded = true
+        page.stamps = [stamp]
+        page.stampsLoaded = true
+        var siblingPage = PageFeature.State(
+            archiveId: "archive",
+            pageId: "1",
+            pageNumber: 1,
+            pageMode: .right
+        )
+        siblingPage.imageLoaded = true
+        siblingPage.stamps = [stamp]
+        siblingPage.stampsLoaded = true
+        initialState.pages = [page, siblingPage]
+        let target = StampEditingTarget(
+            pageId: page.id, stampId: "stamp", sourceArchiveId: "archive", sourcePageNumber: 1
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.stampEditingRequested(pageId: page.id, stamp: stamp)) {
+            $0.stampEditingTarget = target
+            $0.stampEditText = "Original text"
+        }
+        await store.send(.stampEditTextChanged("  Updated text\n")) {
+            $0.stampEditText = "  Updated text\n"
+        }
+        await store.send(.confirmStampEditing) {
+            $0.stampEditingTarget = nil
+            $0.stampEditText = ""
+            $0.stampMutationInFlight = true
+        }
+        await store.receive(.stampUpdated(target: target, content: "Updated text")) {
+            $0.stampMutationInFlight = false
+            $0.pages[id: page.id]?.stamps = [
+                ArchiveStamp(id: "stamp", position: "25,30", content: "Updated text")
+            ]
+            $0.pages[id: siblingPage.id]?.stamps = [
+                ArchiveStamp(id: "stamp", position: "25,30", content: "Updated text")
+            ]
+        }
+    }
+
+    @MainActor
+    func testDeleteStampRemovesExistingStamp() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let stamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Delete me")
+        stubDeleteArchiveStamp(stampId: "stamp")
+        var initialState = makeState()
+        var page = PageFeature.State(archiveId: "archive", pageId: "1", pageNumber: 1)
+        page.imageLoaded = true
+        page.stamps = [stamp]
+        page.stampsLoaded = true
+        initialState.pages = [page]
+        let target = StampEditingTarget(
+            pageId: page.id,
+            stampId: "stamp",
+            sourceArchiveId: "archive",
+            sourcePageNumber: 1
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.stampEditingRequested(pageId: page.id, stamp: stamp)) {
+            $0.stampEditingTarget = target
+            $0.stampEditText = "Delete me"
+        }
+        await store.send(.confirmStampDeletion) {
+            $0.stampEditingTarget = nil
+            $0.stampEditText = ""
+            $0.stampMutationInFlight = true
+        }
+        await store.receive(.stampDeleted(target: target)) {
+            $0.stampMutationInFlight = false
+            $0.pages[id: page.id]?.stamps = []
+        }
+    }
+
+    @MainActor
     func testCachedReaderDoesNotOfferStampCreation() async {
         var initialState = makeState(cached: true)
         var page = PageFeature.State(
@@ -268,6 +359,24 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             pageId: page.id,
             position: ArchiveStampPosition(rawValue: "50,50")!
         ))
+    }
+
+    @MainActor
+    func testCachedReaderDoesNotOfferStampEditing() async {
+        let stamp = ArchiveStamp(id: "stamp", position: "50,50", content: "Offline")
+        var initialState = makeState(cached: true)
+        var page = PageFeature.State(
+            archiveId: "archive",
+            pageId: "1",
+            pageNumber: 1,
+            cached: true
+        )
+        page.imageLoaded = true
+        page.stamps = [stamp]
+        initialState.pages = [page]
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.stampEditingRequested(pageId: page.id, stamp: stamp))
     }
 
     @MainActor
@@ -310,6 +419,51 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 position: ArchiveStampPosition(rawValue: "50,50")!
             )
         )
+    }
+
+    @MainActor
+    func testUIStampMarkerLongPressIsWiredToEditing() async throws {
+        configureReaderDefaults()
+
+        let stamp = ArchiveStamp(id: "stamp", position: "50,50", content: "Editable")
+        var initialState = makeState(progress: 1)
+        initialState.$showStamps = Shared(value: true)
+        var page = PageFeature.State(archiveId: "archive", pageId: "1", pageNumber: 1)
+        page.imageLoaded = true
+        page.stamps = [stamp]
+        page.stampsLoaded = true
+        initialState.pages = [page]
+
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        } withDependencies: {
+            $0.continuousClock = ImmediateClock()
+        }
+        let controller = UIPageCollectionController(store: store)
+
+        controller.loadViewIfNeeded()
+        controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 480)
+        controller.view.layoutIfNeeded()
+        await Task.yield()
+        await Task.yield()
+        controller.collectionView.layoutIfNeeded()
+
+        let cell = try XCTUnwrap(controller.collectionView.visibleCells.first as? UIPageCell)
+        let marker = try XCTUnwrap(stampMarker(in: cell, comment: "Editable"))
+        XCTAssertTrue(marker.gestureRecognizers?.contains { $0 is UILongPressGestureRecognizer } == true)
+
+        cell.requestStampEditing(for: stamp)
+
+        XCTAssertEqual(
+            store.stampEditingTarget,
+            StampEditingTarget(
+                pageId: page.id,
+                stampId: "stamp",
+                sourceArchiveId: "archive",
+                sourcePageNumber: 1
+            )
+        )
+        XCTAssertEqual(store.stampEditText, "Editable")
     }
 
     @MainActor
@@ -3510,6 +3664,43 @@ private func stubAddArchiveStamp(
             {
               "operation": "add_stamp",
               "stamp_id": "created-stamp",
+              "success": 1
+            }
+            """.utf8),
+            statusCode: 200,
+            headers: ["Content-Type": "application/json"]
+        )
+    }
+}
+
+private func stubUpdateArchiveStamp(stampId: String, content: String) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/stamps/\(stampId)")
+            && containsQueryParams(["content": content])
+            && isMethodPUT()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        HTTPStubsResponse(
+            data: Data("""
+            {
+              "operation": "update_stamp",
+              "success": 1
+            }
+            """.utf8),
+            statusCode: 200,
+            headers: ["Content-Type": "application/json"]
+        )
+    }
+}
+
+private func stubDeleteArchiveStamp(stampId: String) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/stamps/\(stampId)")
+            && isMethodDELETE()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        HTTPStubsResponse(
+            data: Data("""
+            {
+              "operation": "delete_stamp",
               "success": 1
             }
             """.utf8),

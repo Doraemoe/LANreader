@@ -418,6 +418,23 @@ actor LANraragiService {
         .serializingDecodable(AddStampResponse.self)
     }
 
+    func updateStamp(id: String, content: String) async -> DataTask<GenericSuccessResponse> {
+        session.request(
+            "\(url)/api/stamps/\(id)",
+            method: .put,
+            parameters: ["content": content],
+            encoding: URLEncoding(destination: .queryString)
+        )
+        .validate(statusCode: 200...200)
+        .serializingDecodable(GenericSuccessResponse.self)
+    }
+
+    func deleteStamp(id: String) async -> DataTask<GenericSuccessResponse> {
+        session.request("\(url)/api/stamps/\(id)", method: .delete)
+            .validate(statusCode: 200...200)
+            .serializingDecodable(GenericSuccessResponse.self)
+    }
+
     private func resolveArchivePageURL(page: String) -> URL {
         let baseURL = getDomainURL(from: self.url)
         return URL(string: page, relativeTo: baseURL)!.absoluteURL

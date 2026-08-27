@@ -192,6 +192,59 @@ class LANraragiServiceTest: XCTestCase {
         )
     }
 
+    func testUpdateStampUsesPutQueryContract() async throws {
+        try await configureVerifiedClient()
+
+        let stampId = "STAMPS_3_1777224824662"
+        stub(condition: isHost("localhost")
+                && isPath("/api/stamps/\(stampId)")
+                && containsQueryParams(["content": "Updated note & detail"])
+                && isMethodPUT()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")
+                && { $0.ohhttpStubs_httpBody == nil }) { _ in
+            HTTPStubsResponse(
+                data: Data("""
+                {
+                  "operation": "update_stamp",
+                  "success": 1
+                }
+                """.utf8),
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+
+        let actual = try await service.updateStamp(id: stampId, content: "Updated note & detail").value
+
+        XCTAssertEqual(actual.success, 1)
+    }
+
+    func testDeleteStampUsesDeleteContract() async throws {
+        try await configureVerifiedClient()
+
+        let stampId = "STAMPS_3_1777224824662"
+        stub(condition: isHost("localhost")
+                && isPath("/api/stamps/\(stampId)")
+                && isMethodDELETE()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")
+                && { $0.ohhttpStubs_httpBody == nil }) { _ in
+            HTTPStubsResponse(
+                data: Data("""
+                {
+                  "operation": "delete_stamp",
+                  "success": 1
+                }
+                """.utf8),
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+
+        let actual = try await service.deleteStamp(id: stampId).value
+
+        XCTAssertEqual(actual.success, 1)
+    }
+
     func testRetrieveArchiveThumbnailReturnsImageData() async throws {
         try await configureVerifiedClient()
 
