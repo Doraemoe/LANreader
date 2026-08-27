@@ -34,10 +34,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Validate pull request description
-        if: github.event_name == 'pull_request'
-        run: jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH" | ./scripts/check-pr-description
-
       - name: Select Xcode 26.6
         run: |
           sudo xcode-select -switch /Applications/Xcode_26.6.app

@@ -97,6 +97,55 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         )
     }
 
+    func testStampPositioningMapsLongPressToSourceCoordinates() {
+        let imageSize = CGSize(width: 1_000, height: 500)
+        let bounds = CGRect(x: 0, y: 0, width: 400, height: 400)
+        let point = CGPoint(x: 100, y: 150)
+
+        XCTAssertEqual(
+            StampOverlayPositioning.sourcePosition(
+                at: point,
+                pageMode: .normal,
+                imageSize: imageSize,
+                in: bounds
+            ),
+            ArchiveStampPosition(rawValue: "25,25")
+        )
+        XCTAssertNil(
+            StampOverlayPositioning.sourcePosition(
+                at: CGPoint(x: 100, y: 50),
+                pageMode: .normal,
+                imageSize: imageSize,
+                in: bounds
+            )
+        )
+    }
+
+    func testStampPositioningMapsSplitLongPressToSourceCoordinates() {
+        let imageSize = CGSize(width: 1_000, height: 500)
+        let bounds = CGRect(x: 0, y: 0, width: 400, height: 400)
+        let point = CGPoint(x: 100, y: 150)
+
+        XCTAssertEqual(
+            StampOverlayPositioning.sourcePosition(
+                at: point,
+                pageMode: .left,
+                imageSize: imageSize,
+                in: bounds
+            ),
+            ArchiveStampPosition(rawValue: "12.5,25")
+        )
+        XCTAssertEqual(
+            StampOverlayPositioning.sourcePosition(
+                at: point,
+                pageMode: .right,
+                imageSize: imageSize,
+                in: bounds
+            ),
+            ArchiveStampPosition(rawValue: "62.5,25")
+        )
+    }
+
     @MainActor
     func testToggleStampsVisibility() async {
         let state = makeState()
@@ -149,6 +198,118 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             $0.stampsLoading = false
             $0.stampsLoaded = true
         }
+    }
+
+    @MainActor
+    func testCreateStampUsesSourcePageAndShowsRefreshedStamps() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let position = ArchiveStampPosition(rawValue: "25,30")!
+        let stamp = ArchiveStamp(id: "created-stamp", position: position.rawValue, content: "New comment")
+        stubAddArchiveStamp(archiveId: "source", page: 4, content: "New comment", position: position.rawValue)
+        stubArchiveStamps(archiveId: "source", page: 4, stamps: [stamp])
+
+        var initialState = makeState(archiveId: "TANK_test")
+        initialState.$showStamps = Shared(value: false)
+        var page = PageFeature.State(
+            archiveId: "TANK_test",
+            pageId: "page",
+            pageNumber: 8,
+            sourceArchiveId: "source",
+            sourcePageNumber: 4,
+            pageMode: .normal
+        )
+        page.imageLoaded = true
+        initialState.pages = [page]
+        let target = StampCreationTarget(
+            pageId: page.id, sourceArchiveId: "source", sourcePageNumber: 4, position: position
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.stampCreationRequested(pageId: page.id, position: position)) {
+            $0.stampCreationTarget = target
+        }
+        await store.send(.stampCommentChanged("  New comment\n")) {
+            $0.stampComment = "  New comment\n"
+        }
+        await store.send(.confirmStampCreation) {
+            $0.stampCreationTarget = nil
+            $0.stampComment = ""
+            $0.stampCreationInFlight = true
+        }
+        await store.receive(.stampCreated(
+            target: target,
+            stamp: stamp,
+            refreshedStamps: [stamp]
+        )) {
+            $0.stampCreationInFlight = false
+            $0.pages[id: page.id]?.stamps = [stamp]
+            $0.pages[id: page.id]?.stampsLoaded = true
+            $0.$showStamps.withLock { $0 = true }
+        }
+    }
+
+    @MainActor
+    func testCachedReaderDoesNotOfferStampCreation() async {
+        var initialState = makeState(cached: true)
+        var page = PageFeature.State(
+            archiveId: "archive",
+            pageId: "1",
+            pageNumber: 1,
+            pageMode: .normal,
+            cached: true
+        )
+        page.imageLoaded = true
+        initialState.pages = [page]
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.stampCreationRequested(
+            pageId: page.id,
+            position: ArchiveStampPosition(rawValue: "50,50")!
+        ))
+    }
+
+    @MainActor
+    func testUIPageLongPressRequestsStampAtRenderedImagePosition() async throws {
+        configureReaderDefaults()
+
+        var initialState = makeState(progress: 1)
+        var page = PageFeature.State(
+            archiveId: "archive",
+            pageId: "1",
+            pageNumber: 1,
+            pageMode: .normal
+        )
+        page.imageLoaded = true
+        initialState.pages = [page]
+
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        } withDependencies: {
+            $0.continuousClock = ImmediateClock()
+        }
+        let controller = UIPageCollectionController(store: store)
+
+        controller.loadViewIfNeeded()
+        controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 480)
+        controller.view.layoutIfNeeded()
+        await Task.yield()
+        await Task.yield()
+        controller.collectionView.layoutIfNeeded()
+
+        let cell = try XCTUnwrap(controller.collectionView.visibleCells.first as? UIPageCell)
+        cell.requestStampCreation(at: CGPoint(x: cell.bounds.midX, y: cell.bounds.midY))
+
+        XCTAssertEqual(
+            store.stampCreationTarget,
+            StampCreationTarget(
+                pageId: page.id,
+                sourceArchiveId: "archive",
+                sourcePageNumber: 1,
+                position: ArchiveStampPosition(rawValue: "50,50")!
+            )
+        )
     }
 
     @MainActor
@@ -3300,17 +3461,56 @@ private func loadedPageState(
     return state
 }
 
-private func stubArchiveStamps(archiveId: String, page: Int) {
+private func stubArchiveStamps(
+    archiveId: String,
+    page: Int,
+    stamps: [ArchiveStamp] = [
+        ArchiveStamp(id: "stamp", position: "12,34", content: "Comment")
+    ]
+) {
+    let response = [
+        "result": stamps.map { stamp in
+            [
+                "id": stamp.id as Any,
+                "position": stamp.position,
+                "content": stamp.content
+            ]
+        }
+    ]
+    let responseData = (try? JSONSerialization.data(withJSONObject: response)) ?? Data()
+
     stub(condition: isHost("localhost")
             && isPath("/api/archives/\(archiveId)/stamps/\(page)")
             && isMethodGET()
             && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
         HTTPStubsResponse(
+            data: responseData,
+            statusCode: 200,
+            headers: ["Content-Type": "application/json"]
+        )
+    }
+}
+
+private func stubAddArchiveStamp(
+    archiveId: String,
+    page: Int,
+    content: String,
+    position: String
+) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/archives/\(archiveId)/stamps/\(page)")
+            && containsQueryParams([
+                "content": content,
+                "position": position
+            ])
+            && isMethodPUT()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        HTTPStubsResponse(
             data: Data("""
             {
-              "result": [
-                { "id": "stamp", "position": "12,34", "content": "Comment" }
-              ]
+              "operation": "add_stamp",
+              "stamp_id": "created-stamp",
+              "success": 1
             }
             """.utf8),
             statusCode: 200,

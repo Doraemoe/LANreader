@@ -4,7 +4,6 @@ import SwiftUI
 import UIKit
 import Logging
 import ImageIO
-
 private final class PreviewAwareAnimatedImageView: AnimatedImageView {
     var onFirstFrameRendered: (() -> Void)?
     private var hasRenderedFirstFrame = false
@@ -61,12 +60,41 @@ enum StampOverlayPositioning {
             height: size.height
         )
     }
-}
 
-private extension ArchiveStampPosition {
-    init(horizontalPercentage: Double, verticalPercentage: Double) {
-        self.horizontalPercentage = horizontalPercentage
-        self.verticalPercentage = verticalPercentage
+    static func sourcePosition(
+        at point: CGPoint,
+        pageMode: PageMode,
+        imageSize: CGSize,
+        in bounds: CGRect
+    ) -> ArchiveStampPosition? {
+        guard let imageRect = aspectFitRect(imageSize: imageSize, in: bounds),
+              imageRect.contains(point) else {
+            return nil
+        }
+
+        let displayedHorizontal = min(
+            max(Double((point.x - imageRect.minX) / imageRect.width) * 100, 0),
+            100
+        )
+        let vertical = min(
+            max(Double((point.y - imageRect.minY) / imageRect.height) * 100, 0),
+            100
+        )
+        let sourceHorizontal: Double
+        switch pageMode {
+        case .left:
+            sourceHorizontal = min(displayedHorizontal / 2, 50.nextDown)
+        case .right:
+            sourceHorizontal = 50 + displayedHorizontal / 2
+        case .normal:
+            sourceHorizontal = displayedHorizontal
+        case .loading, .error:
+            return nil
+        }
+        return ArchiveStampPosition(
+            horizontalPercentage: sourceHorizontal,
+            verticalPercentage: vertical
+        )
     }
 }
 
@@ -294,6 +322,7 @@ class UIPageCell: UICollectionViewCell {
     }()
 
     private var observationTokens: Set<ObserveToken> = []
+    private var onCreateStamp: ((ArchiveStampPosition) -> Void)?
     private var fitPageWidth = false
     private var fitScreenHeightConstraint: NSLayoutConstraint!
     private var fitWidthAspectConstraint: NSLayoutConstraint?
@@ -324,6 +353,12 @@ class UIPageCell: UICollectionViewCell {
     }()
 
     private let stampOverlayView = StampOverlayView()
+
+    private lazy var stampCreationGesture: UILongPressGestureRecognizer = {
+        let gesture = UILongPressGestureRecognizer(target: self, action: #selector(handleStampLongPress(_:)))
+        gesture.delegate = self
+        return gesture
+    }()
 
     private let progressView: UIProgressView = {
         let view = UIProgressView(progressViewStyle: .default)
@@ -420,6 +455,7 @@ class UIPageCell: UICollectionViewCell {
     }
 
     private func setupStampOverlay() {
+        imageContainerView.addGestureRecognizer(stampCreationGesture)
         imageContainerView.addSubview(stampOverlayView)
         stampOverlayView.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
@@ -430,10 +466,16 @@ class UIPageCell: UICollectionViewCell {
         ])
     }
 
-    func configure(with store: StoreOf<PageFeature>, fitPageWidth: Bool, showsStamps: Bool) {
+    func configure(
+        with store: StoreOf<PageFeature>,
+        fitPageWidth: Bool,
+        showsStamps: Bool,
+        onCreateStamp: @escaping (ArchiveStampPosition) -> Void
+    ) {
         // Tear down any existing observation from a previous page assignment
         cancelSubscriptions()
         animatedImageView.resetFirstFrameState()
+        self.onCreateStamp = onCreateStamp
         self.fitPageWidth = fitPageWidth
         stampOverlayView.clear()
         stampOverlayView.isHidden = !showsStamps
@@ -453,6 +495,28 @@ class UIPageCell: UICollectionViewCell {
         if showsStamps {
             store.send(.loadStamps)
         }
+    }
+
+    @objc private func handleStampLongPress(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began else { return }
+        requestStampCreation(at: gesture.location(in: imageContainerView))
+    }
+
+    func requestStampCreation(at location: CGPoint) {
+        guard let store,
+              !store.cached,
+              store.imageLoaded,
+              store.errorMessage.isEmpty,
+              let imageSize = imageView.image?.size,
+              let position = StampOverlayPositioning.sourcePosition(
+                at: location,
+                pageMode: store.pageMode,
+                imageSize: imageSize,
+                in: imageContainerView.bounds
+              ) else {
+            return
+        }
+        onCreateStamp?(position)
     }
 
     func setFitPageWidth(_ fitPageWidth: Bool) {
@@ -696,6 +760,7 @@ class UIPageCell: UICollectionViewCell {
         cancelSubscriptions()
         animatedImageView.resetFirstFrameState()
         store = nil
+        onCreateStamp = nil
         imageView.image = nil
         imageView.isHidden = true
         animatedImageView.image = nil
@@ -715,5 +780,21 @@ class UIPageCell: UICollectionViewCell {
 extension UIPageCell: UIScrollViewDelegate {
     func viewForZooming(in scrollView: UIScrollView) -> UIView? {
         return imageContainerView
+    }
+}
+extension UIPageCell: UIGestureRecognizerDelegate {
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldReceive touch: UITouch
+    ) -> Bool {
+        var touchedView = touch.view
+        while let currentView = touchedView {
+            if currentView is UIControl {
+                return false
+            }
+            guard currentView !== imageContainerView else { break }
+            touchedView = currentView.superview
+        }
+        return true
     }
 }

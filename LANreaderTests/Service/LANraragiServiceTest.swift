@@ -153,6 +153,45 @@ class LANraragiServiceTest: XCTestCase {
         )
     }
 
+    func testAddStampUsesPutQueryContract() async throws {
+        try await configureVerifiedClient()
+
+        let response = Data("""
+        {
+          "operation": "add_stamp",
+          "stamp_id": "STAMPS_3_1777224824662",
+          "success": 1
+        }
+        """.utf8)
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/\(archiveId)/stamps/3")
+                && containsQueryParams([
+                    "content": "Translation note",
+                    "position": "12.5,34.0"
+                ])
+                && isMethodPUT()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")
+                && { $0.ohhttpStubs_httpBody == nil }) { _ in
+            HTTPStubsResponse(data: response, statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+
+        let actual = try await service.addStamp(
+            id: archiveId,
+            page: 3,
+            content: "Translation note",
+            position: "12.5,34.0"
+        ).value
+
+        XCTAssertEqual(
+            actual,
+            AddStampResponse(
+                operation: "add_stamp",
+                stampId: "STAMPS_3_1777224824662",
+                success: 1
+            )
+        )
+    }
+
     func testRetrieveArchiveThumbnailReturnsImageData() async throws {
         try await configureVerifiedClient()
 

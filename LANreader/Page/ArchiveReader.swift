@@ -29,6 +29,13 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
     }
 }
 
+public struct StampCreationTarget: Equatable, Sendable {
+    let pageId: String
+    let sourceArchiveId: String
+    let sourcePageNumber: Int
+    let position: ArchiveStampPosition
+}
+
 @Reducer public struct ArchiveReaderFeature: Sendable {
     private let logger = Logger(label: "ArchiveReaderFeature")
 
@@ -80,6 +87,9 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         /// Median aspect ratio of the pages measured so far, used to size pages that have not been
         /// measured yet. Pages within an archive are near-uniform, so this converges almost immediately.
         var estimatedPageAspectRatio: Double = ReaderPageLayout.defaultAspectRatio
+        var stampCreationTarget: StampCreationTarget?
+        var stampComment = ""
+        var stampCreationInFlight = false
 
         var allArchives: IdentifiedArrayOf<Shared<ArchiveItem>> = []
 
@@ -153,6 +163,16 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         case toggleControlUi(Bool?)
         case toggleDoublePageLayout
         case toggleStampsVisibility
+        case stampCreationRequested(pageId: String, position: ArchiveStampPosition)
+        case stampCommentChanged(String)
+        case cancelStampCreation
+        case confirmStampCreation
+        case stampCreated(
+            target: StampCreationTarget,
+            stamp: ArchiveStamp,
+            refreshedStamps: [ArchiveStamp]?
+        )
+        case stampCreationFailed
         case visiblePageChanged(Int)
         case chapterSelected(Int)
         case requestJump(Int, source: ReaderNavigationSource)
@@ -203,6 +223,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         case sliderPreviewThumbnailPolling
         case sliderPreviewLoad
         case primePageAspectRatios
+        case stampCreation
     }
 
     public var body: some ReducerOf<Self> {
@@ -413,6 +434,102 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
             case .toggleStampsVisibility:
                 let showsStamps = !state.showStamps
                 state.$showStamps.withLock { $0 = showsStamps }
+                return .none
+            case let .stampCreationRequested(pageId, position):
+                guard !state.cached,
+                      !state.stampCreationInFlight,
+                      let page = state.pages[id: pageId],
+                      !page.cached,
+                      page.imageLoaded else {
+                    return .none
+                }
+                state.stampCreationTarget = StampCreationTarget(
+                    pageId: pageId,
+                    sourceArchiveId: page.sourceArchiveId,
+                    sourcePageNumber: page.sourcePageNumber,
+                    position: position
+                )
+                state.stampComment = ""
+                return .none
+            case let .stampCommentChanged(comment):
+                state.stampComment = comment
+                return .none
+            case .cancelStampCreation:
+                state.stampCreationTarget = nil
+                state.stampComment = ""
+                return .none
+            case .confirmStampCreation:
+                guard let target = state.stampCreationTarget else { return .none }
+                let content = state.stampComment.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !content.isEmpty else { return .none }
+                state.stampCreationTarget = nil
+                state.stampComment = ""
+                state.stampCreationInFlight = true
+                let logContext = "archive=\(target.sourceArchiveId) page=\(target.sourcePageNumber)"
+                return .run { send in
+                    do {
+                        let response = try await service.addStamp(
+                            id: target.sourceArchiveId,
+                            page: target.sourcePageNumber,
+                            content: content,
+                            position: target.position.rawValue
+                        ).value
+                        guard response.success == 1 else {
+                            logger.warning("server rejected stamp creation. \(logContext)")
+                            await send(.stampCreationFailed)
+                            return
+                        }
+                        let stamp = ArchiveStamp(
+                            id: response.stampId,
+                            position: target.position.rawValue,
+                            content: content
+                        )
+                        let refreshedStamps: [ArchiveStamp]?
+                        do {
+                            refreshedStamps = try await service.retrieveStamps(
+                                id: target.sourceArchiveId,
+                                page: target.sourcePageNumber
+                            ).value.result
+                        } catch {
+                            logger.warning(
+                                "failed to refresh stamps after creation. \(logContext) \(error.localizedDescription)"
+                            )
+                            refreshedStamps = nil
+                        }
+                        await send(.stampCreated(
+                            target: target,
+                            stamp: stamp,
+                            refreshedStamps: refreshedStamps
+                        ))
+                    } catch {
+                        logger.warning("failed to create stamp. \(logContext) \(error.localizedDescription)")
+                        await send(.stampCreationFailed)
+                    }
+                }
+                .cancellable(id: CancelId.stampCreation, cancelInFlight: true)
+            case let .stampCreated(target, stamp, refreshedStamps):
+                state.stampCreationInFlight = false
+                guard let page = state.pages[id: target.pageId],
+                      page.sourceArchiveId == target.sourceArchiveId,
+                      page.sourcePageNumber == target.sourcePageNumber else {
+                    return .none
+                }
+                if let refreshedStamps {
+                    state.pages[id: target.pageId]?.stamps = refreshedStamps
+                    state.pages[id: target.pageId]?.stampsLoaded = true
+                } else {
+                    if !page.stamps.contains(stamp) {
+                        state.pages[id: target.pageId]?.stamps.append(stamp)
+                    }
+                    state.pages[id: target.pageId]?.stampsLoaded = false
+                    state.pages[id: target.pageId]?.stampsLoading = false
+                }
+                state.$showStamps.withLock { $0 = true }
+                guard refreshedStamps == nil else { return .none }
+                return .send(.page(.element(id: target.pageId, action: .loadStamps)))
+            case .stampCreationFailed:
+                state.stampCreationInFlight = false
+                state.errorMessage = String(localized: "archive.reader.stamp.add.failed")
                 return .none
             case let .visiblePageChanged(index):
                 guard !state.pages.isEmpty else { return .none }
@@ -922,6 +1039,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     .cancel(id: CancelId.sliderPreviewThumbnailQueue),
                     .cancel(id: CancelId.sliderPreviewThumbnailPolling),
                     .cancel(id: CancelId.sliderPreviewLoad),
+                    .cancel(id: CancelId.stampCreation),
                     state.cached ? .send(.loadCached) : .send(.extractArchive)
                 )
             case .loadNextArchive:
@@ -936,6 +1054,7 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
                     .cancel(id: CancelId.sliderPreviewThumbnailQueue),
                     .cancel(id: CancelId.sliderPreviewThumbnailPolling),
                     .cancel(id: CancelId.sliderPreviewLoad),
+                    .cancel(id: CancelId.stampCreation),
                     state.cached ? .send(.loadCached) : .send(.extractArchive)
                 )
             }
@@ -1232,6 +1351,9 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
         state.successMessage = ""
         state.currentTankoubonDetails = nil
         state.estimatedPageAspectRatio = ReaderPageLayout.defaultAspectRatio
+        state.stampCreationTarget = nil
+        state.stampComment = ""
+        state.stampCreationInFlight = false
         resetSliderPreviewArchiveState(state: &state)
     }
 }
@@ -1283,6 +1405,32 @@ struct ArchiveReader: View {
         .alert(
             $store.scope(\.$alert, action: \.alert)
         )
+        .alert(
+            "archive.reader.stamp.add.title",
+            isPresented: Binding(
+                get: { store.stampCreationTarget != nil },
+                set: { isPresented in
+                    if !isPresented, store.stampCreationTarget != nil {
+                        store.send(.cancelStampCreation)
+                    }
+                }
+            )
+        ) {
+            TextField(
+                "archive.reader.stamp.text.placeholder",
+                text: Binding(
+                    get: { store.stampComment },
+                    set: { store.send(.stampCommentChanged($0)) }
+                )
+            )
+            Button("cancel", role: .cancel) {
+                store.send(.cancelStampCreation)
+            }
+            Button("save") {
+                store.send(.confirmStampCreation)
+            }
+            .disabled(store.stampComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
         .overlay(content: {
             store.showAutoPageConfig ? AutomaticPageConfig(
                 store: store.scope(\.autoPage, action: \.autoPage)
