@@ -103,6 +103,7 @@ struct SettingsKey {
     static let autoPageInterval = "settings:read:auto:page:interval"
     static let doublePageLayout = "settings:read:double:page"
     static let fitPageWidth = "settings:read:fit:page:width"
+    static let showStamps = "settings:read:show:stamps"
     static let restartFinished = "settings:read:restart:finished"
 
     static let searchSort = "settings:search:sort"

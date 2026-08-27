@@ -1,6 +1,6 @@
 [
   {
-    "fingerprint" : "794f4b0a9cf32042592388d014f6a1ea987d323a",
+    "fingerprint" : "1866d1046fd4e54d590af6be5b23de6ca3af2bf9",
     "packageIdentity" : "swift-case-paths",
     "targetName" : "CasePathsMacros"
   },
@@ -10,7 +10,7 @@
     "targetName" : "ComposableArchitectureMacros"
   },
   {
-    "fingerprint" : "8dc1fbf2f6255a73dec53b4648164884898db4c5",
+    "fingerprint" : "5e0815746534ccaa9e20588ea35d3bb2cb27bab8",
     "packageIdentity" : "swift-dependencies",
     "targetName" : "DependenciesMacrosPlugin"
   },

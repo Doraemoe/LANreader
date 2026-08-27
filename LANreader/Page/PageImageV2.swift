@@ -24,6 +24,9 @@ import Logging
         let cached: Bool
         var imageLoaded = false
         var translationStatus = ""
+        var stamps: [ArchiveStamp] = []
+        var stampsLoading = false
+        var stampsLoaded = false
         /// Aspect ratio (height / width) of the source image, measured from the image header.
         var imageAspectRatio: Double?
 
@@ -69,6 +72,9 @@ import Logging
 
     public enum Action: Equatable {
         case load(Bool)
+        case loadStamps
+        case stampsLoaded([ArchiveStamp])
+        case stampsLoadFailed
         case setIsLoading(Bool)
         case subscribeToProgress(DownloadRequest)
         case cancelSubscribeImageProgress
@@ -86,11 +92,44 @@ import Logging
     public enum CancelId: Sendable {
         case imageLoad
         case imageProgress
+        case stampsLoad
     }
 
     public var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
+            case .loadStamps:
+                guard !state.cached, !state.stampsLoading, !state.stampsLoaded else {
+                    return .none
+                }
+                state.stampsLoading = true
+                let archiveId = state.sourceArchiveId
+                let page = state.sourcePageNumber
+                return .run { send in
+                    do {
+                        let response = try await service.retrieveStamps(id: archiveId, page: page).value
+                        await send(.stampsLoaded(response.result))
+                    } catch is CancellationError {
+                        return
+                    } catch {
+                        logger.warning(
+                            "failed to load stamps. archive=\(archiveId) page=\(page) \(error.localizedDescription)"
+                        )
+                        await send(.stampsLoadFailed)
+                    }
+                }
+                .cancellable(id: CancelId.stampsLoad, cancelInFlight: true)
+            case let .stampsLoaded(stamps):
+                state.stamps = stamps
+                state.stampsLoading = false
+                state.stampsLoaded = true
+                return .none
+            case .stampsLoadFailed:
+                // Older LANraragi servers do not expose stamps. Keep reading unaffected and avoid
+                // retrying the unsupported endpoint every time this cell becomes visible.
+                state.stampsLoading = false
+                state.stampsLoaded = true
+                return .none
             case let .subscribeToProgress(progress):
                 return .run(priority: .utility) { send in
                     var step: Double = 0.0
