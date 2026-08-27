@@ -201,6 +201,65 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testPageRetriesStampsAfterTransientFailure() async throws {
+        try await configureVerifiedClient()
+        stubArchiveStampsFailure(archiveId: "archive", page: 1, statusCode: 500)
+        let store = TestStore(
+            initialState: PageFeature.State(
+                archiveId: "archive",
+                pageId: "1",
+                pageNumber: 1
+            )
+        ) {
+            PageFeature()
+        }
+
+        await store.send(.loadStamps) {
+            $0.stampsLoading = true
+        }
+        await store.receive(.stampsLoadFailed(endpointUnavailable: false)) {
+            $0.stampsLoading = false
+        }
+
+        HTTPStubs.removeAllStubs()
+        stubArchiveStamps(archiveId: "archive", page: 1)
+        await store.send(.loadStamps) {
+            $0.stampsLoading = true
+        }
+        await store.receive(.stampsLoaded([
+            ArchiveStamp(id: "stamp", position: "12,34", content: "Comment")
+        ])) {
+            $0.stamps = [ArchiveStamp(id: "stamp", position: "12,34", content: "Comment")]
+            $0.stampsLoading = false
+            $0.stampsLoaded = true
+        }
+    }
+
+    @MainActor
+    func testPageDoesNotRetryUnavailableStampsEndpoint() async throws {
+        try await configureVerifiedClient()
+        stubArchiveStampsFailure(archiveId: "archive", page: 1, statusCode: 404)
+        let store = TestStore(
+            initialState: PageFeature.State(
+                archiveId: "archive",
+                pageId: "1",
+                pageNumber: 1
+            )
+        ) {
+            PageFeature()
+        }
+
+        await store.send(.loadStamps) {
+            $0.stampsLoading = true
+        }
+        await store.receive(.stampsLoadFailed(endpointUnavailable: true)) {
+            $0.stampsLoading = false
+            $0.stampsLoaded = true
+        }
+        await store.send(.loadStamps)
+    }
+
+    @MainActor
     func testCreateStampUsesSourcePageAndShowsRefreshedStamps() async throws {
         configureReaderDefaults()
         try await configureVerifiedClient()
@@ -213,17 +272,20 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         var initialState = makeState(archiveId: "TANK_test")
         initialState.$showStamps = Shared(value: false)
         var page = PageFeature.State(
-            archiveId: "TANK_test",
-            pageId: "page",
-            pageNumber: 8,
-            sourceArchiveId: "source",
-            sourcePageNumber: 4,
-            pageMode: .normal
+            archiveId: "TANK_test", pageId: "page", pageNumber: 8,
+            sourceArchiveId: "source", sourcePageNumber: 4,
+            pageMode: .left
         )
         page.imageLoaded = true
-        initialState.pages = [page]
+        var siblingPage = PageFeature.State(
+            archiveId: "TANK_test", pageId: "page", pageNumber: 8,
+            sourceArchiveId: "source", sourcePageNumber: 4,
+            pageMode: .right
+        )
+        siblingPage.imageLoaded = true
+        initialState.pages = [page, siblingPage]
         let target = StampCreationTarget(
-            pageId: page.id, sourceArchiveId: "source", sourcePageNumber: 4, position: position
+            sourceArchiveId: "source", sourcePageNumber: 4, position: position
         )
         let store = makeTestStore(initialState: initialState)
 
@@ -236,16 +298,18 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.send(.confirmStampCreation) {
             $0.stampCreationTarget = nil
             $0.stampComment = ""
-            $0.stampCreationInFlight = true
+            $0.stampRequestInFlight = true
         }
         await store.receive(.stampCreated(
             target: target,
             stamp: stamp,
             refreshedStamps: [stamp]
         )) {
-            $0.stampCreationInFlight = false
+            $0.stampRequestInFlight = false
             $0.pages[id: page.id]?.stamps = [stamp]
             $0.pages[id: page.id]?.stampsLoaded = true
+            $0.pages[id: siblingPage.id]?.stamps = [stamp]
+            $0.pages[id: siblingPage.id]?.stampsLoaded = true
             $0.$showStamps.withLock { $0 = true }
         }
     }
@@ -278,7 +342,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         siblingPage.stampsLoaded = true
         initialState.pages = [page, siblingPage]
         let target = StampEditingTarget(
-            pageId: page.id, stampId: "stamp", sourceArchiveId: "archive", sourcePageNumber: 1
+            stampId: "stamp", sourceArchiveId: "archive", sourcePageNumber: 1
         )
         let store = makeTestStore(initialState: initialState)
 
@@ -292,10 +356,10 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.send(.confirmStampEditing) {
             $0.stampEditingTarget = nil
             $0.stampEditText = ""
-            $0.stampMutationInFlight = true
+            $0.stampRequestInFlight = true
         }
         await store.receive(.stampUpdated(target: target, content: "Updated text")) {
-            $0.stampMutationInFlight = false
+            $0.stampRequestInFlight = false
             $0.pages[id: page.id]?.stamps = [
                 ArchiveStamp(id: "stamp", position: "25,30", content: "Updated text")
             ]
@@ -319,7 +383,6 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         page.stampsLoaded = true
         initialState.pages = [page]
         let target = StampEditingTarget(
-            pageId: page.id,
             stampId: "stamp",
             sourceArchiveId: "archive",
             sourcePageNumber: 1
@@ -333,11 +396,129 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.send(.confirmStampDeletion) {
             $0.stampEditingTarget = nil
             $0.stampEditText = ""
-            $0.stampMutationInFlight = true
+            $0.stampRequestInFlight = true
         }
         await store.receive(.stampDeleted(target: target)) {
-            $0.stampMutationInFlight = false
+            $0.stampRequestInFlight = false
             $0.pages[id: page.id]?.stamps = []
+        }
+    }
+
+    @MainActor
+    func testCreateStampFailureRestoresDraft() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let position = ArchiveStampPosition(rawValue: "25,30")!
+        stubAddArchiveStamp(
+            archiveId: "archive",
+            page: 1,
+            content: "Keep this text",
+            position: position.rawValue,
+            success: 0
+        )
+        var initialState = makeState()
+        var page = PageFeature.State(archiveId: "archive", pageId: "1", pageNumber: 1)
+        page.imageLoaded = true
+        initialState.pages = [page]
+        let target = StampCreationTarget(
+            sourceArchiveId: "archive",
+            sourcePageNumber: 1,
+            position: position
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.stampCreationRequested(pageId: page.id, position: position)) {
+            $0.stampCreationTarget = target
+        }
+        await store.send(.stampCommentChanged("  Keep this text\n")) {
+            $0.stampComment = "  Keep this text\n"
+        }
+        await store.send(.confirmStampCreation) {
+            $0.stampCreationTarget = nil
+            $0.stampComment = ""
+            $0.stampRequestInFlight = true
+        }
+        await store.receive(.stampCreationFailed(target: target, content: "  Keep this text\n")) {
+            $0.stampCreationTarget = target
+            $0.stampComment = "  Keep this text\n"
+            $0.stampRequestInFlight = false
+            $0.errorMessage = String(localized: "archive.reader.stamp.add.failed")
+        }
+    }
+
+    @MainActor
+    func testEditStampFailureRestoresDraft() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let stamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Original text")
+        stubUpdateArchiveStamp(stampId: "stamp", content: "Keep edit", success: 0)
+        var initialState = makeState()
+        var page = PageFeature.State(archiveId: "archive", pageId: "1", pageNumber: 1)
+        page.imageLoaded = true
+        page.stamps = [stamp]
+        initialState.pages = [page]
+        let target = StampEditingTarget(
+            stampId: "stamp",
+            sourceArchiveId: "archive",
+            sourcePageNumber: 1
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.stampEditingRequested(pageId: page.id, stamp: stamp)) {
+            $0.stampEditingTarget = target
+            $0.stampEditText = "Original text"
+        }
+        await store.send(.stampEditTextChanged("  Keep edit\n")) {
+            $0.stampEditText = "  Keep edit\n"
+        }
+        await store.send(.confirmStampEditing) {
+            $0.stampEditingTarget = nil
+            $0.stampEditText = ""
+            $0.stampRequestInFlight = true
+        }
+        await store.receive(.stampUpdateFailed(target: target, content: "  Keep edit\n")) {
+            $0.stampEditingTarget = target
+            $0.stampEditText = "  Keep edit\n"
+            $0.stampRequestInFlight = false
+            $0.errorMessage = String(localized: "archive.reader.stamp.update.failed")
+        }
+    }
+
+    @MainActor
+    func testDeleteStampFailureRestoresEditor() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let stamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Keep stamp")
+        stubDeleteArchiveStamp(stampId: "stamp", success: 0)
+        var initialState = makeState()
+        var page = PageFeature.State(archiveId: "archive", pageId: "1", pageNumber: 1)
+        page.imageLoaded = true
+        page.stamps = [stamp]
+        initialState.pages = [page]
+        let target = StampEditingTarget(
+            stampId: "stamp",
+            sourceArchiveId: "archive",
+            sourcePageNumber: 1
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.stampEditingRequested(pageId: page.id, stamp: stamp)) {
+            $0.stampEditingTarget = target
+            $0.stampEditText = "Keep stamp"
+        }
+        await store.send(.confirmStampDeletion) {
+            $0.stampEditingTarget = nil
+            $0.stampEditText = ""
+            $0.stampRequestInFlight = true
+        }
+        await store.receive(.stampDeleteFailed(target: target, content: "Keep stamp")) {
+            $0.stampEditingTarget = target
+            $0.stampEditText = "Keep stamp"
+            $0.stampRequestInFlight = false
+            $0.errorMessage = String(localized: "archive.reader.stamp.delete.failed")
         }
     }
 
@@ -413,7 +594,6 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         XCTAssertEqual(
             store.stampCreationTarget,
             StampCreationTarget(
-                pageId: page.id,
                 sourceArchiveId: "archive",
                 sourcePageNumber: 1,
                 position: ArchiveStampPosition(rawValue: "50,50")!
@@ -451,13 +631,17 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         let cell = try XCTUnwrap(controller.collectionView.visibleCells.first as? UIPageCell)
         let marker = try XCTUnwrap(stampMarker(in: cell, comment: "Editable"))
         XCTAssertTrue(marker.gestureRecognizers?.contains { $0 is UILongPressGestureRecognizer } == true)
+        let expandedHitPoint = marker.convert(
+            CGPoint(x: -5, y: marker.bounds.midY),
+            to: cell
+        )
+        XCTAssertTrue(cell.hitTest(expandedHitPoint, with: nil) === marker)
 
         cell.requestStampEditing(for: stamp)
 
         XCTAssertEqual(
             store.stampEditingTarget,
             StampEditingTarget(
-                pageId: page.id,
                 stampId: "stamp",
                 sourceArchiveId: "archive",
                 sourcePageNumber: 1
@@ -503,9 +687,9 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await waitForStampsToLoad(store, pageId: "1")
         controller.view.layoutIfNeeded()
         controller.collectionView.layoutIfNeeded()
-        await Task.yield()
 
-        let marker = try XCTUnwrap(stampMarker(in: cell, comment: "Comment"))
+        let renderedMarker = await waitForStampMarker(in: cell, comment: "Comment")
+        let marker = try XCTUnwrap(renderedMarker)
         XCTAssertFalse(isEffectivelyHidden(marker))
 
         marker.sendActions(for: .touchUpInside)
@@ -3034,6 +3218,18 @@ private func waitForStampsToLoad(
 }
 
 @MainActor
+private func waitForStampMarker(in view: UIView, comment: String) async -> UIButton? {
+    for _ in 0..<100 {
+        view.layoutIfNeeded()
+        if let marker = stampMarker(in: view, comment: comment) {
+            return marker
+        }
+        try? await Task<Never, Never>.sleep(for: .milliseconds(10))
+    }
+    return nil
+}
+
+@MainActor
 private func stampMarker(in view: UIView, comment: String) -> UIButton? {
     firstDescendant(in: view) { button in
         button.accessibilityLabel == comment
@@ -3645,11 +3841,25 @@ private func stubArchiveStamps(
     }
 }
 
+private func stubArchiveStampsFailure(archiveId: String, page: Int, statusCode: Int32) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/archives/\(archiveId)/stamps/\(page)")
+            && isMethodGET()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        HTTPStubsResponse(
+            data: Data("{\"error\":\"stamps unavailable\"}".utf8),
+            statusCode: statusCode,
+            headers: ["Content-Type": "application/json"]
+        )
+    }
+}
+
 private func stubAddArchiveStamp(
     archiveId: String,
     page: Int,
     content: String,
-    position: String
+    position: String,
+    success: Int = 1
 ) {
     stub(condition: isHost("localhost")
             && isPath("/api/archives/\(archiveId)/stamps/\(page)")
@@ -3664,7 +3874,7 @@ private func stubAddArchiveStamp(
             {
               "operation": "add_stamp",
               "stamp_id": "created-stamp",
-              "success": 1
+              "success": \(success)
             }
             """.utf8),
             statusCode: 200,
@@ -3673,7 +3883,7 @@ private func stubAddArchiveStamp(
     }
 }
 
-private func stubUpdateArchiveStamp(stampId: String, content: String) {
+private func stubUpdateArchiveStamp(stampId: String, content: String, success: Int = 1) {
     stub(condition: isHost("localhost")
             && isPath("/api/stamps/\(stampId)")
             && containsQueryParams(["content": content])
@@ -3683,7 +3893,7 @@ private func stubUpdateArchiveStamp(stampId: String, content: String) {
             data: Data("""
             {
               "operation": "update_stamp",
-              "success": 1
+              "success": \(success)
             }
             """.utf8),
             statusCode: 200,
@@ -3692,7 +3902,7 @@ private func stubUpdateArchiveStamp(stampId: String, content: String) {
     }
 }
 
-private func stubDeleteArchiveStamp(stampId: String) {
+private func stubDeleteArchiveStamp(stampId: String, success: Int = 1) {
     stub(condition: isHost("localhost")
             && isPath("/api/stamps/\(stampId)")
             && isMethodDELETE()
@@ -3701,7 +3911,7 @@ private func stubDeleteArchiveStamp(stampId: String) {
             data: Data("""
             {
               "operation": "delete_stamp",
-              "success": 1
+              "success": \(success)
             }
             """.utf8),
             statusCode: 200,

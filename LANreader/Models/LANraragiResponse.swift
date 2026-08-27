@@ -48,12 +48,10 @@ struct ArchiveStampsResponse: Decodable, Equatable, Sendable {
 }
 
 struct AddStampResponse: Decodable, Equatable, Sendable {
-    let operation: String?
     let stampId: String?
     let success: Int
 
     private enum CodingKeys: String, CodingKey {
-        case operation
         case stampId = "stamp_id"
         case success
     }

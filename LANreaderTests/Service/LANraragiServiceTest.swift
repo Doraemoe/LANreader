@@ -185,7 +185,6 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(
             actual,
             AddStampResponse(
-                operation: "add_stamp",
                 stampId: "STAMPS_3_1777224824662",
                 success: 1
             )

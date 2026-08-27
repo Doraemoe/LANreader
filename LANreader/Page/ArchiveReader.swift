@@ -30,14 +30,12 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
 }
 
 public struct StampCreationTarget: Equatable, Sendable {
-    let pageId: String
     let sourceArchiveId: String
     let sourcePageNumber: Int
     let position: ArchiveStampPosition
 }
 
 public struct StampEditingTarget: Equatable, Sendable {
-    let pageId: String
     let stampId: String
     let sourceArchiveId: String
     let sourcePageNumber: Int
@@ -96,10 +94,9 @@ public struct StampEditingTarget: Equatable, Sendable {
         var estimatedPageAspectRatio: Double = ReaderPageLayout.defaultAspectRatio
         var stampCreationTarget: StampCreationTarget?
         var stampComment = ""
-        var stampCreationInFlight = false
         var stampEditingTarget: StampEditingTarget?
         var stampEditText = ""
-        var stampMutationInFlight = false
+        var stampRequestInFlight = false
 
         var allArchives: IdentifiedArrayOf<Shared<ArchiveItem>> = []
 
@@ -182,16 +179,16 @@ public struct StampEditingTarget: Equatable, Sendable {
             stamp: ArchiveStamp,
             refreshedStamps: [ArchiveStamp]?
         )
-        case stampCreationFailed
+        case stampCreationFailed(target: StampCreationTarget, content: String)
         case stampEditingRequested(pageId: String, stamp: ArchiveStamp)
         case stampEditTextChanged(String)
         case cancelStampEditing
         case confirmStampEditing
         case confirmStampDeletion
         case stampUpdated(target: StampEditingTarget, content: String)
-        case stampUpdateFailed
+        case stampUpdateFailed(target: StampEditingTarget, content: String)
         case stampDeleted(target: StampEditingTarget)
-        case stampDeleteFailed
+        case stampDeleteFailed(target: StampEditingTarget, content: String)
         case visiblePageChanged(Int)
         case chapterSelected(Int)
         case requestJump(Int, source: ReaderNavigationSource)
@@ -457,8 +454,7 @@ public struct StampEditingTarget: Equatable, Sendable {
                 return .none
             case let .stampCreationRequested(pageId, position):
                 guard !state.cached,
-                      !state.stampCreationInFlight,
-                      !state.stampMutationInFlight,
+                      !state.stampRequestInFlight,
                       state.stampEditingTarget == nil,
                       let page = state.pages[id: pageId],
                       !page.cached,
@@ -466,7 +462,6 @@ public struct StampEditingTarget: Equatable, Sendable {
                     return .none
                 }
                 state.stampCreationTarget = StampCreationTarget(
-                    pageId: pageId,
                     sourceArchiveId: page.sourceArchiveId,
                     sourcePageNumber: page.sourcePageNumber,
                     position: position
@@ -482,11 +477,12 @@ public struct StampEditingTarget: Equatable, Sendable {
                 return .none
             case .confirmStampCreation:
                 guard let target = state.stampCreationTarget else { return .none }
-                let content = state.stampComment.trimmingCharacters(in: .whitespacesAndNewlines)
+                let draft = state.stampComment
+                let content = draft.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !content.isEmpty else { return .none }
                 state.stampCreationTarget = nil
                 state.stampComment = ""
-                state.stampCreationInFlight = true
+                state.stampRequestInFlight = true
                 let logContext = "archive=\(target.sourceArchiveId) page=\(target.sourcePageNumber)"
                 return .run { send in
                     do {
@@ -498,7 +494,7 @@ public struct StampEditingTarget: Equatable, Sendable {
                         ).value
                         guard response.success == 1 else {
                             logger.warning("server rejected stamp creation. \(logContext)")
-                            await send(.stampCreationFailed)
+                            await send(.stampCreationFailed(target: target, content: draft))
                             return
                         }
                         let stamp = ArchiveStamp(
@@ -525,38 +521,48 @@ public struct StampEditingTarget: Equatable, Sendable {
                         ))
                     } catch {
                         logger.warning("failed to create stamp. \(logContext) \(error.localizedDescription)")
-                        await send(.stampCreationFailed)
+                        await send(.stampCreationFailed(target: target, content: draft))
                     }
                 }
                 .cancellable(id: CancelId.stampCreation, cancelInFlight: true)
             case let .stampCreated(target, stamp, refreshedStamps):
-                state.stampCreationInFlight = false
-                guard let page = state.pages[id: target.pageId],
-                      page.sourceArchiveId == target.sourceArchiveId,
-                      page.sourcePageNumber == target.sourcePageNumber else {
+                state.stampRequestInFlight = false
+                let matchingPageIds = state.pages.compactMap { page in
+                    page.sourceArchiveId == target.sourceArchiveId
+                        && page.sourcePageNumber == target.sourcePageNumber
+                        ? page.id
+                        : nil
+                }
+                guard !matchingPageIds.isEmpty else {
                     return .none
                 }
-                if let refreshedStamps {
-                    state.pages[id: target.pageId]?.stamps = refreshedStamps
-                    state.pages[id: target.pageId]?.stampsLoaded = true
-                } else {
-                    if !page.stamps.contains(stamp) {
-                        state.pages[id: target.pageId]?.stamps.append(stamp)
+                for pageId in matchingPageIds {
+                    if let refreshedStamps {
+                        state.pages[id: pageId]?.stamps = refreshedStamps
+                        state.pages[id: pageId]?.stampsLoaded = true
+                        state.pages[id: pageId]?.stampsLoading = false
+                    } else {
+                        if state.pages[id: pageId]?.stamps.contains(stamp) == false {
+                            state.pages[id: pageId]?.stamps.append(stamp)
+                        }
+                        state.pages[id: pageId]?.stampsLoaded = false
+                        state.pages[id: pageId]?.stampsLoading = false
                     }
-                    state.pages[id: target.pageId]?.stampsLoaded = false
-                    state.pages[id: target.pageId]?.stampsLoading = false
                 }
                 state.$showStamps.withLock { $0 = true }
                 guard refreshedStamps == nil else { return .none }
-                return .send(.page(.element(id: target.pageId, action: .loadStamps)))
-            case .stampCreationFailed:
-                state.stampCreationInFlight = false
+                return .merge(matchingPageIds.map { pageId in
+                    .send(.page(.element(id: pageId, action: .loadStamps)))
+                })
+            case let .stampCreationFailed(target, content):
+                state.stampRequestInFlight = false
+                state.stampCreationTarget = target
+                state.stampComment = content
                 state.errorMessage = String(localized: "archive.reader.stamp.add.failed")
                 return .none
             case let .stampEditingRequested(pageId, stamp):
                 guard !state.cached,
-                      !state.stampCreationInFlight,
-                      !state.stampMutationInFlight,
+                      !state.stampRequestInFlight,
                       state.stampCreationTarget == nil,
                       let stampId = stamp.id,
                       !stampId.isEmpty,
@@ -566,7 +572,6 @@ public struct StampEditingTarget: Equatable, Sendable {
                     return .none
                 }
                 state.stampEditingTarget = StampEditingTarget(
-                    pageId: pageId,
                     stampId: stampId,
                     sourceArchiveId: page.sourceArchiveId,
                     sourcePageNumber: page.sourcePageNumber
@@ -582,48 +587,50 @@ public struct StampEditingTarget: Equatable, Sendable {
                 return .none
             case .confirmStampEditing:
                 guard let target = state.stampEditingTarget else { return .none }
-                let content = state.stampEditText.trimmingCharacters(in: .whitespacesAndNewlines)
+                let draft = state.stampEditText
+                let content = draft.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !content.isEmpty else { return .none }
                 state.stampEditingTarget = nil
                 state.stampEditText = ""
-                state.stampMutationInFlight = true
+                state.stampRequestInFlight = true
                 return .run { send in
                     do {
                         let response = try await service.updateStamp(id: target.stampId, content: content).value
                         guard response.success == 1 else {
                             logger.warning("server rejected stamp update. stamp=\(target.stampId)")
-                            await send(.stampUpdateFailed)
+                            await send(.stampUpdateFailed(target: target, content: draft))
                             return
                         }
                         await send(.stampUpdated(target: target, content: content))
                     } catch {
                         logger.warning("failed to update stamp. stamp=\(target.stampId) \(error.localizedDescription)")
-                        await send(.stampUpdateFailed)
+                        await send(.stampUpdateFailed(target: target, content: draft))
                     }
                 }
                 .cancellable(id: CancelId.stampMutation, cancelInFlight: true)
             case .confirmStampDeletion:
                 guard let target = state.stampEditingTarget else { return .none }
+                let content = state.stampEditText
                 state.stampEditingTarget = nil
                 state.stampEditText = ""
-                state.stampMutationInFlight = true
+                state.stampRequestInFlight = true
                 return .run { send in
                     do {
                         let response = try await service.deleteStamp(id: target.stampId).value
                         guard response.success == 1 else {
                             logger.warning("server rejected stamp deletion. stamp=\(target.stampId)")
-                            await send(.stampDeleteFailed)
+                            await send(.stampDeleteFailed(target: target, content: content))
                             return
                         }
                         await send(.stampDeleted(target: target))
                     } catch {
                         logger.warning("failed to delete stamp. stamp=\(target.stampId) \(error.localizedDescription)")
-                        await send(.stampDeleteFailed)
+                        await send(.stampDeleteFailed(target: target, content: content))
                     }
                 }
                 .cancellable(id: CancelId.stampMutation, cancelInFlight: true)
             case let .stampUpdated(target, content):
-                state.stampMutationInFlight = false
+                state.stampRequestInFlight = false
                 for pageId in state.pages.ids {
                     guard let page = state.pages[id: pageId],
                           page.sourceArchiveId == target.sourceArchiveId,
@@ -639,12 +646,14 @@ public struct StampEditingTarget: Equatable, Sendable {
                     )
                 }
                 return .none
-            case .stampUpdateFailed:
-                state.stampMutationInFlight = false
+            case let .stampUpdateFailed(target, content):
+                state.stampRequestInFlight = false
+                state.stampEditingTarget = target
+                state.stampEditText = content
                 state.errorMessage = String(localized: "archive.reader.stamp.update.failed")
                 return .none
             case let .stampDeleted(target):
-                state.stampMutationInFlight = false
+                state.stampRequestInFlight = false
                 for pageId in state.pages.ids {
                     guard let page = state.pages[id: pageId],
                           page.sourceArchiveId == target.sourceArchiveId,
@@ -654,8 +663,10 @@ public struct StampEditingTarget: Equatable, Sendable {
                     state.pages[id: pageId]?.stamps.removeAll { $0.id == target.stampId }
                 }
                 return .none
-            case .stampDeleteFailed:
-                state.stampMutationInFlight = false
+            case let .stampDeleteFailed(target, content):
+                state.stampRequestInFlight = false
+                state.stampEditingTarget = target
+                state.stampEditText = content
                 state.errorMessage = String(localized: "archive.reader.stamp.delete.failed")
                 return .none
             case let .visiblePageChanged(index):
@@ -1482,10 +1493,9 @@ public struct StampEditingTarget: Equatable, Sendable {
         state.estimatedPageAspectRatio = ReaderPageLayout.defaultAspectRatio
         state.stampCreationTarget = nil
         state.stampComment = ""
-        state.stampCreationInFlight = false
         state.stampEditingTarget = nil
         state.stampEditText = ""
-        state.stampMutationInFlight = false
+        state.stampRequestInFlight = false
         resetSliderPreviewArchiveState(state: &state)
     }
 }

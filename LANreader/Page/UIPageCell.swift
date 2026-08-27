@@ -316,11 +316,6 @@ class UIPageCell: UICollectionViewCell {
     }
 
     func requestStampEditing(for stamp: ArchiveStamp) {
-        guard let store,
-              !store.cached,
-              stamp.id?.isEmpty == false else {
-            return
-        }
         onEditStamp?(stamp)
     }
 

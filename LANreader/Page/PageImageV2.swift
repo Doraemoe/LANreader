@@ -74,7 +74,7 @@ import Logging
         case load(Bool)
         case loadStamps
         case stampsLoaded([ArchiveStamp])
-        case stampsLoadFailed
+        case stampsLoadFailed(endpointUnavailable: Bool)
         case setIsLoading(Bool)
         case subscribeToProgress(DownloadRequest)
         case cancelSubscribeImageProgress
@@ -115,7 +115,7 @@ import Logging
                         logger.warning(
                             "failed to load stamps. archive=\(archiveId) page=\(page) \(error.localizedDescription)"
                         )
-                        await send(.stampsLoadFailed)
+                        await send(.stampsLoadFailed(endpointUnavailable: error.asAFError?.responseCode == 404))
                     }
                 }
                 .cancellable(id: CancelId.stampsLoad, cancelInFlight: true)
@@ -124,11 +124,11 @@ import Logging
                 state.stampsLoading = false
                 state.stampsLoaded = true
                 return .none
-            case .stampsLoadFailed:
-                // Older LANraragi servers do not expose stamps. Keep reading unaffected and avoid
-                // retrying the unsupported endpoint every time this cell becomes visible.
+            case let .stampsLoadFailed(endpointUnavailable):
                 state.stampsLoading = false
-                state.stampsLoaded = true
+                // Avoid repeated requests only when the server does not expose this endpoint.
+                // Transient failures remain retryable when stamps are shown again.
+                state.stampsLoaded = endpointUnavailable
                 return .none
             case let .subscribeToProgress(progress):
                 return .run(priority: .utility) { send in
