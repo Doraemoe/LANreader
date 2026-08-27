@@ -687,9 +687,9 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await waitForStampsToLoad(store, pageId: "1")
         controller.view.layoutIfNeeded()
         controller.collectionView.layoutIfNeeded()
-        await Task.yield()
 
-        let marker = try XCTUnwrap(stampMarker(in: cell, comment: "Comment"))
+        let renderedMarker = await waitForStampMarker(in: cell, comment: "Comment")
+        let marker = try XCTUnwrap(renderedMarker)
         XCTAssertFalse(isEffectivelyHidden(marker))
 
         marker.sendActions(for: .touchUpInside)
@@ -3215,6 +3215,18 @@ private func waitForStampsToLoad(
     for _ in 0..<100 where store.pages[id: pageId]?.stampsLoaded != true {
         try? await Task<Never, Never>.sleep(for: .milliseconds(10))
     }
+}
+
+@MainActor
+private func waitForStampMarker(in view: UIView, comment: String) async -> UIButton? {
+    for _ in 0..<100 {
+        view.layoutIfNeeded()
+        if let marker = stampMarker(in: view, comment: comment) {
+            return marker
+        }
+        try? await Task<Never, Never>.sleep(for: .milliseconds(10))
+    }
+    return nil
 }
 
 @MainActor
