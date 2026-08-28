@@ -2044,15 +2044,17 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testCacheFeatureLoadShowsStoredFileProgressAndCanCancelPolling() async throws {
+    func testCacheFeatureLoadCountsDistinctValidPagesAndCanCancelPolling() async throws {
         let id = "cacheProgressPolling"
         let cacheFolder = LANraragiService.cachePath!.appendingPathComponent(id, conformingTo: .folder)
         try? FileManager.default.removeItem(at: cacheFolder)
         try FileManager.default.createDirectory(at: cacheFolder, withIntermediateDirectories: true)
-        _ = FileManager.default.createFile(
-            atPath: cacheFolder.appendingPathComponent("1.jpg").path,
-            contents: Data()
-        )
+        for filename in ["0.jpg", "1.jpg", "1.png", "4.jpg", "notes.txt"] {
+            _ = FileManager.default.createFile(
+                atPath: cacheFolder.appendingPathComponent(filename).path,
+                contents: Data()
+            )
+        }
         addTeardownBlock {
             try? FileManager.default.removeItem(at: cacheFolder)
         }

@@ -94,10 +94,15 @@ import NotificationBannerSwift
                     ) else {
                         continue
                     }
-                    let downloadedPages = content.filter { url in
-                        !url.hasDirectoryPath
-                            && Int(url.deletingPathExtension().lastPathComponent) != nil
-                    }.count
+                    let downloadedPages = Set(content.compactMap { url -> Int? in
+                        guard !url.hasDirectoryPath,
+                              let pageNumber = Int(url.deletingPathExtension().lastPathComponent),
+                              pageNumber > 0,
+                              pageNumber <= progress.total else {
+                            return nil
+                        }
+                        return pageNumber
+                    }).count
                     if downloadedPages >= progress.total {
                         inProgress.removeValue(forKey: id)
                         _ = try? database.updateCached(id)
