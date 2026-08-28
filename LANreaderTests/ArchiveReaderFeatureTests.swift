@@ -2026,12 +2026,10 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             lastUpdate: Date(timeIntervalSince1970: 1)
         )
         try database.saveCache(&cache)
-        let clock = TestClock()
         let store = TestStore(initialState: CacheFeature.State()) {
             CacheFeature()
         } withDependencies: {
             $0.appDatabase = database
-            $0.continuousClock = clock
         }
 
         await store.send(.load) {
@@ -2042,9 +2040,109 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 )
             ]
         }
-        await store.receive(.refreshProgress)
-        await clock.advance(by: .seconds(2))
         await store.finish()
+    }
+
+    @MainActor
+    func testCacheFeatureLoadShowsStoredFileProgressAndCanCancelPolling() async throws {
+        let id = "cacheProgressPolling"
+        let cacheFolder = LANraragiService.cachePath!.appendingPathComponent(id, conformingTo: .folder)
+        try? FileManager.default.removeItem(at: cacheFolder)
+        try FileManager.default.createDirectory(at: cacheFolder, withIntermediateDirectories: true)
+        _ = FileManager.default.createFile(
+            atPath: cacheFolder.appendingPathComponent("1.jpg").path,
+            contents: Data()
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: cacheFolder)
+        }
+
+        let database = try makeInMemoryDatabase()
+        var cache = ArchiveCache(
+            id: id,
+            title: "Archive",
+            tags: "",
+            thumbnail: nil,
+            cached: false,
+            totalPages: 3,
+            toc: nil,
+            lastUpdate: Date(timeIntervalSince1970: 1)
+        )
+        try database.saveCache(&cache)
+        let store = TestStore(initialState: CacheFeature.State()) {
+            CacheFeature()
+        } withDependencies: {
+            $0.appDatabase = database
+            $0.continuousClock = TestClock()
+        }
+
+        let task = await store.send(.load) {
+            $0.archives = [
+                GridFeature.State(
+                    archive: Shared(value: cache.toArchiveItem()),
+                    cached: true
+                )
+            ]
+            $0.downloading[id] = PageProgress(current: 0, total: 3)
+        }
+        await store.receive(.updateProgressInDownloading(id, 1)) {
+            $0.downloading[id]?.current = 1
+        }
+        await task.cancel()
+
+        XCTAssertEqual(try database.readCache(id)?.cached, false)
+    }
+
+    @MainActor
+    func testCacheFeatureLoadMarksCompleteDownloadWithoutAnotherPollingDelay() async throws {
+        let id = "cacheProgressComplete"
+        let cacheFolder = LANraragiService.cachePath!.appendingPathComponent(id, conformingTo: .folder)
+        try? FileManager.default.removeItem(at: cacheFolder)
+        try FileManager.default.createDirectory(at: cacheFolder, withIntermediateDirectories: true)
+        for page in 1...2 {
+            _ = FileManager.default.createFile(
+                atPath: cacheFolder.appendingPathComponent("\(page).jpg").path,
+                contents: Data()
+            )
+        }
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: cacheFolder)
+        }
+
+        let database = try makeInMemoryDatabase()
+        var cache = ArchiveCache(
+            id: id,
+            title: "Archive",
+            tags: "",
+            thumbnail: nil,
+            cached: false,
+            totalPages: 2,
+            toc: nil,
+            lastUpdate: Date(timeIntervalSince1970: 1)
+        )
+        try database.saveCache(&cache)
+        let store = TestStore(initialState: CacheFeature.State()) {
+            CacheFeature()
+        } withDependencies: {
+            $0.appDatabase = database
+            $0.continuousClock = TestClock()
+        }
+
+        let task = await store.send(.load) {
+            $0.archives = [
+                GridFeature.State(
+                    archive: Shared(value: cache.toArchiveItem()),
+                    cached: true
+                )
+            ]
+            $0.downloading[id] = PageProgress(current: 0, total: 2)
+        }
+        await store.receive(.removeItemFromDownloading(id)) {
+            $0.downloading.removeValue(forKey: id)
+        }
+        await task.finish()
+
+        XCTAssertEqual(try database.readCache(id)?.cached, true)
     }
 
     @MainActor
