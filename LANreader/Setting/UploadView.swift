@@ -9,6 +9,7 @@ import Logging
     public struct State: Equatable {
         var urls = ""
         var jobDetails: [Int: DownloadJob] = .init()
+        var hasLoadedJobs = false
         var isQueueing = false
         var retryingJobIDs: Set<Int> = []
         var retiredJobIDs: Set<Int> = []
@@ -20,13 +21,19 @@ import Logging
         case queueDownloadFinished([DownloadJob])
         case retryDownload(Int)
         case retryDownloadFinished(originalJobID: Int, jobs: [DownloadJob])
-        case addJobDetails([DownloadJob])
+        case jobsLoaded([DownloadJob], expiredJobIDs: Set<Int>)
+        case jobStatusUpdated(DownloadJob)
         case checkJobStatus
+    }
+
+    private enum CancelID {
+        case jobPolling
     }
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
     @Dependency(\.continuousClock) var clock
+    @Dependency(\.date.now) var now
 
     public var body: some Reducer<State, Action> {
         BindingReducer()
@@ -44,7 +51,7 @@ import Logging
                     state.retiredJobIDs.remove($0.id)
                     state.jobDetails[$0.id] = $0
                 }
-                return .none
+                return jobs.isEmpty ? .none : .send(.checkJobStatus)
             case let .retryDownload(id):
                 guard let job = state.jobDetails[id],
                       job.isError,
@@ -74,12 +81,22 @@ import Logging
                         state.jobDetails[$0.id] = $0
                     }
                 }
-                return .none
-            case let .addJobDetails(jobs):
+                return jobs.isEmpty ? .none : .send(.checkJobStatus)
+            case let .jobsLoaded(jobs, expiredJobIDs):
+                state.hasLoadedJobs = true
+                expiredJobIDs.forEach {
+                    state.retiredJobIDs.insert($0)
+                    state.jobDetails.removeValue(forKey: $0)
+                }
                 jobs.forEach {
                     if !state.retiredJobIDs.contains($0.id) {
                         state.jobDetails[$0.id] = $0
                     }
+                }
+                return .none
+            case let .jobStatusUpdated(job):
+                if !state.retiredJobIDs.contains(job.id) {
+                    state.jobDetails[job.id] = job
                 }
                 return .none
             case .checkJobStatus:
@@ -90,34 +107,63 @@ import Logging
                             downloadJobs = try database.readAllDownloadJobs()
                         } catch {
                             logger.error("failed to retrieve download jobs from db. \(error)")
-                            downloadJobs = .init()
+                            await send(.jobsLoaded([], expiredJobIDs: []))
+                            try await clock.sleep(for: .seconds(5))
+                            continue
                         }
-                        var updatedJobs: [DownloadJob] = .init()
+
+                        var currentJobs: [DownloadJob] = []
+                        var expiredJobIDs: Set<Int> = []
                         for job in downloadJobs {
-                            if job.lastUpdate.addingTimeInterval(3600) < Date() {
-                                _ = try? database.deleteDownloadJobs(job.id)
-                            }
-                            if !job.isSuccess && !job.isError {
+                            if job.lastUpdate.addingTimeInterval(3600) < now {
+                                expiredJobIDs.insert(job.id)
                                 do {
-                                    let response = try await service.checkJobStatus(id: job.id).value
-                                    var downloadJob = response.toDownloadJob(url: job.url)
-                                    updatedJobs.append(downloadJob)
-                                    do {
-                                        try database.saveDownloadJob(&downloadJob)
-                                    } catch {
-                                        logger.error("failed to save updated job to database. id=\(job.id), \(error)")
-                                    }
+                                    _ = try database.deleteDownloadJobs(job.id)
                                 } catch {
-                                    logger.error("failed to check job status. id=\(job.id) \(error)")
+                                    logger.error("failed to delete expired download job. id=\(job.id), \(error)")
                                 }
-                            } else {
-                                updatedJobs.append(job)
+                                continue
+                            }
+                            currentJobs.append(job)
+                        }
+                        await send(.jobsLoaded(currentJobs, expiredJobIDs: expiredJobIDs))
+
+                        let unfinishedJobs = currentJobs.filter { !$0.isSuccess && !$0.isError }
+                        guard !unfinishedJobs.isEmpty else {
+                            return
+                        }
+
+                        var shouldContinuePolling = false
+                        for job in unfinishedJobs {
+                            do {
+                                let response = try await service.checkJobStatus(id: job.id).value
+                                var downloadJob = response.toDownloadJob(url: job.url)
+                                downloadJob.lastUpdate = now
+                                do {
+                                    try database.saveDownloadJob(&downloadJob)
+                                } catch {
+                                    logger.error("failed to save updated job to database. id=\(job.id), \(error)")
+                                }
+                                await send(.jobStatusUpdated(downloadJob))
+                                if !downloadJob.isSuccess && !downloadJob.isError {
+                                    shouldContinuePolling = true
+                                }
+                            } catch {
+                                if Task.isCancelled {
+                                    return
+                                }
+                                logger.error("failed to check job status. id=\(job.id) \(error)")
+                                shouldContinuePolling = true
                             }
                         }
-                        await send(.addJobDetails(updatedJobs))
+
+                        guard shouldContinuePolling else {
+                            return
+                        }
                         try await clock.sleep(for: .seconds(5))
                     } while true
                 }
+                .cancellable(id: CancelID.jobPolling, cancelInFlight: true)
             case .binding:
                 return .none
             }
@@ -140,7 +186,7 @@ import Logging
                             isSuccess: false,
                             isError: false,
                             message: "",
-                            lastUpdate: Date()
+                            lastUpdate: now
                         )
                         try? database.saveDownloadJob(&downloadJob)
                         jobs.append(downloadJob)
@@ -178,7 +224,7 @@ struct UploadView: View {
             }
         }
         .task {
-            store.send(.checkJobStatus)
+            await store.send(.checkJobStatus).finish()
         }
         .toolbar(.hidden, for: .tabBar)
     }
@@ -251,8 +297,12 @@ struct UploadView: View {
                 jobCard(detail)
             }
 
-            if sortedJobs.isEmpty {
+            if sortedJobs.isEmpty && store.hasLoadedJobs {
                 emptyJobsView
+            } else if sortedJobs.isEmpty {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding(16)
             }
         }
     }
