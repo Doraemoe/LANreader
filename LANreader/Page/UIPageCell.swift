@@ -118,6 +118,7 @@ class UIPageCell: UICollectionViewCell {
     private var onCreateStamp: ((ArchiveStampPosition) -> Void)?
     private var onEditStamp: ((ArchiveStamp) -> Void)?
     private var fitPageWidth = false
+    private var allowsStampCreation = false
     private var fitScreenHeightConstraint: NSLayoutConstraint!
     private var fitWidthAspectConstraint: NSLayoutConstraint?
 
@@ -299,7 +300,8 @@ class UIPageCell: UICollectionViewCell {
     }
 
     func requestStampCreation(at location: CGPoint) {
-        guard let store,
+        guard allowsStampCreation,
+              let store,
               !store.cached,
               store.imageLoaded,
               store.errorMessage.isEmpty,
@@ -332,6 +334,11 @@ class UIPageCell: UICollectionViewCell {
             store?.send(.loadStamps)
             updateStampOverlay()
         }
+    }
+
+    func setAllowsStampCreation(_ allowsStampCreation: Bool) {
+        self.allowsStampCreation = allowsStampCreation
+        stampCreationGesture.isEnabled = allowsStampCreation
     }
 
     func setupObserve(store: StoreOf<PageFeature>) {
@@ -578,6 +585,8 @@ class UIPageCell: UICollectionViewCell {
         scrollView.zoomScale = 1.0
         scrollView.setContentOffset(.zero, animated: false)
         fitPageWidth = false
+        allowsStampCreation = false
+        stampCreationGesture.isEnabled = false
         stampOverlayView.clear()
         stampOverlayView.isHidden = true
         resetImageLayout()

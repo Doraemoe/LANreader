@@ -97,6 +97,7 @@ public struct StampEditingTarget: Equatable, Sendable {
         var stampEditingTarget: StampEditingTarget?
         var stampEditText = ""
         var stampRequestInFlight = false
+        var stampsSupported: Bool?
 
         var allArchives: IdentifiedArrayOf<Shared<ArchiveItem>> = []
 
@@ -152,6 +153,14 @@ public struct StampEditingTarget: Equatable, Sendable {
         var canToggleDoublePageLayout: Bool {
             !pages.isEmpty && resolvedReadDirection != .upDown && !splitImage
         }
+
+        var canUseStamps: Bool {
+            !cached && stampsSupported != false
+        }
+
+        var shouldShowStamps: Bool {
+            canUseStamps && showStamps
+        }
     }
 
     public enum Action: Equatable, BindableAction {
@@ -164,6 +173,7 @@ public struct StampEditingTarget: Equatable, Sendable {
         case setLastAutoPageIndex(Int?)
         case page(IdentifiedActionOf<PageFeature>)
         case extractArchive
+        case stampsSupportResolved(Bool?)
         case finishExtracting([ReaderExtractedPage], TankoubonDetailsMetadata?)
         case primePageAspectRatios
         case pageAspectRatiosPrimed([Int: Double])
@@ -308,6 +318,8 @@ public struct StampEditingTarget: Equatable, Sendable {
                     state.inCache = true
                 }
                 return .run { send in
+                    let stampsSupported = await service.stampSupportForCurrentServer()
+                    await send(.stampsSupportResolved(stampsSupported))
                     let pages: [ReaderExtractedPage]
                     var tankoubonDetails: TankoubonDetailsMetadata?
                     if id.isTankoubonArchiveId {
@@ -362,6 +374,19 @@ public struct StampEditingTarget: Equatable, Sendable {
                     await send(.setError(error.localizedDescription))
                     await send(.finishExtracting([], nil))
                 }
+            case let .stampsSupportResolved(isSupported):
+                state.stampsSupported = isSupported
+                guard isSupported == false else { return .none }
+                state.stampCreationTarget = nil
+                state.stampComment = ""
+                state.stampEditingTarget = nil
+                state.stampEditText = ""
+                state.stampRequestInFlight = false
+                for pageId in state.pages.ids {
+                    state.pages[id: pageId]?.stampsLoading = false
+                    state.pages[id: pageId]?.stampsLoaded = true
+                }
+                return .none
             case let .finishExtracting(pages, tankoubonDetails):
                 state.currentTankoubonDetails = tankoubonDetails
                 if !pages.isEmpty {
@@ -449,11 +474,12 @@ public struct StampEditingTarget: Equatable, Sendable {
                 )
                 return .send(.requestJump(targetIndex, source: .layoutChange))
             case .toggleStampsVisibility:
+                guard state.canUseStamps else { return .none }
                 let showsStamps = !state.showStamps
                 state.$showStamps.withLock { $0 = showsStamps }
                 return .none
             case let .stampCreationRequested(pageId, position):
-                guard !state.cached,
+                guard state.canUseStamps,
                       !state.stampRequestInFlight,
                       state.stampEditingTarget == nil,
                       let page = state.pages[id: pageId],
@@ -561,7 +587,7 @@ public struct StampEditingTarget: Equatable, Sendable {
                 state.errorMessage = String(localized: "archive.reader.stamp.add.failed")
                 return .none
             case let .stampEditingRequested(pageId, stamp):
-                guard !state.cached,
+                guard state.canUseStamps,
                       !state.stampRequestInFlight,
                       state.stampCreationTarget == nil,
                       let stampId = stamp.id,
@@ -1031,6 +1057,8 @@ public struct StampEditingTarget: Equatable, Sendable {
                 return .none
             case .binding:
                 return .none
+            case .page(.element(id: _, action: .stampsLoadFailed(endpointUnavailable: true))):
+                return .send(.stampsSupportResolved(false))
             case let .page(.element(id: id, action: .storedImageResolved(shouldDisplayAsSplitPages))):
                 self.handleSplitResolution(
                     id: id,
@@ -1827,16 +1855,17 @@ struct ArchiveReader: View {
         let cacheActionRemoves = store.cached || store.inCache
 
         return Menu {
-            Button {
-                store.send(.toggleStampsVisibility)
-            } label: {
-                if store.showStamps {
-                    Label("archive.reader.stamps.hide", systemImage: "mappin.slash")
-                } else {
-                    Label("archive.reader.stamps.show", systemImage: "mappin")
+            if store.canUseStamps {
+                Button {
+                    store.send(.toggleStampsVisibility)
+                } label: {
+                    if store.showStamps {
+                        Label("archive.reader.stamps.hide", systemImage: "mappin.slash")
+                    } else {
+                        Label("archive.reader.stamps.show", systemImage: "mappin")
+                    }
                 }
             }
-            .disabled(store.cached)
 
             Button {
                 store.send(.setThumbnail)
