@@ -59,6 +59,16 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertNil(actual)
     }
 
+    func testStampSupportStartsWithServerVersionZeroNineEighty() async {
+        await service.updateServerCapabilities(serverVersion: "0.9.79")
+        let unsupported = await service.supportsStamps
+        XCTAssertEqual(unsupported, false)
+
+        await service.updateServerCapabilities(serverVersion: "0.9.80")
+        let supported = await service.supportsStamps
+        XCTAssertEqual(supported, true)
+    }
+
     func testRetrieveArchiveIndex() async throws {
         try await configureVerifiedClient()
 

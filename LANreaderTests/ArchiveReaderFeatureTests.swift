@@ -158,6 +158,52 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testUnsupportedServerDisablesStampControlsWithoutChangingPreference() async {
+        var state = makeState()
+        state.$showStamps = Shared(value: true)
+        state.stampsSupported = false
+        var page = PageFeature.State(archiveId: "archive", pageId: "1", pageNumber: 1)
+        page.imageLoaded = true
+        state.pages = [page]
+        let store = makeTestStore(initialState: state)
+
+        XCTAssertFalse(store.state.canUseStamps)
+        XCTAssertFalse(store.state.shouldShowStamps)
+        await store.send(.toggleStampsVisibility)
+        await store.send(.stampCreationRequested(
+            pageId: page.id,
+            position: ArchiveStampPosition(rawValue: "50,50")!
+        ))
+        XCTAssertTrue(store.state.showStamps)
+        XCTAssertNil(store.state.stampCreationTarget)
+    }
+
+    @MainActor
+    func testUnavailableStampsEndpointDisablesStampsForReaderSession() async {
+        var state = makeState()
+        state.$showStamps = Shared(value: true)
+        var firstPage = PageFeature.State(archiveId: "archive", pageId: "1", pageNumber: 1)
+        firstPage.stampsLoading = true
+        let secondPage = PageFeature.State(archiveId: "archive", pageId: "2", pageNumber: 2)
+        state.pages = [firstPage, secondPage]
+        let store = makeTestStore(initialState: state)
+
+        await store.send(.page(.element(
+            id: firstPage.id,
+            action: .stampsLoadFailed(endpointUnavailable: true)
+        ))) {
+            $0.pages[id: firstPage.id]?.stampsLoading = false
+            $0.pages[id: firstPage.id]?.stampsLoaded = true
+        }
+        await store.receive(.stampsSupportResolved(false)) {
+            $0.stampsSupported = false
+            $0.pages[id: secondPage.id]?.stampsLoaded = true
+        }
+        XCTAssertTrue(store.state.showStamps)
+        XCTAssertFalse(store.state.shouldShowStamps)
+    }
+
+    @MainActor
     func testCachedPageDoesNotLoadStampsFromServer() async {
         let store = TestStore(
             initialState: PageFeature.State(
@@ -599,6 +645,41 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 position: ArchiveStampPosition(rawValue: "50,50")!
             )
         )
+    }
+
+    @MainActor
+    func testUIPageLongPressDoesNotRequestStampForUnsupportedServer() async throws {
+        configureReaderDefaults()
+
+        var initialState = makeState(progress: 1)
+        initialState.stampsSupported = false
+        var page = PageFeature.State(
+            archiveId: "archive",
+            pageId: "1",
+            pageNumber: 1,
+            pageMode: .normal
+        )
+        page.imageLoaded = true
+        initialState.pages = [page]
+
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        } withDependencies: {
+            $0.continuousClock = ImmediateClock()
+        }
+        let controller = UIPageCollectionController(store: store)
+
+        controller.loadViewIfNeeded()
+        controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 480)
+        controller.view.layoutIfNeeded()
+        await Task.yield()
+        await Task.yield()
+        controller.collectionView.layoutIfNeeded()
+
+        let cell = try XCTUnwrap(controller.collectionView.visibleCells.first as? UIPageCell)
+        cell.requestStampCreation(at: CGPoint(x: cell.bounds.midX, y: cell.bounds.midY))
+
+        XCTAssertNil(store.stampCreationTarget)
     }
 
     @MainActor
@@ -1344,6 +1425,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.send(.extractArchive) {
             $0.extracting = true
         }
+        await store.receive(.stampsSupportResolved(false)) { $0.stampsSupported = false }
         await store.receive(
             .finishExtracting(
                 extractedPages,

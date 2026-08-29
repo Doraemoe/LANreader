@@ -27,6 +27,7 @@ actor LANraragiService {
     private static let logger = Logger(label: "LANraragiService")
 
     private static let newAPIMinVersion = "0.9.70"
+    private static let stampsMinVersion = "0.9.80"
 
     static let shared = LANraragiService()
 
@@ -40,6 +41,7 @@ actor LANraragiService {
     private var urlSessionDelegate: URLSessionDelegateHandler?
 
     private(set) var useNewAPI: Bool = false
+    private(set) var supportsStamps: Bool?
 
     private init() {
         self.session = Session(interceptor: authInterceptor)
@@ -85,7 +87,7 @@ actor LANraragiService {
         self.url = url
         self.authInterceptor = result.interceptor
         self.session = result.session
-        updateAPIVersionFlag(serverVersion: result.serverInfo.version)
+        updateServerCapabilities(serverVersion: result.serverInfo.version)
         return result.serverInfo
     }
 
@@ -100,15 +102,26 @@ actor LANraragiService {
 
         do {
             let result = try await fetchServerInfo(url: storedUrl, apiKey: storedApiKey)
-            updateAPIVersionFlag(serverVersion: result.serverInfo.version)
+            updateServerCapabilities(serverVersion: result.serverInfo.version)
         } catch {
             Self.logger.warning("Failed to check server version at startup: \(error.localizedDescription)")
         }
     }
 
-    func updateAPIVersionFlag(serverVersion: String) {
+    func stampSupportForCurrentServer() async -> Bool? {
+        if supportsStamps == nil {
+            await checkServerVersionAtStartup()
+        }
+        return supportsStamps
+    }
+
+    func updateServerCapabilities(serverVersion: String) {
         self.useNewAPI = Self.compareVersions(serverVersion, isAtLeast: Self.newAPIMinVersion)
-        Self.logger.info("Server version: \(serverVersion), using new API: \(self.useNewAPI)")
+        self.supportsStamps = Self.compareVersions(serverVersion, isAtLeast: Self.stampsMinVersion)
+        let supportsStamps = self.supportsStamps == true
+        Self.logger.info(
+            "Server version: \(serverVersion), using new API: \(self.useNewAPI), supports stamps: \(supportsStamps)"
+        )
     }
 
     private static func compareVersions(_ version: String, isAtLeast minVersion: String) -> Bool {
