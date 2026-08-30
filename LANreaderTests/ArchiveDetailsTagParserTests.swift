@@ -1,5 +1,6 @@
 import XCTest
 import ComposableArchitecture
+import GRDB
 @testable import LANreader
 
 final class ArchiveDetailsTagParserTests: XCTestCase {
@@ -112,6 +113,58 @@ final class ArchiveDetailsTagParserTests: XCTestCase {
                 $0.tags = "artist:new,series:one,artist:first"
             }
         }
+    }
+
+    @MainActor
+    func testCachedArchiveDetailsRemovesLocalCache() async throws {
+        let id = "cachedArchiveDetails"
+        let database = try AppDatabase(DatabaseQueue())
+        var cache = ArchiveCache(
+            id: id,
+            title: "Cached archive",
+            tags: "",
+            thumbnail: nil,
+            cached: true,
+            totalPages: 1,
+            toc: nil,
+            lastUpdate: Date(timeIntervalSince1970: 1)
+        )
+        try database.saveCache(&cache)
+
+        let cacheFolder = LANraragiService.cachePath!
+            .appendingPathComponent(id, conformingTo: .folder)
+        try? FileManager.default.removeItem(at: cacheFolder)
+        try FileManager.default.createDirectory(at: cacheFolder, withIntermediateDirectories: true)
+        _ = FileManager.default.createFile(
+            atPath: cacheFolder.appendingPathComponent("1.jpg").path,
+            contents: Data()
+        )
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: cacheFolder)
+        }
+
+        let state = ArchiveDetailsFeature.State(
+            archive: Shared(value: cache.toArchiveItem()),
+            cached: true
+        )
+        XCTAssertEqual(state.deleteTarget, .cache)
+
+        let store = TestStore(initialState: state) {
+            ArchiveDetailsFeature()
+        } withDependencies: {
+            $0.appDatabase = database
+        }
+
+        await store.send(.confirmDelete) {
+            $0.loading = true
+        }
+        await store.receive(.deleteSuccess) {
+            $0.loading = false
+            $0.deleteSucceeded = true
+        }
+
+        XCTAssertNil(try database.readCache(id))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: cacheFolder.path))
     }
 }
 

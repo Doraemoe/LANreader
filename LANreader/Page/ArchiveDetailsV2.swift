@@ -24,6 +24,7 @@ import GRDBQuery
         var loading = false
         let cached: Bool
         var showAlert: Bool = false
+        var deleteSucceeded = false
 
         init(
             archive: Shared<ArchiveItem>,
@@ -37,6 +38,19 @@ import GRDBQuery
 
         var isTankoubon: Bool {
             archive.id.isTankoubonArchiveId
+        }
+
+        enum DeleteTarget: Equatable {
+            case cache
+            case archive
+            case tankoubon
+        }
+
+        var deleteTarget: DeleteTarget {
+            if cached {
+                return .cache
+            }
+            return isTankoubon ? .tankoubon : .archive
         }
     }
 
@@ -100,6 +114,29 @@ import GRDBQuery
                 return .none
             case .confirmDelete:
                 state.loading = true
+                state.deleteSucceeded = false
+                if state.cached {
+                    return .run { [id = state.archive.id] send in
+                        let deleted = try database.deleteCache(id)
+                        guard deleted else {
+                            await send(.setErrorMessage(
+                                String(localized: "archive.cache.remove.failed")
+                            ))
+                            return
+                        }
+                        if let cachePath = LANraragiService.cachePath {
+                            let cacheFolder = cachePath.appendingPathComponent(
+                                id,
+                                conformingTo: .folder
+                            )
+                            try? FileManager.default.removeItem(at: cacheFolder)
+                        }
+                        await send(.deleteSuccess)
+                    } catch: { [id = state.archive.id] error, send in
+                        logger.error("failed to remove archive cache, id=\(id) \(error)")
+                        await send(.setErrorMessage(error.localizedDescription))
+                    }
+                }
                 return .run { [id = state.archive.id] send in
                     let response = if id.isTankoubonArchiveId {
                         try await service.deleteTankoubon(id: id).value
@@ -212,8 +249,12 @@ import GRDBQuery
                 state.successMessage = message
                 return .none
             case .deleteSuccess:
-                state.$archiveItems.withLock {
-                    _ = $0.remove(id: state.archive.id)
+                state.loading = false
+                state.deleteSucceeded = true
+                if !state.cached {
+                    state.$archiveItems.withLock {
+                        _ = $0.remove(id: state.archive.id)
+                    }
                 }
                 return .none
             case .binding:
@@ -244,9 +285,14 @@ struct ArchiveDetailsV2: View {
     }
 
     var body: some View {
-        let deleteConfirmationTitle: LocalizedStringKey = store.isTankoubon
-            ? "archive.delete.tankoubon.confirm"
-            : "archive.delete.confirm"
+        let deleteConfirmationTitle: LocalizedStringKey = switch store.deleteTarget {
+        case .cache:
+            "archive.cache.remove.message"
+        case .archive:
+            "archive.delete.confirm"
+        case .tankoubon:
+            "archive.delete.tankoubon.confirm"
+        }
 
         ScrollView {
             VStack(spacing: 22) {
@@ -309,10 +355,9 @@ struct ArchiveDetailsV2: View {
                 Task {
                     await store.send(.confirmDelete).finish()
                 }
-                onDelete()
             }
         } message: {
-            if store.isTankoubon {
+            if store.deleteTarget == .tankoubon {
                 Text("archive.delete.tankoubon.confirm.message")
             }
         }
@@ -341,6 +386,11 @@ struct ArchiveDetailsV2: View {
                 )
                 banner.show()
                 store.send(.setErrorMessage(""))
+            }
+        }
+        .onChange(of: store.deleteSucceeded) {
+            if store.deleteSucceeded {
+                onDelete()
             }
         }
     }
@@ -532,14 +582,19 @@ struct ArchiveDetailsV2: View {
 
     @ViewBuilder
     private func deleteButton(store: StoreOf<ArchiveDetailsFeature>) -> some View {
-        if store.editMode != .active && !store.cached {
+        if store.editMode != .active {
             Button(
                 role: .destructive,
                 action: { store.send(.deleteButtonTapped) },
                 label: {
-                    let titleKey: LocalizedStringKey = store.isTankoubon
-                        ? "archive.delete.tankoubon"
-                        : "archive.delete"
+                    let titleKey: LocalizedStringKey = switch store.deleteTarget {
+                    case .cache:
+                        "archive.cache.remove"
+                    case .archive:
+                        "archive.delete"
+                    case .tankoubon:
+                        "archive.delete.tankoubon"
+                    }
 
                     Label(titleKey, systemImage: "trash")
                         .font(.headline)
