@@ -225,6 +225,34 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         return pageStore(id: pageId)
     }
 
+    private func preloadFollowingPages(after pageIndex: Int) {
+        guard let nextPageIndex = ReaderPositioning.adjacentPageIndex(
+            from: pageIndex,
+            direction: .next,
+            pageCount: store.pages.count,
+            readDirection: resolvedReadDirection,
+            doublePageLayout: store.doublePageLayout,
+            spreadOffset: store.spreadPairingOffset
+        ) else { return }
+
+        let firstIndex = ReaderPositioning.scrollAnchorIndex(
+            forPageIndex: nextPageIndex,
+            pageCount: store.pages.count,
+            readDirection: resolvedReadDirection,
+            doublePageLayout: store.doublePageLayout,
+            spreadOffset: store.spreadPairingOffset
+        )
+        let pageCount = resolvedReadDirection != .upDown && store.doublePageLayout ? 2 : 1
+        let lastIndex = min(firstIndex + pageCount, store.pages.count)
+
+        for index in firstIndex..<lastIndex where store.pages[index].pageMode == .loading {
+            let pageId = store.pages[index].id
+            Task { [weak self] in
+                await self?.pageStore(id: pageId)?.send(.load(false)).finish()
+            }
+        }
+    }
+
     private var resolvedReadDirection: ReadDirection {
         ReadDirection(rawValue: store.readDirection) ?? .leftRight
     }
@@ -308,6 +336,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         } else {
             collectionView.scrollToItem(at: indexPath, at: scrollPosition(for: request), animated: request.animated)
         }
+        preloadFollowingPages(after: request.targetPageIndex)
         if !request.animated {
             DispatchQueue.main.async { [weak self] in
                 self?.reportVisiblePageIfNeeded()
