@@ -41,7 +41,7 @@ public struct StampEditingTarget: Equatable, Sendable {
     let sourcePageNumber: Int
 }
 
-public struct ChapterCreationTarget: Equatable, Sendable {
+public struct ChapterMutationTarget: Equatable, Sendable {
     let readerArchiveId: String
     let readerPageNumber: Int
     let sourceArchiveId: String
@@ -105,7 +105,8 @@ public struct ChapterCreationTarget: Equatable, Sendable {
         var stampEditText = ""
         var stampRequestInFlight = false
         var stampsSupported: Bool?
-        var chapterCreationTarget: ChapterCreationTarget?
+        var chapterCreationTarget: ChapterMutationTarget?
+        var chapterEditingTarget: ChapterMutationTarget?
         var chapterTitle = ""
         var chapterRequestInFlight = false
 
@@ -153,6 +154,14 @@ public struct ChapterCreationTarget: Equatable, Sendable {
 
         var canAddChapter: Bool {
             !cached && currentPage != nil
+        }
+
+        var editableChapterPages: Set<Int> {
+            guard !cached else { return [] }
+            let chapterPages = Set(chapters.map(\.page))
+            guard currentArchiveId.isTankoubonArchiveId else { return chapterPages }
+            guard let currentTankoubonDetails else { return [] }
+            return chapterPages.subtracting(currentTankoubonDetails.automaticChapterPages)
         }
 
         var shouldShowChapterMenu: Bool {
@@ -219,10 +228,12 @@ public struct ChapterCreationTarget: Equatable, Sendable {
         case stampDeleteFailed(target: StampEditingTarget, content: String)
         case visiblePageChanged(Int)
         case chapterCreationRequested
+        case chapterEditingRequested(Int)
         case cancelChapterCreation
-        case confirmChapterCreation
-        case chapterCreated(target: ChapterCreationTarget, title: String)
-        case chapterCreationFailed(target: ChapterCreationTarget, title: String)
+        case cancelChapterEditing
+        case confirmChapterMutation
+        case chapterSaved(target: ChapterMutationTarget, title: String)
+        case chapterSaveFailed(target: ChapterMutationTarget, title: String, isEditing: Bool)
         case chapterSelected(Int)
         case requestJump(Int, source: ReaderNavigationSource)
         case navigate(ReaderNavigationDirection, source: ReaderNavigationSource)
@@ -370,13 +381,15 @@ public struct ChapterCreationTarget: Equatable, Sendable {
                                 from: extractResponse.pages,
                                 archiveId: archiveId
                             )
-                            tankChapters.append(
-                                contentsOf: Self.tankoubonChapters(
-                                    from: archiveMetadata[archiveId],
-                                    pageOffset: tankPages.count,
-                                    extractedPageCount: extractedPages.count
-                                )
+                            let chapterResult = Self.tankoubonChapters(
+                                from: archiveMetadata[archiveId],
+                                pageOffset: tankPages.count,
+                                extractedPageCount: extractedPages.count
                             )
+                            tankChapters.append(contentsOf: chapterResult.chapters)
+                            if let automaticPage = chapterResult.automaticPage {
+                                details.automaticChapterPages.insert(automaticPage)
+                            }
                             tankPages.append(contentsOf: extractedPages)
                         }
                         details.toc = tankChapters.isEmpty ? nil : tankChapters
@@ -722,10 +735,11 @@ public struct ChapterCreationTarget: Equatable, Sendable {
             case .chapterCreationRequested:
                 guard state.canAddChapter,
                       !state.chapterRequestInFlight,
+                      state.chapterEditingTarget == nil,
                       let page = state.currentPage else {
                     return .none
                 }
-                state.chapterCreationTarget = ChapterCreationTarget(
+                state.chapterCreationTarget = ChapterMutationTarget(
                     readerArchiveId: state.currentArchiveId,
                     readerPageNumber: page.pageNumber,
                     sourceArchiveId: page.sourceArchiveId,
@@ -733,16 +747,38 @@ public struct ChapterCreationTarget: Equatable, Sendable {
                 )
                 state.chapterTitle = ""
                 return .none
+            case let .chapterEditingRequested(pageNumber):
+                guard state.editableChapterPages.contains(pageNumber),
+                      !state.chapterRequestInFlight,
+                      state.chapterCreationTarget == nil,
+                      let chapter = state.chapters.first(where: { $0.page == pageNumber }),
+                      let page = state.pages.first(where: { $0.pageNumber == pageNumber }) else {
+                    return .none
+                }
+                state.chapterEditingTarget = ChapterMutationTarget(
+                    readerArchiveId: state.currentArchiveId,
+                    readerPageNumber: pageNumber,
+                    sourceArchiveId: page.sourceArchiveId,
+                    sourcePageNumber: page.sourcePageNumber
+                )
+                state.chapterTitle = chapter.name
+                return .none
             case .cancelChapterCreation:
                 state.chapterCreationTarget = nil
                 state.chapterTitle = ""
                 return .none
-            case .confirmChapterCreation:
-                guard let target = state.chapterCreationTarget else { return .none }
+            case .cancelChapterEditing:
+                state.chapterEditingTarget = nil
+                state.chapterTitle = ""
+                return .none
+            case .confirmChapterMutation:
+                let isEditing = state.chapterEditingTarget != nil
+                guard let target = state.chapterEditingTarget ?? state.chapterCreationTarget else { return .none }
                 let draft = state.chapterTitle
                 let title = draft.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !title.isEmpty else { return .none }
                 state.chapterCreationTarget = nil
+                state.chapterEditingTarget = nil
                 state.chapterTitle = ""
                 state.chapterRequestInFlight = true
                 return .run { send in
@@ -753,18 +789,18 @@ public struct ChapterCreationTarget: Equatable, Sendable {
                             title: title
                         ).value
                         guard response.success == 1 else {
-                            await send(.chapterCreationFailed(target: target, title: draft))
+                            await send(.chapterSaveFailed(target: target, title: draft, isEditing: isEditing))
                             return
                         }
-                        await send(.chapterCreated(target: target, title: title))
+                        await send(.chapterSaved(target: target, title: title))
                     } catch {
                         let source = "\(target.sourceArchiveId):\(target.sourcePageNumber)"
-                        logger.warning("failed to add chapter. source=\(source) \(error.localizedDescription)")
-                        await send(.chapterCreationFailed(target: target, title: draft))
+                        logger.warning("failed to save chapter. source=\(source) \(error.localizedDescription)")
+                        await send(.chapterSaveFailed(target: target, title: draft, isEditing: isEditing))
                     }
                 }
                 .cancellable(id: CancelId.chapterCreation, cancelInFlight: true)
-            case let .chapterCreated(target, title):
+            case let .chapterSaved(target, title):
                 state.chapterRequestInFlight = false
                 guard let archive = state.allArchives[id: target.readerArchiveId] else { return .none }
                 var chapters = archive.wrappedValue.toc ?? []
@@ -774,13 +810,20 @@ public struct ChapterCreationTarget: Equatable, Sendable {
                 archive.withLock { $0.toc = chapters }
                 if state.currentTankoubonDetails?.id == target.readerArchiveId {
                     state.currentTankoubonDetails?.toc = chapters
+                    state.currentTankoubonDetails?.automaticChapterPages.remove(target.readerPageNumber)
                 }
                 return .none
-            case let .chapterCreationFailed(target, title):
+            case let .chapterSaveFailed(target, title, isEditing):
                 state.chapterRequestInFlight = false
-                state.chapterCreationTarget = target
+                if isEditing {
+                    state.chapterEditingTarget = target
+                } else {
+                    state.chapterCreationTarget = target
+                }
                 state.chapterTitle = title
-                state.errorMessage = String(localized: "archive.reader.chapter.add.failed")
+                state.errorMessage = String(localized: isEditing
+                    ? "archive.reader.chapter.edit.failed"
+                    : "archive.reader.chapter.add.failed")
                 return .none
             case let .visiblePageChanged(index):
                 guard !state.pages.isEmpty else { return .none }
@@ -1338,8 +1381,8 @@ public struct ChapterCreationTarget: Equatable, Sendable {
         from archiveMetadata: ArchiveIndexResponse?,
         pageOffset: Int,
         extractedPageCount: Int
-    ) -> [ArchiveChapter] {
-        guard extractedPageCount > 0, let archiveMetadata else { return [] }
+    ) -> (chapters: [ArchiveChapter], automaticPage: Int?) {
+        guard extractedPageCount > 0, let archiveMetadata else { return ([], nil) }
         var chapters: [ArchiveChapter] = (archiveMetadata.toc ?? []).compactMap { chapter in
             guard (1...extractedPageCount).contains(chapter.page) else { return nil }
             return ArchiveChapter(name: chapter.name, page: pageOffset + chapter.page)
@@ -1351,8 +1394,9 @@ public struct ChapterCreationTarget: Equatable, Sendable {
                 ArchiveChapter(name: archiveMetadata.title, page: firstPage),
                 at: 0
             )
+            return (chapters, firstPage)
         }
-        return chapters
+        return (chapters, nil)
     }
 
     private static func readerPageNumbers(
@@ -1614,6 +1658,7 @@ public struct ChapterCreationTarget: Equatable, Sendable {
         state.stampEditText = ""
         state.stampRequestInFlight = false
         state.chapterCreationTarget = nil
+        state.chapterEditingTarget = nil
         state.chapterTitle = ""
         state.chapterRequestInFlight = false
         resetSliderPreviewArchiveState(state: &state)
@@ -1686,7 +1731,30 @@ struct ArchiveReader: View {
                 store.send(.cancelChapterCreation)
             }
             Button("save") {
-                store.send(.confirmChapterCreation)
+                store.send(.confirmChapterMutation)
+            }
+            .disabled(store.chapterTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .alert(
+            "archive.reader.chapter.edit.title",
+            isPresented: Binding(
+                get: { store.chapterEditingTarget != nil },
+                set: { isPresented in
+                    if !isPresented, store.chapterEditingTarget != nil {
+                        store.send(.cancelChapterEditing)
+                    }
+                }
+            )
+        ) {
+            TextField(
+                "archive.reader.chapter.title.placeholder",
+                text: $store.chapterTitle
+            )
+            Button("cancel", role: .cancel) {
+                store.send(.cancelChapterEditing)
+            }
+            Button("save") {
+                store.send(.confirmChapterMutation)
             }
             .disabled(store.chapterTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
@@ -2139,8 +2207,20 @@ struct ArchiveReader: View {
     ) -> some View {
         Menu {
             ForEach(store.chapters) { chapter in
-                Button(chapter.name) {
-                    store.send(.chapterSelected(chapter.page))
+                if store.editableChapterPages.contains(chapter.page) {
+                    Menu {
+                        Button("edit", systemImage: "pencil") {
+                            store.send(.chapterEditingRequested(chapter.page))
+                        }
+                    } label: {
+                        Text(chapter.name)
+                    } primaryAction: {
+                        store.send(.chapterSelected(chapter.page))
+                    }
+                } else {
+                    Button(chapter.name) {
+                        store.send(.chapterSelected(chapter.page))
+                    }
                 }
             }
             if !store.chapters.isEmpty, store.canAddChapter {
