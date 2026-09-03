@@ -412,6 +412,17 @@ actor LANraragiService {
             .serializingDecodable(ArchiveStampsResponse.self)
     }
 
+    func addArchiveChapter(id: String, page: Int, title: String) async -> DataTask<GenericSuccessResponse> {
+        session.request(
+            "\(url)/api/archives/\(id)/toc",
+            method: .put,
+            parameters: ["page": page, "title": title],
+            encoding: URLEncoding(destination: .queryString)
+        )
+        .validate(statusCode: 200...200)
+        .serializingDecodable(GenericSuccessResponse.self)
+    }
+
     func addStamp(
         id: String,
         page: Int,

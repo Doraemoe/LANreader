@@ -41,6 +41,13 @@ public struct StampEditingTarget: Equatable, Sendable {
     let sourcePageNumber: Int
 }
 
+public struct ChapterCreationTarget: Equatable, Sendable {
+    let readerArchiveId: String
+    let readerPageNumber: Int
+    let sourceArchiveId: String
+    let sourcePageNumber: Int
+}
+
 @Reducer public struct ArchiveReaderFeature: Sendable {
     private let logger = Logger(label: "ArchiveReaderFeature")
 
@@ -98,6 +105,9 @@ public struct StampEditingTarget: Equatable, Sendable {
         var stampEditText = ""
         var stampRequestInFlight = false
         var stampsSupported: Bool?
+        var chapterCreationTarget: ChapterCreationTarget?
+        var chapterTitle = ""
+        var chapterRequestInFlight = false
 
         var allArchives: IdentifiedArrayOf<Shared<ArchiveItem>> = []
 
@@ -139,6 +149,14 @@ public struct StampEditingTarget: Equatable, Sendable {
                 return []
             }
             return currentArchive.wrappedValue.toc ?? []
+        }
+
+        var canAddChapter: Bool {
+            !cached && currentPage != nil
+        }
+
+        var shouldShowChapterMenu: Bool {
+            !chapters.isEmpty || canAddChapter
         }
 
         var canOpenDetails: Bool {
@@ -200,6 +218,12 @@ public struct StampEditingTarget: Equatable, Sendable {
         case stampDeleted(target: StampEditingTarget)
         case stampDeleteFailed(target: StampEditingTarget, content: String)
         case visiblePageChanged(Int)
+        case chapterCreationRequested
+        case chapterTitleChanged(String)
+        case cancelChapterCreation
+        case confirmChapterCreation
+        case chapterCreated(target: ChapterCreationTarget, title: String)
+        case chapterCreationFailed(target: ChapterCreationTarget, title: String)
         case chapterSelected(Int)
         case requestJump(Int, source: ReaderNavigationSource)
         case navigate(ReaderNavigationDirection, source: ReaderNavigationSource)
@@ -251,6 +275,7 @@ public struct StampEditingTarget: Equatable, Sendable {
         case primePageAspectRatios
         case stampCreation
         case stampMutation
+        case chapterCreation
     }
 
     public var body: some ReducerOf<Self> {
@@ -694,6 +719,75 @@ public struct StampEditingTarget: Equatable, Sendable {
                 state.stampEditingTarget = target
                 state.stampEditText = content
                 state.errorMessage = String(localized: "archive.reader.stamp.delete.failed")
+                return .none
+            case .chapterCreationRequested:
+                guard state.canAddChapter,
+                      !state.chapterRequestInFlight,
+                      let page = state.currentPage else {
+                    return .none
+                }
+                state.chapterCreationTarget = ChapterCreationTarget(
+                    readerArchiveId: state.currentArchiveId,
+                    readerPageNumber: page.pageNumber,
+                    sourceArchiveId: page.sourceArchiveId,
+                    sourcePageNumber: page.sourcePageNumber
+                )
+                state.chapterTitle = ""
+                return .none
+            case let .chapterTitleChanged(title):
+                state.chapterTitle = title
+                return .none
+            case .cancelChapterCreation:
+                state.chapterCreationTarget = nil
+                state.chapterTitle = ""
+                return .none
+            case .confirmChapterCreation:
+                guard let target = state.chapterCreationTarget else { return .none }
+                let draft = state.chapterTitle
+                let title = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !title.isEmpty else { return .none }
+                state.chapterCreationTarget = nil
+                state.chapterTitle = ""
+                state.chapterRequestInFlight = true
+                return .run { send in
+                    do {
+                        let response = try await service.addArchiveChapter(
+                            id: target.sourceArchiveId,
+                            page: target.sourcePageNumber,
+                            title: title
+                        ).value
+                        guard response.success == 1 else {
+                            await send(.chapterCreationFailed(target: target, title: draft))
+                            return
+                        }
+                        await send(.chapterCreated(target: target, title: title))
+                    } catch {
+                        let archiveId = target.sourceArchiveId
+                        let page = target.sourcePageNumber
+                        logger.warning(
+                            "failed to add chapter. archive=\(archiveId) page=\(page) \(error.localizedDescription)"
+                        )
+                        await send(.chapterCreationFailed(target: target, title: draft))
+                    }
+                }
+                .cancellable(id: CancelId.chapterCreation, cancelInFlight: true)
+            case let .chapterCreated(target, title):
+                state.chapterRequestInFlight = false
+                guard let archive = state.allArchives[id: target.readerArchiveId] else { return .none }
+                var chapters = archive.wrappedValue.toc ?? []
+                chapters.removeAll { $0.page == target.readerPageNumber }
+                chapters.append(ArchiveChapter(name: title, page: target.readerPageNumber))
+                chapters.sort { $0.page < $1.page }
+                archive.withLock { $0.toc = chapters }
+                if state.currentTankoubonDetails?.id == target.readerArchiveId {
+                    state.currentTankoubonDetails?.toc = chapters
+                }
+                return .none
+            case let .chapterCreationFailed(target, title):
+                state.chapterRequestInFlight = false
+                state.chapterCreationTarget = target
+                state.chapterTitle = title
+                state.errorMessage = String(localized: "archive.reader.chapter.add.failed")
                 return .none
             case let .visiblePageChanged(index):
                 guard !state.pages.isEmpty else { return .none }
@@ -1207,6 +1301,7 @@ public struct StampEditingTarget: Equatable, Sendable {
                     .cancel(id: CancelId.sliderPreviewLoad),
                     .cancel(id: CancelId.stampCreation),
                     .cancel(id: CancelId.stampMutation),
+                    .cancel(id: CancelId.chapterCreation),
                     state.cached ? .send(.loadCached) : .send(.extractArchive)
                 )
             case .loadNextArchive:
@@ -1223,6 +1318,7 @@ public struct StampEditingTarget: Equatable, Sendable {
                     .cancel(id: CancelId.sliderPreviewLoad),
                     .cancel(id: CancelId.stampCreation),
                     .cancel(id: CancelId.stampMutation),
+                    .cancel(id: CancelId.chapterCreation),
                     state.cached ? .send(.loadCached) : .send(.extractArchive)
                 )
             }
@@ -1524,6 +1620,9 @@ public struct StampEditingTarget: Equatable, Sendable {
         state.stampEditingTarget = nil
         state.stampEditText = ""
         state.stampRequestInFlight = false
+        state.chapterCreationTarget = nil
+        state.chapterTitle = ""
+        state.chapterRequestInFlight = false
         resetSliderPreviewArchiveState(state: &state)
     }
 }
@@ -1575,6 +1674,32 @@ struct ArchiveReader: View {
         .alert(
             $store.scope(\.$alert, action: \.alert)
         )
+        .alert(
+            "archive.reader.chapter.add",
+            isPresented: Binding(
+                get: { store.chapterCreationTarget != nil },
+                set: { isPresented in
+                    if !isPresented, store.chapterCreationTarget != nil {
+                        store.send(.cancelChapterCreation)
+                    }
+                }
+            )
+        ) {
+            TextField(
+                "archive.reader.chapter.title.placeholder",
+                text: Binding(
+                    get: { store.chapterTitle },
+                    set: { store.send(.chapterTitleChanged($0)) }
+                )
+            )
+            Button("cancel", role: .cancel) {
+                store.send(.cancelChapterCreation)
+            }
+            Button("save") {
+                store.send(.confirmChapterCreation)
+            }
+            .disabled(store.chapterTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
         .alert(
             "archive.reader.stamp.add.title",
             isPresented: Binding(
@@ -1715,7 +1840,7 @@ struct ArchiveReader: View {
                         displayIndex: displayIndex,
                         sliderContext: sliderContext,
                         bubbleLayout: bubbleLayout,
-                        showsChapterMenu: !store.chapters.isEmpty
+                        showsChapterMenu: store.shouldShowChapterMenu
                     )
                 }
 
@@ -1959,13 +2084,13 @@ struct ArchiveReader: View {
         context: ReaderSliderContext
     ) -> some View {
         HStack(spacing: ReaderToolbarMetrics.chapterMenuSpacing) {
-            if !store.chapters.isEmpty {
+            if store.shouldShowChapterMenu {
                 readerChapterMenu(store: store)
             }
 
             readerSliderTrack(store: store, context: context)
         }
-        .frame(height: store.chapters.isEmpty ? 34 : ReaderToolbarMetrics.buttonSize)
+        .frame(height: store.shouldShowChapterMenu ? ReaderToolbarMetrics.buttonSize : 34)
     }
 
     private func readerSliderTrack(
@@ -2027,6 +2152,17 @@ struct ArchiveReader: View {
                 Button(chapter.name) {
                     store.send(.chapterSelected(chapter.page))
                 }
+            }
+            if !store.chapters.isEmpty, store.canAddChapter {
+                Divider()
+            }
+            if store.canAddChapter {
+                Button {
+                    store.send(.chapterCreationRequested)
+                } label: {
+                    Label("archive.reader.chapter.add", systemImage: "plus")
+                }
+                .disabled(store.chapterRequestInFlight)
             }
         } label: {
             readerToolbarGlyph(systemImage: "list.bullet.rectangle", tint: Color.indigo)

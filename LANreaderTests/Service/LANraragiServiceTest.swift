@@ -201,6 +201,34 @@ class LANraragiServiceTest: XCTestCase {
         )
     }
 
+    func testAddArchiveChapterUsesPutQueryContract() async throws {
+        try await configureVerifiedClient()
+
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/\(archiveId)/toc")
+                && containsQueryParams([
+                    "page": "3",
+                    "title": "Chapter & notes"
+                ])
+                && isMethodPUT()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")
+                && { $0.ohhttpStubs_httpBody == nil }) { _ in
+            HTTPStubsResponse(
+                data: Data("{\"operation\":\"update_toc\",\"success\":1}".utf8),
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+
+        let actual = try await service.addArchiveChapter(
+            id: archiveId,
+            page: 3,
+            title: "Chapter & notes"
+        ).value
+
+        XCTAssertEqual(actual.success, 1)
+    }
+
     func testUpdateStampUsesPutQueryContract() async throws {
         try await configureVerifiedClient()
 
