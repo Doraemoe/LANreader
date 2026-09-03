@@ -361,6 +361,58 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testAddChapterUsesCurrentSourcePageAndUpdatesTankoubonChapters() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let tankId = "TANK_test"
+        let existingChapter = ArchiveChapter(name: "Earlier", page: 2)
+        stubAddArchiveChapter(archiveId: "source", page: 4, title: "New chapter")
+        var initialState = makeState(
+            archiveId: tankId,
+            allArchives: [makeArchive(id: tankId, toc: [existingChapter])]
+        )
+        initialState.pages = [
+            PageFeature.State(
+                archiveId: tankId,
+                pageId: "page",
+                pageNumber: 8,
+                sourceArchiveId: "source",
+                sourcePageNumber: 4
+            )
+        ]
+        initialState.currentTankoubonDetails = makeTankoubonDetailsMetadata(tankId: tankId, toc: [existingChapter])
+        let target = ChapterCreationTarget(
+            readerArchiveId: tankId,
+            readerPageNumber: 8,
+            sourceArchiveId: "source",
+            sourcePageNumber: 4
+        )
+        let chapters = [
+            existingChapter,
+            ArchiveChapter(name: "New chapter", page: 8)
+        ]
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.chapterCreationRequested) {
+            $0.chapterCreationTarget = target
+        }
+        await store.send(.binding(.set(\.chapterTitle, "  New chapter\n"))) {
+            $0.chapterTitle = "  New chapter\n"
+        }
+        await store.send(.confirmChapterCreation) {
+            $0.chapterCreationTarget = nil
+            $0.chapterTitle = ""
+            $0.chapterRequestInFlight = true
+        }
+        await store.receive(.chapterCreated(target: target, title: "New chapter")) {
+            $0.chapterRequestInFlight = false
+            $0.allArchives[id: tankId]?.withLock { $0.toc = chapters }
+            $0.currentTankoubonDetails?.toc = chapters
+        }
+    }
+
+    @MainActor
     func testEditStampUpdatesExistingStampText() async throws {
         configureReaderDefaults()
         try await configureVerifiedClient()
@@ -4167,6 +4219,20 @@ private func stubArchiveStampsFailure(archiveId: String, page: Int, statusCode: 
         HTTPStubsResponse(
             data: Data("{\"error\":\"stamps unavailable\"}".utf8),
             statusCode: statusCode,
+            headers: ["Content-Type": "application/json"]
+        )
+    }
+}
+
+private func stubAddArchiveChapter(archiveId: String, page: Int, title: String) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/archives/\(archiveId)/toc")
+            && containsQueryParams(["page": "\(page)", "title": title])
+            && isMethodPUT()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        HTTPStubsResponse(
+            data: Data("{\"operation\":\"update_toc\",\"success\":1}".utf8),
+            statusCode: 200,
             headers: ["Content-Type": "application/json"]
         )
     }
