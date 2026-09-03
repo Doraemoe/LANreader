@@ -491,9 +491,7 @@ struct ArchiveDetailsV2: View {
         } else if groups.isEmpty {
             emptyTagsView()
         } else {
-            ForEach(groups) { group in
-                tagGroupView(group)
-            }
+            tagGroupsCard(groups)
         }
     }
 
@@ -510,16 +508,12 @@ struct ArchiveDetailsV2: View {
         } else if editableGroups.isEmpty {
             emptyTagsView()
         } else {
-            ForEach(editableGroups) { group in
-                tagGroupView(group)
-            }
+            tagGroupsCard(editableGroups)
         }
 
         if !readOnlyGroups.isEmpty {
             tagSectionHeader("archive.details.tags.included", readOnly: true)
-            ForEach(readOnlyGroups) { group in
-                tagGroupView(group, navigationEnabled: store.editMode != .active)
-            }
+            tagGroupsCard(readOnlyGroups, navigationEnabled: store.editMode != .active)
         }
     }
 
@@ -611,19 +605,17 @@ struct ArchiveDetailsV2: View {
         }
     }
 
-    private func tagGroupView(_ group: ArchiveTagGroup, navigationEnabled: Bool = true) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(group.title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+    private func tagGroupsCard(_ groups: [ArchiveTagGroup], navigationEnabled: Bool = true) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
+                tagGroupRow(group, navigationEnabled: navigationEnabled)
 
-            WrappingHStack(horizontalSpacing: 4, verticalSpacing: 4) {
-                ForEach(group.tags) { tag in
-                    tagButton(tag, navigationEnabled: navigationEnabled)
+                if index < groups.count - 1 {
+                    Divider()
+                        .padding(.leading, 14)
                 }
             }
         }
-        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             Color(uiColor: .secondarySystemGroupedBackground),
@@ -633,6 +625,37 @@ struct ArchiveDetailsV2: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
         }
+    }
+
+    private func tagGroupRow(_ group: ArchiveTagGroup, navigationEnabled: Bool = true) -> some View {
+        let title = Text(group.title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+        let tags = WrappingHStack(horizontalSpacing: 6, verticalSpacing: 6) {
+            ForEach(group.tags) { tag in
+                tagButton(tag, navigationEnabled: navigationEnabled)
+            }
+        }
+
+        return ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                title
+                    .fixedSize(horizontal: true, vertical: false)
+                    .frame(minWidth: 76, alignment: .leading)
+
+                tags
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                title
+                tags
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
     }
 
     private func tagButton(_ tag: ArchiveDetailsTag, navigationEnabled: Bool = true) -> some View {
