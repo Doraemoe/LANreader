@@ -219,7 +219,6 @@ public struct ChapterCreationTarget: Equatable, Sendable {
         case stampDeleteFailed(target: StampEditingTarget, content: String)
         case visiblePageChanged(Int)
         case chapterCreationRequested
-        case chapterTitleChanged(String)
         case cancelChapterCreation
         case confirmChapterCreation
         case chapterCreated(target: ChapterCreationTarget, title: String)
@@ -734,9 +733,6 @@ public struct ChapterCreationTarget: Equatable, Sendable {
                 )
                 state.chapterTitle = ""
                 return .none
-            case let .chapterTitleChanged(title):
-                state.chapterTitle = title
-                return .none
             case .cancelChapterCreation:
                 state.chapterCreationTarget = nil
                 state.chapterTitle = ""
@@ -762,11 +758,8 @@ public struct ChapterCreationTarget: Equatable, Sendable {
                         }
                         await send(.chapterCreated(target: target, title: title))
                     } catch {
-                        let archiveId = target.sourceArchiveId
-                        let page = target.sourcePageNumber
-                        logger.warning(
-                            "failed to add chapter. archive=\(archiveId) page=\(page) \(error.localizedDescription)"
-                        )
+                        let source = "\(target.sourceArchiveId):\(target.sourcePageNumber)"
+                        logger.warning("failed to add chapter. source=\(source) \(error.localizedDescription)")
                         await send(.chapterCreationFailed(target: target, title: draft))
                     }
                 }
@@ -1687,10 +1680,7 @@ struct ArchiveReader: View {
         ) {
             TextField(
                 "archive.reader.chapter.title.placeholder",
-                text: Binding(
-                    get: { store.chapterTitle },
-                    set: { store.send(.chapterTitleChanged($0)) }
-                )
+                text: $store.chapterTitle
             )
             Button("cancel", role: .cancel) {
                 store.send(.cancelChapterCreation)

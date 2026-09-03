@@ -397,7 +397,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.send(.chapterCreationRequested) {
             $0.chapterCreationTarget = target
         }
-        await store.send(.chapterTitleChanged("  New chapter\n")) {
+        await store.send(.binding(.set(\.chapterTitle, "  New chapter\n"))) {
             $0.chapterTitle = "  New chapter\n"
         }
         await store.send(.confirmChapterCreation) {
