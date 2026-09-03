@@ -628,31 +628,20 @@ struct ArchiveDetailsV2: View {
     }
 
     private func tagGroupRow(_ group: ArchiveTagGroup, navigationEnabled: Bool = true) -> some View {
-        let title = Text(group.title)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .textCase(.uppercase)
-        let tags = WrappingHStack(horizontalSpacing: 6, verticalSpacing: 6) {
-            ForEach(group.tags) { tag in
-                tagButton(tag, navigationEnabled: navigationEnabled)
-            }
-        }
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(group.title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+                .lineLimit(1)
+                .frame(width: 76, alignment: .leading)
 
-        return ViewThatFits(in: .horizontal) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                title
-                    .fixedSize(horizontal: true, vertical: false)
-                    .frame(minWidth: 76, alignment: .leading)
-
-                tags
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            WrappingHStack(horizontalSpacing: 6, verticalSpacing: 6) {
+                ForEach(group.tags) { tag in
+                    tagButton(tag, navigationEnabled: navigationEnabled)
+                }
             }
-
-            VStack(alignment: .leading, spacing: 6) {
-                title
-                tags
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
