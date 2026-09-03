@@ -2618,6 +2618,85 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testUIPageCollectionPreloadsNextPageAfterInitialRestore() async throws {
+        configureReaderDefaults()
+        let (store, controller) = try makeInitialRestoreReader(
+            archiveId: "initial-preload",
+            pageCount: 3,
+            targetPageIndex: 0
+        )
+        await waitForScrollRequestToFinish(store)
+        await waitForPageToLoad(store, pageId: "2-normal")
+
+        XCTAssertTrue(store.pages[id: "2-normal"]?.imageLoaded == true)
+        _ = controller
+    }
+
+    @MainActor
+    func testUIPageCollectionPreloadsAfterRestoredMiddlePage() async throws {
+        configureReaderDefaults()
+        let (store, controller) = try makeInitialRestoreReader(
+            archiveId: "middle-preload",
+            pageCount: 5,
+            targetPageIndex: 2
+        )
+        await waitForScrollRequestToFinish(store)
+        await waitForPageToLoad(store, pageId: "4-normal")
+
+        XCTAssertTrue(store.pages[id: "4-normal"]?.imageLoaded == true)
+        _ = controller
+    }
+
+    @MainActor
+    func testUIPageCollectionPreloadsNextSpreadAfterInitialRestore() async throws {
+        configureReaderDefaults(doublePageLayout: true)
+        let (store, controller) = try makeInitialRestoreReader(
+            archiveId: "spread-preload",
+            pageCount: 5,
+            targetPageIndex: 1,
+            doublePageLayout: true
+        )
+        await waitForScrollRequestToFinish(store)
+        await waitForPageToLoad(store, pageId: "3-normal")
+        await waitForPageToLoad(store, pageId: "4-normal")
+
+        XCTAssertTrue(store.pages[id: "3-normal"]?.imageLoaded == true)
+        XCTAssertTrue(store.pages[id: "4-normal"]?.imageLoaded == true)
+        _ = controller
+    }
+
+    @MainActor
+    func testUIPageCollectionDoesNotPreloadPastFinalPage() async throws {
+        configureReaderDefaults()
+        let (store, controller) = try makeInitialRestoreReader(
+            archiveId: "final-page-preload",
+            pageCount: 3,
+            targetPageIndex: 2
+        )
+        await waitForScrollRequestToFinish(store)
+        await waitForPageToLoad(store, pageId: "3-normal")
+
+        XCTAssertFalse(store.pages[id: "2-normal"]?.imageLoaded == true)
+        _ = controller
+    }
+
+    @MainActor
+    func testUIPageCollectionPreloadsNextPageInVerticalReader() async throws {
+        configureReaderDefaults(readDirection: .upDown)
+        let (store, controller) = try makeInitialRestoreReader(
+            archiveId: "vertical-preload",
+            pageCount: 4,
+            targetPageIndex: 1,
+            readDirection: .upDown
+        )
+        await waitForScrollRequestToFinish(store)
+        await waitForPageToLoad(store, pageId: "3-normal")
+
+        XCTAssertTrue(store.pages[id: "3-normal"]?.imageLoaded == true)
+        _ = controller
+    }
+
+    @MainActor
     func testUIPageCollectionDoesNotOverwriteRestoredPageDuringInitialSnapshot() async {
         configureReaderDefaults()
         var initialState = makeState(progress: 3)
@@ -3385,6 +3464,63 @@ final class ArchiveReaderFeatureTests: XCTestCase {
 @MainActor
 private func waitForScrollRequestToFinish(_ store: StoreOf<ArchiveReaderFeature>) async {
     for _ in 0..<100 where store.scrollRequest != nil {
+        try? await Task<Never, Never>.sleep(for: .milliseconds(10))
+    }
+}
+
+@MainActor
+private func makeInitialRestoreReader(
+    archiveId: String,
+    pageCount: Int,
+    targetPageIndex: Int,
+    readDirection: ReadDirection = .leftRight,
+    doublePageLayout: Bool = false
+) throws -> (StoreOf<ArchiveReaderFeature>, UIPageCollectionController) {
+    var initialState = makeState(
+        archiveId: archiveId,
+        progress: targetPageIndex + 1,
+        cached: true,
+        readDirection: readDirection,
+        doublePageLayout: doublePageLayout
+    )
+    initialState.pages = IdentifiedArray(
+        uniqueElements: (1...pageCount).map {
+            PageFeature.State(
+                archiveId: archiveId,
+                pageId: "\($0)",
+                pageNumber: $0,
+                cached: true
+            )
+        }
+    )
+    initialState.currentPageIndex = targetPageIndex
+    initialState.scrollRequest = ScrollRequest(
+        targetPageIndex: targetPageIndex,
+        source: .initialRestore,
+        animated: false
+    )
+
+    let database = try makeInMemoryDatabase()
+    let store = Store(initialState: initialState) {
+        ArchiveReaderFeature()
+    } withDependencies: {
+        $0.continuousClock = ImmediateClock()
+        $0.appDatabase = database
+    }
+    let controller = UIPageCollectionController(store: store)
+    controller.loadViewIfNeeded()
+    controller.collectionView.isPrefetchingEnabled = false
+    controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 480)
+    controller.view.layoutIfNeeded()
+    return (store, controller)
+}
+
+@MainActor
+private func waitForPageToLoad(
+    _ store: StoreOf<ArchiveReaderFeature>,
+    pageId: PageFeature.State.ID
+) async {
+    for _ in 0..<100 where store.pages[id: pageId]?.imageLoaded != true {
         try? await Task<Never, Never>.sleep(for: .milliseconds(10))
     }
 }
