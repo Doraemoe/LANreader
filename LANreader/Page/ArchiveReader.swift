@@ -229,8 +229,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         case visiblePageChanged(Int)
         case chapterCreationRequested
         case chapterEditingRequested(Int)
-        case cancelChapterCreation
-        case cancelChapterEditing
+        case cancelChapterMutation
         case confirmChapterMutation
         case chapterSaved(target: ChapterMutationTarget, title: String)
         case chapterSaveFailed(target: ChapterMutationTarget, title: String, isEditing: Bool)
@@ -763,11 +762,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                 )
                 state.chapterTitle = chapter.name
                 return .none
-            case .cancelChapterCreation:
+            case .cancelChapterMutation:
                 state.chapterCreationTarget = nil
-                state.chapterTitle = ""
-                return .none
-            case .cancelChapterEditing:
                 state.chapterEditingTarget = nil
                 state.chapterTitle = ""
                 return .none
@@ -1713,12 +1709,14 @@ struct ArchiveReader: View {
             $store.scope(\.$alert, action: \.alert)
         )
         .alert(
-            "archive.reader.chapter.add",
+            store.chapterEditingTarget == nil
+                ? "archive.reader.chapter.add"
+                : "archive.reader.chapter.edit.title",
             isPresented: Binding(
-                get: { store.chapterCreationTarget != nil },
+                get: { store.chapterCreationTarget != nil || store.chapterEditingTarget != nil },
                 set: { isPresented in
-                    if !isPresented, store.chapterCreationTarget != nil {
-                        store.send(.cancelChapterCreation)
+                    if !isPresented {
+                        store.send(.cancelChapterMutation)
                     }
                 }
             )
@@ -1728,30 +1726,7 @@ struct ArchiveReader: View {
                 text: $store.chapterTitle
             )
             Button("cancel", role: .cancel) {
-                store.send(.cancelChapterCreation)
-            }
-            Button("save") {
-                store.send(.confirmChapterMutation)
-            }
-            .disabled(store.chapterTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-        }
-        .alert(
-            "archive.reader.chapter.edit.title",
-            isPresented: Binding(
-                get: { store.chapterEditingTarget != nil },
-                set: { isPresented in
-                    if !isPresented, store.chapterEditingTarget != nil {
-                        store.send(.cancelChapterEditing)
-                    }
-                }
-            )
-        ) {
-            TextField(
-                "archive.reader.chapter.title.placeholder",
-                text: $store.chapterTitle
-            )
-            Button("cancel", role: .cancel) {
-                store.send(.cancelChapterEditing)
+                store.send(.cancelChapterMutation)
             }
             Button("save") {
                 store.send(.confirmChapterMutation)
