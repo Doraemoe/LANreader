@@ -109,6 +109,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         var chapterEditingTarget: ChapterMutationTarget?
         var chapterTitle = ""
         var chapterRequestInFlight = false
+        var chapterMutationsSupported: Bool?
 
         var allArchives: IdentifiedArrayOf<Shared<ArchiveItem>> = []
 
@@ -153,11 +154,11 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         }
 
         var canAddChapter: Bool {
-            !cached && currentPage != nil
+            !cached && chapterMutationsSupported != false && currentPage != nil
         }
 
         var editableChapterPages: Set<Int> {
-            guard !cached else { return [] }
+            guard !cached, chapterMutationsSupported != false else { return [] }
             let chapterPages = Set(chapters.map(\.page))
             guard currentArchiveId.isTankoubonArchiveId else { return chapterPages }
             guard let currentTankoubonDetails else { return [] }
@@ -201,6 +202,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         case page(IdentifiedActionOf<PageFeature>)
         case extractArchive
         case stampsSupportResolved(Bool?)
+        case chapterMutationSupportResolved(Bool?)
         case finishExtracting([ReaderExtractedPage], TankoubonDetailsMetadata?)
         case primePageAspectRatios
         case pageAspectRatiosPrimed([Int: Double])
@@ -354,6 +356,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                 return .run { send in
                     let stampsSupported = await service.stampSupportForCurrentServer()
                     await send(.stampsSupportResolved(stampsSupported))
+                    let chapterMutationsSupported = await service.chapterMutationSupportForCurrentServer()
+                    await send(.chapterMutationSupportResolved(chapterMutationsSupported))
                     let pages: [ReaderExtractedPage]
                     var tankoubonDetails: TankoubonDetailsMetadata?
                     if id.isTankoubonArchiveId {
@@ -423,6 +427,14 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                     state.pages[id: pageId]?.stampsLoaded = true
                 }
                 return .none
+            case let .chapterMutationSupportResolved(isSupported):
+                state.chapterMutationsSupported = isSupported
+                guard isSupported == false else { return .none }
+                state.chapterCreationTarget = nil
+                state.chapterEditingTarget = nil
+                state.chapterTitle = ""
+                state.chapterRequestInFlight = false
+                return .cancel(id: CancelId.chapterCreation)
             case let .finishExtracting(pages, tankoubonDetails):
                 state.currentTankoubonDetails = tankoubonDetails
                 if !pages.isEmpty {
@@ -2187,6 +2199,7 @@ struct ArchiveReader: View {
                         Button("edit", systemImage: "pencil") {
                             store.send(.chapterEditingRequested(chapter.page))
                         }
+                        .disabled(store.chapterRequestInFlight)
                     } label: {
                         Text(chapter.name)
                     } primaryAction: {

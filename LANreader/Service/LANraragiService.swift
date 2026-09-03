@@ -42,6 +42,7 @@ actor LANraragiService {
 
     private(set) var useNewAPI: Bool = false
     private(set) var supportsStamps: Bool?
+    private(set) var supportsChapterMutations: Bool?
 
     private init() {
         self.session = Session(interceptor: authInterceptor)
@@ -115,9 +116,17 @@ actor LANraragiService {
         return supportsStamps
     }
 
+    func chapterMutationSupportForCurrentServer() async -> Bool? {
+        if supportsChapterMutations == nil {
+            await checkServerVersionAtStartup()
+        }
+        return supportsChapterMutations
+    }
+
     func updateServerCapabilities(serverVersion: String) {
         self.useNewAPI = Self.compareVersions(serverVersion, isAtLeast: Self.newAPIMinVersion)
         self.supportsStamps = Self.compareVersions(serverVersion, isAtLeast: Self.stampsMinVersion)
+        self.supportsChapterMutations = self.useNewAPI
         let supportsStamps = self.supportsStamps == true
         Self.logger.info(
             "Server version: \(serverVersion), using new API: \(self.useNewAPI), supports stamps: \(supportsStamps)"

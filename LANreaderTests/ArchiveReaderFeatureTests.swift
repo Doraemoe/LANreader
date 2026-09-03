@@ -204,6 +204,32 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testUnsupportedServerKeepsChaptersReadOnly() async {
+        configureReaderDefaults()
+        let chapter = ArchiveChapter(name: "Opening", page: 1)
+        var state = makeState(allArchives: [makeArchive(toc: [chapter])])
+        state.pages = [PageFeature.State(archiveId: "archive", pageId: "1", pageNumber: 1)]
+        state.chapterMutationsSupported = false
+        let store = makeTestStore(initialState: state)
+
+        XCTAssertEqual(store.state.chapters, [chapter])
+        XCTAssertFalse(store.state.canAddChapter)
+        XCTAssertTrue(store.state.editableChapterPages.isEmpty)
+
+        await store.send(.chapterCreationRequested)
+        await store.send(.chapterEditingRequested(chapter.page))
+        await store.send(.chapterSelected(chapter.page))
+        await store.receive(.requestJump(0, source: .chapter)) {
+            $0.scrollRequest = makeScrollRequest(
+                id: 0,
+                targetPageIndex: 0,
+                source: .chapter,
+                animated: false
+            )
+        }
+    }
+
+    @MainActor
     func testCachedPageDoesNotLoadStampsFromServer() async {
         let store = TestStore(
             initialState: PageFeature.State(
@@ -460,6 +486,50 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             $0.allArchives[id: tankId]?.withLock { $0.toc = [updatedChapter] }
             $0.currentTankoubonDetails?.toc = [updatedChapter]
         }
+    }
+
+    @MainActor
+    func testEditChapterFailureRestoresDraft() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let chapter = ArchiveChapter(name: "Original", page: 4)
+        stubAddArchiveChapter(archiveId: "archive", page: 4, title: "Updated", success: 0)
+        var initialState = makeState(allArchives: [makeArchive(toc: [chapter])])
+        initialState.pages = [
+            PageFeature.State(archiveId: "archive", pageId: "4", pageNumber: 4)
+        ]
+        let target = ChapterMutationTarget(
+            readerArchiveId: "archive",
+            readerPageNumber: 4,
+            sourceArchiveId: "archive",
+            sourcePageNumber: 4
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.chapterEditingRequested(chapter.page)) {
+            $0.chapterEditingTarget = target
+            $0.chapterTitle = "Original"
+        }
+        await store.send(.binding(.set(\.chapterTitle, "  Updated\n"))) {
+            $0.chapterTitle = "  Updated\n"
+        }
+        await store.send(.confirmChapterMutation) {
+            $0.chapterEditingTarget = nil
+            $0.chapterTitle = ""
+            $0.chapterRequestInFlight = true
+        }
+        await store.receive(.chapterSaveFailed(
+            target: target,
+            title: "  Updated\n",
+            isEditing: true
+        )) {
+            $0.chapterRequestInFlight = false
+            $0.chapterEditingTarget = target
+            $0.chapterTitle = "  Updated\n"
+            $0.errorMessage = String(localized: "archive.reader.chapter.edit.failed")
+        }
+        XCTAssertEqual(store.state.chapters, [chapter])
     }
 
     @MainActor
@@ -1574,10 +1644,9 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             $0.appDatabase = database
         }
 
-        await store.send(.extractArchive) {
-            $0.extracting = true
-        }
+        await store.send(.extractArchive) { $0.extracting = true }
         await store.receive(.stampsSupportResolved(false)) { $0.stampsSupported = false }
+        await store.receive(.chapterMutationSupportResolved(false)) { $0.chapterMutationsSupported = false }
         await store.receive(
             .finishExtracting(
                 extractedPages,
@@ -4326,14 +4395,14 @@ private func stubArchiveStampsFailure(archiveId: String, page: Int, statusCode: 
     }
 }
 
-private func stubAddArchiveChapter(archiveId: String, page: Int, title: String) {
+private func stubAddArchiveChapter(archiveId: String, page: Int, title: String, success: Int = 1) {
     stub(condition: isHost("localhost")
             && isPath("/api/archives/\(archiveId)/toc")
             && containsQueryParams(["page": "\(page)", "title": title])
             && isMethodPUT()
             && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
         HTTPStubsResponse(
-            data: Data("{\"operation\":\"update_toc\",\"success\":1}".utf8),
+            data: Data("{\"operation\":\"update_toc\",\"success\":\(success)}".utf8),
             statusCode: 200,
             headers: ["Content-Type": "application/json"]
         )
