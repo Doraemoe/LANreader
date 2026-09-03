@@ -382,7 +382,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             )
         ]
         initialState.currentTankoubonDetails = makeTankoubonDetailsMetadata(tankId: tankId, toc: [existingChapter])
-        let target = ChapterCreationTarget(
+        let target = ChapterMutationTarget(
             readerArchiveId: tankId,
             readerPageNumber: 8,
             sourceArchiveId: "source",
@@ -400,15 +400,115 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.send(.binding(.set(\.chapterTitle, "  New chapter\n"))) {
             $0.chapterTitle = "  New chapter\n"
         }
-        await store.send(.confirmChapterCreation) {
+        await store.send(.confirmChapterMutation) {
             $0.chapterCreationTarget = nil
             $0.chapterTitle = ""
             $0.chapterRequestInFlight = true
         }
-        await store.receive(.chapterCreated(target: target, title: "New chapter")) {
+        await store.receive(.chapterSaved(target: target, title: "New chapter")) {
             $0.chapterRequestInFlight = false
             $0.allArchives[id: tankId]?.withLock { $0.toc = chapters }
             $0.currentTankoubonDetails?.toc = chapters
+        }
+    }
+
+    @MainActor
+    func testEditChapterUsesOriginalSourcePageAndUpdatesTitle() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let tankId = "TANK_test"
+        let chapter = ArchiveChapter(name: "Original", page: 8)
+        let updatedChapter = ArchiveChapter(name: "Updated", page: 8)
+        stubAddArchiveChapter(archiveId: "source", page: 4, title: "Updated")
+        var initialState = makeState(
+            archiveId: tankId,
+            allArchives: [makeArchive(id: tankId, toc: [chapter])]
+        )
+        initialState.pages = [
+            PageFeature.State(
+                archiveId: tankId,
+                pageId: "page",
+                pageNumber: 8,
+                sourceArchiveId: "source",
+                sourcePageNumber: 4
+            )
+        ]
+        initialState.currentTankoubonDetails = makeTankoubonDetailsMetadata(tankId: tankId, toc: [chapter])
+        let target = ChapterMutationTarget(
+            readerArchiveId: tankId,
+            readerPageNumber: 8,
+            sourceArchiveId: "source",
+            sourcePageNumber: 4
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.chapterEditingRequested(chapter.page)) {
+            $0.chapterEditingTarget = target
+            $0.chapterTitle = "Original"
+        }
+        await store.send(.binding(.set(\.chapterTitle, "  Updated\n"))) {
+            $0.chapterTitle = "  Updated\n"
+        }
+        await store.send(.confirmChapterMutation) {
+            $0.chapterEditingTarget = nil
+            $0.chapterTitle = ""
+            $0.chapterRequestInFlight = true
+        }
+        await store.receive(.chapterSaved(target: target, title: "Updated")) {
+            $0.chapterRequestInFlight = false
+            $0.allArchives[id: tankId]?.withLock { $0.toc = [updatedChapter] }
+            $0.currentTankoubonDetails?.toc = [updatedChapter]
+        }
+    }
+
+    @MainActor
+    func testAutomaticTankoubonChapterCannotBeEdited() async {
+        configureReaderDefaults()
+
+        let tankId = "TANK_test"
+        let manualFirstPage = ArchiveChapter(name: "Manual", page: 1)
+        let automaticFirstPage = ArchiveChapter(name: "Source 2", page: 3)
+        var initialState = makeState(
+            archiveId: tankId,
+            allArchives: [makeArchive(id: tankId, toc: [manualFirstPage, automaticFirstPage])]
+        )
+        initialState.pages = [
+            PageFeature.State(
+                archiveId: tankId,
+                pageId: "first",
+                pageNumber: 1,
+                sourceArchiveId: "source-1",
+                sourcePageNumber: 1
+            ),
+            PageFeature.State(
+                archiveId: tankId,
+                pageId: "second",
+                pageNumber: 3,
+                sourceArchiveId: "source-2",
+                sourcePageNumber: 1
+            )
+        ]
+        var details = makeTankoubonDetailsMetadata(
+            tankId: tankId,
+            toc: [manualFirstPage, automaticFirstPage]
+        )
+        details.automaticChapterPages = [3]
+        initialState.currentTankoubonDetails = details
+        let store = makeTestStore(initialState: initialState)
+
+        XCTAssertEqual(store.state.editableChapterPages, [1])
+        await store.send(.chapterEditingRequested(automaticFirstPage.page))
+
+        let target = ChapterMutationTarget(
+            readerArchiveId: tankId,
+            readerPageNumber: 1,
+            sourceArchiveId: "source-1",
+            sourcePageNumber: 1
+        )
+        await store.send(.chapterEditingRequested(manualFirstPage.page)) {
+            $0.chapterEditingTarget = target
+            $0.chapterTitle = "Manual"
         }
     }
 
@@ -4040,10 +4140,12 @@ private func makeTankoubonChapterFixture(tankId: String) -> TankoubonChapterFixt
         ArchiveChapter(name: "Source 1", page: 3),
         ArchiveChapter(name: "Bonus", page: 4)
     ]
+    var metadata = makeTankoubonDetailsMetadata(tankId: tankId, toc: expectedChapters)
+    metadata.automaticChapterPages = [3]
     return TankoubonChapterFixture(
         sourceTOCs: sourceTOCs,
         expectedChapters: expectedChapters,
-        metadata: makeTankoubonDetailsMetadata(tankId: tankId, toc: expectedChapters)
+        metadata: metadata
     )
 }
 
