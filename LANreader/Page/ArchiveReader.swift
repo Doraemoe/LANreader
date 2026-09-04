@@ -21,16 +21,13 @@ public struct ReaderExtractedPage: Equatable, Sendable {
 
 private let archiveExtractionLogger = Logger(label: "ArchiveExtraction")
 
-struct ArchiveExtractionResult: Equatable, Sendable {
-    let pages: [ReaderExtractedPage]
-    let tankoubonDetails: TankoubonDetailsMetadata?
-}
-
 extension LANraragiService {
-    func extractArchiveForReading(id: String) async throws -> ArchiveExtractionResult {
+    func extractArchiveForReading(
+        id: String
+    ) async throws -> (pages: [ReaderExtractedPage], tankoubonDetails: TankoubonDetailsMetadata?) {
         guard id.isTankoubonArchiveId else {
             let response = try await extractArchive(id: id).value
-            return ArchiveExtractionResult(
+            return (
                 pages: Self.extractedPages(from: response.pages, archiveId: id),
                 tankoubonDetails: nil
             )
@@ -75,7 +72,7 @@ extension LANraragiService {
         }
 
         details.toc = chapters.isEmpty ? nil : chapters
-        return ArchiveExtractionResult(pages: pages, tankoubonDetails: details)
+        return (pages: pages, tankoubonDetails: details)
     }
 
     private static func tankoubonArchiveIds(from response: TankoubonFullResponse) -> [String] {

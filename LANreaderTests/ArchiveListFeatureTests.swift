@@ -213,6 +213,27 @@ final class ArchiveListFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testClearingErrorMessagePreservesPendingLoadState() async {
+        var initialState = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: nil),
+            loadOnAppear: false,
+            currentTab: .library
+        )
+        initialState.loading = true
+        initialState.showLoading = true
+        initialState.pendingPage = 2
+        initialState.errorMessage = "Cache failed"
+
+        let store = TestStore(initialState: initialState) {
+            ArchiveListFeature()
+        }
+
+        await store.send(.setErrorMessage("")) {
+            $0.errorMessage = ""
+        }
+    }
+
+    @MainActor
     func testLoadKeepsCurrentPageInPaginationMode() async throws {
         try await configureVerifiedClient()
         stubSearchExpectingStart("200", recordsFiltered: 250)
@@ -435,7 +456,6 @@ final class ArchiveListFeatureTests: XCTestCase {
             currentTab: .library
         )
         initialState.archives = [GridFeature.State(archive: Shared(value: archive))]
-        initialState.archivesToDisplay = initialState.archives
 
         let database = try makeInMemoryDatabase()
         let store = TestStore(initialState: initialState) {

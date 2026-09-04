@@ -231,6 +231,10 @@ import NotificationBannerSwift
                 state.errorMessage = message
                 return .none
             case let .setErrorMessage(message):
+                guard !message.isEmpty else {
+                    state.errorMessage = ""
+                    return .none
+                }
                 state.loading = false
                 state.showLoading = false
                 state.pendingPage = nil
