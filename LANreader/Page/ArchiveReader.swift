@@ -379,6 +379,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                         }
 
                         for archiveId in archiveIds {
+                            let metadata = archiveMetadata[archiveId]
                             let extractResponse = try await service.extractArchive(id: archiveId).value
                             if extractResponse.pages.isEmpty {
                                 logger.error("server returned empty pages. id=\(archiveId)")
@@ -388,11 +389,16 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                                 archiveId: archiveId
                             )
                             let chapterResult = Self.tankoubonChapters(
-                                from: archiveMetadata[archiveId],
+                                from: metadata,
                                 pageOffset: tankPages.count,
                                 extractedPageCount: extractedPages.count
                             )
                             tankChapters.append(contentsOf: chapterResult.chapters)
+                            if let metadata, !metadata.title.isEmpty, !extractedPages.isEmpty {
+                                details.defaultChapters.append(
+                                    ArchiveChapter(name: metadata.title, page: tankPages.count + 1)
+                                )
+                            }
                             if let automaticPage = chapterResult.automaticPage {
                                 details.automaticChapterPages.insert(automaticPage)
                             }
@@ -865,10 +871,17 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                 guard let archive = state.allArchives[id: target.readerArchiveId] else { return .none }
                 var chapters = archive.wrappedValue.toc ?? []
                 chapters.removeAll { $0.page == target.readerPageNumber }
-                archive.withLock { $0.toc = chapters.isEmpty ? nil : chapters }
                 if state.currentTankoubonDetails?.id == target.readerArchiveId {
+                    if let defaultChapter = state.currentTankoubonDetails?.defaultChapters.first(
+                        where: { $0.page == target.readerPageNumber }
+                    ) {
+                        chapters.append(defaultChapter)
+                        chapters.sort { $0.page < $1.page }
+                        state.currentTankoubonDetails?.automaticChapterPages.insert(defaultChapter.page)
+                    }
                     state.currentTankoubonDetails?.toc = chapters.isEmpty ? nil : chapters
                 }
+                archive.withLock { $0.toc = chapters.isEmpty ? nil : chapters }
                 return .none
             case let .chapterDeleteFailed(target, title):
                 state.chapterRequestInFlight = false
