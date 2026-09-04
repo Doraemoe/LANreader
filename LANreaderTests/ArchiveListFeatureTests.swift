@@ -407,6 +407,62 @@ final class ArchiveListFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testCacheArchiveFromListSavesDownloadMetadata() async throws {
+        try await configureVerifiedClient()
+
+        let archiveId = "archive-to-cache"
+        try stubArchiveExtraction(
+            id: archiveId,
+            pages: [
+                "./api/archives/\(archiveId)/page?path=001.jpg",
+                "./api/archives/\(archiveId)/page?path=002.jpg"
+            ]
+        )
+        let archive = ArchiveItem(
+            id: archiveId,
+            name: "Archive to Cache",
+            extension: "zip",
+            tags: "artist:Example",
+            isNew: false,
+            progress: 1,
+            pagecount: 2,
+            dateAdded: nil,
+            toc: [ArchiveChapter(name: "Chapter", page: 1)]
+        )
+        var initialState = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: nil),
+            loadOnAppear: false,
+            currentTab: .library
+        )
+        initialState.archives = [GridFeature.State(archive: Shared(value: archive))]
+        initialState.archivesToDisplay = initialState.archives
+
+        let database = try makeInMemoryDatabase()
+        let store = TestStore(initialState: initialState) {
+            ArchiveListFeature()
+        } withDependencies: {
+            $0.appDatabase = database
+        }
+        store.timeout = .seconds(5)
+
+        await store.send(.cacheArchive(archiveId)) {
+            $0.cachingArchiveIds = [archiveId]
+        }
+        await store.receive(.cacheArchiveFinished(archiveId)) {
+            $0.cachingArchiveIds = []
+            $0.successMessage = String(localized: "archive.cache.added")
+        }
+
+        let cache = try XCTUnwrap(database.readCache(archiveId))
+        XCTAssertEqual(cache.title, archive.name)
+        XCTAssertEqual(cache.tags, archive.tags)
+        XCTAssertEqual(cache.totalPages, 2)
+        XCTAssertEqual(cache.toc, archive.toc)
+        XCTAssertEqual(cache.progress, archive.progress)
+        XCTAssertFalse(cache.cached)
+    }
+
+    @MainActor
     func testGridLoadUsesArchiveThumbnailEndpointForNormalArchive() async throws {
         try await configureVerifiedClient()
 
@@ -522,6 +578,16 @@ private func stubArchiveThumbnail(id: String, data: Data) {    stub(condition: i
             && isMethodGET()
             && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
         HTTPStubsResponse(data: data, statusCode: 200, headers: ["Content-Type": "image/jpeg"])
+    }
+}
+
+private func stubArchiveExtraction(id: String, pages: [String]) throws {
+    let data = try JSONSerialization.data(withJSONObject: ["pages": pages])
+    stub(condition: isHost("localhost")
+            && isPath("/api/archives/\(id)/extract")
+            && isMethodPOST()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        HTTPStubsResponse(data: data, statusCode: 200, headers: ["Content-Type": "application/json"])
     }
 }
 

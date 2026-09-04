@@ -19,6 +19,101 @@ public struct ReaderExtractedPage: Equatable, Sendable {
     }
 }
 
+private let archiveExtractionLogger = Logger(label: "ArchiveExtraction")
+
+struct ArchiveExtractionResult: Equatable, Sendable {
+    let pages: [ReaderExtractedPage]
+    let tankoubonDetails: TankoubonDetailsMetadata?
+}
+
+extension LANraragiService {
+    func extractArchiveForReading(id: String) async throws -> ArchiveExtractionResult {
+        guard id.isTankoubonArchiveId else {
+            let response = try await extractArchive(id: id).value
+            return ArchiveExtractionResult(
+                pages: Self.extractedPages(from: response.pages, archiveId: id),
+                tankoubonDetails: nil
+            )
+        }
+
+        let tankoubon = try await retrieveFullTankoubon(id: id).value
+        var details = TankoubonDetailsMetadata(response: tankoubon)
+        let archiveIds = Self.tankoubonArchiveIds(from: tankoubon)
+        let archiveMetadata = Dictionary(
+            (tankoubon.result.fullData ?? []).map { ($0.arcid, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        var pages: [ReaderExtractedPage] = []
+        var chapters: [ArchiveChapter] = []
+
+        if archiveIds.isEmpty {
+            archiveExtractionLogger.error("tankoubon returned no archives. id=\(id)")
+        }
+
+        for archiveId in archiveIds {
+            let metadata = archiveMetadata[archiveId]
+            let response = try await extractArchive(id: archiveId).value
+            if response.pages.isEmpty {
+                archiveExtractionLogger.error("server returned empty pages. id=\(archiveId)")
+            }
+            let extractedPages = Self.extractedPages(from: response.pages, archiveId: archiveId)
+            let chapterResult = Self.tankoubonChapters(
+                from: metadata,
+                pageOffset: pages.count,
+                extractedPageCount: extractedPages.count
+            )
+            chapters.append(contentsOf: chapterResult.chapters)
+            if let metadata, !metadata.title.isEmpty, !extractedPages.isEmpty {
+                details.defaultChapters.append(
+                    ArchiveChapter(name: metadata.title, page: pages.count + 1)
+                )
+            }
+            if let automaticPage = chapterResult.automaticPage {
+                details.automaticChapterPages.insert(automaticPage)
+            }
+            pages.append(contentsOf: extractedPages)
+        }
+
+        details.toc = chapters.isEmpty ? nil : chapters
+        return ArchiveExtractionResult(pages: pages, tankoubonDetails: details)
+    }
+
+    private static func tankoubonArchiveIds(from response: TankoubonFullResponse) -> [String] {
+        if let archives = response.result.archives, !archives.isEmpty {
+            return archives
+        }
+        return response.result.fullData?.map(\.arcid) ?? []
+    }
+
+    private static func extractedPages(from pages: [String], archiveId: String) -> [ReaderExtractedPage] {
+        pages.enumerated().map { index, path in
+            ReaderExtractedPage(archiveId: archiveId, path: path, archivePageNumber: index + 1)
+        }
+    }
+
+    private static func tankoubonChapters(
+        from archiveMetadata: ArchiveIndexResponse?,
+        pageOffset: Int,
+        extractedPageCount: Int
+    ) -> (chapters: [ArchiveChapter], automaticPage: Int?) {
+        guard extractedPageCount > 0, let archiveMetadata else { return ([], nil) }
+        var chapters: [ArchiveChapter] = (archiveMetadata.toc ?? []).compactMap { chapter in
+            guard (1...extractedPageCount).contains(chapter.page) else { return nil }
+            return ArchiveChapter(name: chapter.name, page: pageOffset + chapter.page)
+        }
+        let firstPage = pageOffset + 1
+        if !archiveMetadata.title.isEmpty,
+           !chapters.contains(where: { $0.page == firstPage }) {
+            chapters.insert(
+                ArchiveChapter(name: archiveMetadata.title, page: firstPage),
+                at: 0
+            )
+            return (chapters, firstPage)
+        }
+        return (chapters, nil)
+    }
+}
+
 public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
     public let archiveId: String
     public let response: PageThumbnailQueueResponse
@@ -361,63 +456,14 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                     await send(.stampsSupportResolved(stampsSupported))
                     let chapterMutationsSupported = await service.chapterMutationSupportForCurrentServer()
                     await send(.chapterMutationSupportResolved(chapterMutationsSupported))
-                    let pages: [ReaderExtractedPage]
-                    var tankoubonDetails: TankoubonDetailsMetadata?
-                    if id.isTankoubonArchiveId {
-                        let tankoubon = try await service.retrieveFullTankoubon(id: id).value
-                        var details = TankoubonDetailsMetadata(response: tankoubon)
-                        let archiveIds = Self.tankoubonArchiveIds(from: tankoubon)
-                        let archiveMetadata = Dictionary(
-                            (tankoubon.result.fullData ?? []).map { ($0.arcid, $0) },
-                            uniquingKeysWith: { first, _ in first }
-                        )
-                        var tankPages: [ReaderExtractedPage] = []
-                        var tankChapters: [ArchiveChapter] = []
+                    let extraction = try await service.extractArchiveForReading(id: id)
 
-                        if archiveIds.isEmpty {
-                            logger.error("tankoubon returned no archives. id=\(id)")
-                        }
-
-                        for archiveId in archiveIds {
-                            let metadata = archiveMetadata[archiveId]
-                            let extractResponse = try await service.extractArchive(id: archiveId).value
-                            if extractResponse.pages.isEmpty {
-                                logger.error("server returned empty pages. id=\(archiveId)")
-                            }
-                            let extractedPages = Self.extractedPages(
-                                from: extractResponse.pages,
-                                archiveId: archiveId
-                            )
-                            let chapterResult = Self.tankoubonChapters(
-                                from: metadata,
-                                pageOffset: tankPages.count,
-                                extractedPageCount: extractedPages.count
-                            )
-                            tankChapters.append(contentsOf: chapterResult.chapters)
-                            if let metadata, !metadata.title.isEmpty, !extractedPages.isEmpty {
-                                details.defaultChapters.append(
-                                    ArchiveChapter(name: metadata.title, page: tankPages.count + 1)
-                                )
-                            }
-                            if let automaticPage = chapterResult.automaticPage {
-                                details.automaticChapterPages.insert(automaticPage)
-                            }
-                            tankPages.append(contentsOf: extractedPages)
-                        }
-                        details.toc = tankChapters.isEmpty ? nil : tankChapters
-                        tankoubonDetails = details
-                        pages = tankPages
-                    } else {
-                        let extractResponse = try await service.extractArchive(id: id).value
-                        pages = Self.extractedPages(from: extractResponse.pages, archiveId: id)
-                    }
-
-                    if pages.isEmpty {
+                    if extraction.pages.isEmpty {
                         logger.error("server returned empty pages. id=\(id)")
                         let errorMessage = String(localized: "error.page.empty")
                         await send(.setError(errorMessage))
                     }
-                    await send(.finishExtracting(pages, tankoubonDetails))
+                    await send(.finishExtracting(extraction.pages, extraction.tankoubonDetails))
                 } catch: { error, send in
                     logger.error("failed to extract archive page. id=\(id) \(error)")
                     await send(.setError(error.localizedDescription))
@@ -1428,41 +1474,6 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         }
         .ifLet(\.$alert, action: \.alert)
     }
-    private static func tankoubonArchiveIds(from response: TankoubonFullResponse) -> [String] {
-        if let archives = response.result.archives, !archives.isEmpty {
-            return archives
-        }
-        return response.result.fullData?.map(\.arcid) ?? []
-    }
-
-    private static func extractedPages(from pages: [String], archiveId: String) -> [ReaderExtractedPage] {
-        pages.enumerated().map { index, path in
-            ReaderExtractedPage(archiveId: archiveId, path: path, archivePageNumber: index + 1)
-        }
-    }
-
-    private static func tankoubonChapters(
-        from archiveMetadata: ArchiveIndexResponse?,
-        pageOffset: Int,
-        extractedPageCount: Int
-    ) -> (chapters: [ArchiveChapter], automaticPage: Int?) {
-        guard extractedPageCount > 0, let archiveMetadata else { return ([], nil) }
-        var chapters: [ArchiveChapter] = (archiveMetadata.toc ?? []).compactMap { chapter in
-            guard (1...extractedPageCount).contains(chapter.page) else { return nil }
-            return ArchiveChapter(name: chapter.name, page: pageOffset + chapter.page)
-        }
-        let firstPage = pageOffset + 1
-        if !archiveMetadata.title.isEmpty,
-           !chapters.contains(where: { $0.page == firstPage }) {
-            chapters.insert(
-                ArchiveChapter(name: archiveMetadata.title, page: firstPage),
-                at: 0
-            )
-            return (chapters, firstPage)
-        }
-        return (chapters, nil)
-    }
-
     private static func readerPageNumbers(
         in pages: IdentifiedArrayOf<PageFeature.State>,
         sourceArchiveId: String,

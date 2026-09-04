@@ -3,6 +3,7 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 import Logging
+import NotificationBannerSwift
 
 @Reducer public struct ArchiveListFeature: Sendable {
     private let logger = Logger(label: "ArchiveListFeature")
@@ -31,6 +32,7 @@ import Logging
         var total: Int = 0
         var errorMessage = ""
         var successMessage = ""
+        var cachingArchiveIds: Set<String> = []
         var currentTab: TabName
 
         var archivesToDisplay: IdentifiedArrayOf<GridFeature.State> = []
@@ -79,6 +81,9 @@ import Logging
         case refreshThumbnail(String)
         case appendArchives(String)
         case removeArchive(String)
+        case cacheArchive(String)
+        case cacheArchiveFinished(String)
+        case cacheArchiveFailed(String, String)
         case setErrorMessage(String)
         case setSuccessMessage(String)
         case cancelSearch
@@ -215,6 +220,16 @@ import Logging
                 } else {
                     return .none
                 }
+            case let .cacheArchive(id):
+                return cacheArchive(state: &state, id: id)
+            case let .cacheArchiveFinished(id):
+                state.cachingArchiveIds.remove(id)
+                state.successMessage = String(localized: "archive.cache.added")
+                return .none
+            case let .cacheArchiveFailed(id, message):
+                state.cachingArchiveIds.remove(id)
+                state.errorMessage = message
+                return .none
             case let .setErrorMessage(message):
                 state.loading = false
                 state.showLoading = false
@@ -502,6 +517,53 @@ import Logging
 }
 
 extension ArchiveListFeature {
+    private func cacheArchive(state: inout State, id: String) -> EffectOf<Self> {
+        guard !state.cachingArchiveIds.contains(id),
+              let archive = state.archives[id: id]?.archive else {
+            return .none
+        }
+        if (try? database.existCache(id)) == true {
+            return .none
+        }
+        state.cachingArchiveIds.insert(id)
+        return .run(priority: .utility) { send in
+            let extraction = try await service.extractArchiveForReading(id: id)
+            guard !extraction.pages.isEmpty else {
+                await send(.cacheArchiveFailed(id, String(localized: "error.page.empty")))
+                return
+            }
+
+            var requested = Set<String>()
+            for (index, page) in extraction.pages.enumerated() {
+                let pageId = String(page.path.dropFirst(1))
+                if requested.insert(pageId).inserted {
+                    await service.backgroupFetchArchivePage(
+                        page: pageId,
+                        archiveId: id,
+                        pageNumber: index + 1
+                    )
+                }
+            }
+
+            var cache = ArchiveCache(
+                id: id,
+                title: archive.name,
+                tags: archive.tags,
+                thumbnail: Data(),
+                cached: false,
+                totalPages: requested.count,
+                toc: extraction.tankoubonDetails?.toc ?? archive.toc,
+                lastUpdate: Date(),
+                progress: archive.progress
+            )
+            try database.saveCache(&cache)
+            await send(.cacheArchiveFinished(id))
+        } catch: { error, send in
+            logger.error("failed to cache archive. id=\(id) \(error)")
+            await send(.cacheArchiveFailed(id, error.localizedDescription))
+        }
+    }
+
     private func resetArchives(state: inout State) {
         state.archivesToDisplay = .init()
         state.archives = .init()
@@ -639,6 +701,7 @@ extension ArchiveListFeature.State {
 
 class UIArchiveListViewController: UIViewController {
     let store: StoreOf<ArchiveListFeature>
+    @Dependency(\.appDatabase) private var database
 
     var collectionView: UICollectionView!
     var dataSource:
@@ -1060,6 +1123,30 @@ class UIArchiveListViewController: UIViewController {
             guard previousFilter?.filter != filter.filter else { return }
             reloadFromFirstPage()
         }
+
+        observe { [weak self] in
+            guard let self else { return }
+            let message = store.errorMessage
+            guard !message.isEmpty else { return }
+            NotificationBanner(
+                title: String(localized: "error"),
+                subtitle: message,
+                style: .danger
+            ).show()
+            store.send(.setErrorMessage(""))
+        }
+
+        observe { [weak self] in
+            guard let self else { return }
+            let message = store.successMessage
+            guard !message.isEmpty else { return }
+            NotificationBanner(
+                title: String(localized: "success"),
+                subtitle: message,
+                style: .success
+            ).show()
+            store.send(.setSuccessMessage(""))
+        }
     }
     // swiftlint:enable function_body_length
 
@@ -1150,13 +1237,25 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
     ) -> UIContextMenuConfiguration? {
         guard let itemStore = dataSource.itemIdentifier(for: indexPath) else { return nil }
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+            guard let self else { return nil }
             let readFromStart = UIAction(
                 title: String(localized: "archive.read.fromStart"),
                 image: UIImage(systemName: "arrow.left.to.line.compact")
-            ) { _ in
+            ) { [weak self] _ in
                 self?.openReader(for: itemStore, fromStart: true)
             }
-            return UIMenu(title: "", children: [readFromStart])
+            var actions: [UIMenuElement] = [readFromStart]
+            if (try? self.database.existCache(itemStore.id)) != true,
+               !self.store.cachingArchiveIds.contains(itemStore.id) {
+                let cacheArchive = UIAction(
+                    title: String(localized: "archive.cache.add"),
+                    image: UIImage(systemName: "tray.and.arrow.down")
+                ) { [weak self] _ in
+                    self?.store.send(.cacheArchive(itemStore.id))
+                }
+                actions.append(cacheArchive)
+            }
+            return UIMenu(title: "", children: actions)
         }
     }
 
