@@ -1647,31 +1647,31 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Add chapter"
+            "value" : "Add chapter at this page"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "区切りを追加"
+            "value" : "このページに区切りを追加"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "챕터 추가"
+            "value" : "이 페이지에 챕터 추가"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "添加章节"
+            "value" : "在此页面添加章节"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新增章節"
+            "value" : "在此頁面新增章節"
           }
         }
       }
@@ -1752,31 +1752,31 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Edit chapter"
+            "value" : "Edit chapter name"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "区切りを編集"
+            "value" : "区切り名を編集"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "챕터 편집"
+            "value" : "챕터 이름 편집"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "编辑章节"
+            "value" : "编辑章节名称"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "編輯章節"
+            "value" : "編輯章節名稱"
           }
         }
       }
