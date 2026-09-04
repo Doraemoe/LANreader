@@ -533,6 +533,89 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testDeleteChapterUsesOriginalSourcePageAndRemovesChapter() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let tankId = "TANK_test"
+        let chapter = ArchiveChapter(name: "Delete me", page: 8)
+        stubDeleteArchiveChapter(archiveId: "source", page: 4)
+        var initialState = makeState(
+            archiveId: tankId,
+            allArchives: [makeArchive(id: tankId, toc: [chapter])]
+        )
+        initialState.pages = [
+            PageFeature.State(
+                archiveId: tankId,
+                pageId: "page",
+                pageNumber: 8,
+                sourceArchiveId: "source",
+                sourcePageNumber: 4
+            )
+        ]
+        initialState.currentTankoubonDetails = makeTankoubonDetailsMetadata(tankId: tankId, toc: [chapter])
+        let target = ChapterMutationTarget(
+            readerArchiveId: tankId,
+            readerPageNumber: 8,
+            sourceArchiveId: "source",
+            sourcePageNumber: 4
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.chapterEditingRequested(chapter.page)) {
+            $0.chapterEditingTarget = target
+            $0.chapterTitle = chapter.name
+        }
+        await store.send(.confirmChapterDeletion) {
+            $0.chapterEditingTarget = nil
+            $0.chapterTitle = ""
+            $0.chapterRequestInFlight = true
+        }
+        await store.receive(.chapterDeleted(target: target)) {
+            $0.chapterRequestInFlight = false
+            $0.allArchives[id: tankId]?.withLock { $0.toc = nil }
+            $0.currentTankoubonDetails?.toc = nil
+        }
+    }
+
+    @MainActor
+    func testDeleteChapterFailureRestoresEdit() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let chapter = ArchiveChapter(name: "Keep me", page: 4)
+        stubDeleteArchiveChapter(archiveId: "archive", page: 4, success: 0)
+        var initialState = makeState(allArchives: [makeArchive(toc: [chapter])])
+        initialState.pages = [
+            PageFeature.State(archiveId: "archive", pageId: "4", pageNumber: 4)
+        ]
+        let target = ChapterMutationTarget(
+            readerArchiveId: "archive",
+            readerPageNumber: 4,
+            sourceArchiveId: "archive",
+            sourcePageNumber: 4
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.chapterEditingRequested(chapter.page)) {
+            $0.chapterEditingTarget = target
+            $0.chapterTitle = chapter.name
+        }
+        await store.send(.confirmChapterDeletion) {
+            $0.chapterEditingTarget = nil
+            $0.chapterTitle = ""
+            $0.chapterRequestInFlight = true
+        }
+        await store.receive(.chapterDeleteFailed(target: target, title: chapter.name)) {
+            $0.chapterRequestInFlight = false
+            $0.chapterEditingTarget = target
+            $0.chapterTitle = chapter.name
+            $0.errorMessage = String(localized: "archive.reader.chapter.delete.failed")
+        }
+        XCTAssertEqual(store.state.chapters, [chapter])
+    }
+
+    @MainActor
     func testAutomaticTankoubonChapterCannotBeEdited() async {
         configureReaderDefaults()
 
@@ -4403,6 +4486,20 @@ private func stubAddArchiveChapter(archiveId: String, page: Int, title: String, 
             && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
         HTTPStubsResponse(
             data: Data("{\"operation\":\"update_toc\",\"success\":\(success)}".utf8),
+            statusCode: 200,
+            headers: ["Content-Type": "application/json"]
+        )
+    }
+}
+
+private func stubDeleteArchiveChapter(archiveId: String, page: Int, success: Int = 1) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/archives/\(archiveId)/toc")
+            && containsQueryParams(["page": "\(page)"])
+            && isMethodDELETE()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        HTTPStubsResponse(
+            data: Data("{\"operation\":\"remove_toc\",\"success\":\(success)}".utf8),
             statusCode: 200,
             headers: ["Content-Type": "application/json"]
         )

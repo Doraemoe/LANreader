@@ -432,6 +432,17 @@ actor LANraragiService {
         .serializingDecodable(GenericSuccessResponse.self)
     }
 
+    func deleteArchiveChapter(id: String, page: Int) async -> DataTask<GenericSuccessResponse> {
+        session.request(
+            "\(url)/api/archives/\(id)/toc",
+            method: .delete,
+            parameters: ["page": page],
+            encoding: URLEncoding(destination: .queryString)
+        )
+        .validate(statusCode: 200...200)
+        .serializingDecodable(GenericSuccessResponse.self)
+    }
+
     func addStamp(
         id: String,
         page: Int,
