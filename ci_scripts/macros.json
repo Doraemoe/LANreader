@@ -1,6 +1,6 @@
 [
   {
-    "fingerprint" : "b0ba915b110f09bf39baafe75b59dfdb1846bbff",
+    "fingerprint" : "cb4cba6a8a46a86db0d37dbe09935ead6b24c91a",
     "packageIdentity" : "swift-case-paths",
     "targetName" : "CasePathsMacros"
   },
@@ -20,7 +20,7 @@
     "targetName" : "PerceptionMacros"
   },
   {
-    "fingerprint" : "6398af3c435fc6e24e9e791ff4ab32b21b25acce",
+    "fingerprint" : "7e95e5e9ff0a64f6ad8bca59083f8d6ba381b6ff",
     "packageIdentity" : "swift-navigation",
     "targetName" : "SwiftNavigationMacros"
   }

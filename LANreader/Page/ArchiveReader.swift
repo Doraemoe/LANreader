@@ -233,8 +233,11 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         case chapterEditingRequested(Int)
         case cancelChapterMutation
         case confirmChapterMutation
+        case confirmChapterDeletion
         case chapterSaved(target: ChapterMutationTarget, title: String)
         case chapterSaveFailed(target: ChapterMutationTarget, title: String, isEditing: Bool)
+        case chapterDeleted(target: ChapterMutationTarget)
+        case chapterDeleteFailed(target: ChapterMutationTarget, title: String)
         case chapterSelected(Int)
         case requestJump(Int, source: ReaderNavigationSource)
         case navigate(ReaderNavigationDirection, source: ReaderNavigationSource)
@@ -376,6 +379,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                         }
 
                         for archiveId in archiveIds {
+                            let metadata = archiveMetadata[archiveId]
                             let extractResponse = try await service.extractArchive(id: archiveId).value
                             if extractResponse.pages.isEmpty {
                                 logger.error("server returned empty pages. id=\(archiveId)")
@@ -385,11 +389,16 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                                 archiveId: archiveId
                             )
                             let chapterResult = Self.tankoubonChapters(
-                                from: archiveMetadata[archiveId],
+                                from: metadata,
                                 pageOffset: tankPages.count,
                                 extractedPageCount: extractedPages.count
                             )
                             tankChapters.append(contentsOf: chapterResult.chapters)
+                            if let metadata, !metadata.title.isEmpty, !extractedPages.isEmpty {
+                                details.defaultChapters.append(
+                                    ArchiveChapter(name: metadata.title, page: tankPages.count + 1)
+                                )
+                            }
                             if let automaticPage = chapterResult.automaticPage {
                                 details.automaticChapterPages.insert(automaticPage)
                             }
@@ -808,6 +817,30 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                     }
                 }
                 .cancellable(id: CancelId.chapterCreation, cancelInFlight: true)
+            case .confirmChapterDeletion:
+                guard let target = state.chapterEditingTarget else { return .none }
+                let title = state.chapterTitle
+                state.chapterEditingTarget = nil
+                state.chapterTitle = ""
+                state.chapterRequestInFlight = true
+                return .run { send in
+                    do {
+                        let response = try await service.deleteArchiveChapter(
+                            id: target.sourceArchiveId,
+                            page: target.sourcePageNumber
+                        ).value
+                        guard response.success == 1 else {
+                            await send(.chapterDeleteFailed(target: target, title: title))
+                            return
+                        }
+                        await send(.chapterDeleted(target: target))
+                    } catch {
+                        let source = "\(target.sourceArchiveId):\(target.sourcePageNumber)"
+                        logger.warning("failed to delete chapter. source=\(source) \(error.localizedDescription)")
+                        await send(.chapterDeleteFailed(target: target, title: title))
+                    }
+                }
+                .cancellable(id: CancelId.chapterCreation, cancelInFlight: true)
             case let .chapterSaved(target, title):
                 state.chapterRequestInFlight = false
                 guard let archive = state.allArchives[id: target.readerArchiveId] else { return .none }
@@ -832,6 +865,29 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                 state.errorMessage = String(localized: isEditing
                     ? "archive.reader.chapter.edit.failed"
                     : "archive.reader.chapter.add.failed")
+                return .none
+            case let .chapterDeleted(target):
+                state.chapterRequestInFlight = false
+                guard let archive = state.allArchives[id: target.readerArchiveId] else { return .none }
+                var chapters = archive.wrappedValue.toc ?? []
+                chapters.removeAll { $0.page == target.readerPageNumber }
+                if state.currentTankoubonDetails?.id == target.readerArchiveId {
+                    if let defaultChapter = state.currentTankoubonDetails?.defaultChapters.first(
+                        where: { $0.page == target.readerPageNumber }
+                    ) {
+                        chapters.append(defaultChapter)
+                        chapters.sort { $0.page < $1.page }
+                        state.currentTankoubonDetails?.automaticChapterPages.insert(defaultChapter.page)
+                    }
+                    state.currentTankoubonDetails?.toc = chapters.isEmpty ? nil : chapters
+                }
+                archive.withLock { $0.toc = chapters.isEmpty ? nil : chapters }
+                return .none
+            case let .chapterDeleteFailed(target, title):
+                state.chapterRequestInFlight = false
+                state.chapterEditingTarget = target
+                state.chapterTitle = title
+                state.errorMessage = String(localized: "archive.reader.chapter.delete.failed")
                 return .none
             case let .visiblePageChanged(index):
                 guard !state.pages.isEmpty else { return .none }
@@ -1737,6 +1793,11 @@ struct ArchiveReader: View {
                 "archive.reader.chapter.title.placeholder",
                 text: $store.chapterTitle
             )
+            if store.chapterEditingTarget != nil {
+                Button("delete", role: .destructive) {
+                    store.send(.confirmChapterDeletion)
+                }
+            }
             Button("cancel", role: .cancel) {
                 store.send(.cancelChapterMutation)
             }
@@ -2192,27 +2253,27 @@ struct ArchiveReader: View {
     private func readerChapterMenu(
         store: StoreOf<ArchiveReaderFeature>
     ) -> some View {
-        Menu {
+        let editablePages = store.editableChapterPages
+        return Menu {
             ForEach(store.chapters) { chapter in
-                if store.editableChapterPages.contains(chapter.page) {
-                    Menu {
-                        Button("edit", systemImage: "pencil") {
+                Button(chapter.name) {
+                    store.send(.chapterSelected(chapter.page))
+                }
+            }
+            if !store.chapters.isEmpty, !editablePages.isEmpty || store.canAddChapter {
+                Divider()
+            }
+            if !editablePages.isEmpty {
+                Menu {
+                    ForEach(store.chapters.filter { editablePages.contains($0.page) }) { chapter in
+                        Button(chapter.name) {
                             store.send(.chapterEditingRequested(chapter.page))
                         }
                         .disabled(store.chapterRequestInFlight)
-                    } label: {
-                        Text(chapter.name)
-                    } primaryAction: {
-                        store.send(.chapterSelected(chapter.page))
                     }
-                } else {
-                    Button(chapter.name) {
-                        store.send(.chapterSelected(chapter.page))
-                    }
+                } label: {
+                    Label("archive.reader.chapters.edit", systemImage: "pencil")
                 }
-            }
-            if !store.chapters.isEmpty, store.canAddChapter {
-                Divider()
             }
             if store.canAddChapter {
                 Button {

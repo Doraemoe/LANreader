@@ -239,6 +239,27 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(actual.success, 1)
     }
 
+    func testDeleteArchiveChapterUsesDeleteQueryContract() async throws {
+        try await configureVerifiedClient()
+
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/\(archiveId)/toc")
+                && containsQueryParams(["page": "3"])
+                && isMethodDELETE()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")
+                && { $0.ohhttpStubs_httpBody == nil }) { _ in
+            HTTPStubsResponse(
+                data: Data("{\"operation\":\"remove_toc\",\"success\":1}".utf8),
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+
+        let actual = try await service.deleteArchiveChapter(id: archiveId, page: 3).value
+
+        XCTAssertEqual(actual.success, 1)
+    }
+
     func testUpdateStampUsesPutQueryContract() async throws {
         try await configureVerifiedClient()
 

@@ -533,6 +533,140 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testDeleteChapterUsesOriginalSourcePageAndRemovesChapter() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let tankId = "TANK_test"
+        let chapter = ArchiveChapter(name: "Delete me", page: 8)
+        stubDeleteArchiveChapter(archiveId: "source", page: 4)
+        var initialState = makeState(
+            archiveId: tankId,
+            allArchives: [makeArchive(id: tankId, toc: [chapter])]
+        )
+        initialState.pages = [
+            PageFeature.State(
+                archiveId: tankId,
+                pageId: "page",
+                pageNumber: 8,
+                sourceArchiveId: "source",
+                sourcePageNumber: 4
+            )
+        ]
+        initialState.currentTankoubonDetails = makeTankoubonDetailsMetadata(tankId: tankId, toc: [chapter])
+        let target = ChapterMutationTarget(
+            readerArchiveId: tankId,
+            readerPageNumber: 8,
+            sourceArchiveId: "source",
+            sourcePageNumber: 4
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.chapterEditingRequested(chapter.page)) {
+            $0.chapterEditingTarget = target
+            $0.chapterTitle = chapter.name
+        }
+        await store.send(.confirmChapterDeletion) {
+            $0.chapterEditingTarget = nil
+            $0.chapterTitle = ""
+            $0.chapterRequestInFlight = true
+        }
+        await store.receive(.chapterDeleted(target: target)) {
+            $0.chapterRequestInFlight = false
+            $0.allArchives[id: tankId]?.withLock { $0.toc = nil }
+            $0.currentTankoubonDetails?.toc = nil
+        }
+    }
+
+    @MainActor
+    func testDeleteFirstPageTankoubonChapterRestoresAutomaticChapter() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let tankId = "TANK_test"
+        let manualChapter = ArchiveChapter(name: "Manual", page: 3)
+        let defaultChapter = ArchiveChapter(name: "Source", page: 3)
+        stubDeleteArchiveChapter(archiveId: "source", page: 1)
+        var initialState = makeState(
+            archiveId: tankId,
+            allArchives: [makeArchive(id: tankId, toc: [manualChapter])]
+        )
+        initialState.pages = [
+            PageFeature.State(
+                archiveId: tankId,
+                pageId: "page",
+                pageNumber: 3,
+                sourceArchiveId: "source",
+                sourcePageNumber: 1
+            )
+        ]
+        var details = makeTankoubonDetailsMetadata(tankId: tankId, toc: [manualChapter])
+        details.defaultChapters = [defaultChapter]
+        initialState.currentTankoubonDetails = details
+        let target = ChapterMutationTarget(
+            readerArchiveId: tankId,
+            readerPageNumber: 3,
+            sourceArchiveId: "source",
+            sourcePageNumber: 1
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.chapterEditingRequested(manualChapter.page)) {
+            $0.chapterEditingTarget = target
+            $0.chapterTitle = manualChapter.name
+        }
+        await store.send(.confirmChapterDeletion) {
+            $0.chapterEditingTarget = nil
+            $0.chapterTitle = ""
+            $0.chapterRequestInFlight = true
+        }
+        await store.receive(.chapterDeleted(target: target)) {
+            $0.chapterRequestInFlight = false
+            $0.allArchives[id: tankId]?.withLock { $0.toc = [defaultChapter] }
+            $0.currentTankoubonDetails?.toc = [defaultChapter]
+            $0.currentTankoubonDetails?.automaticChapterPages = [defaultChapter.page]
+        }
+        XCTAssertTrue(store.state.editableChapterPages.isEmpty)
+    }
+
+    @MainActor
+    func testDeleteChapterFailureRestoresEdit() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let chapter = ArchiveChapter(name: "Keep me", page: 4)
+        stubDeleteArchiveChapter(archiveId: "archive", page: 4, success: 0)
+        var initialState = makeState(allArchives: [makeArchive(toc: [chapter])])
+        initialState.pages = [
+            PageFeature.State(archiveId: "archive", pageId: "4", pageNumber: 4)
+        ]
+        let target = ChapterMutationTarget(
+            readerArchiveId: "archive",
+            readerPageNumber: 4,
+            sourceArchiveId: "archive",
+            sourcePageNumber: 4
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.chapterEditingRequested(chapter.page)) {
+            $0.chapterEditingTarget = target
+            $0.chapterTitle = chapter.name
+        }
+        await store.send(.confirmChapterDeletion) {
+            $0.chapterEditingTarget = nil
+            $0.chapterTitle = ""
+            $0.chapterRequestInFlight = true
+        }
+        await store.receive(.chapterDeleteFailed(target: target, title: chapter.name)) {
+            $0.chapterRequestInFlight = false
+            $0.chapterEditingTarget = target
+            $0.chapterTitle = chapter.name
+            $0.errorMessage = String(localized: "archive.reader.chapter.delete.failed")
+        }
+        XCTAssertEqual(store.state.chapters, [chapter])
+    }
+
+    @MainActor
     func testAutomaticTankoubonChapterCannotBeEdited() async {
         configureReaderDefaults()
 
@@ -4211,6 +4345,10 @@ private func makeTankoubonChapterFixture(tankId: String) -> TankoubonChapterFixt
     ]
     var metadata = makeTankoubonDetailsMetadata(tankId: tankId, toc: expectedChapters)
     metadata.automaticChapterPages = [3]
+    metadata.defaultChapters = [
+        ArchiveChapter(name: "Source 0", page: 1),
+        ArchiveChapter(name: "Source 1", page: 3)
+    ]
     return TankoubonChapterFixture(
         sourceTOCs: sourceTOCs,
         expectedChapters: expectedChapters,
@@ -4403,6 +4541,20 @@ private func stubAddArchiveChapter(archiveId: String, page: Int, title: String, 
             && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
         HTTPStubsResponse(
             data: Data("{\"operation\":\"update_toc\",\"success\":\(success)}".utf8),
+            statusCode: 200,
+            headers: ["Content-Type": "application/json"]
+        )
+    }
+}
+
+private func stubDeleteArchiveChapter(archiveId: String, page: Int, success: Int = 1) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/archives/\(archiveId)/toc")
+            && containsQueryParams(["page": "\(page)"])
+            && isMethodDELETE()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        HTTPStubsResponse(
+            data: Data("{\"operation\":\"remove_toc\",\"success\":\(success)}".utf8),
             statusCode: 200,
             headers: ["Content-Type": "application/json"]
         )
