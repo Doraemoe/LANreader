@@ -1340,6 +1340,7 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
     private func updateSelectionBarVisibility() {
         guard let navigationController, navigationController.topViewController === parent else { return }
         let selecting = store.selectMode == .active
+        parent?.navigationItem.setHidesBackButton(selecting, animated: false)
         navigationController.setToolbarHidden(!selecting, animated: false)
         updateTabBarVisibility()
     }
