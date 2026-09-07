@@ -255,6 +255,7 @@ private func checkSharedSelection(
         store.send(.toggleSelectionMode)
         await Task.yield()
         XCTAssertFalse(navigation.isToolbarHidden)
+        XCTAssertTrue(controller.navigationItem.hidesBackButton)
         if #available(iOS 18.0, *) { XCTAssertTrue(tabs.isTabBarHidden) }
         if #available(iOS 18.0, *) {
             tabs.setTabBarHidden(false, animated: false)
@@ -272,6 +273,7 @@ private func checkSharedSelection(
         await Task.yield()
         XCTAssertTrue(navigation.isToolbarHidden)
         if #available(iOS 18.0, *) { XCTAssertEqual(tabs.isTabBarHidden, pushed) }
+        XCTAssertFalse(controller.navigationItem.hidesBackButton)
         XCTAssertEqual(navigation.viewControllers.count, pushed ? 2 : 1)
     }
 }
