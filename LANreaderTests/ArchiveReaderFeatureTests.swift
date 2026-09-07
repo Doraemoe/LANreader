@@ -2446,6 +2446,45 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testCacheBatchRemovalOnlyDeletesSelectedArchives() async throws {
+        let database = try makeInMemoryDatabase()
+        var initialState = CacheFeature.State()
+        let ids = (0..<3).map { "batch-\(UUID().uuidString)-\($0)" }.sorted()
+        for id in ids {
+            var cache = ArchiveCache(
+                id: id, title: id, tags: "", thumbnail: nil,
+                cached: true, totalPages: 1, lastUpdate: Date()
+            )
+            try database.saveCache(&cache)
+            initialState.archives.append(GridFeature.State(archive: Shared(value: cache.toArchiveItem()), cached: true))
+        }
+        let store = TestStore(initialState: initialState) {
+            CacheFeature()
+        } withDependencies: {
+            $0.appDatabase = database
+        }
+        await store.send(.toggleSelectionMode) { $0.isSelecting = true }
+        await store.send(.toggleSelection(ids[0])) { $0.selected = [ids[0]] }
+        await store.send(.toggleSelection(ids[1])) { $0.selected = [ids[0], ids[1]] }
+        await store.send(.toggleSelection(ids[1])) { $0.selected = [ids[0]] }
+        await store.send(.toggleSelection(ids[2])) { $0.selected = [ids[0], ids[2]] }
+        await store.send(.removeSelected)
+        for id in [ids[0], ids[2]] {
+            await store.receive(.removeCache(id)) {
+                $0.archives.remove(id: id)
+                $0.selected.remove(id)
+            }
+        }
+        await store.finish()
+        XCTAssertEqual(try database.readAllCached().map(\.id), [ids[1]])
+        await store.send(.toggleSelection(ids[1])) { $0.selected = [ids[1]] }
+        await store.send(.toggleSelectionMode) {
+            $0.isSelecting = false
+            $0.selected = []
+        }
+    }
+
+    @MainActor
     func testCacheFeatureLoadRestoresChapters() async throws {
         let chapters = [
             ArchiveChapter(name: "Opening", page: 1),
