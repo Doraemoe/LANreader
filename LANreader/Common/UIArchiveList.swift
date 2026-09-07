@@ -119,10 +119,12 @@ import NotificationBannerSwift
         Reduce { state, action in
             switch action {
             case .toggleSelectionMode:
+                guard !state.loading else { return .none }
                 state.selectMode = state.selectMode == .active ? .inactive : .active
                 state.selected.removeAll()
                 return .none
             case .cacheSelected:
+                guard !state.loading else { return .none }
                 let ids = state.selected.sorted()
                 state.selected.removeAll()
                 state.selectMode = .inactive
@@ -274,10 +276,12 @@ import NotificationBannerSwift
                 }
                 return .none
             case let .addSelect(id):
-                guard state.selectMode == .active, state.archivesToDisplay[id: id] != nil else { return .none }
+                guard !state.loading, state.selectMode == .active,
+                      state.archivesToDisplay[id: id] != nil else { return .none }
                 state.selected.insert(id)
                 return .none
             case let .removeSelect(id):
+                guard !state.loading else { return .none }
                 state.selected.remove(id)
                 return .none
             case .refreshDisplayArchives:
@@ -352,36 +356,9 @@ import NotificationBannerSwift
                 state.loading = false
                 return reloadPageAfterRemoval(state: &state, removedCount: archiveIds.count)
             case .alert(.presented(.confirmDelete)):
+                guard !state.loading, !state.selected.isEmpty else { return .none }
                 state.loading = true
-                return .run { [state] send in
-                    var successIds: Set<String> = .init()
-                    var errorIds: Set<String> = .init()
-
-                    for archiveId in state.selected {
-                        do {
-                            let response = try await service.deleteArchive(id: archiveId).value
-                            if response.success == 1 {
-                                successIds.insert(archiveId)
-                            } else {
-                                errorIds.insert(archiveId)
-                            }
-                        } catch {
-                            logger.error("failed to delete archive id=\(archiveId) \(error)")
-                            errorIds.insert(archiveId)
-                        }
-                    }
-
-                    if !errorIds.isEmpty {
-                        await send(.setErrorMessage(
-                            String(localized: "archive.selected.delete.error")
-                        ))
-                    } else {
-                        await send(.setSuccessMessage(
-                            String(localized: "archive.selected.delete.success")
-                        ))
-                    }
-                    await send(.deleteSuccess(successIds))
-                }
+                return deleteSelected(state)
             case let .setSearchSortOrder(order):
                 state.$searchSortOrder.withLock {
                     $0 = order
@@ -427,6 +404,7 @@ import NotificationBannerSwift
                     append: false
                 )
             case .deleteButtonTapped:
+                guard !state.loading, !state.selected.isEmpty else { return .none }
                 state.alert = AlertState {
                     TextState("archive.selected.delete")
                 } actions: {
@@ -460,6 +438,7 @@ import NotificationBannerSwift
                     }
                 }
                 state.loading = false
+                if state.selected.isEmpty { state.selectMode = .inactive }
                 return reloadPageAfterRemoval(state: &state, removedCount: archiveIds.count)
             case .loadCategory:
                 return .run { send in
@@ -541,6 +520,46 @@ import NotificationBannerSwift
         }
         .ifLet(\.$alert, action: \.alert)
     }
+}
+
+extension ArchiveListFeature {
+    private func deleteSelected(_ state: State) -> EffectOf<Self> {
+        return .run { [state] send in
+            var successIds: Set<String> = .init()
+            var errorIds: Set<String> = .init()
+
+            for archiveId in state.selected.sorted() {
+                do {
+                    let request = if archiveId.isTankoubonArchiveId {
+                        await service.deleteTankoubon(id: archiveId)
+                    } else {
+                        await service.deleteArchive(id: archiveId)
+                    }
+                    let response = try await request.value
+                    if response.success == 1 {
+                        successIds.insert(archiveId)
+                    } else {
+                        errorIds.insert(archiveId)
+                    }
+                } catch {
+                    logger.error("failed to delete archive id=\(archiveId) \(error)")
+                    errorIds.insert(archiveId)
+                }
+            }
+
+            if !errorIds.isEmpty {
+                await send(.setErrorMessage(
+                    String(localized: "archive.selected.delete.error")
+                ))
+            } else {
+                await send(.setSuccessMessage(
+                    String(localized: "archive.selected.delete.success")
+                ))
+            }
+            await send(.deleteSuccess(successIds))
+        }
+    }
+
 }
 
 extension ArchiveListFeature {
@@ -1012,6 +1031,7 @@ class UIArchiveListViewController: UIViewController {
                     self?.store.send(.toggleSelectionMode)
                 }
             )
+            parent?.navigationItem.rightBarButtonItem?.isEnabled = !store.loading
             return
         }
         let actions = SearchSort.allCases.filter { $0 != SearchSort.random }.map { sort in
@@ -1119,9 +1139,16 @@ class UIArchiveListViewController: UIViewController {
                 }
             )
             download.accessibilityLabel = String(localized: "archive.cache.add")
-            download.isEnabled = !selected.isEmpty
-            parent?.toolbarItems = [count, .flexibleSpace(), download]
+            download.isEnabled = !selected.isEmpty && !store.loading
+            let delete = UIBarButtonItem(
+                image: UIImage(systemName: "trash"), style: .plain,
+                target: self, action: #selector(confirmBatchDeletion(_:))
+            )
+            delete.accessibilityLabel = String(localized: "archive.delete")
+            delete.isEnabled = !selected.isEmpty && !store.loading
+            parent?.toolbarItems = [count, .flexibleSpace(), delete, download]
             (parent as? UILibraryListViewController)?.updateSelectionToolbarAppearance()
+            delete.tintColor = .systemRed
             guard navigationController?.topViewController === parent else { return }
             navigationController?.setToolbarHidden(!selecting, animated: false)
             if #available(iOS 18.0, *) {
@@ -1294,6 +1321,23 @@ class UIArchiveListViewController: UIViewController {
 }
 
 extension UIArchiveListViewController: UICollectionViewDelegate {
+    @objc func confirmBatchDeletion(_ sender: UIBarButtonItem) {
+        guard !store.loading, !store.selected.isEmpty else { return }
+        store.send(.deleteButtonTapped)
+        let confirmation = UIAlertController(
+            title: String(localized: "archive.selected.delete"), message: nil, preferredStyle: .actionSheet
+        )
+        confirmation.addAction(UIAlertAction(
+            title: String(localized: "delete"), style: .destructive
+        ) { [weak self] _ in
+            self?.store.send(.alert(.presented(.confirmDelete)))
+        })
+        confirmation.addAction(UIAlertAction(title: String(localized: "cancel"), style: .cancel) { [weak self] _ in
+            self?.store.send(.alert(.dismiss))
+        })
+        confirmation.popoverPresentationController?.barButtonItem = sender
+        present(confirmation, animated: true)
+    }
     func collectionView(
         _ collectionView: UICollectionView,
         willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath

@@ -6,6 +6,49 @@ import OHHTTPStubsSwift
 @testable import LANreader
 
 final class ArchiveListFeatureTests: XCTestCase {
+    @MainActor
+    func testBatchDeleteRoutesTankoubonAndKeepsFailedSelection() async throws {
+        try await configureVerifiedClient()
+        for (path, success) in [("/api/archives/archive-0", 1), ("/api/tankoubons/TANK_1", 0)] {
+            stubBatchDelete(path: path, success: success)
+        }
+        var state = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: nil), loadOnAppear: false, currentTab: .library
+        )
+        state.$paginateArchiveList.withLock { $0 = false }
+        state.selectMode = .active
+        state.selected = ["archive-0", "TANK_1"]
+        state.archives = IdentifiedArray(uniqueElements: ["archive-0", "TANK_1", "unselected"].map {
+            GridFeature.State(archive: Shared(value: makeArchive(id: $0, fileExtension: "zip")))
+        })
+        state.archivesToDisplay = state.archives
+        let store = TestStore(initialState: state) { ArchiveListFeature() }
+        await store.send(.deleteButtonTapped) {
+            $0.alert = AlertState {
+                TextState("archive.selected.delete")
+            } actions: {
+                ButtonState(role: .destructive, action: .confirmDelete) { TextState("delete") }
+                ButtonState(role: .cancel) { TextState("cancel") }
+            }
+        }
+        await store.send(.alert(.presented(.confirmDelete))) {
+            $0.alert = nil
+            $0.loading = true
+        }
+        await store.receive(.setErrorMessage(String(localized: "archive.selected.delete.error"))) {
+            $0.loading = false
+            $0.errorMessage = String(localized: "archive.selected.delete.error")
+        }
+        await store.receive(.deleteSuccess(["archive-0"])) {
+            $0.selected = ["TANK_1"]
+            $0.archives.remove(id: "archive-0")
+            $0.archivesToDisplay.remove(id: "archive-0")
+            $0.$archiveItems.withLock { _ = $0.remove(id: "archive-0") }
+        }
+        await store.finish()
+        XCTAssertNotNil(store.state.archives[id: "unselected"])
+    }
+
     override func tearDownWithError() throws {
         UserDefaults.resetStandardUserDefaults()
         HTTPStubs.removeAllStubs()
@@ -528,6 +571,19 @@ final class ArchiveListFeatureTests: XCTestCase {
         XCTAssertEqual(savedThumbnail?.thumbnail, expectedThumbnail)
     }
 
+}
+
+private func stubBatchDelete(path: String, success: Int) {
+    stub(condition: isHost("localhost") && isPath(path) && isMethodDELETE()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
+        XCTAssertNil(request.url?.query)
+        XCTAssertNil(request.httpBody)
+        XCTAssertNil(request.httpBodyStream)
+        return HTTPStubsResponse(
+            data: Data("{\"success\":\(success)}".utf8), statusCode: 200,
+            headers: ["Content-Type": "application/json"]
+        )
+    }
 }
 
 private func configureVerifiedClient() async throws {
