@@ -17,7 +17,6 @@ import UIKit
         case binding(BindingAction<State>)
 
         case archiveList(ArchiveListFeature.Action)
-        case toggleSelectMode
     }
 
     public var body: some ReducerOf<Self> {
@@ -27,16 +26,6 @@ import UIKit
             ArchiveListFeature()
         }
 
-        Reduce { _, action in
-            switch action {
-            case .toggleSelectMode:
-                return .send(.archiveList(.toggleSelectionMode))
-            case .binding:
-                return .none
-            case .archiveList:
-                return .none
-            }
-        }
     }
 }
 
