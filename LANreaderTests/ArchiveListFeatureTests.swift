@@ -7,6 +7,22 @@ import OHHTTPStubsSwift
 
 final class ArchiveListFeatureTests: XCTestCase {
     @MainActor
+    func testSuccessfulBatchDeletionKeepsSelectionMode() async {
+        var state = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: nil), loadOnAppear: false, currentTab: .search
+        )
+        state.$paginateArchiveList.withLock { $0 = false }
+        state.selectMode = .active
+        state.selected = ["archive-0"]
+        let store = TestStore(initialState: state) { ArchiveListFeature() }
+        await store.send(.deleteSuccess(["archive-0"])) {
+            $0.selected = []
+            $0.$archiveItems.withLock { _ = $0.remove(id: "archive-0") }
+        }
+        XCTAssertEqual(store.state.selectMode, .active)
+    }
+
+    @MainActor
     func testBatchDeleteRoutesTankoubonAndKeepsFailedSelection() async throws {
         try await configureVerifiedClient()
         for (path, success) in [("/api/archives/archive-0", 1), ("/api/tankoubons/TANK_1", 0)] {

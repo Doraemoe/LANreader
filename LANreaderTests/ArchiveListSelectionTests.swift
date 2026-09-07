@@ -7,7 +7,7 @@ import UIKit
 final class ArchiveListSelectionTests: XCTestCase {
     @MainActor
     func testCategorySelectionPreservesHiddenTabBar() async throws {
-        var list = makeSelectionState(count: 1)
+        var list = makeSelectionState(count: 0)
         list.currentTab = .category
         let state = CategoryArchiveListFeature.State(id: "category", name: "Category", archiveList: list)
         let store = Store(initialState: state) {
@@ -41,6 +41,10 @@ final class ArchiveListSelectionTests: XCTestCase {
             await Task.yield()
             XCTAssertFalse(searchBar.isUserInteractionEnabled)
             XCTAssertFalse(searchBar.isFirstResponder)
+            store.send(.archiveList(.cacheSelected))
+            await Task.yield()
+            XCTAssertEqual(store.archiveList.selectMode, .active)
+            XCTAssertFalse(searchBar.isUserInteractionEnabled)
             store.send(.archiveList(.toggleSelectionMode))
             await Task.yield()
             XCTAssertTrue(searchBar.isUserInteractionEnabled)
@@ -137,7 +141,7 @@ final class ArchiveListSelectionTests: XCTestCase {
     }
 
     @MainActor
-    func testBatchDownloadDispatchesOnlySelectedArchivesAndExitsSelection() async throws {
+    func testBatchDownloadDispatchesOnlySelectedArchivesAndKeepsSelectionMode() async throws {
         let database = try AppDatabase(DatabaseQueue())
         let state = makeSelectionState(count: 3)
         // Existing cache entries exercise the shared duplicate-download guard.
@@ -155,7 +159,6 @@ final class ArchiveListSelectionTests: XCTestCase {
         await store.send(.addSelect("archive-0")) { $0.selected = ["archive-0"] }
         await store.send(.addSelect("archive-2")) { $0.selected = ["archive-0", "archive-2"] }
         await store.send(.cacheSelected) {
-            $0.selectMode = .inactive
             $0.selected = []
         }
         await store.finish()
@@ -253,17 +256,18 @@ private func checkSharedSelection(
         await Task.yield()
         XCTAssertFalse(navigation.isToolbarHidden)
         if #available(iOS 18.0, *) { XCTAssertTrue(tabs.isTabBarHidden) }
-        let hasArchives = !store.archivesToDisplay.isEmpty
-        if hasArchives {
-            list.collectionView(list.collectionView, didSelectItemAt: IndexPath(item: 0, section: 0))
+        if #available(iOS 18.0, *) {
+            tabs.setTabBarHidden(false, animated: false)
+            list.view.setNeedsLayout()
+            list.view.layoutIfNeeded()
+            XCTAssertTrue(tabs.isTabBarHidden)
         }
-        await Task.yield()
-        XCTAssertEqual(store.selected, hasArchives ? ["archive-0"] : [])
+        XCTAssertTrue(store.selected.isEmpty)
         XCTAssertEqual(controller.toolbarItems?.count, 4)
         XCTAssertEqual(controller.toolbarItems?.last?.accessibilityLabel, String(localized: "archive.delete"))
         XCTAssertEqual(controller.toolbarItems?[2].accessibilityLabel, String(localized: "archive.cache.add"))
-        XCTAssertEqual(controller.toolbarItems?.last?.isEnabled, hasArchives)
-        XCTAssertEqual(controller.toolbarItems?[2].isEnabled, hasArchives)
+        XCTAssertEqual(controller.toolbarItems?.last?.isEnabled, false)
+        XCTAssertEqual(controller.toolbarItems?[2].isEnabled, false)
         store.send(.toggleSelectionMode)
         await Task.yield()
         XCTAssertTrue(navigation.isToolbarHidden)
