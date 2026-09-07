@@ -7,7 +7,7 @@ import UIKit
 final class ArchiveListSelectionTests: XCTestCase {
     @MainActor
     func testCategorySelectionPreservesHiddenTabBar() async throws {
-        var list = makeSelectionState(count: 0)
+        var list = makeSelectionState(count: 1)
         list.currentTab = .category
         let state = CategoryArchiveListFeature.State(id: "category", name: "Category", archiveList: list)
         let store = Store(initialState: state) {
@@ -26,7 +26,7 @@ final class ArchiveListSelectionTests: XCTestCase {
             $0.appDatabase = database
         } operation: {
             var state = SearchFeature.State()
-            state.archiveList = makeSelectionState(count: 0)
+            state.archiveList = makeSelectionState(count: 1)
             state.archiveList.currentTab = .search
             let store = Store(initialState: state) {
                 SearchFeature().dependency(\.appDatabase, database)
@@ -141,7 +141,7 @@ final class ArchiveListSelectionTests: XCTestCase {
     }
 
     @MainActor
-    func testBatchDownloadDispatchesOnlySelectedArchivesAndKeepsSelectionMode() async throws {
+    func testBatchDownloadSkipsAlreadyCachedArchivesAndKeepsSelectionMode() async throws {
         let database = try AppDatabase(DatabaseQueue())
         let state = makeSelectionState(count: 3)
         // Existing cache entries exercise the shared duplicate-download guard.
@@ -165,7 +165,7 @@ final class ArchiveListSelectionTests: XCTestCase {
     }
 
     @MainActor
-    func testBatchCachingShowsOneSuccessAfterAllResults() async {
+    func testBatchCachingReportsMixedResultsAfterAllResults() async {
         var state = ArchiveListFeature.State(
             filter: SearchFilter(category: nil, filter: nil), currentTab: .library
         )
@@ -185,7 +185,6 @@ final class ArchiveListSelectionTests: XCTestCase {
             $0.cachingArchiveIds = []
             $0.batchCachingArchiveIds = []
             $0.batchCacheHadSuccess = false
-            $0.successMessage = String(localized: "archive.cache.added")
             $0.errorMessage = "Failed"
         }
     }
@@ -238,6 +237,9 @@ private func checkSharedSelection(
     controller: UIViewController, store: StoreOf<ArchiveListFeature>, pushed: Bool
 ) async throws {
     let database = try AppDatabase(DatabaseQueue())
+    let thumbnailData = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1)).pngData { _ in }
+    var thumbnail = ArchiveThumbnail(id: "archive-0", thumbnail: thumbnailData, lastUpdate: Date())
+    try database.saveArchiveThumbnail(&thumbnail)
     try await withDependencies {
         $0.appDatabase = database
     } operation: {
@@ -263,12 +265,14 @@ private func checkSharedSelection(
             list.view.layoutIfNeeded()
             XCTAssertTrue(tabs.isTabBarHidden)
         }
-        XCTAssertTrue(store.selected.isEmpty)
+        list.collectionView(list.collectionView, didSelectItemAt: IndexPath(item: 0, section: 0))
+        await Task.yield()
+        XCTAssertEqual(store.selected, ["archive-0"])
         XCTAssertEqual(controller.toolbarItems?.count, 4)
         XCTAssertEqual(controller.toolbarItems?.last?.accessibilityLabel, String(localized: "archive.delete"))
         XCTAssertEqual(controller.toolbarItems?[2].accessibilityLabel, String(localized: "archive.cache.add"))
-        XCTAssertEqual(controller.toolbarItems?.last?.isEnabled, false)
-        XCTAssertEqual(controller.toolbarItems?[2].isEnabled, false)
+        XCTAssertEqual(controller.toolbarItems?.last?.isEnabled, true)
+        XCTAssertEqual(controller.toolbarItems?[2].isEnabled, true)
         store.send(.toggleSelectionMode)
         await Task.yield()
         XCTAssertTrue(navigation.isToolbarHidden)

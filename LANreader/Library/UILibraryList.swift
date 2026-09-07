@@ -15,7 +15,6 @@ import UIKit
         case binding(BindingAction<State>)
 
         case archiveList(ArchiveListFeature.Action)
-        case toggleSelectMode
     }
 
     @Dependency(\.lanraragiService) var service
@@ -28,16 +27,6 @@ import UIKit
             ArchiveListFeature()
         }
 
-        Reduce { _, action in
-            switch action {
-            case .toggleSelectMode:
-                return .send(.archiveList(.toggleSelectionMode))
-            case .archiveList:
-                return .none
-            case .binding:
-                return .none
-            }
-        }
     }
 }
 

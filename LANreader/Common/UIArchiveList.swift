@@ -28,6 +28,7 @@ import NotificationBannerSwift
         var loadOnAppear = true
         var archives: IdentifiedArrayOf<GridFeature.State> = []
         var loading: Bool = false
+        var isDeleting = false
         var showLoading: Bool = false
         var total: Int = 0
         var errorMessage = ""
@@ -35,6 +36,7 @@ import NotificationBannerSwift
         var cachingArchiveIds: Set<String> = []
         var batchCachingArchiveIds: Set<String> = []
         var batchCacheHadSuccess = false
+        var batchCacheErrors: Set<String> = []
         var currentTab: TabName
 
         var archivesToDisplay: IdentifiedArrayOf<GridFeature.State> = []
@@ -119,19 +121,20 @@ import NotificationBannerSwift
         Reduce { state, action in
             switch action {
             case .toggleSelectionMode:
-                guard !state.loading else { return .none }
+                guard !state.isDeleting, state.selectMode == .active || !state.loading else { return .none }
                 state.selectMode = state.selectMode == .active ? .inactive : .active
                 state.selected.removeAll()
                 return .none
             case .cacheSelected:
                 guard !state.loading else { return .none }
                 let ids = state.selected.sorted()
-                state.selected.removeAll()
                 let previous = state.cachingArchiveIds
                 let effects = ids.map { cacheArchive(state: &state, id: $0) }
                 state.batchCachingArchiveIds.formUnion(state.cachingArchiveIds.subtracting(previous))
+                state.selected.formIntersection(state.batchCachingArchiveIds)
                 return .merge(effects)
             case let .setFilter(filter):
+                if state.filter != filter { state.selected.removeAll() }
                 state.filter = filter
                 return .none
             case .resetArchives:
@@ -197,7 +200,6 @@ import NotificationBannerSwift
                     state.pendingPage = nil
                 }
                 if !append {
-                    state.selected.removeAll()
                     state.archives = .init()
                     state.archivesToDisplay = .init()
                     state.total = 0
@@ -248,8 +250,7 @@ import NotificationBannerSwift
                 return .none
             case let .cacheArchiveFailed(id, message):
                 state.cachingArchiveIds.remove(id)
-                finishCaching(state: &state, id: id, succeeded: false)
-                state.errorMessage = message
+                finishCaching(state: &state, id: id, succeeded: false, error: message)
                 return .none
             case let .setErrorMessage(message):
                 guard !message.isEmpty else {
@@ -357,6 +358,7 @@ import NotificationBannerSwift
             case .alert(.presented(.confirmDelete)):
                 guard !state.loading, !state.selected.isEmpty else { return .none }
                 state.loading = true
+                state.isDeleting = true
                 return deleteSelected(state)
             case let .setSearchSortOrder(order):
                 state.$searchSortOrder.withLock {
@@ -388,6 +390,7 @@ import NotificationBannerSwift
                 let targetPage = PaginationPositioning.clampedPage(page, pageCount: state.pageCount)
                 guard targetPage != state.currentPage else { return .none }
 
+                state.selected.removeAll()
                 state.loading = true
                 state.showLoading = true
                 state.pendingPage = targetPage
@@ -428,6 +431,7 @@ import NotificationBannerSwift
                 }
                 return .none
             case let .deleteSuccess(archiveIds):
+                state.isDeleting = false
                 archiveIds.forEach { id in
                     state.selected.remove(id)
                     state.archivesToDisplay.remove(id: id)
@@ -561,16 +565,24 @@ extension ArchiveListFeature {
 }
 
 extension ArchiveListFeature {
-    private func finishCaching(state: inout State, id: String, succeeded: Bool) {
+    private func finishCaching(state: inout State, id: String, succeeded: Bool, error: String? = nil) {
         guard state.batchCachingArchiveIds.remove(id) != nil else {
             if succeeded { state.successMessage = String(localized: "archive.cache.added") }
+            if let error { state.errorMessage = error }
             return
         }
+        if let error {
+            state.batchCacheErrors.insert(error)
+        }
+        if succeeded { state.selected.remove(id) }
         state.batchCacheHadSuccess = state.batchCacheHadSuccess || succeeded
         guard state.batchCachingArchiveIds.isEmpty else { return }
-        if state.batchCacheHadSuccess {
+        if !state.batchCacheErrors.isEmpty {
+            state.errorMessage = state.batchCacheErrors.sorted().joined(separator: "\n")
+        } else if state.batchCacheHadSuccess {
             state.successMessage = String(localized: "archive.cache.added")
         }
+        state.batchCacheErrors.removeAll()
         state.batchCacheHadSuccess = false
     }
 
@@ -634,7 +646,6 @@ extension ArchiveListFeature {
         page: Int,
         showLoading: Bool
     ) -> EffectOf<Self> {
-        state.selected.removeAll()
         state.loading = true
         if showLoading {
             state.showLoading = true
@@ -935,7 +946,7 @@ class UIArchiveListViewController: UIViewController {
         > { [weak self] cell, _, itemStore in
             guard let self else { return }
             cell.configure(
-                with: itemStore, selecting: store.selectMode == .active,
+                with: itemStore, database: database, selecting: store.selectMode == .active,
                 selected: store.selected.contains(itemStore.id)
             )
         }
@@ -1029,7 +1040,7 @@ class UIArchiveListViewController: UIViewController {
                     self?.store.send(.toggleSelectionMode)
                 }
             )
-            parent?.navigationItem.rightBarButtonItem?.isEnabled = !store.loading
+            parent?.navigationItem.rightBarButtonItem?.isEnabled = !store.isDeleting
             return
         }
         let actions = SearchSort.allCases.filter { $0 != SearchSort.random }.map { sort in
@@ -1124,7 +1135,9 @@ class UIArchiveListViewController: UIViewController {
             for indexPath in collectionView.indexPathsForVisibleItems {
                 guard let item = dataSource.itemIdentifier(for: indexPath),
                       let cell = collectionView.cellForItem(at: indexPath) as? UIArchiveCell else { continue }
-                cell.configure(with: item, selecting: selecting, selected: selected.contains(item.id))
+                cell.configure(
+                    with: item, database: database, selecting: selecting, selected: selected.contains(item.id)
+                )
             }
             let count = UIBarButtonItem.selectionCount(selected.count)
             let download = UIBarButtonItem(
@@ -1170,12 +1183,6 @@ class UIArchiveListViewController: UIViewController {
             if !store.loading {
                 refreshControl.endRefreshing()
             }
-        }
-
-        observe { [weak self] in
-            guard let self else { return }
-            guard !store.archives.isEmpty else { return }
-            setupToolbar()
         }
 
         observe { [weak self] in

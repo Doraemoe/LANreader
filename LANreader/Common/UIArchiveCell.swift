@@ -16,9 +16,13 @@ class UIArchiveCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(with store: StoreOf<GridFeature>, selecting: Bool = false, selected: Bool = false) {
+    func configure(
+        with store: StoreOf<GridFeature>, database: AppDatabase, selecting: Bool = false, selected: Bool = false
+    ) {
         contentConfiguration = UIHostingConfiguration {
-            ArchiveGridV2(store: store)
+            withDependencies { $0.appDatabase = database } operation: {
+                ArchiveGridV2(store: store)
+            }
                 .overlay(alignment: .topTrailing) {
                     if selecting {
                         Image(systemName: selected ? "checkmark.circle.fill" : "circle")
