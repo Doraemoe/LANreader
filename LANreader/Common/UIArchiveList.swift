@@ -33,6 +33,8 @@ import NotificationBannerSwift
         var errorMessage = ""
         var successMessage = ""
         var cachingArchiveIds: Set<String> = []
+        var batchCachingArchiveIds: Set<String> = []
+        var batchCacheHadSuccess = false
         var currentTab: TabName
 
         var archivesToDisplay: IdentifiedArrayOf<GridFeature.State> = []
@@ -82,6 +84,8 @@ import NotificationBannerSwift
         case appendArchives(String)
         case removeArchive(String)
         case cacheArchive(String)
+        case cacheSelected
+        case toggleSelectionMode
         case cacheArchiveFinished(String)
         case cacheArchiveFailed(String, String)
         case setErrorMessage(String)
@@ -114,6 +118,18 @@ import NotificationBannerSwift
     public var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
+            case .toggleSelectionMode:
+                state.selectMode = state.selectMode == .active ? .inactive : .active
+                state.selected.removeAll()
+                return .none
+            case .cacheSelected:
+                let ids = state.selected.sorted()
+                state.selected.removeAll()
+                state.selectMode = .inactive
+                let previous = state.cachingArchiveIds
+                let effects = ids.map { cacheArchive(state: &state, id: $0) }
+                state.batchCachingArchiveIds.formUnion(state.cachingArchiveIds.subtracting(previous))
+                return .merge(effects)
             case let .setFilter(filter):
                 state.filter = filter
                 return .none
@@ -157,6 +173,7 @@ import NotificationBannerSwift
                     searchFilter: state.filter, sortby: sortby, start: start, order: order, append: true
                 )
             case let .removeArchive(id):
+                state.selected.remove(id)
                 state.archivesToDisplay.remove(id: id)
                 state.archives.remove(id: id)
                 state.$archiveItems.withLock {
@@ -179,6 +196,7 @@ import NotificationBannerSwift
                     state.pendingPage = nil
                 }
                 if !append {
+                    state.selected.removeAll()
                     state.archives = .init()
                     state.archivesToDisplay = .init()
                     state.total = 0
@@ -201,6 +219,7 @@ import NotificationBannerSwift
                     state.archivesToDisplay = state.archives
                 }
 
+                state.selected.formIntersection(state.archivesToDisplay.ids)
                 state.total = total
                 state.loading = false
                 state.showLoading = false
@@ -224,10 +243,11 @@ import NotificationBannerSwift
                 return cacheArchive(state: &state, id: id)
             case let .cacheArchiveFinished(id):
                 state.cachingArchiveIds.remove(id)
-                state.successMessage = String(localized: "archive.cache.added")
+                finishCaching(state: &state, id: id, succeeded: true)
                 return .none
             case let .cacheArchiveFailed(id, message):
                 state.cachingArchiveIds.remove(id)
+                finishCaching(state: &state, id: id, succeeded: false)
                 state.errorMessage = message
                 return .none
             case let .setErrorMessage(message):
@@ -254,6 +274,7 @@ import NotificationBannerSwift
                 }
                 return .none
             case let .addSelect(id):
+                guard state.selectMode == .active, state.archivesToDisplay[id: id] != nil else { return .none }
                 state.selected.insert(id)
                 return .none
             case let .removeSelect(id):
@@ -279,6 +300,7 @@ import NotificationBannerSwift
                     state.archivesToDisplay = state.archives
                 }
 
+                state.selected.formIntersection(state.archivesToDisplay.ids)
                 return .none
             case .alert(.dismiss):
                 return .none
@@ -371,6 +393,7 @@ import NotificationBannerSwift
                 }
                 return .none
             case .toggleHideRead:
+                state.selected.removeAll()
                 state.$hideRead.withLock {
                     $0.toggle()
                 }
@@ -521,6 +544,19 @@ import NotificationBannerSwift
 }
 
 extension ArchiveListFeature {
+    private func finishCaching(state: inout State, id: String, succeeded: Bool) {
+        guard state.batchCachingArchiveIds.remove(id) != nil else {
+            if succeeded { state.successMessage = String(localized: "archive.cache.added") }
+            return
+        }
+        state.batchCacheHadSuccess = state.batchCacheHadSuccess || succeeded
+        guard state.batchCachingArchiveIds.isEmpty else { return }
+        if state.batchCacheHadSuccess {
+            state.successMessage = String(localized: "archive.cache.added")
+        }
+        state.batchCacheHadSuccess = false
+    }
+
     private func cacheArchive(state: inout State, id: String) -> EffectOf<Self> {
         guard !state.cachingArchiveIds.contains(id),
               let archive = state.archives[id: id]?.archive else {
@@ -569,6 +605,7 @@ extension ArchiveListFeature {
     }
 
     private func resetArchives(state: inout State) {
+        state.selected.removeAll()
         state.archivesToDisplay = .init()
         state.archives = .init()
         state.currentPage = 0
@@ -580,6 +617,7 @@ extension ArchiveListFeature {
         page: Int,
         showLoading: Bool
     ) -> EffectOf<Self> {
+        state.selected.removeAll()
         state.loading = true
         if showLoading {
             state.showLoading = true
@@ -597,6 +635,7 @@ extension ArchiveListFeature {
     }
 
     func clearArchives(state: inout State) {
+        state.selected.removeAll()
         state.archivesToDisplay = .init()
         state.archives = .init()
         state.total = 0
@@ -877,8 +916,11 @@ class UIArchiveListViewController: UIViewController {
         let cellRegistration = UICollectionView.CellRegistration<
             UIArchiveCell, StoreOf<GridFeature>
         > { [weak self] cell, _, itemStore in
-            guard self != nil else { return }
-            cell.configure(with: itemStore)
+            guard let self else { return }
+            cell.configure(
+                with: itemStore, selecting: store.selectMode == .active,
+                selected: store.selected.contains(itemStore.id)
+            )
         }
 
         dataSource = UICollectionViewDiffableDataSource<
@@ -964,6 +1006,14 @@ class UIArchiveListViewController: UIViewController {
 
     // swiftlint:disable function_body_length
     func setupToolbar() {
+        if store.selectMode == .active {
+            parent?.navigationItem.rightBarButtonItem = UIBarButtonItem(
+                title: String(localized: "done"), primaryAction: UIAction { [weak self] _ in
+                    self?.store.send(.toggleSelectionMode)
+                }
+            )
+            return
+        }
         let actions = SearchSort.allCases.filter { $0 != SearchSort.random }.map { sort in
             let localizedKey = "settings.archive.list.order.\(sort)"
             let label = NSLocalizedString(localizedKey, comment: "")
@@ -1026,7 +1076,16 @@ class UIArchiveListViewController: UIViewController {
         )
 
         // Create a menu with the actions
-        let menu = UIMenu(title: "", children: [sortGroup, otherGroup])
+        var groups: [UIMenuElement] = [sortGroup, otherGroup]
+        if store.currentTab == .library {
+            groups.append(UIAction(
+                title: String(localized: "select"),
+                image: UIImage(systemName: "checkmark")?.withTintColor(.clear, renderingMode: .alwaysOriginal)
+            ) { [weak self] _ in
+                self?.store.send(.toggleSelectionMode)
+            })
+        }
+        let menu = UIMenu(title: "", children: groups)
         let menuButton = UIBarButtonItem(
             image: UIImage(systemName: "arrow.up.arrow.down.circle"), menu: menu
         )
@@ -1040,6 +1099,37 @@ class UIArchiveListViewController: UIViewController {
         lastObservedSearchSort = store.searchSort
         lastObservedSearchSortOrder = store.searchSortOrder
         lastObservedFilter = store.filter
+
+        observe { [weak self] in
+            guard let self else { return }
+            let selecting = store.selectMode == .active
+            let selected = store.selected
+            setupToolbar()
+            for indexPath in collectionView.indexPathsForVisibleItems {
+                guard let item = dataSource.itemIdentifier(for: indexPath),
+                      let cell = collectionView.cellForItem(at: indexPath) as? UIArchiveCell else { continue }
+                cell.configure(with: item, selecting: selecting, selected: selected.contains(item.id))
+            }
+            guard store.currentTab == .library else { return }
+            let count = UIBarButtonItem.selectionCount(selected.count)
+            let download = UIBarButtonItem(
+                image: UIImage(systemName: "tray.and.arrow.down"),
+                primaryAction: UIAction { [weak self] _ in
+                    self?.store.send(.cacheSelected)
+                }
+            )
+            download.accessibilityLabel = String(localized: "archive.cache.add")
+            download.isEnabled = !selected.isEmpty
+            parent?.toolbarItems = [count, .flexibleSpace(), download]
+            (parent as? UILibraryListViewController)?.updateSelectionToolbarAppearance()
+            guard navigationController?.topViewController === parent else { return }
+            navigationController?.setToolbarHidden(!selecting, animated: false)
+            if #available(iOS 18.0, *) {
+                tabBarController?.setTabBarHidden(selecting, animated: false)
+            } else {
+                tabBarController?.tabBar.isHidden = selecting
+            }
+        }
 
         observe { [weak self] in
             guard let self else { return }
@@ -1231,7 +1321,12 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
     ) {
         guard let selectedItemStore = dataSource.itemIdentifier(for: indexPath)
         else { return }
-        openReader(for: selectedItemStore)
+        if store.selectMode == .active {
+            store.send(store.selected.contains(selectedItemStore.id)
+                ? .removeSelect(selectedItemStore.id) : .addSelect(selectedItemStore.id))
+        } else {
+            openReader(for: selectedItemStore)
+        }
     }
 
     func collectionView(
@@ -1239,7 +1334,8 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
         contextMenuConfigurationForItemAt indexPath: IndexPath,
         point: CGPoint
     ) -> UIContextMenuConfiguration? {
-        guard let itemStore = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        guard store.selectMode != .active,
+              let itemStore = dataSource.itemIdentifier(for: indexPath) else { return nil }
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
             guard let self else { return nil }
             let readFromStart = UIAction(

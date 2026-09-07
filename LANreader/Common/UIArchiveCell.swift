@@ -16,9 +16,19 @@ class UIArchiveCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(with store: StoreOf<GridFeature>) {
+    func configure(with store: StoreOf<GridFeature>, selecting: Bool = false, selected: Bool = false) {
         contentConfiguration = UIHostingConfiguration {
             ArchiveGridV2(store: store)
+                .overlay(alignment: .topTrailing) {
+                    if selecting {
+                        Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                            .font(.largeTitle)
+                            .foregroundStyle(.white, Color.accentColor)
+                            .padding(8)
+                            .accessibilityHidden(true)
+                    }
+                }
+                .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
         }
         .margins(.all, 0)
     }
