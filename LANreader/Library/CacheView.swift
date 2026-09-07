@@ -8,6 +8,8 @@ import NotificationBannerSwift
         var archives: IdentifiedArrayOf<GridFeature.State> = []
         var downloading: [String: PageProgress] = [:]
         var errorMessage: String = ""
+        var isSelecting = false
+        var selected: Set<String> = []
     }
 
     public enum Action: Equatable {
@@ -16,6 +18,9 @@ import NotificationBannerSwift
         case removeItemFromDownloading(String)
         case updateProgressInDownloading(String, Int)
         case removeCache(String)
+        case toggleSelectionMode
+        case toggleSelection(String)
+        case removeSelected
         case setErrorMessage(String)
     }
 
@@ -29,6 +34,23 @@ import NotificationBannerSwift
     public var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
+            case .toggleSelectionMode:
+                state.isSelecting.toggle()
+                state.selected.removeAll()
+                return .none
+            case let .toggleSelection(id):
+                guard state.isSelecting, state.archives[id: id] != nil else { return .none }
+                if !state.selected.insert(id).inserted {
+                    state.selected.remove(id)
+                }
+                return .none
+            case .removeSelected:
+                let selected = state.selected.sorted()
+                return .run { send in
+                    for id in selected {
+                        await send(.removeCache(id))
+                    }
+                }
             case .load:
                 guard let allCaches = try? database.readAllCached() else {
                     return .cancel(id: CancelID.progressPolling)
@@ -47,6 +69,7 @@ import NotificationBannerSwift
                     )
                 }
                 state.archives = IdentifiedArray(uniqueElements: gridStates)
+                state.selected.formIntersection(state.archives.ids)
                 state.downloading = downloading
                 return progressPollingEffect(downloading)
             case let .removeItemFromDownloading(id):
@@ -62,6 +85,7 @@ import NotificationBannerSwift
                     return .send(.setErrorMessage(errorMessage))
                 }
                 state.archives.remove(id: id)
+                state.selected.remove(id)
                 state.downloading.removeValue(forKey: id)
                 let cacheFolder = LANraragiService.cachePath!
                     .appendingPathComponent(id, conformingTo: .folder)
@@ -124,6 +148,7 @@ import NotificationBannerSwift
 
 struct CacheView: View {
     @Environment(NavigationHelper.self) private var navigation
+    @State private var confirmingRemoval = false
 
     let store: StoreOf<CacheFeature>
 
@@ -143,6 +168,28 @@ struct CacheView: View {
                 }
             }
             .padding(.horizontal)
+        }
+        .safeAreaInset(edge: .bottom) {
+            if store.isSelecting {
+                HStack {
+                    Text(String(format: String(localized: "archive.selected"), store.selected.count))
+                    Spacer()
+                    Button(role: .destructive) {
+                        confirmingRemoval = true
+                    } label: {
+                        Label("archive.cache.remove", systemImage: "trash")
+                            .labelStyle(.iconOnly)
+                    }
+                    .disabled(store.selected.isEmpty)
+                }
+                .padding()
+                .background(.bar)
+            }
+        }
+        .confirmationDialog("archive.selected.delete", isPresented: $confirmingRemoval, titleVisibility: .visible) {
+            Button("archive.cache.remove", role: .destructive) {
+                store.send(.removeSelected)
+            }
         }
         .task {
             await store.send(.load).finish()
@@ -229,10 +276,24 @@ struct CacheView: View {
                 : nil
             }
             .contextMenu {
-                contextMenu(gridStore: gridStore, inProgress: inProgress)
+                if !store.isSelecting {
+                    contextMenu(gridStore: gridStore, inProgress: inProgress)
+                }
             }
+            .overlay(alignment: .topTrailing) {
+                if store.isSelecting {
+                    Image(systemName: store.selected.contains(gridStore.id) ? "checkmark.circle.fill" : "circle")
+                        .font(.title2)
+                        .foregroundStyle(.white, Color.accentColor)
+                        .padding(8)
+                        .accessibilityHidden(true)
+                }
+            }
+            .accessibilityAddTraits(store.selected.contains(gridStore.id) ? [.isSelected, .isButton] : .isButton)
             .onTapGesture {
-                if !inProgress {
+                if store.isSelecting {
+                    store.send(.toggleSelection(gridStore.id))
+                } else if !inProgress {
                     openReader(gridStore: gridStore)
                 }
             }

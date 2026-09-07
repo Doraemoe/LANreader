@@ -20,6 +20,15 @@ class UICacheViewController: UIViewController, UICollectionViewDelegate {
         super.viewDidLoad()
 
         navigationItem.title = String(localized: "cached")
+        observe { [weak self] in
+            guard let self else { return }
+            navigationItem.rightBarButtonItem = UIBarButtonItem(
+                title: store.isSelecting ? String(localized: "done") : String(localized: "select"),
+                primaryAction: UIAction { [weak self] _ in
+                    self?.store.send(.toggleSelectionMode)
+                }
+            )
+        }
 
         let hostingController = UIHostingController(
             rootView: CacheView(store: store)
