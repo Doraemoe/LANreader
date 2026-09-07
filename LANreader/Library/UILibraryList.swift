@@ -28,15 +28,10 @@ import UIKit
             ArchiveListFeature()
         }
 
-        Reduce { state, action in
+        Reduce { _, action in
             switch action {
             case .toggleSelectMode:
-                if state.archiveList.selectMode == .inactive {
-                    state.archiveList.selectMode = .active
-                } else {
-                    state.archiveList.selectMode = .inactive
-                }
-                return .none
+                return .send(.archiveList(.toggleSelectionMode))
             case .archiveList:
                 return .none
             case .binding:
@@ -67,14 +62,21 @@ class UILibraryListViewController: UIViewController {
             target: self,
             action: #selector(tapCachedButton)
         )
-        navigationItem.leftBarButtonItems = [cachedButton]
+        navigationItem.leftBarButtonItems = store.archiveList.selectMode == .active ? [] : [cachedButton]
         navigationItem.title = String(localized: "library")
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        setupNavigationBar()
+        observe { [weak self] in
+            self?.setupNavigationBar()
+        }
+        registerForTraitChanges(
+            [UITraitUserInterfaceStyle.self, UITraitAccessibilityContrast.self]
+        ) { (controller: UILibraryListViewController, _) in
+            controller.updateSelectionToolbarAppearance()
+        }
 
         let archiveListView = UIArchiveListViewController(
             store: store.scope(\.archiveList, action: \.archiveList)
@@ -90,11 +92,25 @@ class UILibraryListViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        updateSelectionToolbarAppearance()
+        let selecting = store.archiveList.selectMode == .active
+        navigationController?.setToolbarHidden(!selecting, animated: false)
         if #available(iOS 18.0, *) {
-            tabBarController?.setTabBarHidden(false, animated: false)
+            tabBarController?.setTabBarHidden(selecting, animated: false)
         } else {
-            tabBarController?.tabBar.isHidden = false
+            tabBarController?.tabBar.isHidden = selecting
         }
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setToolbarHidden(true, animated: false)
+    }
+
+    func updateSelectionToolbarAppearance() {
+        // Resolve against the page, not the toolbar's adaptive glass appearance.
+        let foreground = UIColor.label.resolvedColor(with: traitCollection)
+        toolbarItems?.forEach { $0.tintColor = foreground }
     }
 
     @objc private func tapCachedButton() {

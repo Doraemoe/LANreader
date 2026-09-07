@@ -102,6 +102,7 @@
 		F1A2B3C62F60000200AAA001 /* ArchiveDetailsTagParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C92F60000200AAA001 /* ArchiveDetailsTagParserTests.swift */; };
 		F1A2B3CA2F60000300AAA001 /* ArchiveDetailsTagParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3CB2F60000300AAA001 /* ArchiveDetailsTagParser.swift */; };
 		F1A2B3CC2F70000100AAA001 /* ArchiveListFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3CD2F70000100AAA001 /* ArchiveListFeatureTests.swift */; };
+		AB3870010000000000000001 /* ArchiveListSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3870010000000000000002 /* ArchiveListSelectionTests.swift */; };
 		F1A2B3CE2F80000100AAA001 /* LogTextRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3CF2F80000100AAA001 /* LogTextRendererTests.swift */; };
 		F1A2B3D52F60000400DDD001 /* LANraragiConfigFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3D42F60000400DDD001 /* LANraragiConfigFeatureTests.swift */; };
 		F1A2B3D62F90000100AAA001 /* SearchKeyword.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3D72F90000100AAA001 /* SearchKeyword.swift */; };
@@ -239,6 +240,7 @@
 		F1A2B3C92F60000200AAA001 /* ArchiveDetailsTagParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveDetailsTagParserTests.swift; sourceTree = "<group>"; };
 		F1A2B3CB2F60000300AAA001 /* ArchiveDetailsTagParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveDetailsTagParser.swift; sourceTree = "<group>"; };
 		F1A2B3CD2F70000100AAA001 /* ArchiveListFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveListFeatureTests.swift; sourceTree = "<group>"; };
+		AB3870010000000000000002 /* ArchiveListSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveListSelectionTests.swift; sourceTree = "<group>"; };
 		F1A2B3CF2F80000100AAA001 /* LogTextRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogTextRendererTests.swift; sourceTree = "<group>"; };
 		F1A2B3D42F60000400DDD001 /* LANraragiConfigFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LANraragiConfigFeatureTests.swift; sourceTree = "<group>"; };
 		F1A2B3D72F90000100AAA001 /* SearchKeyword.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchKeyword.swift; sourceTree = "<group>"; };
@@ -464,6 +466,7 @@
 				F1A2B3D42F60000400DDD001 /* LANraragiConfigFeatureTests.swift */,
 				F1A2B3C92F60000200AAA001 /* ArchiveDetailsTagParserTests.swift */,
 				F1A2B3CD2F70000100AAA001 /* ArchiveListFeatureTests.swift */,
+				AB3870010000000000000002 /* ArchiveListSelectionTests.swift */,
 				F1A2B3CF2F80000100AAA001 /* LogTextRendererTests.swift */,
 				F1A2B3D92F90000200AAA001 /* SearchFeatureTests.swift */,
 				F1A2B3E62FA0000100AAA001 /* PaginationPositioningTests.swift */,
@@ -807,6 +810,7 @@
 				F1A2B3D52F60000400DDD001 /* LANraragiConfigFeatureTests.swift in Sources */,
 				F1A2B3C62F60000200AAA001 /* ArchiveDetailsTagParserTests.swift in Sources */,
 				F1A2B3CC2F70000100AAA001 /* ArchiveListFeatureTests.swift in Sources */,
+				AB3870010000000000000001 /* ArchiveListSelectionTests.swift in Sources */,
 				F1A2B3CE2F80000100AAA001 /* LogTextRendererTests.swift in Sources */,
 				F1A2B3E52FA0000100AAA001 /* PaginationPositioningTests.swift in Sources */,
 				F1A2B3F22FC0000100AAA001 /* ReaderPositioningInvariantTests.swift in Sources */,
@@ -987,7 +991,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreader.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 233;
+				CURRENT_PROJECT_VERSION = 234;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1015,7 +1019,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreaderRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 233;
+				CURRENT_PROJECT_VERSION = 234;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1089,7 +1093,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 233;
+				CURRENT_PROJECT_VERSION = 234;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1119,7 +1123,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 233;
+				CURRENT_PROJECT_VERSION = 234;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;

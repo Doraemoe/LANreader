@@ -148,7 +148,6 @@ import NotificationBannerSwift
 
 struct CacheView: View {
     @Environment(NavigationHelper.self) private var navigation
-    @State private var confirmingRemoval = false
 
     let store: StoreOf<CacheFeature>
 
@@ -168,30 +167,6 @@ struct CacheView: View {
                 }
             }
             .padding(.horizontal)
-        }
-        .safeAreaInset(edge: .bottom) {
-            if store.isSelecting {
-                HStack {
-                    Text(String(format: String(localized: "archive.selected"), store.selected.count))
-                    Spacer()
-                    Button(role: .destructive) {
-                        confirmingRemoval = true
-                    } label: {
-                        Label("archive.cache.remove", systemImage: "trash")
-                            .labelStyle(.iconOnly)
-                    }
-                    .disabled(store.selected.isEmpty)
-                    .confirmationDialog(
-                        "archive.selected.delete", isPresented: $confirmingRemoval, titleVisibility: .visible
-                    ) {
-                        Button("archive.cache.remove", role: .destructive) {
-                            store.send(.removeSelected)
-                        }
-                    }
-                }
-                .padding()
-                .background(.bar)
-            }
         }
         .task {
             await store.send(.load).finish()
