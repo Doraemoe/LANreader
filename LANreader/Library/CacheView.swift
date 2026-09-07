@@ -181,14 +181,16 @@ struct CacheView: View {
                             .labelStyle(.iconOnly)
                     }
                     .disabled(store.selected.isEmpty)
+                    .confirmationDialog(
+                        "archive.selected.delete", isPresented: $confirmingRemoval, titleVisibility: .visible
+                    ) {
+                        Button("archive.cache.remove", role: .destructive) {
+                            store.send(.removeSelected)
+                        }
+                    }
                 }
                 .padding()
                 .background(.bar)
-            }
-        }
-        .confirmationDialog("archive.selected.delete", isPresented: $confirmingRemoval, titleVisibility: .visible) {
-            Button("archive.cache.remove", role: .destructive) {
-                store.send(.removeSelected)
             }
         }
         .task {
@@ -283,7 +285,7 @@ struct CacheView: View {
             .overlay(alignment: .topTrailing) {
                 if store.isSelecting {
                     Image(systemName: store.selected.contains(gridStore.id) ? "checkmark.circle.fill" : "circle")
-                        .font(.title2)
+                        .font(.largeTitle)
                         .foregroundStyle(.white, Color.accentColor)
                         .padding(8)
                         .accessibilityHidden(true)
