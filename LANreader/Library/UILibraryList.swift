@@ -110,7 +110,8 @@ class UILibraryListViewController: UIViewController {
     func updateSelectionToolbarAppearance() {
         // Resolve against the page, not the toolbar's adaptive glass appearance.
         let foreground = UIColor.label.resolvedColor(with: traitCollection)
-        toolbarItems?.forEach { $0.tintColor = foreground }
+        toolbarItems?.first?.tintColor = foreground
+        toolbarItems?.last?.tintColor = foreground
     }
 
     @objc private func tapCachedButton() {
