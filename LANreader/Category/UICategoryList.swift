@@ -42,6 +42,7 @@ class UICategoryListViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        guard navigationController?.topViewController === self else { return }
         if #available(iOS 18.0, *) {
             tabBarController?.setTabBarHidden(false, animated: false)
         } else {

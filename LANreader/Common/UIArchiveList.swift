@@ -127,7 +127,6 @@ import NotificationBannerSwift
                 guard !state.loading else { return .none }
                 let ids = state.selected.sorted()
                 state.selected.removeAll()
-                state.selectMode = .inactive
                 let previous = state.cachingArchiveIds
                 let effects = ids.map { cacheArchive(state: &state, id: $0) }
                 state.batchCachingArchiveIds.formUnion(state.cachingArchiveIds.subtracting(previous))
@@ -438,7 +437,6 @@ import NotificationBannerSwift
                     }
                 }
                 state.loading = false
-                if state.selected.isEmpty { state.selectMode = .inactive }
                 return reloadPageAfterRemoval(state: &state, removedCount: archiveIds.count)
             case .loadCategory:
                 return .run { send in
@@ -1300,6 +1298,11 @@ class UIArchiveListViewController: UIViewController {
         navigationController?.setToolbarHidden(true, animated: false)
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        updateTabBarVisibility()
+    }
+
     @objc
     private func didPullToRefresh(_ sender: Any) {
         store.send(.load(true))
@@ -1338,9 +1341,16 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
         guard let navigationController, navigationController.topViewController === parent else { return }
         let selecting = store.selectMode == .active
         navigationController.setToolbarHidden(!selecting, animated: false)
-        let hideTabs = selecting || navigationController.viewControllers.first !== parent
+        updateTabBarVisibility()
+    }
+
+    private func updateTabBarVisibility() {
+        guard let navigationController, navigationController.topViewController === parent else { return }
+        let hideTabs = store.selectMode == .active || navigationController.viewControllers.first !== parent
         if #available(iOS 18.0, *) {
-            tabBarController?.setTabBarHidden(hideTabs, animated: false)
+            if tabBarController?.isTabBarHidden != hideTabs {
+                tabBarController?.setTabBarHidden(hideTabs, animated: false)
+            }
         } else {
             tabBarController?.tabBar.isHidden = hideTabs
         }
