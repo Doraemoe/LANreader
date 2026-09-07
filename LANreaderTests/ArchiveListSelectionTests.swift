@@ -6,6 +6,59 @@ import UIKit
 
 final class ArchiveListSelectionTests: XCTestCase {
     @MainActor
+    func testCategorySelectionPreservesHiddenTabBar() async throws {
+        var list = makeSelectionState(count: 1)
+        list.currentTab = .category
+        let state = CategoryArchiveListFeature.State(id: "category", name: "Category", archiveList: list)
+        let store = Store(initialState: state) {
+            CategoryArchiveListFeature()
+        }
+        let controller = UICategoryArchiveGridController(store: store)
+        try await checkSharedSelection(
+            controller: controller, store: store.scope(\.archiveList, action: \.archiveList), pushed: true
+        )
+    }
+
+    @MainActor
+    func testSearchSelectionRestoresTabBarAndSearchInput() async throws {
+        let database = try AppDatabase(DatabaseQueue())
+        try await withDependencies {
+            $0.appDatabase = database
+        } operation: {
+            var state = SearchFeature.State()
+            state.archiveList = makeSelectionState(count: 0)
+            state.archiveList.currentTab = .search
+            let store = Store(initialState: state) {
+                SearchFeature().dependency(\.appDatabase, database)
+            }
+            let controller = UISearchViewV2Controller(store: store)
+            try await checkSharedSelection(
+                controller: controller, store: store.scope(\.archiveList, action: \.archiveList), pushed: false
+            )
+            let searchBar = try XCTUnwrap(controller.navigationItem.searchController?.searchBar
+                ?? controller.view.subviews.compactMap { $0 as? UISearchBar }.first)
+            store.send(.archiveList(.toggleSelectionMode))
+            await Task.yield()
+            XCTAssertFalse(searchBar.isUserInteractionEnabled)
+            XCTAssertFalse(searchBar.isFirstResponder)
+            store.send(.archiveList(.toggleSelectionMode))
+            await Task.yield()
+            XCTAssertTrue(searchBar.isUserInteractionEnabled)
+        }
+    }
+
+    @MainActor
+    func testNewSearchClearsSelection() async {
+        var state = SearchFeature.State()
+        state.archiveList.selected = ["old-result"]
+        let store = TestStore(initialState: state) { SearchFeature() }
+        await store.send(.searchSubmit("new query")) {
+            $0.archiveList.filter = SearchFilter(category: nil, filter: "new query")
+            $0.archiveList.selected = []
+        }
+    }
+
+    @MainActor
     func testLibraryToolbarUsesPageColorsInLightAndDarkAppearance() async throws {
         var state = LibraryFeature.State()
         state.archiveList = makeSelectionState(count: 1)
@@ -21,7 +74,7 @@ final class ArchiveListSelectionTests: XCTestCase {
             await Task.yield()
             let expected = UIColor.label.resolvedColor(with: UITraitCollection(userInterfaceStyle: style))
             let count = try XCTUnwrap(controller.toolbarItems?.first)
-            let download = try XCTUnwrap(controller.toolbarItems?.last)
+            let download = try XCTUnwrap(controller.toolbarItems?[2])
             XCTAssertEqual(count.tintColor, expected)
             XCTAssertEqual(download.tintColor, expected)
         }
@@ -175,4 +228,46 @@ private func makeSelectionState(count: Int) -> ArchiveListFeature.State {
     })
     state.archivesToDisplay = state.archives
     return state
+}
+
+@MainActor
+private func checkSharedSelection(
+    controller: UIViewController, store: StoreOf<ArchiveListFeature>, pushed: Bool
+) async throws {
+    let database = try AppDatabase(DatabaseQueue())
+    try await withDependencies {
+        $0.appDatabase = database
+    } operation: {
+        let navigation = UINavigationController()
+        navigation.viewControllers = pushed ? [UIViewController(), controller] : [controller]
+        let tabs = UITabBarController()
+        tabs.viewControllers = [navigation]
+        tabs.loadViewIfNeeded()
+        navigation.loadViewIfNeeded()
+        controller.loadViewIfNeeded()
+        let list = try XCTUnwrap(controller.children.compactMap { $0 as? UIArchiveListViewController }.first)
+        await Task.yield()
+        let menu = controller.navigationItem.rightBarButtonItem?.menu
+        XCTAssertEqual(menu?.children.last?.title, String(localized: "select"))
+        store.send(.toggleSelectionMode)
+        await Task.yield()
+        XCTAssertFalse(navigation.isToolbarHidden)
+        if #available(iOS 18.0, *) { XCTAssertTrue(tabs.isTabBarHidden) }
+        let hasArchives = !store.archivesToDisplay.isEmpty
+        if hasArchives {
+            list.collectionView(list.collectionView, didSelectItemAt: IndexPath(item: 0, section: 0))
+        }
+        await Task.yield()
+        XCTAssertEqual(store.selected, hasArchives ? ["archive-0"] : [])
+        XCTAssertEqual(controller.toolbarItems?.count, 4)
+        XCTAssertEqual(controller.toolbarItems?.last?.accessibilityLabel, String(localized: "archive.delete"))
+        XCTAssertEqual(controller.toolbarItems?[2].accessibilityLabel, String(localized: "archive.cache.add"))
+        XCTAssertEqual(controller.toolbarItems?.last?.isEnabled, hasArchives)
+        XCTAssertEqual(controller.toolbarItems?[2].isEnabled, hasArchives)
+        store.send(.toggleSelectionMode)
+        await Task.yield()
+        XCTAssertTrue(navigation.isToolbarHidden)
+        if #available(iOS 18.0, *) { XCTAssertEqual(tabs.isTabBarHidden, pushed) }
+        XCTAssertEqual(navigation.viewControllers.count, pushed ? 2 : 1)
+    }
 }

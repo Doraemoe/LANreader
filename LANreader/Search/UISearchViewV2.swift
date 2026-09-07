@@ -82,6 +82,7 @@ import UIKit
                     return .none
                 }
                 state.archiveList.filter = SearchFilter(category: nil, filter: keyword)
+                state.archiveList.selected.removeAll()
                 return .cancel(id: CancelId.search)
             case .binding:
                 return .none
@@ -189,17 +190,6 @@ class UISearchViewV2Controller: UIViewController {
         navigationItem.title = String(localized: "search")
     }
 
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        if navigationController?.viewControllers.count == 1 {
-            if #available(iOS 18.0, *) {
-                tabBarController?.setTabBarHidden(false, animated: false)
-            } else {
-                tabBarController?.tabBar.isHidden = false
-            }
-        }
-    }
-
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         suggestionsContainerView.layer.shadowPath = UIBezierPath(
@@ -304,6 +294,15 @@ class UISearchViewV2Controller: UIViewController {
     private func setupObserve() {
         observe { [weak self] in
             guard let self else { return }
+            let selecting = store.archiveList.selectMode == .active
+            activeSearchBar.isUserInteractionEnabled = !selecting
+            if selecting {
+                activeSearchBar.resignFirstResponder()
+                searchController.isActive = false
+                isEditingSearchText = false
+                hideSuggestions(animated: false)
+                return
+            }
             _ = store.suggestedTag
             let isFieldEmpty = activeSearchBar.text?.isEmpty ?? true
             guard isEditingSearchText || isFieldEmpty else {

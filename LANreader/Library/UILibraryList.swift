@@ -72,11 +72,6 @@ class UILibraryListViewController: UIViewController {
         observe { [weak self] in
             self?.setupNavigationBar()
         }
-        registerForTraitChanges(
-            [UITraitUserInterfaceStyle.self, UITraitAccessibilityContrast.self]
-        ) { (controller: UILibraryListViewController, _) in
-            controller.updateSelectionToolbarAppearance()
-        }
 
         let archiveListView = UIArchiveListViewController(
             store: store.scope(\.archiveList, action: \.archiveList)
@@ -88,30 +83,6 @@ class UILibraryListViewController: UIViewController {
             archiveListView.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             archiveListView.view.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        updateSelectionToolbarAppearance()
-        let selecting = store.archiveList.selectMode == .active
-        navigationController?.setToolbarHidden(!selecting, animated: false)
-        if #available(iOS 18.0, *) {
-            tabBarController?.setTabBarHidden(selecting, animated: false)
-        } else {
-            tabBarController?.tabBar.isHidden = selecting
-        }
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        navigationController?.setToolbarHidden(true, animated: false)
-    }
-
-    func updateSelectionToolbarAppearance() {
-        // Resolve against the page, not the toolbar's adaptive glass appearance.
-        let foreground = UIColor.label.resolvedColor(with: traitCollection)
-        toolbarItems?.first?.tintColor = foreground
-        toolbarItems?.last?.tintColor = foreground
     }
 
     @objc private func tapCachedButton() {

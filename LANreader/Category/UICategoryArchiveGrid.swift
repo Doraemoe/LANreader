@@ -27,15 +27,10 @@ import UIKit
             ArchiveListFeature()
         }
 
-        Reduce {state, action in
+        Reduce { _, action in
             switch action {
             case .toggleSelectMode:
-                if state.archiveList.selectMode == .inactive {
-                    state.archiveList.selectMode = .active
-                } else {
-                    state.archiveList.selectMode = .inactive
-                }
-                return .none
+                return .send(.archiveList(.toggleSelectionMode))
             case .binding:
                 return .none
             case .archiveList:
@@ -75,12 +70,4 @@ class UICategoryArchiveGridController: UIViewController {
         ])
     }
 
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        if #available(iOS 18.0, *) {
-            tabBarController?.setTabBarHidden(true, animated: false)
-        } else {
-            tabBarController?.tabBar.isHidden = true
-        }
-    }
 }

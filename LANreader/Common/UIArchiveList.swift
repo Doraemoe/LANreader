@@ -1097,14 +1097,12 @@ class UIArchiveListViewController: UIViewController {
 
         // Create a menu with the actions
         var groups: [UIMenuElement] = [sortGroup, otherGroup]
-        if store.currentTab == .library {
-            groups.append(UIAction(
-                title: String(localized: "select"),
-                image: UIImage(systemName: "checkmark")?.withTintColor(.clear, renderingMode: .alwaysOriginal)
-            ) { [weak self] _ in
-                self?.store.send(.toggleSelectionMode)
-            })
-        }
+        groups.append(UIAction(
+            title: String(localized: "select"),
+            image: UIImage(systemName: "checkmark")?.withTintColor(.clear, renderingMode: .alwaysOriginal)
+        ) { [weak self] _ in
+            self?.store.send(.toggleSelectionMode)
+        })
         let menu = UIMenu(title: "", children: groups)
         let menuButton = UIBarButtonItem(
             image: UIImage(systemName: "arrow.up.arrow.down.circle"), menu: menu
@@ -1130,7 +1128,6 @@ class UIArchiveListViewController: UIViewController {
                       let cell = collectionView.cellForItem(at: indexPath) as? UIArchiveCell else { continue }
                 cell.configure(with: item, selecting: selecting, selected: selected.contains(item.id))
             }
-            guard store.currentTab == .library else { return }
             let count = UIBarButtonItem.selectionCount(selected.count)
             let download = UIBarButtonItem(
                 image: UIImage(systemName: "tray.and.arrow.down"),
@@ -1146,16 +1143,10 @@ class UIArchiveListViewController: UIViewController {
             )
             delete.accessibilityLabel = String(localized: "archive.delete")
             delete.isEnabled = !selected.isEmpty && !store.loading
-            parent?.toolbarItems = [count, .flexibleSpace(), delete, download]
-            (parent as? UILibraryListViewController)?.updateSelectionToolbarAppearance()
+            parent?.toolbarItems = [count, .flexibleSpace(), download, delete]
+            updateSelectionToolbarAppearance()
             delete.tintColor = .systemRed
-            guard navigationController?.topViewController === parent else { return }
-            navigationController?.setToolbarHidden(!selecting, animated: false)
-            if #available(iOS 18.0, *) {
-                tabBarController?.setTabBarHidden(selecting, animated: false)
-            } else {
-                tabBarController?.tabBar.isHidden = selecting
-            }
+            updateSelectionBarVisibility()
         }
 
         observe { [weak self] in
@@ -1279,6 +1270,11 @@ class UIArchiveListViewController: UIViewController {
         setupCell()
         setupPaginationBar()
         setupObserve()
+        parent?.registerForTraitChanges(
+            [UITraitUserInterfaceStyle.self, UITraitAccessibilityContrast.self]
+        ) { [weak self] (_: UIViewController, _) in
+            self?.updateSelectionToolbarAppearance()
+        }
 
         collectionView.delegate = self
     }
@@ -1291,6 +1287,17 @@ class UIArchiveListViewController: UIViewController {
         } else if !store.archivesToDisplay.isEmpty {
             store.send(.refreshDisplayArchives)
         }
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        updateSelectionToolbarAppearance()
+        updateSelectionBarVisibility()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setToolbarHidden(true, animated: false)
     }
 
     @objc
@@ -1321,6 +1328,24 @@ class UIArchiveListViewController: UIViewController {
 }
 
 extension UIArchiveListViewController: UICollectionViewDelegate {
+    private func updateSelectionToolbarAppearance() {
+        let foreground = UIColor.label.resolvedColor(with: parent?.traitCollection ?? traitCollection)
+        parent?.toolbarItems?.first?.tintColor = foreground
+        parent?.toolbarItems?[2].tintColor = foreground
+    }
+
+    private func updateSelectionBarVisibility() {
+        guard let navigationController, navigationController.topViewController === parent else { return }
+        let selecting = store.selectMode == .active
+        navigationController.setToolbarHidden(!selecting, animated: false)
+        let hideTabs = selecting || navigationController.viewControllers.first !== parent
+        if #available(iOS 18.0, *) {
+            tabBarController?.setTabBarHidden(hideTabs, animated: false)
+        } else {
+            tabBarController?.tabBar.isHidden = hideTabs
+        }
+    }
+
     @objc func confirmBatchDeletion(_ sender: UIBarButtonItem) {
         guard !store.loading, !store.selected.isEmpty else { return }
         store.send(.deleteButtonTapped)
