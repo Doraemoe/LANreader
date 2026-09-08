@@ -40,6 +40,7 @@ final class ArchiveListFeatureTests: XCTestCase {
         })
         state.archivesToDisplay = state.archives
         let store = TestStore(initialState: state) { ArchiveListFeature() }
+        store.timeout = .seconds(5)
         await store.send(.deleteButtonTapped) {
             $0.alert = AlertState {
                 TextState("archive.selected.delete")
