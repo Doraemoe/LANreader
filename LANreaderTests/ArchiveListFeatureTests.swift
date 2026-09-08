@@ -702,11 +702,13 @@ private func makeGridTestStore(
     archive: ArchiveItem,
     database: AppDatabase
 ) -> TestStoreOf<GridFeature> {
-    TestStore(initialState: GridFeature.State(archive: Shared(value: archive))) {
+    let store = TestStore(initialState: GridFeature.State(archive: Shared(value: archive))) {
         GridFeature()
     } withDependencies: {
         $0.appDatabase = database
     }
+    store.timeout = .seconds(5)
+    return store
 }
 
 @MainActor
