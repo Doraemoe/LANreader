@@ -72,13 +72,49 @@ final class ArchiveListBatchTests: XCTestCase {
     }
 
     @MainActor
-    func testDoneCannotExitDuringDestructiveBatch() async {
+    func testDoneCannotExitDuringBatchAction() async {
         var state = makePaginatedArchiveListState()
         state.selectMode = .active
         state.loading = true
-        state.isDeleting = true
+        state.batchActionInProgress = true
         let store = TestStore(initialState: state) { ArchiveListFeature() }
         await store.send(.toggleSelectionMode)
+    }
+
+    @MainActor
+    func testBatchAddToCategoryAddsOnlyMissingArchivesAndKeepsFailuresSelected() async throws {
+        try await configureArchiveListTestClient()
+        stubUnexpectedCategoryAdd(categoryId: "category", archiveId: "archive-0")
+        stubCategoryAdd(categoryId: "category", archiveId: "archive-1", success: 1)
+        stubCategoryAdd(categoryId: "category", archiveId: "archive-2", success: 0)
+        var state = makePaginatedArchiveListState()
+        state.selectMode = .active
+        state.selected = ["archive-0", "archive-1", "archive-2"]
+        state.$categoryItems.withLock {
+            $0 = [CategoryItem(
+                id: "category", name: "Category", archives: ["archive-0"], search: "", pinned: "0"
+            )]
+        }
+        defer { state.$categoryItems.withLock { $0 = [] } }
+        let store = TestStore(initialState: state) { ArchiveListFeature() }
+
+        await store.send(.addArchivesToCategory("category")) {
+            $0.loading = true
+            $0.batchActionInProgress = true
+        }
+        await store.receive(.addArchivesToCategoryFinished("category", ["archive-0", "archive-1"], true)) {
+            $0.$categoryItems.withLock { $0[id: "category"]?.archives.append("archive-1") }
+            $0.selected = ["archive-2"]
+            $0.loading = false
+            $0.batchActionInProgress = false
+            $0.errorMessage = String(localized: "archive.selected.category.add.error")
+        }
+        await store.finish()
+        XCTAssertEqual(store.state.categoryItems[id: "category"]?.archives, ["archive-0", "archive-1"])
+        XCTAssertEqual(store.state.selected, ["archive-2"])
+        XCTAssertEqual(store.state.errorMessage, String(localized: "archive.selected.category.add.error"))
+        XCTAssertFalse(store.state.loading)
+        XCTAssertFalse(store.state.batchActionInProgress)
     }
 
     @MainActor
@@ -159,5 +195,25 @@ private func stubRemainingBatchArchive() {
         {"data":[{"arcid":"archive-1","extension":"zip","isnew":"false","tags":"",
         "title":"Archive 1","pagecount":10,"progress":0}],"recordsFiltered":1,"recordsTotal":1}
         """.utf8), statusCode: 200, headers: ["Content-Type": "application/json"])
+    }
+}
+
+private func stubCategoryAdd(categoryId: String, archiveId: String, success: Int) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/categories/\(categoryId)/\(archiveId)")
+            && isMethodPUT()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+        HTTPStubsResponse(
+            data: Data("{\"success\":\(success)}".utf8),
+            statusCode: 200,
+            headers: ["Content-Type": "application/json"]
+        )
+    }
+}
+
+private func stubUnexpectedCategoryAdd(categoryId: String, archiveId: String) {
+    stub(condition: isPath("/api/categories/\(categoryId)/\(archiveId)")) { _ in
+        XCTFail("Archive already in the category must not be added again")
+        return HTTPStubsResponse(data: Data(), statusCode: 500, headers: nil)
     }
 }
