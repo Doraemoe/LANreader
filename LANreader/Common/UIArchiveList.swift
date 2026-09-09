@@ -105,7 +105,7 @@ import NotificationBannerSwift
         case deleteButtonTapped
         case deleteSuccess(Set<String>)
         case removeFromCategoryButtonTapped
-        case removeFromCategorySuccess(Set<String>)
+        case removeFromCategoryFinished(String, Set<String>, Bool)
         public enum Alert: Sendable {
             case confirmDelete
             case confirmRemoveFromCategory
@@ -310,16 +310,19 @@ import NotificationBannerSwift
             case .alert(.dismiss):
                 return .none
             case .alert(.presented(.confirmRemoveFromCategory)):
+                guard !state.loading, !state.selected.isEmpty,
+                      let categoryId = state.currentStaticCategoryId else { return .none }
                 state.loading = true
                 state.batchActionInProgress = true
-                return .run { [state] send in
+                let selected = state.selected
+                return .run { send in
                     var successIds: Set<String> = .init()
                     var errorIds: Set<String> = .init()
 
-                    for archiveId in state.selected {
+                    for archiveId in selected.sorted() {
                         do {
                             let response = try await service.removeArchiveFromCategory(
-                                categoryId: state.filter.category!, archiveId: archiveId
+                                categoryId: categoryId, archiveId: archiveId
                             ).value
                             if response.success == 1 {
                                 successIds.insert(archiveId)
@@ -330,26 +333,19 @@ import NotificationBannerSwift
                             logger.error(
                                 """
                                 failed to remove archive from category.
-                                categoryId=\(state.filter.category ?? ""), archiveId=\(archiveId) \(error)
+                                categoryId=\(categoryId), archiveId=\(archiveId) \(error)
                                 """
                             )
                             errorIds.insert(archiveId)
                         }
 
                     }
-
-                    if !errorIds.isEmpty {
-                        await send(.setErrorMessage(
-                            String(localized: "archive.selected.category.remove.error")
-                        ))
-                    } else {
-                        await send(.setSuccessMessage(
-                            String(localized: "archive.selected.category.remove.success")
-                        ))
-                    }
-                    await send(.removeFromCategorySuccess(successIds))
+                    await send(.removeFromCategoryFinished(categoryId, successIds, !errorIds.isEmpty))
                 }
-            case let .removeFromCategorySuccess(archiveIds):
+            case let .removeFromCategoryFinished(categoryId, archiveIds, hadErrors):
+                state.$categoryItems.withLock {
+                    $0[id: categoryId]?.archives.removeAll(where: archiveIds.contains)
+                }
                 archiveIds.forEach { id in
                     state.selected.remove(id)
                     state.archivesToDisplay.remove(id: id)
@@ -357,6 +353,11 @@ import NotificationBannerSwift
                 }
                 state.loading = false
                 state.batchActionInProgress = false
+                if hadErrors {
+                    state.errorMessage = String(localized: "archive.selected.category.remove.error")
+                } else {
+                    state.successMessage = String(localized: "archive.selected.category.remove.success")
+                }
                 return reloadPageAfterRemoval(state: &state, removedCount: archiveIds.count)
             case .alert(.presented(.confirmDelete)):
                 guard !state.loading, !state.selected.isEmpty else { return .none }
@@ -422,6 +423,8 @@ import NotificationBannerSwift
                 }
                 return .none
             case .removeFromCategoryButtonTapped:
+                guard !state.loading, !state.selected.isEmpty,
+                      state.currentStaticCategoryId != nil else { return .none }
                 state.alert = AlertState {
                     TextState("archive.selected.category.remove")
                 } actions: {
@@ -764,6 +767,12 @@ extension ArchiveListFeature {
 }
 
 extension ArchiveListFeature.State {
+    var currentStaticCategoryId: String? {
+        guard let categoryId = filter.category,
+              categoryItems[id: categoryId]?.search.isEmpty == true else { return nil }
+        return categoryId
+    }
+
     /// Random sort is served by an endpoint that has no offset paging, so the pager
     /// stays hidden there even when the mode is enabled.
     var paginationActive: Bool {
@@ -1150,20 +1159,30 @@ class UIArchiveListViewController: UIViewController {
                 )
             }
             let count = UIBarButtonItem.selectionCount(selected.count)
-            let categoryActions = store.categoryItems.filter { $0.search.isEmpty }.map { category in
-                UIAction(title: category.name) { [weak self] _ in
-                    self?.store.send(.addArchivesToCategory(category.id))
-                }
-            }
-            let addToCategory = UIBarButtonItem(
-                image: UIImage(systemName: "folder.badge.plus"),
-                menu: UIMenu(
-                    title: String(localized: "archive.selected.category.add"),
-                    children: categoryActions
+            let categoryAction: UIBarButtonItem
+            if store.currentStaticCategoryId != nil {
+                categoryAction = UIBarButtonItem(
+                    image: UIImage(systemName: "folder.badge.minus"), style: .plain,
+                    target: self, action: #selector(confirmBatchCategoryRemoval(_:))
                 )
-            )
-            addToCategory.accessibilityLabel = String(localized: "archive.selected.category.add")
-            addToCategory.isEnabled = !selected.isEmpty && !store.loading && !categoryActions.isEmpty
+                categoryAction.accessibilityLabel = String(localized: "remove")
+                categoryAction.isEnabled = !selected.isEmpty && !store.loading
+            } else {
+                let categoryActions = store.categoryItems.filter { $0.search.isEmpty }.map { category in
+                    UIAction(title: category.name) { [weak self] _ in
+                        self?.store.send(.addArchivesToCategory(category.id))
+                    }
+                }
+                categoryAction = UIBarButtonItem(
+                    image: UIImage(systemName: "folder.badge.plus"),
+                    menu: UIMenu(
+                        title: String(localized: "archive.selected.category.add"),
+                        children: categoryActions
+                    )
+                )
+                categoryAction.accessibilityLabel = String(localized: "archive.selected.category.add")
+                categoryAction.isEnabled = !selected.isEmpty && !store.loading && !categoryActions.isEmpty
+            }
             let download = UIBarButtonItem(
                 image: UIImage(systemName: "tray.and.arrow.down"),
                 primaryAction: UIAction { [weak self] _ in
@@ -1178,7 +1197,7 @@ class UIArchiveListViewController: UIViewController {
             )
             delete.accessibilityLabel = String(localized: "archive.delete")
             delete.isEnabled = !selected.isEmpty && !store.loading
-            parent?.toolbarItems = [count, .flexibleSpace(), addToCategory, download, delete]
+            parent?.toolbarItems = [count, .flexibleSpace(), categoryAction, download, delete]
             updateSelectionToolbarAppearance()
             delete.tintColor = .systemRed
             updateSelectionBarVisibility()
@@ -1399,6 +1418,27 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
             title: String(localized: "delete"), style: .destructive
         ) { [weak self] _ in
             self?.store.send(.alert(.presented(.confirmDelete)))
+        })
+        confirmation.addAction(UIAlertAction(title: String(localized: "cancel"), style: .cancel) { [weak self] _ in
+            self?.store.send(.alert(.dismiss))
+        })
+        confirmation.popoverPresentationController?.barButtonItem = sender
+        present(confirmation, animated: true)
+    }
+
+    @objc func confirmBatchCategoryRemoval(_ sender: UIBarButtonItem) {
+        guard !store.loading, !store.selected.isEmpty,
+              store.currentStaticCategoryId != nil else { return }
+        store.send(.removeFromCategoryButtonTapped)
+        let confirmation = UIAlertController(
+            title: String(localized: "archive.selected.category.remove"),
+            message: nil,
+            preferredStyle: .actionSheet
+        )
+        confirmation.addAction(UIAlertAction(
+            title: String(localized: "remove"), style: .destructive
+        ) { [weak self] _ in
+            self?.store.send(.alert(.presented(.confirmRemoveFromCategory)))
         })
         confirmation.addAction(UIAlertAction(title: String(localized: "cancel"), style: .cancel) { [weak self] _ in
             self?.store.send(.alert(.dismiss))

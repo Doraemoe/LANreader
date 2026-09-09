@@ -9,6 +9,13 @@ final class ArchiveListSelectionTests: XCTestCase {
     func testCategorySelectionPreservesHiddenTabBar() async throws {
         var list = makeSelectionState(count: 1)
         list.currentTab = .category
+        list.filter = SearchFilter(category: "category", filter: nil)
+        list.$categoryItems.withLock {
+            $0 = [CategoryItem(
+                id: "category", name: "Category", archives: ["archive-0"], search: "", pinned: "0"
+            )]
+        }
+        defer { list.$categoryItems.withLock { $0 = [] } }
         let state = CategoryArchiveListFeature.State(id: "category", name: "Category", archiveList: list)
         let store = Store(initialState: state) {
             CategoryArchiveListFeature()
@@ -243,6 +250,7 @@ private func makeSelectionState(count: Int) -> ArchiveListFeature.State {
 }
 
 @MainActor
+// swiftlint:disable:next function_body_length
 private func checkSharedSelection(
     controller: UIViewController, store: StoreOf<ArchiveListFeature>, pushed: Bool
 ) async throws {
@@ -280,14 +288,20 @@ private func checkSharedSelection(
         XCTAssertEqual(store.selected, ["archive-0"])
         XCTAssertEqual(controller.toolbarItems?.count, 5)
         XCTAssertEqual(controller.toolbarItems?.last?.accessibilityLabel, String(localized: "archive.delete"))
-        XCTAssertEqual(
-            controller.toolbarItems?[2].accessibilityLabel,
-            String(localized: "archive.selected.category.add")
-        )
         XCTAssertEqual(controller.toolbarItems?[3].accessibilityLabel, String(localized: "archive.cache.add"))
         XCTAssertEqual(controller.toolbarItems?.last?.isEnabled, true)
-        XCTAssertEqual(controller.toolbarItems?[2].isEnabled, false)
-        XCTAssertEqual(controller.toolbarItems?[2].menu?.children.map(\.title), [])
+        if store.currentStaticCategoryId != nil {
+            XCTAssertEqual(controller.toolbarItems?[2].accessibilityLabel, String(localized: "remove"))
+            XCTAssertNil(controller.toolbarItems?[2].menu)
+            XCTAssertEqual(controller.toolbarItems?[2].isEnabled, true)
+        } else {
+            XCTAssertEqual(
+                controller.toolbarItems?[2].accessibilityLabel,
+                String(localized: "archive.selected.category.add")
+            )
+            XCTAssertEqual(controller.toolbarItems?[2].isEnabled, false)
+            XCTAssertEqual(controller.toolbarItems?[2].menu?.children.map(\.title), [])
+        }
         XCTAssertEqual(controller.toolbarItems?[3].isEnabled, true)
         store.send(.toggleSelectionMode)
         await Task.yield()
