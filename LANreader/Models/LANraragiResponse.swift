@@ -205,7 +205,20 @@ struct TankoubonProgressResponse: Decodable, Equatable {
 }
 
 struct TankoubonUpdateRequest: Encodable {
+    let archives: [String]?
     let metadata: TankoubonMetadataUpdateRequest?
+}
+
+struct TankoubonCreateResponse: Decodable, Equatable {
+    let operation: String?
+    let tankoubonId: String?
+    let success: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case operation
+        case tankoubonId = "tankoubon_id"
+        case success
+    }
 }
 
 struct TankoubonMetadataUpdateRequest: Encodable {

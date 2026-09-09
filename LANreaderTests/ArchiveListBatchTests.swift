@@ -7,6 +7,20 @@ import OHHTTPStubsSwift
 
 final class ArchiveListBatchTests: XCTestCase {
     @MainActor
+    func testCreateTankoubonRejectsSelectedTankoubon() async {
+        var state = makePaginatedArchiveListState()
+        state.selected = ["archive-0", "TANK_123"]
+        let store = TestStore(initialState: state) { ArchiveListFeature() }
+
+        await store.send(.createTankoubon("New Tank")) {
+            $0.errorMessage = String(localized: "archive.selected.tankoubon.nested.error")
+        }
+
+        XCTAssertEqual(store.state.selected, ["archive-0", "TANK_123"])
+        XCTAssertFalse(store.state.loading)
+    }
+
+    @MainActor
     func testBatchDownloadExtractsOnlySelectedUncachedArchives() async throws {
         try await configureArchiveListTestClient()
         for id in ["archive-0", "archive-2"] {
@@ -189,7 +203,7 @@ final class ArchiveListBatchTests: XCTestCase {
         state.selectMode = .active
         state.cachingArchiveIds = ["archive-0", "archive-1", "archive-2"]
         state.batchCachingArchiveIds = state.cachingArchiveIds
-        state.selected = state.cachingArchiveIds
+        state.selected = .init(state.cachingArchiveIds)
         let store = TestStore(initialState: state) { ArchiveListFeature() }
         for id in ["archive-0", "archive-1"] {
             await store.send(.cacheArchiveFailed(id, "Failed")) {

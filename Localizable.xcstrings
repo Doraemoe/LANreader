@@ -2446,6 +2446,76 @@
         }
       }
     },
+    "archive.selected.tankoubon.contents.error" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tankoubon was created, but the selected archives could not be added." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "単行本を作成しましたが、選択したアーカイブを追加できませんでした。" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "단행본을 만들었지만 선택한 아카이브를 추가하지 못했습니다." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已创建单行本，但无法添加所选文档。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "已建立單行本，但無法加入所選文件。" } }
+      }
+    },
+    "archive.selected.tankoubon.create" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Create Tankoubon" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "単行本を作成" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "단행본 만들기" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "创建单行本" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "建立單行本" } }
+      }
+    },
+    "archive.selected.tankoubon.create.error" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Failed to create Tankoubon" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "単行本を作成できませんでした" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "단행본을 만들지 못했습니다" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "创建单行本失败" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "建立單行本失敗" } }
+      }
+    },
+    "archive.selected.tankoubon.create.success" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tankoubon created" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "単行本を作成しました" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "단행본을 만들었습니다" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已创建单行本" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "已建立單行本" } }
+      }
+    },
+    "archive.selected.tankoubon.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tankoubon name" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "単行本名" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "단행본 이름" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "单行本名称" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "單行本名稱" } }
+      }
+    },
+    "archive.selected.tankoubon.name.required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Enter a Tankoubon name" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "単行本名を入力してください" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "단행본 이름을 입력하세요" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "请输入单行本名称" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "請輸入單行本名稱" } }
+      }
+    },
+    "archive.selected.tankoubon.nested.error" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tankoubons cannot be included in a new Tankoubon." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "単行本を新しい単行本に含めることはできません。" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "단행본은 새 단행본에 포함할 수 없습니다." } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "不能将单行本包含在新的单行本中。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "不能將單行本包含在新的單行本中。" } }
+      }
+    },
     "archive.selected.category.add" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -305,6 +305,7 @@ actor LANraragiService {
 
     func updateTankoubon(
         id: String,
+        archives: [String]? = nil,
         name: String? = nil,
         summary: String? = nil,
         tags: String? = nil,
@@ -322,7 +323,7 @@ actor LANraragiService {
             metadata = nil
         }
 
-        let request = TankoubonUpdateRequest(metadata: metadata)
+        let request = TankoubonUpdateRequest(archives: archives, metadata: metadata)
         return session.request(
             "\(url)/api/tankoubons/\(id)",
             method: .put,
@@ -331,6 +332,17 @@ actor LANraragiService {
         )
         .validate(statusCode: 200...200)
         .serializingDecodable(GenericSuccessResponse.self)
+    }
+
+    func createTankoubon(name: String) async -> DataTask<TankoubonCreateResponse> {
+        session.request(
+            "\(url)/api/tankoubons",
+            method: .put,
+            parameters: ["name": name],
+            encoding: URLEncoding(destination: .httpBody)
+        )
+        .validate(statusCode: 200...200)
+        .serializingDecodable(TankoubonCreateResponse.self)
     }
 
     func deleteTankoubon(id: String) async -> DataTask<GenericSuccessResponse> {
