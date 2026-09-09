@@ -1,10 +1,12 @@
 // swiftlint:disable file_length
 import ComposableArchitecture
+import OrderedCollections
 import SwiftUI
 import UIKit
 import Logging
 import NotificationBannerSwift
 
+// swiftlint:disable type_body_length
 @Reducer public struct ArchiveListFeature: Sendable {
     private let logger = Logger(label: "ArchiveListFeature")
 
@@ -21,7 +23,7 @@ import NotificationBannerSwift
         @Shared(.appStorage(SettingsKey.lastTagRefresh)) var lastTagRefresh = 0.0
 
         var selectMode: EditMode = .inactive
-        var selected: Set<String> = .init()
+        var selected: OrderedSet<String> = .init()
         @Shared(.archive) var archiveItems: IdentifiedArrayOf<ArchiveItem> = []
         @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
         var filter: SearchFilter
@@ -77,6 +79,9 @@ import NotificationBannerSwift
         case populateCategory([CategoryItem])
         case addArchivesToCategory(String)
         case addArchivesToCategoryFinished(String, Set<String>, Bool)
+        case createTankoubon(String)
+        case createTankoubonSucceeded
+        case createTankoubonFailed(String)
         case setFilter(SearchFilter)
         case resetArchives
         case reloadFromFirstPage
@@ -279,7 +284,7 @@ import NotificationBannerSwift
             case let .addSelect(id):
                 guard !state.loading, state.selectMode == .active,
                       state.archivesToDisplay[id: id] != nil else { return .none }
-                state.selected.insert(id)
+                state.selected.append(id)
                 return .none
             case let .removeSelect(id):
                 guard !state.loading else { return .none }
@@ -523,6 +528,58 @@ import NotificationBannerSwift
                     state.successMessage = String(localized: "archive.selected.category.add.success")
                 }
                 return .none
+            case let .createTankoubon(name):
+                guard !state.loading, !state.selected.isEmpty else { return .none }
+                let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !name.isEmpty else {
+                    state.errorMessage = String(localized: "archive.selected.tankoubon.name.required")
+                    return .none
+                }
+                guard !state.selected.contains(where: \.isTankoubonArchiveId) else {
+                    state.errorMessage = String(localized: "archive.selected.tankoubon.nested.error")
+                    return .none
+                }
+                state.loading = true
+                state.batchActionInProgress = true
+                let archives = Array(state.selected)
+                return .run { send in
+                    var createdTankoubon = false
+                    do {
+                        let created = try await service.createTankoubon(name: name).value
+                        guard created.success == 1, let id = created.tankoubonId, !id.isEmpty else {
+                            await send(.createTankoubonFailed(
+                                String(localized: "archive.selected.tankoubon.create.error")
+                            ))
+                            return
+                        }
+                        createdTankoubon = true
+                        let updated = try await service.updateTankoubon(id: id, archives: archives).value
+                        guard updated.success == 1 else {
+                            await send(.createTankoubonFailed(
+                                String(localized: "archive.selected.tankoubon.contents.error")
+                            ))
+                            return
+                        }
+                        await send(.createTankoubonSucceeded)
+                    } catch {
+                        logger.error("failed to create or populate Tankoubon. \(error)")
+                        await send(.createTankoubonFailed(
+                            String(localized: createdTankoubon
+                                ? "archive.selected.tankoubon.contents.error"
+                                : "archive.selected.tankoubon.create.error")
+                        ))
+                    }
+                }
+            case .createTankoubonSucceeded:
+                state.loading = false
+                state.batchActionInProgress = false
+                state.successMessage = String(localized: "archive.selected.tankoubon.create.success")
+                return .send(.reloadFromFirstPage)
+            case let .createTankoubonFailed(message):
+                state.loading = false
+                state.batchActionInProgress = false
+                state.errorMessage = message
+                return .none
             }
         }
         .forEach(\.archivesToDisplay, action: \.grid) {
@@ -531,6 +588,7 @@ import NotificationBannerSwift
         .ifLet(\.$alert, action: \.alert)
     }
 }
+// swiftlint:enable type_body_length
 
 extension ArchiveListFeature {
     private func deleteSelected(_ state: State) -> EffectOf<Self> {
@@ -1183,6 +1241,12 @@ class UIArchiveListViewController: UIViewController {
                 categoryAction.accessibilityLabel = String(localized: "archive.selected.category.add")
                 categoryAction.isEnabled = !selected.isEmpty && !store.loading && !categoryActions.isEmpty
             }
+            let createTankoubon = UIBarButtonItem(
+                image: UIImage(systemName: "book.badge.plus"), style: .plain,
+                target: self, action: #selector(promptForTankoubonName(_:))
+            )
+            createTankoubon.accessibilityLabel = String(localized: "archive.selected.tankoubon.create")
+            createTankoubon.isEnabled = !selected.isEmpty && !store.loading
             let download = UIBarButtonItem(
                 image: UIImage(systemName: "tray.and.arrow.down"),
                 primaryAction: UIAction { [weak self] _ in
@@ -1197,7 +1261,7 @@ class UIArchiveListViewController: UIViewController {
             )
             delete.accessibilityLabel = String(localized: "archive.delete")
             delete.isEnabled = !selected.isEmpty && !store.loading
-            parent?.toolbarItems = [count, .flexibleSpace(), categoryAction, download, delete]
+            parent?.toolbarItems = [count, .flexibleSpace(), categoryAction, createTankoubon, download, delete]
             updateSelectionToolbarAppearance()
             delete.tintColor = .systemRed
             updateSelectionBarVisibility()
@@ -1383,9 +1447,7 @@ class UIArchiveListViewController: UIViewController {
 extension UIArchiveListViewController: UICollectionViewDelegate {
     private func updateSelectionToolbarAppearance() {
         let foreground = UIColor.label.resolvedColor(with: parent?.traitCollection ?? traitCollection)
-        parent?.toolbarItems?.first?.tintColor = foreground
-        parent?.toolbarItems?[2].tintColor = foreground
-        parent?.toolbarItems?[3].tintColor = foreground
+        parent?.toolbarItems?.dropLast().forEach { $0.tintColor = foreground }
     }
 
     private func updateSelectionBarVisibility() {
@@ -1424,6 +1486,29 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
         })
         confirmation.popoverPresentationController?.barButtonItem = sender
         present(confirmation, animated: true)
+    }
+
+    @objc func promptForTankoubonName(_: UIBarButtonItem) {
+        guard !store.loading, !store.selected.isEmpty else { return }
+        guard !store.selected.contains(where: \.isTankoubonArchiveId) else {
+            store.send(.setErrorMessage(String(localized: "archive.selected.tankoubon.nested.error")))
+            return
+        }
+        let alert = UIAlertController(
+            title: String(localized: "archive.selected.tankoubon.create"),
+            message: nil,
+            preferredStyle: .alert
+        )
+        alert.addTextField { field in
+            field.placeholder = String(localized: "archive.selected.tankoubon.name")
+        }
+        alert.addAction(UIAlertAction(title: String(localized: "cancel"), style: .cancel))
+        alert.addAction(UIAlertAction(
+            title: String(localized: "archive.selected.tankoubon.create"), style: .default
+        ) { [weak self, weak alert] _ in
+            self?.store.send(.createTankoubon(alert?.textFields?.first?.text ?? ""))
+        })
+        present(alert, animated: true)
     }
 
     @objc func confirmBatchCategoryRemoval(_ sender: UIBarButtonItem) {

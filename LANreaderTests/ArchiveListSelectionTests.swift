@@ -85,7 +85,7 @@ final class ArchiveListSelectionTests: XCTestCase {
             await Task.yield()
             let expected = UIColor.label.resolvedColor(with: UITraitCollection(userInterfaceStyle: style))
             let count = try XCTUnwrap(controller.toolbarItems?.first)
-            let download = try XCTUnwrap(controller.toolbarItems?[3])
+            let download = try XCTUnwrap(controller.toolbarItems?[4])
             XCTAssertEqual(count.tintColor, expected)
             XCTAssertEqual(download.tintColor, expected)
         }
@@ -179,6 +179,16 @@ final class ArchiveListSelectionTests: XCTestCase {
             $0.selected = []
         }
         await store.finish()
+    }
+
+    @MainActor
+    func testSelectionUsesTapOrder() async {
+        let store = TestStore(initialState: makeSelectionState(count: 2)) { ArchiveListFeature() }
+        await store.send(.toggleSelectionMode) { $0.selectMode = .active }
+        await store.send(.addSelect("archive-0")) { $0.selected = ["archive-0"] }
+        await store.send(.addSelect("archive-1")) { $0.selected = ["archive-0", "archive-1"] }
+        await store.send(.removeSelect("archive-0")) { $0.selected = ["archive-1"] }
+        await store.send(.addSelect("archive-0")) { $0.selected = ["archive-1", "archive-0"] }
     }
 
     @MainActor
@@ -286,9 +296,13 @@ private func checkSharedSelection(
         list.collectionView(list.collectionView, didSelectItemAt: IndexPath(item: 0, section: 0))
         await Task.yield()
         XCTAssertEqual(store.selected, ["archive-0"])
-        XCTAssertEqual(controller.toolbarItems?.count, 5)
+        XCTAssertEqual(controller.toolbarItems?.count, 6)
         XCTAssertEqual(controller.toolbarItems?.last?.accessibilityLabel, String(localized: "archive.delete"))
-        XCTAssertEqual(controller.toolbarItems?[3].accessibilityLabel, String(localized: "archive.cache.add"))
+        XCTAssertEqual(
+            controller.toolbarItems?[3].accessibilityLabel,
+            String(localized: "archive.selected.tankoubon.create")
+        )
+        XCTAssertEqual(controller.toolbarItems?[4].accessibilityLabel, String(localized: "archive.cache.add"))
         XCTAssertEqual(controller.toolbarItems?.last?.isEnabled, true)
         if store.currentStaticCategoryId != nil {
             XCTAssertEqual(controller.toolbarItems?[2].accessibilityLabel, String(localized: "remove"))
@@ -303,6 +317,7 @@ private func checkSharedSelection(
             XCTAssertEqual(controller.toolbarItems?[2].menu?.children.map(\.title), [])
         }
         XCTAssertEqual(controller.toolbarItems?[3].isEnabled, true)
+        XCTAssertEqual(controller.toolbarItems?[4].isEnabled, true)
         store.send(.toggleSelectionMode)
         await Task.yield()
         XCTAssertTrue(navigation.isToolbarHidden)

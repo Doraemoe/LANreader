@@ -611,6 +611,51 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertEqual(tank.archives, [archiveId])
     }
 
+    func testCreateTankoubonWithOrderedArchives() async throws {
+        try await configureVerifiedClient()
+
+        let tankId = self.tankId
+        let archives = [archiveId, String(archiveId.reversed())]
+        stub(condition: isHost("localhost")
+                && isPath("/api/tankoubons")
+                && isMethodPUT()) { request in
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer YXBpS2V5")
+            XCTAssertTrue(request.value(forHTTPHeaderField: "Content-Type")?.hasPrefix(
+                "application/x-www-form-urlencoded"
+            ) == true)
+            let body = request.ohhttpStubs_httpBody.flatMap { String(data: $0, encoding: .utf8) }
+            let name = URLComponents(string: "?\(body ?? "")")?.queryItems?.first { $0.name == "name" }?.value
+            XCTAssertEqual(name, "New Tank")
+            return HTTPStubsResponse(
+                data: Data("{\"operation\":\"create_tankoubon\",\"tankoubon_id\":\"\(tankId)\",\"success\":1}".utf8),
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+        stub(condition: isHost("localhost")
+                && isPath("/api/tankoubons/\(tankId)")
+                && isMethodPUT()) { request in
+            let body = request.ohhttpStubs_httpBody.flatMap {
+                try? JSONSerialization.jsonObject(with: $0) as? [String: Any]
+            }
+            XCTAssertEqual(body?["archives"] as? [String], archives)
+            XCTAssertNil(body?["metadata"])
+            return HTTPStubsResponse(
+                data: Data("{\"success\":1}".utf8),
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+
+        let created = try await service.createTankoubon(name: "New Tank").value
+        let updated = try await service.updateTankoubon(
+            id: try XCTUnwrap(created.tankoubonId), archives: archives
+        ).value
+
+        XCTAssertEqual(created.success, 1)
+        XCTAssertEqual(updated.success, 1)
+    }
+
     func testRetrieveFullTankoubonAndThumbnail() async throws {
         try await configureVerifiedClient()
 
