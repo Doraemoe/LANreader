@@ -118,6 +118,58 @@ final class ArchiveListBatchTests: XCTestCase {
     }
 
     @MainActor
+    func testBatchRemoveFromStaticCategoryKeepsFailuresSelected() async throws {
+        try await configureArchiveListTestClient()
+        stubCategoryRemove(categoryId: "category", archiveId: "archive-0", success: 1)
+        stubCategoryRemove(categoryId: "category", archiveId: "archive-1", success: 0)
+        var state = ArchiveListFeature.State(
+            filter: SearchFilter(category: "category", filter: nil),
+            loadOnAppear: false,
+            currentTab: .category
+        )
+        state.$paginateArchiveList.withLock { $0 = false }
+        state.selectMode = .active
+        state.selected = ["archive-0", "archive-1"]
+        state.archives = expectedArchiveListGridStates(in: &state, count: 3)
+        state.archivesToDisplay = state.archives
+        state.$categoryItems.withLock {
+            $0 = [CategoryItem(
+                id: "category", name: "Category",
+                archives: ["archive-0", "archive-1", "archive-2"], search: "", pinned: "0"
+            )]
+        }
+        defer { state.$categoryItems.withLock { $0 = [] } }
+        let store = TestStore(initialState: state) { ArchiveListFeature() }
+        store.timeout = .seconds(5)
+
+        await store.send(.removeFromCategoryButtonTapped) {
+            $0.alert = AlertState {
+                TextState("archive.selected.category.remove")
+            } actions: {
+                ButtonState(role: .destructive, action: .confirmRemoveFromCategory) { TextState("remove") }
+                ButtonState(role: .cancel) { TextState("cancel") }
+            }
+        }
+        await store.send(.alert(.presented(.confirmRemoveFromCategory))) {
+            $0.alert = nil
+            $0.loading = true
+            $0.batchActionInProgress = true
+        }
+        await store.receive(.removeFromCategoryFinished("category", ["archive-0"], true)) {
+            $0.$categoryItems.withLock { $0[id: "category"]?.archives.removeAll { $0 == "archive-0" } }
+            $0.selected = ["archive-1"]
+            $0.archives.remove(id: "archive-0")
+            $0.archivesToDisplay.remove(id: "archive-0")
+            $0.loading = false
+            $0.batchActionInProgress = false
+            $0.errorMessage = String(localized: "archive.selected.category.remove.error")
+        }
+        await store.finish()
+        XCTAssertEqual(store.state.categoryItems[id: "category"]?.archives, ["archive-1", "archive-2"])
+        XCTAssertNotNil(store.state.archives[id: "archive-2"])
+    }
+
+    @MainActor
     func testChangingFilterClearsSelection() async {
         var state = makePaginatedArchiveListState()
         state.selected = ["archive-0"]
@@ -215,5 +267,21 @@ private func stubUnexpectedCategoryAdd(categoryId: String, archiveId: String) {
     stub(condition: isPath("/api/categories/\(categoryId)/\(archiveId)")) { _ in
         XCTFail("Archive already in the category must not be added again")
         return HTTPStubsResponse(data: Data(), statusCode: 500, headers: nil)
+    }
+}
+
+private func stubCategoryRemove(categoryId: String, archiveId: String, success: Int) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/categories/\(categoryId)/\(archiveId)")
+            && isMethodDELETE()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { request in
+        XCTAssertNil(request.url?.query)
+        XCTAssertNil(request.httpBody)
+        XCTAssertNil(request.httpBodyStream)
+        return HTTPStubsResponse(
+            data: Data("{\"success\":\(success)}".utf8),
+            statusCode: 200,
+            headers: ["Content-Type": "application/json"]
+        )
     }
 }
