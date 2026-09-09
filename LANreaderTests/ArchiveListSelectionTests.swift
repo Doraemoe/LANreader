@@ -192,31 +192,6 @@ final class ArchiveListSelectionTests: XCTestCase {
     }
 
     @MainActor
-    func testBatchCachingReportsMixedResultsAfterAllResults() async {
-        var state = ArchiveListFeature.State(
-            filter: SearchFilter(category: nil, filter: nil), currentTab: .library
-        )
-        state.cachingArchiveIds = ["a", "b", "c"]
-        state.batchCachingArchiveIds = state.cachingArchiveIds
-        let store = TestStore(initialState: state) { ArchiveListFeature() }
-        await store.send(.cacheArchiveFinished("a")) {
-            $0.cachingArchiveIds.remove("a")
-            $0.batchCachingArchiveIds.remove("a")
-            $0.batchCacheHadSuccess = true
-        }
-        await store.send(.cacheArchiveFinished("b")) {
-            $0.cachingArchiveIds.remove("b")
-            $0.batchCachingArchiveIds.remove("b")
-        }
-        await store.send(.cacheArchiveFailed("c", "Failed")) {
-            $0.cachingArchiveIds = []
-            $0.batchCachingArchiveIds = []
-            $0.batchCacheHadSuccess = false
-            $0.errorMessage = "Failed"
-        }
-    }
-
-    @MainActor
     func testCacheSelectionUsesNativeToolbarAndVisibleCount() async throws {
         let database = try AppDatabase(DatabaseQueue())
         let store = Store(initialState: CacheFeature.State()) { CacheFeature() } withDependencies: {

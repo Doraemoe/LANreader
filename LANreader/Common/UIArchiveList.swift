@@ -12,8 +12,6 @@ import NotificationBannerSwift
 
     @ObservableState
     public struct State: Equatable, Sendable {
-        @Presents var alert: AlertState<Action.Alert>?
-
         @SharedReader(.appStorage(SettingsKey.lanraragiUrl)) var lanraragiUrl = ""
         @SharedReader(.appStorage(SettingsKey.searchSortCustom)) var searchSortCustom = ""
         @Shared(.appStorage(SettingsKey.hideRead)) var hideRead = false
@@ -39,6 +37,7 @@ import NotificationBannerSwift
         var batchCachingArchiveIds: Set<String> = []
         var batchCacheHadSuccess = false
         var batchCacheErrors: Set<String> = []
+        var preserveSelectionOnNextPopulate = false
         var currentTab: TabName
 
         var archivesToDisplay: IdentifiedArrayOf<GridFeature.State> = []
@@ -63,6 +62,11 @@ import NotificationBannerSwift
             hideRead && !loading && !archives.isEmpty && archivesToDisplay.isEmpty
         }
 
+        var canStartBatchAction: Bool {
+            !loading && !batchActionInProgress && !selected.isEmpty
+                && !selected.contains(where: cachingArchiveIds.contains)
+        }
+
         private var hasSearchFilter: Bool {
             guard currentTab == .search else { return true }
             if filter.category != nil {
@@ -73,7 +77,6 @@ import NotificationBannerSwift
     }
 
     public enum Action: Equatable {
-        case alert(PresentationAction<Alert>)
         case grid(IdentifiedActionOf<GridFeature>)
         case loadCategory
         case populateCategory([CategoryItem])
@@ -107,14 +110,10 @@ import NotificationBannerSwift
         case toggleHideRead
         case goToPage(Int)
 
-        case deleteButtonTapped
-        case deleteSuccess(Set<String>)
-        case removeFromCategoryButtonTapped
+        case confirmDelete
+        case deleteFinished(Set<String>, Bool)
+        case confirmRemoveFromCategory
         case removeFromCategoryFinished(String, Set<String>, Bool)
-        public enum Alert: Sendable {
-            case confirmDelete
-            case confirmRemoveFromCategory
-        }
     }
 
     @Dependency(\.lanraragiService) var service
@@ -132,7 +131,7 @@ import NotificationBannerSwift
                 state.selected.removeAll()
                 return .none
             case .cacheSelected:
-                guard !state.loading else { return .none }
+                guard state.canStartBatchAction else { return .none }
                 let ids = state.selected.sorted()
                 let previous = state.cachingArchiveIds
                 let effects = ids.map { cacheArchive(state: &state, id: $0) }
@@ -140,7 +139,10 @@ import NotificationBannerSwift
                 state.selected.formIntersection(state.batchCachingArchiveIds)
                 return .merge(effects)
             case let .setFilter(filter):
-                if state.filter != filter { state.selected.removeAll() }
+                if state.filter != filter {
+                    state.selected.removeAll()
+                    state.preserveSelectionOnNextPopulate = false
+                }
                 state.filter = filter
                 return .none
             case .resetArchives:
@@ -228,7 +230,6 @@ import NotificationBannerSwift
                     state.archivesToDisplay = state.archives
                 }
 
-                state.selected.formIntersection(state.archivesToDisplay.ids)
                 state.total = total
                 state.loading = false
                 state.showLoading = false
@@ -240,6 +241,11 @@ import NotificationBannerSwift
                         state.currentPage, pageCount: state.pageCount
                     )
                     return .send(.load(false))
+                }
+                if state.preserveSelectionOnNextPopulate {
+                    state.preserveSelectionOnNextPopulate = false
+                } else {
+                    state.selected.formIntersection(state.archivesToDisplay.ids)
                 }
                 return .none
             case let .refreshThumbnail(archiveId):
@@ -266,6 +272,7 @@ import NotificationBannerSwift
                 state.loading = false
                 state.showLoading = false
                 state.pendingPage = nil
+                state.preserveSelectionOnNextPopulate = false
                 state.errorMessage = message
                 return .none
             case let .setSuccessMessage(message):
@@ -275,6 +282,7 @@ import NotificationBannerSwift
                 return .none
             case .cancelSearch:
                 state.pendingPage = nil
+                state.preserveSelectionOnNextPopulate = false
                 if state.loading {
                     state.loading = false
                     state.showLoading = false
@@ -312,10 +320,8 @@ import NotificationBannerSwift
 
                 state.selected.formIntersection(state.archivesToDisplay.ids)
                 return .none
-            case .alert(.dismiss):
-                return .none
-            case .alert(.presented(.confirmRemoveFromCategory)):
-                guard !state.loading, !state.selected.isEmpty,
+            case .confirmRemoveFromCategory:
+                guard state.canStartBatchAction,
                       let categoryId = state.currentStaticCategoryId else { return .none }
                 state.loading = true
                 state.batchActionInProgress = true
@@ -364,8 +370,8 @@ import NotificationBannerSwift
                     state.successMessage = String(localized: "archive.selected.category.remove.success")
                 }
                 return reloadPageAfterRemoval(state: &state, removedCount: archiveIds.count)
-            case .alert(.presented(.confirmDelete)):
-                guard !state.loading, !state.selected.isEmpty else { return .none }
+            case .confirmDelete:
+                guard state.canStartBatchAction else { return .none }
                 state.loading = true
                 state.batchActionInProgress = true
                 return deleteSelected(state)
@@ -414,34 +420,7 @@ import NotificationBannerSwift
                     order: state.searchSortOrder,
                     append: false
                 )
-            case .deleteButtonTapped:
-                guard !state.loading, !state.selected.isEmpty else { return .none }
-                state.alert = AlertState {
-                    TextState("archive.selected.delete")
-                } actions: {
-                    ButtonState(role: .destructive, action: .confirmDelete) {
-                        TextState("delete")
-                    }
-                    ButtonState(role: .cancel) {
-                        TextState("cancel")
-                    }
-                }
-                return .none
-            case .removeFromCategoryButtonTapped:
-                guard !state.loading, !state.selected.isEmpty,
-                      state.currentStaticCategoryId != nil else { return .none }
-                state.alert = AlertState {
-                    TextState("archive.selected.category.remove")
-                } actions: {
-                    ButtonState(role: .destructive, action: .confirmRemoveFromCategory) {
-                        TextState("remove")
-                    }
-                    ButtonState(role: .cancel) {
-                        TextState("cancel")
-                    }
-                }
-                return .none
-            case let .deleteSuccess(archiveIds):
+            case let .deleteFinished(archiveIds, hadErrors):
                 state.batchActionInProgress = false
                 archiveIds.forEach { id in
                     state.selected.remove(id)
@@ -451,7 +430,24 @@ import NotificationBannerSwift
                         _ = $0.remove(id: id)
                     }
                 }
+                state.$categoryItems.withLock { categories in
+                    for index in categories.indices {
+                        categories[index].archives.removeAll(where: archiveIds.contains)
+                    }
+                }
                 state.loading = false
+                if hadErrors {
+                    state.errorMessage = String(localized: "archive.selected.delete.error")
+                } else {
+                    state.successMessage = String(localized: "archive.selected.delete.success")
+                }
+                if archiveIds.contains(where: \.isTankoubonArchiveId) {
+                    state.preserveSelectionOnNextPopulate = true
+                    let page = state.paginationActive
+                        ? PaginationPositioning.clampedPage(state.currentPage, pageCount: state.pageCount)
+                        : 0
+                    return loadArchives(state: &state, page: page, showLoading: false)
+                }
                 return reloadPageAfterRemoval(state: &state, removedCount: archiveIds.count)
             case .loadCategory:
                 return .run { send in
@@ -476,8 +472,8 @@ import NotificationBannerSwift
                 }
                 return .none
             case let .addArchivesToCategory(categoryId):
-                guard !state.loading, !state.selected.isEmpty,
-                      let currentCategory = state.categoryItems[id: categoryId] else { return .none }
+                guard state.canStartBatchAction,
+                      state.categoryItems[id: categoryId] != nil else { return .none }
                 state.loading = true
                 state.batchActionInProgress = true
                 let selected = state.selected
@@ -486,27 +482,23 @@ import NotificationBannerSwift
                     var errorIds: Set<String> = .init()
 
                     for archiveId in selected.sorted() {
-                        if currentCategory.archives.contains(archiveId) {
-                            successIds.insert(archiveId)
-                        } else {
-                            do {
-                                let response = try await service.addArchiveToCategory(
-                                    categoryId: categoryId, archiveId: archiveId
-                                ).value
-                                if response.success == 1 {
-                                    successIds.insert(archiveId)
-                                } else {
-                                    errorIds.insert(archiveId)
-                                }
-                            } catch {
-                                logger.error(
-                                    """
-                                    failed to add archive to category.
-                                    categoryId=\(categoryId), archiveId=\(archiveId) \(error)
-                                    """
-                                )
+                        do {
+                            let response = try await service.addArchiveToCategory(
+                                categoryId: categoryId, archiveId: archiveId
+                            ).value
+                            if response.success == 1 {
+                                successIds.insert(archiveId)
+                            } else {
                                 errorIds.insert(archiveId)
                             }
+                        } catch {
+                            logger.error(
+                                """
+                                failed to add archive to category.
+                                categoryId=\(categoryId), archiveId=\(archiveId) \(error)
+                                """
+                            )
+                            errorIds.insert(archiveId)
                         }
                     }
                     await send(.addArchivesToCategoryFinished(categoryId, successIds, !errorIds.isEmpty))
@@ -529,7 +521,7 @@ import NotificationBannerSwift
                 }
                 return .none
             case let .createTankoubon(name):
-                guard !state.loading, !state.selected.isEmpty else { return .none }
+                guard state.canStartBatchAction else { return .none }
                 let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !name.isEmpty else {
                     state.errorMessage = String(localized: "archive.selected.tankoubon.name.required")
@@ -585,7 +577,6 @@ import NotificationBannerSwift
         .forEach(\.archivesToDisplay, action: \.grid) {
             GridFeature()
         }
-        .ifLet(\.$alert, action: \.alert)
     }
 }
 // swiftlint:enable type_body_length
@@ -615,16 +606,7 @@ extension ArchiveListFeature {
                 }
             }
 
-            if !errorIds.isEmpty {
-                await send(.setErrorMessage(
-                    String(localized: "archive.selected.delete.error")
-                ))
-            } else {
-                await send(.setSuccessMessage(
-                    String(localized: "archive.selected.delete.success")
-                ))
-            }
-            await send(.deleteSuccess(successIds))
+            await send(.deleteFinished(successIds, !errorIds.isEmpty))
         }
     }
 
@@ -701,6 +683,7 @@ extension ArchiveListFeature {
 
     private func resetArchives(state: inout State) {
         state.selected.removeAll()
+        state.preserveSelectionOnNextPopulate = false
         state.archivesToDisplay = .init()
         state.archives = .init()
         state.currentPage = 0
@@ -730,6 +713,7 @@ extension ArchiveListFeature {
 
     func clearArchives(state: inout State) {
         state.selected.removeAll()
+        state.preserveSelectionOnNextPopulate = false
         state.archivesToDisplay = .init()
         state.archives = .init()
         state.total = 0
@@ -1208,6 +1192,7 @@ class UIArchiveListViewController: UIViewController {
             guard let self else { return }
             let selecting = store.selectMode == .active
             let selected = store.selected
+            let actionsEnabled = store.canStartBatchAction
             setupToolbar()
             for indexPath in collectionView.indexPathsForVisibleItems {
                 guard let item = dataSource.itemIdentifier(for: indexPath),
@@ -1224,7 +1209,7 @@ class UIArchiveListViewController: UIViewController {
                     target: self, action: #selector(confirmBatchCategoryRemoval(_:))
                 )
                 categoryAction.accessibilityLabel = String(localized: "remove")
-                categoryAction.isEnabled = !selected.isEmpty && !store.loading
+                categoryAction.isEnabled = actionsEnabled
             } else {
                 let categoryActions = store.categoryItems.filter { $0.search.isEmpty }.map { category in
                     UIAction(title: category.name) { [weak self] _ in
@@ -1239,14 +1224,14 @@ class UIArchiveListViewController: UIViewController {
                     )
                 )
                 categoryAction.accessibilityLabel = String(localized: "archive.selected.category.add")
-                categoryAction.isEnabled = !selected.isEmpty && !store.loading && !categoryActions.isEmpty
+                categoryAction.isEnabled = actionsEnabled && !categoryActions.isEmpty
             }
             let createTankoubon = UIBarButtonItem(
                 image: UIImage(systemName: "book.badge.plus"), style: .plain,
                 target: self, action: #selector(promptForTankoubonName(_:))
             )
             createTankoubon.accessibilityLabel = String(localized: "archive.selected.tankoubon.create")
-            createTankoubon.isEnabled = !selected.isEmpty && !store.loading
+            createTankoubon.isEnabled = actionsEnabled
             let download = UIBarButtonItem(
                 image: UIImage(systemName: "tray.and.arrow.down"),
                 primaryAction: UIAction { [weak self] _ in
@@ -1254,13 +1239,13 @@ class UIArchiveListViewController: UIViewController {
                 }
             )
             download.accessibilityLabel = String(localized: "archive.cache.add")
-            download.isEnabled = !selected.isEmpty && !store.loading
+            download.isEnabled = actionsEnabled
             let delete = UIBarButtonItem(
                 image: UIImage(systemName: "trash"), style: .plain,
                 target: self, action: #selector(confirmBatchDeletion(_:))
             )
             delete.accessibilityLabel = String(localized: "archive.delete")
-            delete.isEnabled = !selected.isEmpty && !store.loading
+            delete.isEnabled = actionsEnabled
             parent?.toolbarItems = [count, .flexibleSpace(), categoryAction, createTankoubon, download, delete]
             updateSelectionToolbarAppearance()
             delete.tintColor = .systemRed
@@ -1471,25 +1456,22 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
     }
 
     @objc func confirmBatchDeletion(_ sender: UIBarButtonItem) {
-        guard !store.loading, !store.selected.isEmpty else { return }
-        store.send(.deleteButtonTapped)
+        guard store.canStartBatchAction else { return }
         let confirmation = UIAlertController(
             title: String(localized: "archive.selected.delete"), message: nil, preferredStyle: .actionSheet
         )
         confirmation.addAction(UIAlertAction(
             title: String(localized: "delete"), style: .destructive
         ) { [weak self] _ in
-            self?.store.send(.alert(.presented(.confirmDelete)))
+            self?.store.send(.confirmDelete)
         })
-        confirmation.addAction(UIAlertAction(title: String(localized: "cancel"), style: .cancel) { [weak self] _ in
-            self?.store.send(.alert(.dismiss))
-        })
+        confirmation.addAction(UIAlertAction(title: String(localized: "cancel"), style: .cancel))
         confirmation.popoverPresentationController?.barButtonItem = sender
         present(confirmation, animated: true)
     }
 
     @objc func promptForTankoubonName(_: UIBarButtonItem) {
-        guard !store.loading, !store.selected.isEmpty else { return }
+        guard store.canStartBatchAction else { return }
         guard !store.selected.contains(where: \.isTankoubonArchiveId) else {
             store.send(.setErrorMessage(String(localized: "archive.selected.tankoubon.nested.error")))
             return
@@ -1512,9 +1494,8 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
     }
 
     @objc func confirmBatchCategoryRemoval(_ sender: UIBarButtonItem) {
-        guard !store.loading, !store.selected.isEmpty,
+        guard store.canStartBatchAction,
               store.currentStaticCategoryId != nil else { return }
-        store.send(.removeFromCategoryButtonTapped)
         let confirmation = UIAlertController(
             title: String(localized: "archive.selected.category.remove"),
             message: nil,
@@ -1523,11 +1504,9 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
         confirmation.addAction(UIAlertAction(
             title: String(localized: "remove"), style: .destructive
         ) { [weak self] _ in
-            self?.store.send(.alert(.presented(.confirmRemoveFromCategory)))
+            self?.store.send(.confirmRemoveFromCategory)
         })
-        confirmation.addAction(UIAlertAction(title: String(localized: "cancel"), style: .cancel) { [weak self] _ in
-            self?.store.send(.alert(.dismiss))
-        })
+        confirmation.addAction(UIAlertAction(title: String(localized: "cancel"), style: .cancel))
         confirmation.popoverPresentationController?.barButtonItem = sender
         present(confirmation, animated: true)
     }

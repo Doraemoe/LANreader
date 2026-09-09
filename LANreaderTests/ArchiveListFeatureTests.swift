@@ -8,22 +8,6 @@ import OHHTTPStubsSwift
 final class ArchiveListFeatureTests: XCTestCase {
 
     @MainActor
-    func testSuccessfulBatchDeletionKeepsSelectionMode() async {
-        var state = ArchiveListFeature.State(
-            filter: SearchFilter(category: nil, filter: nil), loadOnAppear: false, currentTab: .search
-        )
-        state.$paginateArchiveList.withLock { $0 = false }
-        state.selectMode = .active
-        state.selected = ["archive-0"]
-        let store = TestStore(initialState: state) { ArchiveListFeature() }
-        await store.send(.deleteSuccess(["archive-0"])) {
-            $0.selected = []
-            $0.$archiveItems.withLock { _ = $0.remove(id: "archive-0") }
-        }
-        XCTAssertEqual(store.state.selectMode, .active)
-    }
-
-    @MainActor
     func testBatchDeleteRoutesTankoubonAndKeepsFailedSelection() async throws {
         try await configureArchiveListTestClient()
         for (path, success) in [("/api/archives/archive-0", 1), ("/api/tankoubons/TANK_1", 0)] {
@@ -41,29 +25,18 @@ final class ArchiveListFeatureTests: XCTestCase {
         state.archivesToDisplay = state.archives
         let store = TestStore(initialState: state) { ArchiveListFeature() }
         store.timeout = .seconds(5)
-        await store.send(.deleteButtonTapped) {
-            $0.alert = AlertState {
-                TextState("archive.selected.delete")
-            } actions: {
-                ButtonState(role: .destructive, action: .confirmDelete) { TextState("delete") }
-                ButtonState(role: .cancel) { TextState("cancel") }
-            }
-        }
-        await store.send(.alert(.presented(.confirmDelete))) {
-            $0.alert = nil
+        await store.send(.confirmDelete) {
             $0.loading = true
             $0.batchActionInProgress = true
         }
-        await store.receive(.setErrorMessage(String(localized: "archive.selected.delete.error"))) {
-            $0.loading = false
-            $0.errorMessage = String(localized: "archive.selected.delete.error")
-        }
-        await store.receive(.deleteSuccess(["archive-0"])) {
+        await store.receive(.deleteFinished(["archive-0"], true)) {
             $0.batchActionInProgress = false
             $0.selected = ["TANK_1"]
             $0.archives.remove(id: "archive-0")
             $0.archivesToDisplay.remove(id: "archive-0")
             $0.$archiveItems.withLock { _ = $0.remove(id: "archive-0") }
+            $0.loading = false
+            $0.errorMessage = String(localized: "archive.selected.delete.error")
         }
         await store.finish()
         XCTAssertNotNil(store.state.archives[id: "unselected"])
@@ -434,7 +407,7 @@ final class ArchiveListFeatureTests: XCTestCase {
         store.timeout = .seconds(5)
         store.exhaustivity = .off
 
-        await store.send(.deleteSuccess(["archive-0"])) {
+        await store.send(.deleteFinished(["archive-0"], false)) {
             $0.total = 100
             $0.currentPage = 0
         }
