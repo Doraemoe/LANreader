@@ -40,6 +40,7 @@ final class ArchiveListFeatureTests: XCTestCase {
         })
         state.archivesToDisplay = state.archives
         let store = TestStore(initialState: state) { ArchiveListFeature() }
+        store.timeout = .seconds(5)
         await store.send(.deleteButtonTapped) {
             $0.alert = AlertState {
                 TextState("archive.selected.delete")
@@ -51,14 +52,14 @@ final class ArchiveListFeatureTests: XCTestCase {
         await store.send(.alert(.presented(.confirmDelete))) {
             $0.alert = nil
             $0.loading = true
-            $0.isDeleting = true
+            $0.batchActionInProgress = true
         }
         await store.receive(.setErrorMessage(String(localized: "archive.selected.delete.error"))) {
             $0.loading = false
             $0.errorMessage = String(localized: "archive.selected.delete.error")
         }
         await store.receive(.deleteSuccess(["archive-0"])) {
-            $0.isDeleting = false
+            $0.batchActionInProgress = false
             $0.selected = ["TANK_1"]
             $0.archives.remove(id: "archive-0")
             $0.archivesToDisplay.remove(id: "archive-0")
@@ -701,11 +702,13 @@ private func makeGridTestStore(
     archive: ArchiveItem,
     database: AppDatabase
 ) -> TestStoreOf<GridFeature> {
-    TestStore(initialState: GridFeature.State(archive: Shared(value: archive))) {
+    let store = TestStore(initialState: GridFeature.State(archive: Shared(value: archive))) {
         GridFeature()
     } withDependencies: {
         $0.appDatabase = database
     }
+    store.timeout = .seconds(5)
+    return store
 }
 
 @MainActor

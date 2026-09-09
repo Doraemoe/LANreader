@@ -28,7 +28,7 @@ import NotificationBannerSwift
         var loadOnAppear = true
         var archives: IdentifiedArrayOf<GridFeature.State> = []
         var loading: Bool = false
-        var isDeleting = false
+        var batchActionInProgress = false
         var showLoading: Bool = false
         var total: Int = 0
         var errorMessage = ""
@@ -76,7 +76,7 @@ import NotificationBannerSwift
         case loadCategory
         case populateCategory([CategoryItem])
         case addArchivesToCategory(String)
-        case updateLocalCategory(String, Set<String>)
+        case addArchivesToCategoryFinished(String, Set<String>, Bool)
         case setFilter(SearchFilter)
         case resetArchives
         case reloadFromFirstPage
@@ -121,7 +121,8 @@ import NotificationBannerSwift
         Reduce { state, action in
             switch action {
             case .toggleSelectionMode:
-                guard !state.isDeleting, state.selectMode == .active || !state.loading else { return .none }
+                guard !state.batchActionInProgress,
+                      state.selectMode == .active || !state.loading else { return .none }
                 state.selectMode = state.selectMode == .active ? .inactive : .active
                 state.selected.removeAll()
                 return .none
@@ -310,6 +311,7 @@ import NotificationBannerSwift
                 return .none
             case .alert(.presented(.confirmRemoveFromCategory)):
                 state.loading = true
+                state.batchActionInProgress = true
                 return .run { [state] send in
                     var successIds: Set<String> = .init()
                     var errorIds: Set<String> = .init()
@@ -354,11 +356,12 @@ import NotificationBannerSwift
                     state.archives.remove(id: id)
                 }
                 state.loading = false
+                state.batchActionInProgress = false
                 return reloadPageAfterRemoval(state: &state, removedCount: archiveIds.count)
             case .alert(.presented(.confirmDelete)):
                 guard !state.loading, !state.selected.isEmpty else { return .none }
                 state.loading = true
-                state.isDeleting = true
+                state.batchActionInProgress = true
                 return deleteSelected(state)
             case let .setSearchSortOrder(order):
                 state.$searchSortOrder.withLock {
@@ -431,7 +434,7 @@ import NotificationBannerSwift
                 }
                 return .none
             case let .deleteSuccess(archiveIds):
-                state.isDeleting = false
+                state.batchActionInProgress = false
                 archiveIds.forEach { id in
                     state.selected.remove(id)
                     state.archivesToDisplay.remove(id: id)
@@ -465,13 +468,16 @@ import NotificationBannerSwift
                 }
                 return .none
             case let .addArchivesToCategory(categoryId):
+                guard !state.loading, !state.selected.isEmpty,
+                      let currentCategory = state.categoryItems[id: categoryId] else { return .none }
                 state.loading = true
-                return .run { [state] send in
+                state.batchActionInProgress = true
+                let selected = state.selected
+                return .run { send in
                     var successIds: Set<String> = .init()
                     var errorIds: Set<String> = .init()
-                    let currentCategory = state.$categoryItems.withLock { $0[id: categoryId]! }
 
-                    for archiveId in state.selected {
+                    for archiveId in selected.sorted() {
                         if currentCategory.archives.contains(archiveId) {
                             successIds.insert(archiveId)
                         } else {
@@ -495,25 +501,24 @@ import NotificationBannerSwift
                             }
                         }
                     }
-                    if !errorIds.isEmpty {
-                        await send(.setErrorMessage(
-                            String(localized: "archive.selected.category.add.error")
-                        ))
-                    } else {
-                        await send(.setSuccessMessage(
-                            String(localized: "archive.selected.category.add.success")
-                        ))
-                    }
-                    await send(.updateLocalCategory(categoryId, successIds))
+                    await send(.addArchivesToCategoryFinished(categoryId, successIds, !errorIds.isEmpty))
                 }
-            case let .updateLocalCategory(categoryId, archiveIds):
+            case let .addArchivesToCategoryFinished(categoryId, archiveIds, hadErrors):
                 state.$categoryItems.withLock {
-                    $0[id: categoryId]?.archives.append(contentsOf: archiveIds)
+                    for archiveId in archiveIds where $0[id: categoryId]?.archives.contains(archiveId) == false {
+                        $0[id: categoryId]?.archives.append(archiveId)
+                    }
                 }
                 archiveIds.forEach { id in
                     state.selected.remove(id)
                 }
                 state.loading = false
+                state.batchActionInProgress = false
+                if hadErrors {
+                    state.errorMessage = String(localized: "archive.selected.category.add.error")
+                } else {
+                    state.successMessage = String(localized: "archive.selected.category.add.success")
+                }
                 return .none
             }
         }
@@ -770,6 +775,7 @@ extension ArchiveListFeature.State {
     }
 }
 
+// swiftlint:disable:next type_body_length
 class UIArchiveListViewController: UIViewController {
     let store: StoreOf<ArchiveListFeature>
     @Dependency(\.appDatabase) private var database
@@ -1040,7 +1046,7 @@ class UIArchiveListViewController: UIViewController {
                     self?.store.send(.toggleSelectionMode)
                 }
             )
-            parent?.navigationItem.rightBarButtonItem?.isEnabled = !store.isDeleting
+            parent?.navigationItem.rightBarButtonItem?.isEnabled = !store.batchActionInProgress
             return
         }
         let actions = SearchSort.allCases.filter { $0 != SearchSort.random }.map { sort in
@@ -1110,7 +1116,11 @@ class UIArchiveListViewController: UIViewController {
             title: String(localized: "select"),
             image: UIImage(systemName: "checkmark")?.withTintColor(.clear, renderingMode: .alwaysOriginal)
         ) { [weak self] _ in
-            self?.store.send(.toggleSelectionMode)
+            guard let self else { return }
+            store.send(.toggleSelectionMode)
+            if store.selectMode == .active && store.categoryItems.isEmpty {
+                store.send(.loadCategory)
+            }
         })
         let menu = UIMenu(title: "", children: groups)
         let menuButton = UIBarButtonItem(
@@ -1140,6 +1150,20 @@ class UIArchiveListViewController: UIViewController {
                 )
             }
             let count = UIBarButtonItem.selectionCount(selected.count)
+            let categoryActions = store.categoryItems.filter { $0.search.isEmpty }.map { category in
+                UIAction(title: category.name) { [weak self] _ in
+                    self?.store.send(.addArchivesToCategory(category.id))
+                }
+            }
+            let addToCategory = UIBarButtonItem(
+                image: UIImage(systemName: "folder.badge.plus"),
+                menu: UIMenu(
+                    title: String(localized: "archive.selected.category.add"),
+                    children: categoryActions
+                )
+            )
+            addToCategory.accessibilityLabel = String(localized: "archive.selected.category.add")
+            addToCategory.isEnabled = !selected.isEmpty && !store.loading && !categoryActions.isEmpty
             let download = UIBarButtonItem(
                 image: UIImage(systemName: "tray.and.arrow.down"),
                 primaryAction: UIAction { [weak self] _ in
@@ -1154,7 +1178,7 @@ class UIArchiveListViewController: UIViewController {
             )
             delete.accessibilityLabel = String(localized: "archive.delete")
             delete.isEnabled = !selected.isEmpty && !store.loading
-            parent?.toolbarItems = [count, .flexibleSpace(), download, delete]
+            parent?.toolbarItems = [count, .flexibleSpace(), addToCategory, download, delete]
             updateSelectionToolbarAppearance()
             delete.tintColor = .systemRed
             updateSelectionBarVisibility()
@@ -1342,6 +1366,7 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
         let foreground = UIColor.label.resolvedColor(with: parent?.traitCollection ?? traitCollection)
         parent?.toolbarItems?.first?.tintColor = foreground
         parent?.toolbarItems?[2].tintColor = foreground
+        parent?.toolbarItems?[3].tintColor = foreground
     }
 
     private func updateSelectionBarVisibility() {

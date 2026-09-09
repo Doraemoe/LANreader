@@ -78,16 +78,24 @@ final class ArchiveListSelectionTests: XCTestCase {
             await Task.yield()
             let expected = UIColor.label.resolvedColor(with: UITraitCollection(userInterfaceStyle: style))
             let count = try XCTUnwrap(controller.toolbarItems?.first)
-            let download = try XCTUnwrap(controller.toolbarItems?[2])
+            let download = try XCTUnwrap(controller.toolbarItems?[3])
             XCTAssertEqual(count.tintColor, expected)
             XCTAssertEqual(download.tintColor, expected)
         }
     }
 
     @MainActor
+    // swiftlint:disable:next function_body_length
     func testLibrarySelectionControlsToolbarAndInterceptsReaderNavigation() async throws {
         var libraryState = LibraryFeature.State()
         libraryState.archiveList = makeSelectionState(count: 2)
+        libraryState.archiveList.$categoryItems.withLock {
+            $0 = [
+                CategoryItem(id: "static", name: "Static", archives: [], search: "", pinned: "0"),
+                CategoryItem(id: "dynamic", name: "Dynamic", archives: [], search: "tag:test", pinned: "0")
+            ]
+        }
+        defer { libraryState.archiveList.$categoryItems.withLock { $0 = [] } }
         let libraryStore = Store(initialState: libraryState) { LibraryFeature() }
         let store = libraryStore.scope(\.archiveList, action: \.archiveList)
         let parent = UILibraryListViewController(store: libraryStore, navigationHelper: NavigationHelper())
@@ -119,6 +127,8 @@ final class ArchiveListSelectionTests: XCTestCase {
         XCTAssertEqual(store.selected, ["archive-0"])
         XCTAssertEqual(navigation.viewControllers.count, 1)
         XCTAssertEqual(parent.toolbarItems?.last?.isEnabled, true)
+        XCTAssertEqual(parent.toolbarItems?[2].menu?.children.map(\.title), ["Static"])
+        XCTAssertEqual(parent.toolbarItems?[2].isEnabled, true)
         let count = try XCTUnwrap(parent.toolbarItems?.first)
         XCTAssertEqual(count.title, String(format: String(localized: "archive.selected"), 1))
         XCTAssertTrue(count.isEnabled)
@@ -268,11 +278,17 @@ private func checkSharedSelection(
         list.collectionView(list.collectionView, didSelectItemAt: IndexPath(item: 0, section: 0))
         await Task.yield()
         XCTAssertEqual(store.selected, ["archive-0"])
-        XCTAssertEqual(controller.toolbarItems?.count, 4)
+        XCTAssertEqual(controller.toolbarItems?.count, 5)
         XCTAssertEqual(controller.toolbarItems?.last?.accessibilityLabel, String(localized: "archive.delete"))
-        XCTAssertEqual(controller.toolbarItems?[2].accessibilityLabel, String(localized: "archive.cache.add"))
+        XCTAssertEqual(
+            controller.toolbarItems?[2].accessibilityLabel,
+            String(localized: "archive.selected.category.add")
+        )
+        XCTAssertEqual(controller.toolbarItems?[3].accessibilityLabel, String(localized: "archive.cache.add"))
         XCTAssertEqual(controller.toolbarItems?.last?.isEnabled, true)
-        XCTAssertEqual(controller.toolbarItems?[2].isEnabled, true)
+        XCTAssertEqual(controller.toolbarItems?[2].isEnabled, false)
+        XCTAssertEqual(controller.toolbarItems?[2].menu?.children.map(\.title), [])
+        XCTAssertEqual(controller.toolbarItems?[3].isEnabled, true)
         store.send(.toggleSelectionMode)
         await Task.yield()
         XCTAssertTrue(navigation.isToolbarHidden)
