@@ -42,6 +42,7 @@
 		7DF7EA742564E1D2003B5A5A /* AppDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA732564E1D2003B5A5A /* AppDatabase.swift */; };
 		7DF7EA7F2564E5D1003B5A5A /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA7E2564E5D1003B5A5A /* Persistence.swift */; };
 		7DF7EA852564E675003B5A5A /* Record.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF7EA842564E675003B5A5A /* Record.swift */; };
+		AB3870010000000000000001 /* ArchiveListSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3870010000000000000002 /* ArchiveListSelectionTests.swift */; };
 		E902FC4E2CD870530071106B /* UICategoryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = E902FC4D2CD8704E0071106B /* UICategoryList.swift */; };
 		E902FC502CD87A780071106B /* UICategoryArchiveGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = E902FC4F2CD87A710071106B /* UICategoryArchiveGrid.swift */; };
 		E90576B629F6BF8700C3CE3F /* WrappingHStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90576B529F6BF8700C3CE3F /* WrappingHStack.swift */; };
@@ -76,7 +77,6 @@
 		E9A8612D2BF31534003534FA /* AutomaticPageConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9A8612C2BF31534003534FA /* AutomaticPageConfig.swift */; };
 		E9AA10022E0000020000AA02 /* TagTokenField.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AA10012E0000010000AA01 /* TagTokenField.swift */; };
 		E9AAC1352CBC8FC600E5E89A /* UIPageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9AAC1342CBC8FC600E5E89A /* UIPageCell.swift */; };
-		F1A2B3F52FD0000100AAA001 /* StampOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3F42FD0000100AAA001 /* StampOverlayView.swift */; };
 		E9BE57B22942CFEC00A3AEA0 /* LockScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */; };
 		E9BFA2052AF51DB500DDE107 /* ArchiveReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BFA2042AF51DB500DDE107 /* ArchiveReader.swift */; };
 		E9BFA2072AF52C3300DDE107 /* PageImageV2.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9BFA2062AF52C3300DDE107 /* PageImageV2.swift */; };
@@ -103,7 +103,6 @@
 		F1A2B3CA2F60000300AAA001 /* ArchiveDetailsTagParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3CB2F60000300AAA001 /* ArchiveDetailsTagParser.swift */; };
 		F1A2B3CC2F70000100AAA001 /* ArchiveListFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3CD2F70000100AAA001 /* ArchiveListFeatureTests.swift */; };
 		F1A2B3CC2F70000100AAA002 /* ArchiveListBatchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3CD2F70000100AAA002 /* ArchiveListBatchTests.swift */; };
-		AB3870010000000000000001 /* ArchiveListSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB3870010000000000000002 /* ArchiveListSelectionTests.swift */; };
 		F1A2B3CE2F80000100AAA001 /* LogTextRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3CF2F80000100AAA001 /* LogTextRendererTests.swift */; };
 		F1A2B3D52F60000400DDD001 /* LANraragiConfigFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3D42F60000400DDD001 /* LANraragiConfigFeatureTests.swift */; };
 		F1A2B3D62F90000100AAA001 /* SearchKeyword.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3D72F90000100AAA001 /* SearchKeyword.swift */; };
@@ -113,6 +112,7 @@
 		F1A2B3E52FA0000100AAA001 /* PaginationPositioningTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3E62FA0000100AAA001 /* PaginationPositioningTests.swift */; };
 		F1A2B3F02FB0000100AAA001 /* ReaderPageLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3F12FB0000100AAA001 /* ReaderPageLayout.swift */; };
 		F1A2B3F22FC0000100AAA001 /* ReaderPositioningInvariantTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3F32FC0000100AAA001 /* ReaderPositioningInvariantTests.swift */; };
+		F1A2B3F52FD0000100AAA001 /* StampOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3F42FD0000100AAA001 /* StampOverlayView.swift */; };
 		F1A2B3F62FD0000100AAA001 /* UploadFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3F72FD0000100AAA001 /* UploadFeatureTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -185,6 +185,7 @@
 		7DF7EA732564E1D2003B5A5A /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
 		7DF7EA7E2564E5D1003B5A5A /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
 		7DF7EA842564E675003B5A5A /* Record.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Record.swift; sourceTree = "<group>"; };
+		AB3870010000000000000002 /* ArchiveListSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveListSelectionTests.swift; sourceTree = "<group>"; };
 		E902FC4D2CD8704E0071106B /* UICategoryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICategoryList.swift; sourceTree = "<group>"; };
 		E902FC4F2CD87A710071106B /* UICategoryArchiveGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICategoryArchiveGrid.swift; sourceTree = "<group>"; };
 		E90576B529F6BF8700C3CE3F /* WrappingHStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WrappingHStack.swift; sourceTree = "<group>"; };
@@ -206,7 +207,6 @@
 		E98B8B7A2A0A7B68004CBBC0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		E98B8B8D2A0B12F3004CBBC0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E98B8B8F2A0BA9D1004CBBC0 /* UploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadView.swift; sourceTree = "<group>"; };
-		F1A2B3F72FD0000100AAA001 /* UploadFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadFeatureTests.swift; sourceTree = "<group>"; };
 		E9965AA92D6830D800114E32 /* UICacheView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UICacheView.swift; sourceTree = "<group>"; };
 		E997D7FF2AF20EE2007C91F1 /* ArchiveGridV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveGridV2.swift; sourceTree = "<group>"; };
 		E99D2B3F2B0176400029FDEC /* mul */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = mul; path = mul.lproj/LaunchScreen.xcstrings; sourceTree = "<group>"; };
@@ -221,7 +221,6 @@
 		E9A8612C2BF31534003534FA /* AutomaticPageConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticPageConfig.swift; sourceTree = "<group>"; };
 		E9AA10012E0000010000AA01 /* TagTokenField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagTokenField.swift; sourceTree = "<group>"; };
 		E9AAC1342CBC8FC600E5E89A /* UIPageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIPageCell.swift; sourceTree = "<group>"; };
-		F1A2B3F42FD0000100AAA001 /* StampOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StampOverlayView.swift; sourceTree = "<group>"; };
 		E9BE57B12942CFEC00A3AEA0 /* LockScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreen.swift; path = LANreader/Common/LockScreen.swift; sourceTree = SOURCE_ROOT; };
 		E9BFA2042AF51DB500DDE107 /* ArchiveReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveReader.swift; sourceTree = "<group>"; };
 		E9BFA2062AF52C3300DDE107 /* PageImageV2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageImageV2.swift; sourceTree = "<group>"; };
@@ -242,7 +241,6 @@
 		F1A2B3CB2F60000300AAA001 /* ArchiveDetailsTagParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveDetailsTagParser.swift; sourceTree = "<group>"; };
 		F1A2B3CD2F70000100AAA001 /* ArchiveListFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveListFeatureTests.swift; sourceTree = "<group>"; };
 		F1A2B3CD2F70000100AAA002 /* ArchiveListBatchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveListBatchTests.swift; sourceTree = "<group>"; };
-		AB3870010000000000000002 /* ArchiveListSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveListSelectionTests.swift; sourceTree = "<group>"; };
 		F1A2B3CF2F80000100AAA001 /* LogTextRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogTextRendererTests.swift; sourceTree = "<group>"; };
 		F1A2B3D42F60000400DDD001 /* LANraragiConfigFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LANraragiConfigFeatureTests.swift; sourceTree = "<group>"; };
 		F1A2B3D72F90000100AAA001 /* SearchKeyword.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchKeyword.swift; sourceTree = "<group>"; };
@@ -252,6 +250,8 @@
 		F1A2B3E62FA0000100AAA001 /* PaginationPositioningTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaginationPositioningTests.swift; sourceTree = "<group>"; };
 		F1A2B3F12FB0000100AAA001 /* ReaderPageLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderPageLayout.swift; sourceTree = "<group>"; };
 		F1A2B3F32FC0000100AAA001 /* ReaderPositioningInvariantTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderPositioningInvariantTests.swift; sourceTree = "<group>"; };
+		F1A2B3F42FD0000100AAA001 /* StampOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StampOverlayView.swift; sourceTree = "<group>"; };
+		F1A2B3F72FD0000100AAA001 /* UploadFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadFeatureTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -995,7 +995,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreader.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 244;
+				CURRENT_PROJECT_VERSION = 245;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1006,7 +1006,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.11.0;
+				MARKETING_VERSION = 3.11.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1023,7 +1023,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreaderRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 244;
+				CURRENT_PROJECT_VERSION = 245;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1034,7 +1034,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.11.0;
+				MARKETING_VERSION = 3.11.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1097,7 +1097,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 244;
+				CURRENT_PROJECT_VERSION = 245;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1109,7 +1109,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.11.0;
+				MARKETING_VERSION = 3.11.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1127,7 +1127,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 244;
+				CURRENT_PROJECT_VERSION = 245;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1139,7 +1139,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.11.0;
+				MARKETING_VERSION = 3.11.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

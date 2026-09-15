@@ -1,0 +1,9 @@
+{
+  "id" : "97dbe695-722f-47f0-b3b0-7db345a680f7",
+  "targets" : [
+    {
+      "id" : "E976C5FA-7FDC-4E92-B78A-7B88259326DE",
+      "name" : "LANreader"
+    }
+  ]
+}
