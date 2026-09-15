@@ -105,6 +105,14 @@ class UISearchViewV2Controller: UIViewController {
         return controller
     }()
 
+    private let searchBar: UISearchBar = {
+        let searchBar = UISearchBar()
+        searchBar.placeholder = String(localized: "search")
+        searchBar.translatesAutoresizingMaskIntoConstraints = false
+        searchBar.searchBarStyle = .minimal
+        return searchBar
+    }()
+
     private let suggestionsContainerView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -182,14 +190,21 @@ class UISearchViewV2Controller: UIViewController {
 
     // MARK: - Setup
     private func setupNavigationSearch() {
-        navigationItem.searchController = searchController
-        navigationItem.hidesSearchBarWhenScrolling = false
-        definesPresentationContext = true
-        searchController.searchBar.text = store.keyword
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            navigationItem.searchController = searchController
+            navigationItem.hidesSearchBarWhenScrolling = false
+            definesPresentationContext = true
+            searchController.searchBar.text = store.keyword
+        }
     }
 
     private func setupLayout() {
         view.backgroundColor = .systemBackground
+
+        if UIDevice.current.userInterfaceIdiom != .phone {
+            searchBar.text = store.keyword
+            view.addSubview(searchBar)
+        }
 
         // Child archive list
         add(archiveListViewController)
@@ -201,16 +216,37 @@ class UISearchViewV2Controller: UIViewController {
         suggestionsHeightConstraint = suggestionsContainerView.heightAnchor.constraint(equalToConstant: 0)
         suggestionsHeightConstraint?.isActive = true
 
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            NSLayoutConstraint.activate([
+                archiveListViewController.view.topAnchor.constraint(equalTo: view.topAnchor),
+                archiveListViewController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                archiveListViewController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                archiveListViewController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+                suggestionsContainerView.topAnchor.constraint(
+                    equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8
+                ),
+                suggestionsContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+                suggestionsContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)
+            ])
+        } else {
+            NSLayoutConstraint.activate([
+                searchBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+                searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
+                searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
+
+                suggestionsContainerView.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 10),
+                suggestionsContainerView.leadingAnchor.constraint(equalTo: searchBar.leadingAnchor),
+                suggestionsContainerView.trailingAnchor.constraint(equalTo: searchBar.trailingAnchor),
+
+                archiveListViewController.view.topAnchor.constraint(equalTo: searchBar.bottomAnchor, constant: 8),
+                archiveListViewController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                archiveListViewController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                archiveListViewController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            ])
+        }
+
         NSLayoutConstraint.activate([
-            archiveListViewController.view.topAnchor.constraint(equalTo: view.topAnchor),
-            archiveListViewController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            archiveListViewController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            archiveListViewController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
-            suggestionsContainerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            suggestionsContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            suggestionsContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-
             suggestionsBackgroundView.topAnchor.constraint(equalTo: suggestionsContainerView.topAnchor),
             suggestionsBackgroundView.leadingAnchor.constraint(equalTo: suggestionsContainerView.leadingAnchor),
             suggestionsBackgroundView.trailingAnchor.constraint(equalTo: suggestionsContainerView.trailingAnchor),
@@ -226,7 +262,11 @@ class UISearchViewV2Controller: UIViewController {
     }
 
     private func setupDelegates() {
-        searchController.searchBar.delegate = self
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            searchController.searchBar.delegate = self
+        } else {
+            searchBar.delegate = self
+        }
 
         suggestionsTableView.delegate = self
         suggestionsTableView.dataSource = self
@@ -237,7 +277,7 @@ class UISearchViewV2Controller: UIViewController {
     }
 
     private var activeSearchBar: UISearchBar {
-        searchController.searchBar
+        UIDevice.current.userInterfaceIdiom == .phone ? searchController.searchBar : searchBar
     }
 
     private func setupObserve() {

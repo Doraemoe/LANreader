@@ -42,7 +42,8 @@ final class ArchiveListSelectionTests: XCTestCase {
             try await checkSharedSelection(
                 controller: controller, store: store.scope(\.archiveList, action: \.archiveList), pushed: false
             )
-            let searchBar = try XCTUnwrap(controller.navigationItem.searchController?.searchBar)
+            XCTAssertNil(controller.navigationItem.searchController)
+            let searchBar = try XCTUnwrap(controller.view.subviews.compactMap { $0 as? UISearchBar }.first)
             store.send(.archiveList(.toggleSelectionMode))
             await Task.yield()
             XCTAssertFalse(searchBar.isUserInteractionEnabled)
