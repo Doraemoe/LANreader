@@ -8,6 +8,7 @@ final class SearchSuggestionCell: UITableViewCell {
     private let tagLabel = UILabel()
     private let chevronImageView = UIImageView(image: UIImage(systemName: "chevron.forward"))
     private let separatorView = UIView()
+    private var separatorHeightConstraint: NSLayoutConstraint!
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -16,6 +17,14 @@ final class SearchSuggestionCell: UITableViewCell {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let height = 1.0 / max(traitCollection.displayScale, 1)
+        if separatorHeightConstraint.constant != height {
+            separatorHeightConstraint.constant = height
+        }
     }
 
     func configure(with tag: TagWithType, isLast: Bool) {
@@ -67,6 +76,7 @@ final class SearchSuggestionCell: UITableViewCell {
         contentView.addSubview(chevronImageView)
         contentView.addSubview(separatorView)
 
+        separatorHeightConstraint = separatorView.heightAnchor.constraint(equalToConstant: 1)
         NSLayoutConstraint.activate([
             iconContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 14),
             iconContainer.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
@@ -86,7 +96,7 @@ final class SearchSuggestionCell: UITableViewCell {
             separatorView.leadingAnchor.constraint(equalTo: tagLabel.leadingAnchor),
             separatorView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -14),
             separatorView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            separatorView.heightAnchor.constraint(equalToConstant: 1.0 / UIScreen.main.scale)
+            separatorHeightConstraint
         ])
     }
 }

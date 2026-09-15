@@ -1930,7 +1930,7 @@ struct ArchiveReader: View {
     ) -> some View {
         if !store.pages.isEmpty {
             let isRightToLeft = store.resolvedReadDirection == .rightLeft
-            let bubbleLayout = sliderPreviewBubbleLayout(readerSize: readerSize)
+            let bubbleLayout = ReaderPageLayout.sliderPreviewBubbleLayout(readerSize: readerSize)
             let sliderHorizontalPadding = ReaderToolbarMetrics.sliderHorizontalPadding
             let sliderDisplayIndex = store.sliderDraftIndex ?? store.currentPageIndex
             let sliderDisplayValue = Double(sliderDisplayIndex)
@@ -1975,7 +1975,7 @@ struct ArchiveReader: View {
         store: StoreOf<ArchiveReaderFeature>,
         displayIndex: Int,
         sliderContext: ReaderSliderContext,
-        bubbleLayout: SliderPreviewBubbleLayout,
+        bubbleLayout: ReaderPageLayout.SliderPreviewBubbleLayout,
         showsChapterMenu: Bool
     ) -> some View {
         GeometryReader { geometry in
@@ -2319,24 +2319,6 @@ struct ArchiveReader: View {
         )
     }
 
-    private func sliderPreviewBubbleLayout(readerSize: CGSize) -> SliderPreviewBubbleLayout {
-        let aspectRatio: CGFloat = 248 / 176
-        let isPad = UIDevice.current.userInterfaceIdiom == .pad
-        let minWidth: CGFloat = isPad ? 260 : 176
-        let maxWidth: CGFloat = isPad ? 360 : 220
-        let widthScale: CGFloat = isPad ? 0.34 : 0.44
-        let availableWidth = max(readerSize.width - 48, minWidth)
-        let targetWidth = min(max(availableWidth * widthScale, minWidth), maxWidth)
-        let maxImageHeight = max(min(readerSize.height * (isPad ? 0.52 : 0.45), isPad ? 520 : 420), 248)
-        let width = min(targetWidth, maxImageHeight / aspectRatio)
-        let imageHeight = max((width * aspectRatio).rounded(.toNearestOrAwayFromZero), 248)
-
-        return SliderPreviewBubbleLayout(
-            width: width.rounded(.toNearestOrAwayFromZero),
-            imageHeight: imageHeight,
-            rowHeight: imageHeight + 52
-        )
-    }
 }
 
 private struct ReaderSliderContext {
@@ -2477,9 +2459,4 @@ private struct SliderPreviewBubble: View {
     }
 }
 
-private struct SliderPreviewBubbleLayout {
-    let width: CGFloat
-    let imageHeight: CGFloat
-    let rowHeight: CGFloat
-}
 // swiftlint:enable type_body_length file_length

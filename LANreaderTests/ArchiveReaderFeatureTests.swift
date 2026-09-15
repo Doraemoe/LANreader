@@ -1184,6 +1184,21 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         XCTAssertEqual(ReaderPageLayout.itemHeight(width: 0, aspectRatio: 1.4), 0)
     }
 
+    func testSliderPreviewLayoutTracksReaderSize() {
+        XCTAssertEqual(
+            ReaderPageLayout.sliderPreviewBubbleLayout(readerSize: CGSize(width: 390, height: 844)),
+            ReaderPageLayout.SliderPreviewBubbleLayout(width: 176, imageHeight: 248, rowHeight: 300)
+        )
+        XCTAssertEqual(
+            ReaderPageLayout.sliderPreviewBubbleLayout(readerSize: CGSize(width: 834, height: 1_194)),
+            ReaderPageLayout.SliderPreviewBubbleLayout(width: 267, imageHeight: 377, rowHeight: 429)
+        )
+        XCTAssertEqual(
+            ReaderPageLayout.sliderPreviewBubbleLayout(readerSize: CGSize(width: 844, height: 390)),
+            ReaderPageLayout.SliderPreviewBubbleLayout(width: 138, imageHeight: 195, rowHeight: 247)
+        )
+    }
+
     func testReaderPositioningFinishedMath() {
         // Progress is one-based, so an archive counts as finished only at the last page.
         XCTAssertTrue(ReaderPositioning.isFinished(progress: 5, archivePageCount: 5))
