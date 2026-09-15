@@ -87,6 +87,8 @@ Use this file as the source of truth for Codex-style work in this repository.
 
 ## AI-Native Quality Workflow
 
+- Use Xcode MCP for fast local builds, focused or full tests, build diagnostics, documentation lookup, and simulator smoke checks. Confirm the active scheme and destination before running it.
+- Keep the repository scripts and GitHub Actions as the reproducible source of truth; report Xcode MCP results separately from script and CI results.
 - During iteration, run `./scripts/verify-changes [base-ref]`. It selects repository checks, lint, or the full iOS suite from the changed files and defaults unknown code paths to the full suite.
 - Before handing off application, test, project, persistence, service, reader, image, or build changes, run `./scripts/verify`. CI runs the same full command on pull requests and `master` regardless of the local tier.
 - Treat executable checks as the source of truth. Do not claim a command, scenario, or result was verified unless it actually ran; report skipped checks and remaining gaps explicitly.
