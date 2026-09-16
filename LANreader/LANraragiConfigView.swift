@@ -2,7 +2,6 @@
 import Alamofire
 import ComposableArchitecture
 import SwiftUI
-import NotificationBannerSwift
 import Logging
 
 @Reducer public struct LANraragiConfigFeature: Sendable {
@@ -174,12 +173,11 @@ struct LANraragiConfigView: View {
         .toolbar(.hidden, for: .tabBar)
         .onChange(of: store.errorMessage) {
             if !store.errorMessage.isEmpty {
-                let banner = NotificationBanner(
+                showNotificationBanner(
                     title: String(localized: "error"),
                     subtitle: store.errorMessage,
                     style: .danger
                 )
-                banner.show()
                 store.send(.setErrorMessage(""))
             }
         }

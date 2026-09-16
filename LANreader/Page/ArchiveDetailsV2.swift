@@ -1,7 +1,6 @@
 import ComposableArchitecture
 import SwiftUI
 import Logging
-import NotificationBannerSwift
 import GRDB
 import GRDBQuery
 
@@ -368,23 +367,21 @@ struct ArchiveDetailsV2: View {
         }
         .onChange(of: store.successMessage) {
             if !store.successMessage.isEmpty {
-                let banner = NotificationBanner(
+                showNotificationBanner(
                     title: String(localized: "success"),
                     subtitle: store.successMessage,
                     style: .success
                 )
-                banner.show()
                 store.send(.setSuccessMessage(""))
             }
         }
         .onChange(of: store.errorMessage) {
             if !store.errorMessage.isEmpty {
-                let banner = NotificationBanner(
+                showNotificationBanner(
                     title: String(localized: "error"),
                     subtitle: store.errorMessage,
                     style: .danger
                 )
-                banner.show()
                 store.send(.setErrorMessage(""))
             }
         }

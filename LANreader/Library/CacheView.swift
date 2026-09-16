@@ -1,6 +1,5 @@
 import SwiftUI
 import ComposableArchitecture
-import NotificationBannerSwift
 
 @Reducer public struct CacheFeature: Sendable {
     @ObservableState
@@ -173,12 +172,11 @@ struct CacheView: View {
         }
         .onChange(of: store.errorMessage) {
             if !store.errorMessage.isEmpty {
-                let banner = NotificationBanner(
+                showNotificationBanner(
                     title: String(localized: "error"),
                     subtitle: store.errorMessage,
                     style: .danger
                 )
-                banner.show()
                 store.send(.setErrorMessage(""))
             }
         }

@@ -4,7 +4,6 @@ import OrderedCollections
 import SwiftUI
 import UIKit
 import Logging
-import NotificationBannerSwift
 
 // swiftlint:disable type_body_length
 @Reducer public struct ArchiveListFeature: Sendable {
@@ -1337,11 +1336,11 @@ class UIArchiveListViewController: UIViewController {
             guard let self else { return }
             let message = store.errorMessage
             guard !message.isEmpty else { return }
-            NotificationBanner(
+            showNotificationBanner(
                 title: String(localized: "error"),
                 subtitle: message,
                 style: .danger
-            ).show()
+            )
             store.send(.setErrorMessage(""))
         }
 
@@ -1349,11 +1348,11 @@ class UIArchiveListViewController: UIViewController {
             guard let self else { return }
             let message = store.successMessage
             guard !message.isEmpty else { return }
-            NotificationBanner(
+            showNotificationBanner(
                 title: String(localized: "success"),
                 subtitle: message,
                 style: .success
-            ).show()
+            )
             store.send(.setSuccessMessage(""))
         }
     }

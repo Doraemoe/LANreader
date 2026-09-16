@@ -1,7 +1,6 @@
 import ComposableArchitecture
 import SwiftUI
 import Logging
-import NotificationBannerSwift
 import OrderedCollections
 import UIKit
 
@@ -1884,34 +1883,31 @@ struct ArchiveReader: View {
             }
             guard let currentArchive = store.allArchives[id: store.currentArchiveId] else { return }
             if currentArchive.wrappedValue.extension == "rar" || currentArchive.wrappedValue.extension == "cbr" {
-                let banner = NotificationBanner(
+                showNotificationBanner(
                     title: String(localized: "warning"),
                     subtitle: String(localized: "warning.file.type"),
                     style: .warning
                 )
-                banner.show()
             }
         }
         .onChange(of: store.errorMessage) {
             if !store.errorMessage.isEmpty {
-                let banner = NotificationBanner(
+                showNotificationBanner(
                     title: String(localized: "error"),
                     subtitle: store.errorMessage,
                     style: .danger
                 )
-                banner.show()
                 store.send(.toggleControlUi(false))
                 store.send(.setError(""))
             }
         }
         .onChange(of: store.successMessage) {
             if !store.successMessage.isEmpty {
-                let banner = NotificationBanner(
+                showNotificationBanner(
                     title: String(localized: "success"),
                     subtitle: store.successMessage,
                     style: .success
                 )
-                banner.show()
                 store.send(.setSuccess(""))
             }
         }

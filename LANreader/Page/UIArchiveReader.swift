@@ -20,6 +20,7 @@ class UIArchiveReaderController: UIViewController {
             store: store, navigationHelper: navigationHelper
         ))
         super.init(nibName: nil, bundle: nil)
+        hidesBottomBarWhenPushed = true
     }
 
     required init?(coder: NSCoder) {

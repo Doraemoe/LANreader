@@ -6,6 +6,37 @@ import UIKit
 
 final class ArchiveListSelectionTests: XCTestCase {
     @MainActor
+    func testReaderHidesTabBarForItsPushedLifetime() {
+        let archive = ArchiveItem(
+            id: "archive", name: "Archive", extension: "zip", tags: "",
+            isNew: false, progress: 0, pagecount: 1, dateAdded: nil
+        )
+        let store = Store(
+            initialState: ArchiveReaderFeature.State(
+                currentArchiveId: archive.id,
+                allArchives: [Shared(value: archive)]
+            )
+        ) {
+            ArchiveReaderFeature()
+        }
+
+        let controller = UIArchiveReaderController(store: store)
+
+        XCTAssertTrue(controller.hidesBottomBarWhenPushed)
+    }
+
+    func testNotificationBannerInsetsClearSafeArea() {
+        let insets = notificationBannerEdgeInsets(
+            safeAreaInsets: UIEdgeInsets(top: 32, left: 10, bottom: 20, right: 12)
+        )
+
+        XCTAssertEqual(insets.top, 40)
+        XCTAssertEqual(insets.left, 18)
+        XCTAssertEqual(insets.bottom, 8)
+        XCTAssertEqual(insets.right, 20)
+    }
+
+    @MainActor
     func testCategorySelectionPreservesHiddenTabBar() async throws {
         var list = makeSelectionState(count: 1)
         list.currentTab = .category
