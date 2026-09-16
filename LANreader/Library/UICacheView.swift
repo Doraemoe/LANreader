@@ -56,6 +56,7 @@ class UICacheViewController: UIViewController, UICollectionViewDelegate {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
         navigationController?.setToolbarHidden(!store.isSelecting, animated: false)
         if #available(iOS 18.0, *) {
             tabBarController?.setTabBarHidden(true, animated: false)

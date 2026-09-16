@@ -1387,6 +1387,9 @@ class UIArchiveListViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        if navigationController?.topViewController === parent {
+            navigationController?.setNavigationBarHidden(false, animated: animated)
+        }
         updateSelectionToolbarAppearance()
         updateSelectionBarVisibility()
     }

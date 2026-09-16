@@ -3318,6 +3318,23 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testUIArchiveReaderControllerLeavesNavigationBarRestoreToDestination() {
+        configureReaderDefaults()
+        let store = Store(initialState: makeState(progress: 2)) {
+            ArchiveReaderFeature()
+        }
+        let controller = UIArchiveReaderController(store: store)
+        let navigationController = UINavigationController(rootViewController: controller)
+        navigationController.loadViewIfNeeded()
+        controller.loadViewIfNeeded()
+        navigationController.setNavigationBarHidden(true, animated: false)
+
+        controller.viewWillDisappear(false)
+
+        XCTAssertTrue(navigationController.isNavigationBarHidden)
+    }
+
+    @MainActor
     func testUIArchiveReaderControllerKeepsSliderPreviewStateWhenTemporarilyCovered() async {
         configureReaderDefaults()
         var initialState = makeState(progress: 2)

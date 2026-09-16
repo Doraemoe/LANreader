@@ -21,8 +21,26 @@ final class ArchiveListSelectionTests: XCTestCase {
         }
 
         let controller = UIArchiveReaderController(store: store)
+        let navigation = UINavigationController()
+        navigation.viewControllers = [UIViewController(), controller]
+        let tabs = UITabBarController()
+        tabs.viewControllers = [navigation]
+        tabs.loadViewIfNeeded()
+        navigation.loadViewIfNeeded()
+        controller.loadViewIfNeeded()
 
-        XCTAssertTrue(controller.hidesBottomBarWhenPushed)
+        if #available(iOS 18.0, *) {
+            tabs.setTabBarHidden(false, animated: false)
+        } else {
+            tabs.tabBar.isHidden = false
+        }
+        controller.viewDidLayoutSubviews()
+
+        if #available(iOS 18.0, *) {
+            XCTAssertTrue(tabs.isTabBarHidden)
+        } else {
+            XCTAssertTrue(tabs.tabBar.isHidden)
+        }
     }
 
     func testNotificationBannerInsetsClearSafeArea() {
@@ -34,6 +52,24 @@ final class ArchiveListSelectionTests: XCTestCase {
         XCTAssertEqual(insets.left, 18)
         XCTAssertEqual(insets.bottom, 8)
         XCTAssertEqual(insets.right, 20)
+    }
+
+    @MainActor
+    func testArchiveGridRestoresNavigationBarWithItsOwnTitle() throws {
+        let store = Store(initialState: LibraryFeature.State()) {
+            LibraryFeature()
+        }
+        let grid = UILibraryListViewController(store: store, navigationHelper: NavigationHelper())
+        let navigation = UINavigationController(rootViewController: grid)
+        navigation.loadViewIfNeeded()
+        grid.loadViewIfNeeded()
+        let archiveList = try XCTUnwrap(grid.children.first as? UIArchiveListViewController)
+
+        navigation.setNavigationBarHidden(true, animated: false)
+        archiveList.viewWillAppear(false)
+
+        XCTAssertFalse(navigation.isNavigationBarHidden)
+        XCTAssertEqual(navigation.navigationBar.topItem?.title, String(localized: "library"))
     }
 
     @MainActor
