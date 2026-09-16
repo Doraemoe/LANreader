@@ -42,8 +42,8 @@ final class ArchiveListSelectionTests: XCTestCase {
             try await checkSharedSelection(
                 controller: controller, store: store.scope(\.archiveList, action: \.archiveList), pushed: false
             )
-            let searchBar = try XCTUnwrap(controller.navigationItem.searchController?.searchBar
-                ?? controller.view.subviews.compactMap { $0 as? UISearchBar }.first)
+            XCTAssertNil(controller.navigationItem.searchController)
+            let searchBar = try XCTUnwrap(controller.view.subviews.compactMap { $0 as? UISearchBar }.first)
             store.send(.archiveList(.toggleSelectionMode))
             await Task.yield()
             XCTAssertFalse(searchBar.isUserInteractionEnabled)
@@ -56,6 +56,22 @@ final class ArchiveListSelectionTests: XCTestCase {
             await Task.yield()
             XCTAssertTrue(searchBar.isUserInteractionEnabled)
         }
+    }
+
+    @MainActor
+    func testSearchSuggestionHeightTracksAvailableWindowHeight() {
+        XCTAssertEqual(
+            UISearchViewV2Controller.suggestionListHeight(itemCount: 2, availableHeight: 1_200),
+            128
+        )
+        XCTAssertEqual(
+            UISearchViewV2Controller.suggestionListHeight(itemCount: 20, availableHeight: 1_200),
+            540
+        )
+        XCTAssertEqual(
+            UISearchViewV2Controller.suggestionListHeight(itemCount: 20, availableHeight: 400),
+            180
+        )
     }
 
     @MainActor
