@@ -6,6 +6,120 @@ import UIKit
 
 final class ArchiveListSelectionTests: XCTestCase {
     @MainActor
+    func testReaderHidesTabBarForItsPushedLifetime() {
+        let archive = ArchiveItem(
+            id: "archive", name: "Archive", extension: "zip", tags: "",
+            isNew: false, progress: 0, pagecount: 1, dateAdded: nil
+        )
+        let store = Store(
+            initialState: ArchiveReaderFeature.State(
+                currentArchiveId: archive.id,
+                allArchives: [Shared(value: archive)]
+            )
+        ) {
+            ArchiveReaderFeature()
+        }
+
+        let controller = UIArchiveReaderController(store: store)
+        let navigation = UINavigationController()
+        navigation.viewControllers = [UIViewController(), controller]
+        let tabs = UITabBarController()
+        tabs.viewControllers = [navigation]
+        tabs.loadViewIfNeeded()
+        navigation.loadViewIfNeeded()
+        controller.loadViewIfNeeded()
+
+        if #available(iOS 18.0, *) {
+            tabs.setTabBarHidden(false, animated: false)
+        } else {
+            tabs.tabBar.isHidden = false
+        }
+        controller.viewDidLayoutSubviews()
+
+        if #available(iOS 18.0, *) {
+            XCTAssertTrue(tabs.isTabBarHidden)
+        } else {
+            XCTAssertTrue(tabs.tabBar.isHidden)
+        }
+    }
+
+    func testNotificationBannerInsetsClearSafeArea() {
+        let insets = notificationBannerEdgeInsets(
+            safeAreaInsets: UIEdgeInsets(top: 32, left: 10, bottom: 20, right: 12)
+        )
+
+        XCTAssertEqual(insets.top, 40)
+        XCTAssertEqual(insets.left, 18)
+        XCTAssertEqual(insets.bottom, 8)
+        XCTAssertEqual(insets.right, 20)
+    }
+
+    @MainActor
+    func testArchiveGridOnlyRestoresNavigationBarWhenHidden() throws {
+        let store = Store(initialState: LibraryFeature.State()) {
+            LibraryFeature()
+        }
+        let grid = UILibraryListViewController(store: store, navigationHelper: NavigationHelper())
+        let navigation = NavigationControllerSpy(rootViewController: grid)
+        navigation.loadViewIfNeeded()
+        grid.loadViewIfNeeded()
+        let archiveList = try XCTUnwrap(grid.children.first as? UIArchiveListViewController)
+
+        navigation.hiddenChanges.removeAll()
+        archiveList.viewWillAppear(true)
+
+        XCTAssertTrue(navigation.hiddenChanges.isEmpty)
+
+        navigation.setNavigationBarHidden(true, animated: false)
+        navigation.hiddenChanges.removeAll()
+        archiveList.viewWillAppear(false)
+
+        XCTAssertEqual(navigation.hiddenChanges, [false])
+        XCTAssertFalse(navigation.isNavigationBarHidden)
+        XCTAssertEqual(navigation.navigationBar.topItem?.title, String(localized: "library"))
+    }
+
+    @MainActor
+    func testPushedTagSearchKeepsSortButtonWhenLoadingFinishes() async throws {
+        let database = try AppDatabase(DatabaseQueue())
+        var state = SearchFeature.State(keyword: "artist:test")
+        state.archiveList.filter = SearchFilter(category: nil, filter: "artist:test")
+        state.archiveList.loading = true
+        state.archiveList.$searchSort = Shared(value: SearchSort.dateAdded.rawValue)
+        state.archiveList.$searchSortOrder = Shared(value: SearchSortOrder.asc.rawValue)
+        let store = withDependencies {
+            $0.appDatabase = database
+        } operation: {
+            Store(initialState: state) {
+                SearchFeature()
+            }
+        }
+        let controller = UISearchViewV2Controller(store: store)
+        let navigation = NavigationControllerSpy()
+        navigation.viewControllers = [UIViewController(), UIViewController(), controller]
+        navigation.loadViewIfNeeded()
+        controller.loadViewIfNeeded()
+        await Task.yield()
+
+        navigation.hiddenChanges.removeAll()
+        controller.beginAppearanceTransition(true, animated: true)
+        controller.endAppearanceTransition()
+
+        XCTAssertTrue(navigation.hiddenChanges.isEmpty)
+        let sortButton = try XCTUnwrap(controller.navigationItem.rightBarButtonItem)
+        store.send(.archiveList(.populateArchives([], 0, false)))
+        await Task.yield()
+
+        XCTAssertTrue(controller.navigationItem.rightBarButtonItem === sortButton)
+        let sortMenu = try XCTUnwrap(sortButton.menu?.children.first as? UIMenu)
+        let nameAction = try XCTUnwrap(sortMenu.children.first as? UIAction)
+        nameAction.performWithSender(nil, target: nil)
+        await Task.yield()
+
+        XCTAssertEqual(store.archiveList.searchSort, SearchSort.name.rawValue)
+    }
+
+    @MainActor
     func testCategorySelectionPreservesHiddenTabBar() async throws {
         var list = makeSelectionState(count: 1)
         list.currentTab = .category
@@ -231,6 +345,15 @@ final class ArchiveListSelectionTests: XCTestCase {
         XCTAssertTrue(navigation.isToolbarHidden)
     }
 
+}
+
+private final class NavigationControllerSpy: UINavigationController {
+    var hiddenChanges = [Bool]()
+
+    override func setNavigationBarHidden(_ hidden: Bool, animated: Bool) {
+        hiddenChanges.append(hidden)
+        super.setNavigationBarHidden(hidden, animated: animated)
+    }
 }
 @MainActor
 private func makeSelectionState(count: Int) -> ArchiveListFeature.State {

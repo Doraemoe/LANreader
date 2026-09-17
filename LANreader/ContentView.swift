@@ -4,6 +4,30 @@ import SwiftUI
 import NotificationBannerSwift
 import Logging
 
+@MainActor
+func showNotificationBanner(title: String, subtitle: String, style: BannerStyle) {
+    let banner = FloatingNotificationBanner(title: title, subtitle: subtitle, style: style)
+    let safeAreaInsets = UIApplication.shared.connectedScenes
+        .compactMap { $0 as? UIWindowScene }
+        .flatMap(\.windows)
+        .first(where: \.isKeyWindow)?
+        .safeAreaInsets ?? .zero
+
+    banner.show(
+        edgeInsets: notificationBannerEdgeInsets(safeAreaInsets: safeAreaInsets),
+        cornerRadius: 14
+    )
+}
+
+func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets {
+    UIEdgeInsets(
+        top: safeAreaInsets.top + 8,
+        left: safeAreaInsets.left + 8,
+        bottom: 8,
+        right: safeAreaInsets.right + 8
+    )
+}
+
 @Reducer public struct AppFeature: Sendable {
     private let logger = Logger(label: "AppFeature")
 
@@ -160,23 +184,21 @@ struct ContentView: View {
             }
             .onChange(of: store.errorMessage) {
                 if !store.errorMessage.isEmpty {
-                    let banner = NotificationBanner(
+                    showNotificationBanner(
                         title: String(localized: "error"),
                         subtitle: store.errorMessage,
                         style: .danger
                     )
-                    banner.show()
                     store.send(.setErrorMessage(""))
                 }
             }
             .onChange(of: store.successMessage) {
                 if !store.successMessage.isEmpty {
-                    let banner = NotificationBanner(
+                    showNotificationBanner(
                         title: String(localized: "success"),
                         subtitle: store.successMessage,
                         style: .success
                     )
-                    banner.show()
                     store.send(.setSuccessMessage(""))
                 }
             }

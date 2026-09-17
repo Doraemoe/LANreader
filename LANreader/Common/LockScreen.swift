@@ -1,6 +1,5 @@
 import ComposableArchitecture
 import SwiftUI
-import NotificationBannerSwift
 import LocalAuthentication
 
 @Reducer public struct LockScreenFeature: Sendable {
@@ -210,12 +209,11 @@ struct LockScreen: View {
         }
         .onChange(of: store.errorMessage) {
             if !store.errorMessage.isEmpty {
-                let banner = NotificationBanner(
+                showNotificationBanner(
                     title: String(localized: "error"),
                     subtitle: store.errorMessage,
                     style: .danger
                 )
-                banner.show()
                 store.send(.setErrorMessage(""))
             }
         }

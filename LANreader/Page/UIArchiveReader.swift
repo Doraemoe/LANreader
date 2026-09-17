@@ -103,16 +103,22 @@ class UIArchiveReaderController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(store.controlUiHidden, animated: animated)
+        updateTabBarVisibility()
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        updateTabBarVisibility()
+    }
+
+    private func updateTabBarVisibility() {
         if #available(iOS 18.0, *) {
-            tabBarController?.setTabBarHidden(true, animated: false)
+            if tabBarController?.isTabBarHidden == false {
+                tabBarController?.setTabBarHidden(true, animated: false)
+            }
         } else {
             tabBarController?.tabBar.isHidden = true
         }
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        navigationController?.setNavigationBarHidden(false, animated: animated)
     }
 
     override func viewDidDisappear(_ animated: Bool) {

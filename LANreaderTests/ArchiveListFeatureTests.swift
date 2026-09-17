@@ -88,6 +88,19 @@ final class ArchiveListFeatureTests: XCTestCase {
         XCTAssertTrue(state.canLoadArchives)
     }
 
+    func testSearchCancellationIsIsolatedPerArchiveList() {
+        let first = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: nil),
+            currentTab: .library
+        )
+        let second = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: nil),
+            currentTab: .library
+        )
+
+        XCTAssertNotEqual(first.searchCancellationID, second.searchCancellationID)
+    }
+
     @MainActor
     func testPageZeroResponseDefinesServerPageSize() async {
         let store = TestStore(initialState: makePaginatedArchiveListState()) {

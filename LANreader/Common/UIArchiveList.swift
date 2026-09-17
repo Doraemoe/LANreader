@@ -4,7 +4,6 @@ import OrderedCollections
 import SwiftUI
 import UIKit
 import Logging
-import NotificationBannerSwift
 
 // swiftlint:disable type_body_length
 @Reducer public struct ArchiveListFeature: Sendable {
@@ -20,6 +19,7 @@ import NotificationBannerSwift
         @Shared(.appStorage(SettingsKey.searchSortOrder)) var searchSortOrder = SearchSortOrder.asc.rawValue
         @Shared(.appStorage(SettingsKey.lastTagRefresh)) var lastTagRefresh = 0.0
 
+        let searchCancellationID = UUID()
         var selectMode: EditMode = .inactive
         var selected: OrderedSet<String> = .init()
         @Shared(.archive) var archiveItems: IdentifiedArrayOf<ArchiveItem> = []
@@ -119,8 +119,6 @@ import NotificationBannerSwift
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
 
-    enum CancelId { case search }
-
     public var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
@@ -152,7 +150,7 @@ import NotificationBannerSwift
                 resetArchives(state: &state)
                 guard state.canLoadArchives else {
                     clearArchives(state: &state)
-                    return .cancel(id: CancelId.search)
+                    return .cancel(id: state.searchCancellationID)
                 }
                 return loadArchives(state: &state, page: 0, showLoading: true)
             case let .load(showLoading):
@@ -182,7 +180,11 @@ import NotificationBannerSwift
                 let sortby = state.searchSort
                 let order = state.searchSortOrder
                 return self.search(
-                    searchFilter: state.filter, sortby: sortby, start: start, order: order, append: true
+                    searchFilter: state.filter,
+                    sort: (by: sortby, order: order),
+                    start: start,
+                    append: true,
+                    cancellationID: state.searchCancellationID
                 )
             case let .removeArchive(id):
                 state.selected.remove(id)
@@ -286,7 +288,7 @@ import NotificationBannerSwift
                 if state.loading {
                     state.loading = false
                     state.showLoading = false
-                    return .cancel(id: CancelId.search)
+                    return .cancel(id: state.searchCancellationID)
                 }
                 return .none
             case let .addSelect(id):
@@ -415,10 +417,10 @@ import NotificationBannerSwift
                 )
                 return self.search(
                     searchFilter: state.filter,
-                    sortby: state.searchSort,
+                    sort: (by: state.searchSort, order: state.searchSortOrder),
                     start: String(start),
-                    order: state.searchSortOrder,
-                    append: false
+                    append: false,
+                    cancellationID: state.searchCancellationID
                 )
             case let .deleteFinished(archiveIds, hadErrors):
                 state.batchActionInProgress = false
@@ -704,10 +706,10 @@ extension ArchiveListFeature {
         populateTags(state: &state)
         return search(
             searchFilter: state.filter,
-            sortby: state.searchSort,
+            sort: (by: state.searchSort, order: state.searchSortOrder),
             start: String(start),
-            order: state.searchSortOrder,
-            append: false
+            append: false,
+            cancellationID: state.searchCancellationID
         )
     }
 
@@ -770,14 +772,14 @@ extension ArchiveListFeature {
 
     func search(
         searchFilter: SearchFilter,
-        sortby: String,
+        sort: (by: String, order: String),
         start: String,
-        order: String,
-        append: Bool
+        append: Bool,
+        cancellationID: UUID
     ) -> EffectOf<ArchiveListFeature> {
         return .run { send in
             do {
-                if sortby == SearchSort.random.rawValue {
+                if sort.by == SearchSort.random.rawValue {
                     let response = try await service.randomArchives(
                         category: searchFilter.category,
                         filter: searchFilter.filter
@@ -791,8 +793,8 @@ extension ArchiveListFeature {
                         category: searchFilter.category,
                         filter: searchFilter.filter,
                         start: start,
-                        sortby: sortby,
-                        order: order
+                        sortby: sort.by,
+                        order: sort.order
                     ).value
                     let archives = response.data.map {
                         $0.toArchiveItem()
@@ -804,7 +806,7 @@ extension ArchiveListFeature {
                 await send(.setErrorMessage(error.localizedDescription))
             }
         }
-        .cancellable(id: CancelId.search, cancelInFlight: true)
+        .cancellable(id: cancellationID, cancelInFlight: true)
     }
 }
 
@@ -1189,11 +1191,14 @@ class UIArchiveListViewController: UIViewController {
         lastObservedFilter = store.filter
 
         observe { [weak self] in
+            self?.setupToolbar()
+        }
+
+        observe { [weak self] in
             guard let self else { return }
             let selecting = store.selectMode == .active
             let selected = store.selected
             let actionsEnabled = store.canStartBatchAction
-            setupToolbar()
             for indexPath in collectionView.indexPathsForVisibleItems {
                 guard let item = dataSource.itemIdentifier(for: indexPath),
                       let cell = collectionView.cellForItem(at: indexPath) as? UIArchiveCell else { continue }
@@ -1337,11 +1342,11 @@ class UIArchiveListViewController: UIViewController {
             guard let self else { return }
             let message = store.errorMessage
             guard !message.isEmpty else { return }
-            NotificationBanner(
+            showNotificationBanner(
                 title: String(localized: "error"),
                 subtitle: message,
                 style: .danger
-            ).show()
+            )
             store.send(.setErrorMessage(""))
         }
 
@@ -1349,11 +1354,11 @@ class UIArchiveListViewController: UIViewController {
             guard let self else { return }
             let message = store.successMessage
             guard !message.isEmpty else { return }
-            NotificationBanner(
+            showNotificationBanner(
                 title: String(localized: "success"),
                 subtitle: message,
                 style: .success
-            ).show()
+            )
             store.send(.setSuccessMessage(""))
         }
     }
@@ -1388,6 +1393,10 @@ class UIArchiveListViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        if navigationController?.topViewController === parent,
+           navigationController?.isNavigationBarHidden == true {
+            navigationController?.setNavigationBarHidden(false, animated: animated)
+        }
         updateSelectionToolbarAppearance()
         updateSelectionBarVisibility()
     }
