@@ -80,10 +80,11 @@ final class ArchiveListSelectionTests: XCTestCase {
     }
 
     @MainActor
-    func testPushedTagSearchKeepsNavigationBarStableAndSortActionWorking() async throws {
+    func testPushedTagSearchKeepsSortButtonWhenLoadingFinishes() async throws {
         let database = try AppDatabase(DatabaseQueue())
         var state = SearchFeature.State(keyword: "artist:test")
         state.archiveList.filter = SearchFilter(category: nil, filter: "artist:test")
+        state.archiveList.loading = true
         state.archiveList.$searchSort = Shared(value: SearchSort.dateAdded.rawValue)
         state.archiveList.$searchSortOrder = Shared(value: SearchSortOrder.asc.rawValue)
         let store = withDependencies {
@@ -105,7 +106,12 @@ final class ArchiveListSelectionTests: XCTestCase {
         controller.endAppearanceTransition()
 
         XCTAssertTrue(navigation.hiddenChanges.isEmpty)
-        let sortMenu = try XCTUnwrap(controller.navigationItem.rightBarButtonItem?.menu?.children.first as? UIMenu)
+        let sortButton = try XCTUnwrap(controller.navigationItem.rightBarButtonItem)
+        store.send(.archiveList(.populateArchives([], 0, false)))
+        await Task.yield()
+
+        XCTAssertTrue(controller.navigationItem.rightBarButtonItem === sortButton)
+        let sortMenu = try XCTUnwrap(sortButton.menu?.children.first as? UIMenu)
         let nameAction = try XCTUnwrap(sortMenu.children.first as? UIAction)
         nameAction.performWithSender(nil, target: nil)
         await Task.yield()

@@ -1188,11 +1188,14 @@ class UIArchiveListViewController: UIViewController {
         lastObservedFilter = store.filter
 
         observe { [weak self] in
+            self?.setupToolbar()
+        }
+
+        observe { [weak self] in
             guard let self else { return }
             let selecting = store.selectMode == .active
             let selected = store.selected
             let actionsEnabled = store.canStartBatchAction
-            setupToolbar()
             for indexPath in collectionView.indexPathsForVisibleItems {
                 guard let item = dataSource.itemIdentifier(for: indexPath),
                       let cell = collectionView.cellForItem(at: indexPath) as? UIArchiveCell else { continue }
