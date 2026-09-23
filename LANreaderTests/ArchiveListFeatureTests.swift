@@ -72,7 +72,7 @@ final class ArchiveListFeatureTests: XCTestCase {
             ArchiveListFeature()
         }
 
-        await store.send(.load(true)) {
+        await store.send(.load) {
             $0.archives = []
             $0.archivesToDisplay = []
             $0.total = 0
@@ -113,7 +113,6 @@ final class ArchiveListFeatureTests: XCTestCase {
             $0.serverPageSize = 100
             $0.total = 250
             $0.loading = false
-            $0.showLoading = false
         }
 
         XCTAssertEqual(store.state.pageCount, 3)
@@ -135,7 +134,6 @@ final class ArchiveListFeatureTests: XCTestCase {
             $0.archives = expectedArchiveListGridStates(in: &$0, count: 50)
             $0.archivesToDisplay = $0.archives
             $0.loading = false
-            $0.showLoading = false
         }
 
         XCTAssertEqual(store.state.serverPageSize, 100)
@@ -191,7 +189,6 @@ final class ArchiveListFeatureTests: XCTestCase {
 
         await store.send(.goToPage(2)) {
             $0.loading = true
-            $0.showLoading = true
             $0.pendingPage = 2
         }
         // Only a request with start=200 is stubbed, so reaching populateArchives proves the offset.
@@ -200,7 +197,6 @@ final class ArchiveListFeatureTests: XCTestCase {
             $0.pendingPage = nil
             $0.total = 250
             $0.loading = false
-            $0.showLoading = false
         }
     }
 
@@ -220,7 +216,6 @@ final class ArchiveListFeatureTests: XCTestCase {
 
         await store.send(.goToPage(99)) {
             $0.loading = true
-            $0.showLoading = true
             $0.pendingPage = 2
         }
         await store.receive(.populateArchives([], 250, false)) {
@@ -228,7 +223,6 @@ final class ArchiveListFeatureTests: XCTestCase {
             $0.pendingPage = nil
             $0.total = 250
             $0.loading = false
-            $0.showLoading = false
         }
     }
 
@@ -251,7 +245,6 @@ final class ArchiveListFeatureTests: XCTestCase {
 
         await store.send(.goToPage(2)) {
             $0.loading = true
-            $0.showLoading = true
             $0.pendingPage = 2
         }
         await store.receive(\.setErrorMessage)
@@ -269,7 +262,6 @@ final class ArchiveListFeatureTests: XCTestCase {
             currentTab: .library
         )
         initialState.loading = true
-        initialState.showLoading = true
         initialState.pendingPage = 2
         initialState.errorMessage = "Cache failed"
 
@@ -298,15 +290,13 @@ final class ArchiveListFeatureTests: XCTestCase {
         store.timeout = .seconds(5)
         store.exhaustivity = .off
 
-        await store.send(.load(true)) {
+        await store.send(.load) {
             $0.loading = true
-            $0.showLoading = true
         }
         // Only start=200 is stubbed, so reaching populateArchives proves the page was kept.
         await store.receive(.populateArchives([], 250, false)) {
             $0.total = 250
             $0.loading = false
-            $0.showLoading = false
         }
         XCTAssertEqual(store.state.currentPage, 2)
     }
@@ -322,7 +312,6 @@ final class ArchiveListFeatureTests: XCTestCase {
         initialState.currentPage = 2
         initialState.pendingPage = 2
         initialState.loading = true
-        initialState.showLoading = true
         initialState.archives = expectedArchiveListGridStates(in: &initialState, count: 1)
         initialState.archivesToDisplay = initialState.archives
 
@@ -363,14 +352,12 @@ final class ArchiveListFeatureTests: XCTestCase {
         await store.send(.resetArchives) {
             $0.currentPage = 0
         }
-        await store.send(.load(true)) {
+        await store.send(.load) {
             $0.loading = true
-            $0.showLoading = true
         }
         await store.receive(.populateArchives([], 250, false)) {
             $0.total = 250
             $0.loading = false
-            $0.showLoading = false
         }
         XCTAssertEqual(store.state.currentPage, 0)
     }
@@ -392,12 +379,12 @@ final class ArchiveListFeatureTests: XCTestCase {
         store.timeout = .seconds(5)
         store.exhaustivity = .off
 
-        await store.send(.load(true))
+        await store.send(.load)
         // The shrunken total leaves page 2 out of range, so the reducer retries the last page.
         await store.receive(.populateArchives([], 150, false)) {
             $0.currentPage = 1
         }
-        await store.receive(.load(false))
+        await store.receive(.load)
         await store.receive(.populateArchives([], 150, false))
         XCTAssertEqual(store.state.currentPage, 1)
     }
@@ -424,7 +411,7 @@ final class ArchiveListFeatureTests: XCTestCase {
             $0.total = 100
             $0.currentPage = 0
         }
-        await store.receive(.load(false))
+        await store.receive(.load)
         // Only start=0 is stubbed, so the response proves the reducer reloaded the valid page.
         await store.receive(.populateArchives([], 100, false))
 

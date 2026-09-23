@@ -60,6 +60,18 @@ final class ArchiveListBatchTests: XCTestCase {
     }
 
     @MainActor
+    func testAutomaticAppendDoesNotInterruptSelection() async {
+        var state = makePaginatedArchiveListState()
+        state.selectMode = .active
+        state.selected = ["archive-0"]
+        let store = TestStore(initialState: state) { ArchiveListFeature() }
+
+        await store.send(.appendArchives("100"))
+        XCTAssertEqual(store.state.selected, ["archive-0"])
+        XCTAssertTrue(store.state.canStartBatchAction)
+    }
+
+    @MainActor
     func testPartialBatchDeletionPreservesFailedSelectionAfterPageReload() async throws {
         try await configureArchiveListTestClient()
         stubArchiveListBatchDelete(path: "/api/archives/archive-0", success: 1)
@@ -76,7 +88,7 @@ final class ArchiveListBatchTests: XCTestCase {
         store.exhaustivity = .off
         await store.send(.confirmDelete)
         await store.receive(.deleteFinished(["archive-0"], true))
-        await store.receive(.load(false))
+        await store.receive(.load)
         XCTAssertEqual(store.state.selected, ["archive-1"])
         await store.receive(\.populateArchives)
         await store.finish()

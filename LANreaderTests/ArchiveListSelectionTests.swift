@@ -120,6 +120,48 @@ final class ArchiveListSelectionTests: XCTestCase {
     }
 
     @MainActor
+    func testPushedTagSearchCanSelectWhileNextPageLoads() async throws {
+        let database = try AppDatabase(DatabaseQueue())
+        try await withDependencies {
+            $0.appDatabase = database
+        } operation: {
+            var state = SearchFeature.State(keyword: "artist:test")
+            state.archiveList = makeSelectionState(count: 1)
+            state.archiveList.currentTab = .search
+            state.archiveList.filter = SearchFilter(category: nil, filter: "artist:test")
+            state.archiveList.$paginateArchiveList = Shared(value: false)
+            state.archiveList.$searchSort = Shared(value: SearchSort.dateAdded.rawValue)
+            state.archiveList.loading = true
+            state.archiveList.total = 2
+            let store = Store(initialState: state) { SearchFeature() }
+            let controller = UISearchViewV2Controller(store: store)
+            let navigation = UINavigationController()
+            navigation.viewControllers = [UIViewController(), UIViewController(), UIViewController(), controller]
+            navigation.loadViewIfNeeded()
+            controller.loadViewIfNeeded()
+            await Task.yield()
+
+            let select = try XCTUnwrap(controller.navigationItem.rightBarButtonItem?.menu?.children.last as? UIAction)
+            select.performWithSender(nil, target: nil)
+            await Task.yield()
+
+            XCTAssertEqual(store.archiveList.selectMode, .active)
+            XCTAssertFalse(store.archiveList.loading)
+            let list = try XCTUnwrap(controller.children.first as? UIArchiveListViewController)
+            list.collectionView(list.collectionView, didSelectItemAt: IndexPath(item: 0, section: 0))
+            await Task.yield()
+            XCTAssertEqual(store.archiveList.selected, ["archive-0"])
+            XCTAssertEqual(controller.toolbarItems?.last?.isEnabled, true)
+
+            let cell = try XCTUnwrap(list.collectionView.cellForItem(at: IndexPath(item: 0, section: 0)))
+            list.collectionView(list.collectionView, willDisplay: cell, forItemAt: IndexPath(item: 0, section: 0))
+            await Task.yield()
+            XCTAssertFalse(store.archiveList.loading)
+            XCTAssertEqual(controller.toolbarItems?.last?.isEnabled, true)
+        }
+    }
+
+    @MainActor
     func testCategorySelectionPreservesHiddenTabBar() async throws {
         var list = makeSelectionState(count: 1)
         list.currentTab = .category
@@ -266,6 +308,15 @@ final class ArchiveListSelectionTests: XCTestCase {
         XCTAssertEqual(parent.toolbarItems?.last?.isEnabled, true)
         XCTAssertEqual(parent.toolbarItems?[2].menu?.children.map(\.title), ["Static"])
         XCTAssertEqual(parent.toolbarItems?[2].isEnabled, true)
+        let categoryButton = try XCTUnwrap(parent.toolbarItems?[2])
+        let deleteButton = try XCTUnwrap(parent.toolbarItems?.last)
+        store.send(.populateCategory([
+            CategoryItem(id: "static", name: "Static", archives: ["archive-0"], search: "", pinned: "0"),
+            CategoryItem(id: "dynamic", name: "Dynamic", archives: [], search: "tag:test", pinned: "0")
+        ]))
+        await Task.yield()
+        XCTAssertTrue(parent.toolbarItems?[2] === categoryButton)
+        XCTAssertTrue(parent.toolbarItems?.last === deleteButton)
         let count = try XCTUnwrap(parent.toolbarItems?.first)
         XCTAssertEqual(count.title, String(format: String(localized: "archive.selected"), 1))
         XCTAssertTrue(count.isEnabled)
