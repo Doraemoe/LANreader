@@ -29,7 +29,6 @@ import Logging
         var archives: IdentifiedArrayOf<GridFeature.State> = []
         var loading: Bool = false
         var batchActionInProgress = false
-        var showLoading: Bool = false
         var total: Int = 0
         var errorMessage = ""
         var successMessage = ""
@@ -88,7 +87,7 @@ import Logging
         case setFilter(SearchFilter)
         case resetArchives
         case reloadFromFirstPage
-        case load(Bool)
+        case load
         case populateArchives([ArchiveItem], Int, Bool)
         case refreshThumbnail(String)
         case appendArchives(String)
@@ -123,8 +122,15 @@ import Logging
         Reduce { state, action in
             switch action {
             case .toggleSelectionMode:
-                guard !state.batchActionInProgress,
-                      state.selectMode == .active || !state.loading else { return .none }
+                guard !state.batchActionInProgress else { return .none }
+                if state.selectMode != .active && state.loading {
+                    guard !state.archivesToDisplay.isEmpty else { return .none }
+                    state.loading = false
+                    state.pendingPage = nil
+                    state.selectMode = .active
+                    state.selected.removeAll()
+                    return .cancel(id: state.searchCancellationID)
+                }
                 state.selectMode = state.selectMode == .active ? .inactive : .active
                 state.selected.removeAll()
                 return .none
@@ -152,8 +158,8 @@ import Logging
                     clearArchives(state: &state)
                     return .cancel(id: state.searchCancellationID)
                 }
-                return loadArchives(state: &state, page: 0, showLoading: true)
-            case let .load(showLoading):
+                return loadArchives(state: &state, page: 0)
+            case .load:
                 guard state.canLoadArchives else {
                     clearArchives(state: &state)
                     return .none
@@ -167,16 +173,15 @@ import Logging
                 let page = state.paginationActive
                     ? PaginationPositioning.clampedPage(state.currentPage, pageCount: state.pageCount)
                     : 0
-                return loadArchives(state: &state, page: page, showLoading: showLoading)
+                return loadArchives(state: &state, page: page)
             case let .appendArchives(start):
-                guard state.canLoadArchives else {
+                guard state.canLoadArchives, state.selectMode != .active else {
                     return .none
                 }
                 guard state.loading == false else {
                     return .none
                 }
                 state.loading = true
-                state.showLoading = true
                 let sortby = state.searchSort
                 let order = state.searchSortOrder
                 return self.search(
@@ -234,7 +239,6 @@ import Logging
 
                 state.total = total
                 state.loading = false
-                state.showLoading = false
 
                 // Archives removed elsewhere can shrink the list past the page being reloaded.
                 // Fall back to the last valid page instead of leaving an empty grid behind.
@@ -242,7 +246,7 @@ import Logging
                     state.currentPage = PaginationPositioning.clampedPage(
                         state.currentPage, pageCount: state.pageCount
                     )
-                    return .send(.load(false))
+                    return .send(.load)
                 }
                 if state.preserveSelectionOnNextPopulate {
                     state.preserveSelectionOnNextPopulate = false
@@ -272,7 +276,6 @@ import Logging
                     return .none
                 }
                 state.loading = false
-                state.showLoading = false
                 state.pendingPage = nil
                 state.preserveSelectionOnNextPopulate = false
                 state.errorMessage = message
@@ -287,7 +290,6 @@ import Logging
                 state.preserveSelectionOnNextPopulate = false
                 if state.loading {
                     state.loading = false
-                    state.showLoading = false
                     return .cancel(id: state.searchCancellationID)
                 }
                 return .none
@@ -409,7 +411,6 @@ import Logging
 
                 state.selected.removeAll()
                 state.loading = true
-                state.showLoading = true
                 state.pendingPage = targetPage
                 let start = PaginationPositioning.itemOffset(
                     page: targetPage,
@@ -448,7 +449,7 @@ import Logging
                     let page = state.paginationActive
                         ? PaginationPositioning.clampedPage(state.currentPage, pageCount: state.pageCount)
                         : 0
-                    return loadArchives(state: &state, page: page, showLoading: false)
+                    return loadArchives(state: &state, page: page)
                 }
                 return reloadPageAfterRemoval(state: &state, removedCount: archiveIds.count)
             case .loadCategory:
@@ -692,15 +693,8 @@ extension ArchiveListFeature {
         state.pendingPage = nil
     }
 
-    private func loadArchives(
-        state: inout State,
-        page: Int,
-        showLoading: Bool
-    ) -> EffectOf<Self> {
+    private func loadArchives(state: inout State, page: Int) -> EffectOf<Self> {
         state.loading = true
-        if showLoading {
-            state.showLoading = true
-        }
         state.currentPage = page
         let start = PaginationPositioning.itemOffset(page: page, pageSize: state.serverPageSize)
         populateTags(state: &state)
@@ -722,7 +716,6 @@ extension ArchiveListFeature {
         state.currentPage = 0
         state.pendingPage = nil
         state.loading = false
-        state.showLoading = false
     }
 
     private func reloadPageAfterRemoval(
@@ -735,7 +728,7 @@ extension ArchiveListFeature {
             state.currentPage,
             pageCount: state.pageCount
         )
-        return .send(.load(false))
+        return .send(.load)
     }
 
     func populateTags(state: inout State) {
@@ -832,6 +825,20 @@ extension ArchiveListFeature.State {
 class UIArchiveListViewController: UIViewController {
     let store: StoreOf<ArchiveListFeature>
     @Dependency(\.appDatabase) private var database
+
+    private struct SelectionToolbarState: Equatable {
+        struct CategoryMenuItem: Equatable {
+            let id: String
+            let name: String
+        }
+
+        let selecting: Bool
+        let selected: OrderedSet<String>
+        let actionsEnabled: Bool
+        let staticCategoryId: String?
+        let categories: [CategoryMenuItem]
+    }
+    private var renderedSelectionToolbarState: SelectionToolbarState?
 
     var collectionView: UICollectionView!
     var dataSource:
@@ -1199,16 +1206,29 @@ class UIArchiveListViewController: UIViewController {
             let selecting = store.selectMode == .active
             let selected = store.selected
             let actionsEnabled = store.canStartBatchAction
-            for indexPath in collectionView.indexPathsForVisibleItems {
-                guard let item = dataSource.itemIdentifier(for: indexPath),
-                      let cell = collectionView.cellForItem(at: indexPath) as? UIArchiveCell else { continue }
-                cell.configure(
-                    with: item, database: database, selecting: selecting, selected: selected.contains(item.id)
-                )
+            let staticCategoryId = store.currentStaticCategoryId
+            let categories = store.categoryItems.filter { $0.search.isEmpty }.map {
+                SelectionToolbarState.CategoryMenuItem(id: $0.id, name: $0.name)
+            }
+            let toolbarState = SelectionToolbarState(
+                selecting: selecting, selected: selected, actionsEnabled: actionsEnabled,
+                staticCategoryId: staticCategoryId, categories: categories
+            )
+            guard toolbarState != renderedSelectionToolbarState else { return }
+            renderedSelectionToolbarState = toolbarState
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                for indexPath in collectionView.indexPathsForVisibleItems {
+                    guard let item = dataSource.itemIdentifier(for: indexPath),
+                          let cell = collectionView.cellForItem(at: indexPath) as? UIArchiveCell else { continue }
+                    cell.configure(
+                        with: item, database: database, selecting: selecting, selected: selected.contains(item.id)
+                    )
+                }
             }
             let count = UIBarButtonItem.selectionCount(selected.count)
             let categoryAction: UIBarButtonItem
-            if store.currentStaticCategoryId != nil {
+            if staticCategoryId != nil {
                 categoryAction = UIBarButtonItem(
                     image: UIImage(systemName: "folder.badge.minus"), style: .plain,
                     target: self, action: #selector(confirmBatchCategoryRemoval(_:))
@@ -1216,7 +1236,7 @@ class UIArchiveListViewController: UIViewController {
                 categoryAction.accessibilityLabel = String(localized: "remove")
                 categoryAction.isEnabled = actionsEnabled
             } else {
-                let categoryActions = store.categoryItems.filter { $0.search.isEmpty }.map { category in
+                let categoryActions = categories.map { category in
                     UIAction(title: category.name) { [weak self] _ in
                         self?.store.send(.addArchivesToCategory(category.id))
                     }
@@ -1413,7 +1433,7 @@ class UIArchiveListViewController: UIViewController {
 
     @objc
     private func didPullToRefresh(_ sender: Any) {
-        store.send(.load(true))
+        store.send(.load)
     }
 
     private func manualTriggerPullToRefresh() {
@@ -1525,6 +1545,7 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
     ) {
         if indexPath.item == collectionView.numberOfItems(inSection: 0) - 1 {
             if store.paginationActive == false
+                && store.selectMode != .active
                 && store.searchSort != SearchSort.random.rawValue
                 && store.loading == false
                 && store.archives.count < store.total {
