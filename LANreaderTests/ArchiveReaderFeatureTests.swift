@@ -10,6 +10,7 @@ import OHHTTPStubsSwift
 final class ArchiveReaderFeatureTests: XCTestCase {
     override func tearDown() {
         UserDefaults.standard.removeObject(forKey: SettingsKey.readDirection)
+        UserDefaults.standard.removeObject(forKey: SettingsKey.disablePageFlipAnimation)
         UserDefaults.standard.removeObject(forKey: SettingsKey.doublePageLayout)
         UserDefaults.standard.removeObject(forKey: SettingsKey.fitPageWidth)
         UserDefaults.standard.removeObject(forKey: SettingsKey.showStamps)
@@ -50,6 +51,33 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.send(.splitWideImageChanged(false)) {
             $0.$splitWideImage.withLock { $0 = false }
         }
+    }
+
+    func testPageFlipAnimationIsEnabledByDefault() {
+        UserDefaults.standard.removeObject(forKey: SettingsKey.disablePageFlipAnimation)
+
+        XCTAssertFalse(ReadSettingsFeature.State().disablePageFlipAnimation)
+        XCTAssertFalse(makeState().disablePageFlipAnimation)
+    }
+
+    @MainActor
+    func testReadSettingsPageFlipAnimationToggleUpdatesReader() {
+        configureReaderDefaults()
+        let settingsStore = Store(initialState: ReadSettingsFeature.State()) {
+            ReadSettingsFeature()
+        }
+        let readerStore = Store(initialState: makeState()) {
+            ArchiveReaderFeature()
+        }
+        defer {
+            settingsStore.$disablePageFlipAnimation.withLock { $0 = false }
+        }
+
+        XCTAssertFalse(settingsStore.disablePageFlipAnimation)
+        settingsStore.$disablePageFlipAnimation.withLock { $0 = true }
+
+        XCTAssertTrue(ReadSettingsFeature.State().disablePageFlipAnimation)
+        XCTAssertTrue(readerStore.disablePageFlipAnimation)
     }
 
     @MainActor
@@ -2074,6 +2102,29 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testDisablingPageFlipAnimationMakesProgrammaticTurnsImmediate() async {
+        configureReaderDefaults()
+
+        let sources: [ReaderNavigationSource] = [.tap, .keyboard, .autoPage]
+        for source in sources {
+            var initialState = makeState(progress: 2)
+            initialState.$disablePageFlipAnimation = SharedReader(value: true)
+            initialState.pages = makePageStates(count: 4)
+            initialState.currentPageIndex = 1
+            let store = makeTestStore(initialState: initialState)
+
+            await store.send(.navigate(.next, source: source)) {
+                $0.scrollRequest = makeScrollRequest(
+                    id: 0,
+                    targetPageIndex: 2,
+                    source: source,
+                    animated: false
+                )
+            }
+        }
+    }
+
+    @MainActor
     func testNavigateNextAtFinalEvenSpreadDoesNothing() async {
         configureReaderDefaults(doublePageLayout: true)
         var initialState = makeState(
@@ -3024,6 +3075,39 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await waitForScrollRequestToFinish(store)
 
         XCTAssertNil(store.scrollRequest)
+    }
+
+    @MainActor
+    func testUIPageCollectionTurnsImmediatelyWhenPageFlipAnimationIsDisabled() async {
+        configureReaderDefaults()
+        var initialState = makeState(progress: 1)
+        initialState.$disablePageFlipAnimation = SharedReader(value: true)
+        initialState.pages = makePageStates(count: 4)
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        } withDependencies: {
+            $0.continuousClock = ImmediateClock()
+            $0.uuid = .incrementing
+        }
+        let controller = UIPageCollectionController(store: store)
+
+        controller.loadViewIfNeeded()
+        controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 480)
+        controller.view.layoutIfNeeded()
+        await Task.yield()
+        await Task.yield()
+        XCTAssertTrue(store.disablePageFlipAnimation)
+
+        store.send(.navigate(.next, source: .tap))
+        await waitForScrollRequestToFinish(store)
+        controller.collectionView.layoutIfNeeded()
+
+        XCTAssertEqual(
+            controller.collectionView.contentOffset.x,
+            controller.collectionView.bounds.width,
+            accuracy: 1
+        )
+        XCTAssertFalse(store.collectionScrolling)
     }
 
     @MainActor
