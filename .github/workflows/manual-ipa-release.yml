@@ -2,6 +2,11 @@ name: Manual IPA Release
 
 on:
   workflow_dispatch:
+    inputs:
+      source_commit:
+        description: Full commit SHA to release (blank uses current master)
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -23,6 +28,33 @@ jobs:
             echo "Releases must be dispatched from master; got $GITHUB_REF."
             exit 1
           fi
+
+      - name: Select release source
+        id: source
+        shell: bash
+        env:
+          REQUESTED_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          source_commit="${REQUESTED_COMMIT:-$GITHUB_SHA}"
+
+          if [[ ! "$source_commit" =~ ^[[:xdigit:]]{40}$ ]]; then
+            echo "Source commit must be a full 40-character SHA."
+            exit 1
+          fi
+
+          if ! git cat-file -e "${source_commit}^{commit}"; then
+            echo "Source commit $source_commit was not found."
+            exit 1
+          fi
+
+          source_commit="$(git rev-parse "${source_commit}^{commit}")"
+          if ! git merge-base --is-ancestor "$source_commit" "$GITHUB_SHA"; then
+            echo "Source commit $source_commit is not in master's history."
+            exit 1
+          fi
+
+          echo "commit=$source_commit" >> "$GITHUB_OUTPUT"
+          git checkout --detach "$source_commit"
 
       - name: Select Xcode version
         run: |
@@ -133,6 +165,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ steps.versions.outputs.tag }}" "${{ steps.package.outputs.ipa_path }}#LANreader.ipa" \
-            --target "$GITHUB_SHA" \
+            --target "${{ steps.source.outputs.commit }}" \
             --title "v${{ steps.versions.outputs.marketing_version }}" \
             --generate-notes
