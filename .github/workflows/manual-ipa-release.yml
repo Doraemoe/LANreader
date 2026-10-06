@@ -55,11 +55,21 @@ jobs:
 
           echo "commit=$source_commit" >> "$GITHUB_OUTPUT"
           if git diff --quiet "$source_commit" "$GITHUB_SHA" -- .github/workflows; then
-            echo "manual_publish=false" >> "$GITHUB_OUTPUT"
+            echo "needs_workflow_token=false" >> "$GITHUB_OUTPUT"
           else
-            echo "manual_publish=true" >> "$GITHUB_OUTPUT"
+            echo "needs_workflow_token=true" >> "$GITHUB_OUTPUT"
           fi
           git checkout --detach "$source_commit"
+
+      - name: Require historical release token
+        if: steps.source.outputs.needs_workflow_token == 'true'
+        env:
+          HISTORICAL_RELEASE_TOKEN: ${{ secrets.HISTORICAL_RELEASE_TOKEN }}
+        run: |
+          if [[ -z "$HISTORICAL_RELEASE_TOKEN" ]]; then
+            echo "::error::Set the HISTORICAL_RELEASE_TOKEN repository secret with Contents and Workflows write permissions."
+            exit 1
+          fi
 
       - name: Select Xcode version
         run: |
@@ -174,28 +184,10 @@ jobs:
           retention-days: 7
 
       - name: Create GitHub release and upload IPA
-        if: steps.source.outputs.manual_publish != 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.source.outputs.needs_workflow_token == 'true' && secrets.HISTORICAL_RELEASE_TOKEN || github.token }}
         run: |
           gh release create "${{ steps.versions.outputs.tag }}" "${{ steps.package.outputs.ipa_path }}#LANreader.ipa" \
             --target "${{ steps.source.outputs.commit }}" \
             --title "v${{ steps.versions.outputs.marketing_version }}" \
             --generate-notes
-
-      - name: Summarize historical release
-        if: steps.source.outputs.manual_publish == 'true'
-        env:
-          TAG: ${{ steps.versions.outputs.tag }}
-          COMMIT: ${{ steps.source.outputs.commit }}
-          VERSION: ${{ steps.versions.outputs.marketing_version }}
-        run: |
-          echo "::warning::IPA artifact is ready; publish this historical release with a workflow-authorized token."
-          {
-            echo "### Publish historical release"
-            echo "The IPA is in artifact \`LANreader-$TAG\`. GitHub's Actions token cannot create this release because the source commit differs from master under \`.github/workflows\`."
-            echo '```bash'
-            echo "GH_TOKEN=\"\$GITHUB_TOKEN_PERSONAL\" gh run download \"$GITHUB_RUN_ID\" -R \"$GITHUB_REPOSITORY\" -n \"LANreader-$TAG\""
-            echo "GH_TOKEN=\"\$GITHUB_TOKEN_PERSONAL\" gh release create \"$TAG\" LANreader.ipa -R \"$GITHUB_REPOSITORY\" --target \"$COMMIT\" --title \"v$VERSION\" --generate-notes"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
