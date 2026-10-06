@@ -150,6 +150,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         @SharedReader(.appStorage(SettingsKey.tapMiddleKey)) var tapMiddle = PageControl.navigation.rawValue
         @SharedReader(.appStorage(SettingsKey.tapRightKey)) var tapRight = PageControl.previous.rawValue
         @SharedReader(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
+        @SharedReader(.appStorage(SettingsKey.disablePageFlipAnimation)) var disablePageFlipAnimation = false
         @SharedReader(.appStorage(SettingsKey.serverProgress)) var serverProgress = false
         @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
         @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
@@ -989,7 +990,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                     id: uuid(),
                     targetPageIndex: clampedIndex,
                     source: source,
-                    animated: source.usesAnimatedScroll
+                    animated: source.usesAnimatedScroll && !state.disablePageFlipAnimation
                 )
                 return .none
             case .collectionScrollStarted:
@@ -1237,7 +1238,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                     id: uuid(),
                     targetPageIndex: targetIndex,
                     source: source,
-                    animated: true
+                    animated: source.usesAnimatedScroll && !state.disablePageFlipAnimation
                 )
                 return .none
             case let .scrollRequestHandled(id):

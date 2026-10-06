@@ -9,6 +9,7 @@ import SwiftUI
         @Shared(.appStorage(SettingsKey.tapMiddleKey)) var tapMiddle = PageControl.navigation.rawValue
         @Shared(.appStorage(SettingsKey.tapRightKey)) var tapRight = PageControl.previous.rawValue
         @Shared(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
+        @Shared(.appStorage(SettingsKey.disablePageFlipAnimation)) var disablePageFlipAnimation = false
         @Shared(.appStorage(SettingsKey.showOriginal)) var showOriginal = false
         @Shared(.appStorage(SettingsKey.splitWideImage)) var splitWideImage = false
         @Shared(.appStorage(SettingsKey.splitPiorityLeft)) var splitPiorityLeft = false
@@ -49,6 +50,8 @@ struct ReadSettings: View {
             Text("settings.read.direction.upDown").tag(ReadDirection.upDown.rawValue)
         }
         .padding()
+        Toggle("settings.read.disable.page.flip.animation", isOn: Binding(self.store.$disablePageFlipAnimation))
+            .padding()
         if store.readDirection != ReadDirection.upDown.rawValue {
             Picker("settings.read.tap.left", selection: Binding(self.store.$tapLeft)) {
                 pageControlSelectionView
