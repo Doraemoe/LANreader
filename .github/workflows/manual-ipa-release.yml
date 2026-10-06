@@ -54,7 +54,22 @@ jobs:
           fi
 
           echo "commit=$source_commit" >> "$GITHUB_OUTPUT"
+          if git diff --quiet "$source_commit" "$GITHUB_SHA" -- .github/workflows; then
+            echo "needs_workflow_token=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "needs_workflow_token=true" >> "$GITHUB_OUTPUT"
+          fi
           git checkout --detach "$source_commit"
+
+      - name: Require historical release token
+        if: steps.source.outputs.needs_workflow_token == 'true'
+        env:
+          HISTORICAL_RELEASE_TOKEN: ${{ secrets.HISTORICAL_RELEASE_TOKEN }}
+        run: |
+          if [[ -z "$HISTORICAL_RELEASE_TOKEN" ]]; then
+            echo "::error::Set the HISTORICAL_RELEASE_TOKEN repository secret with Contents and Workflows write permissions."
+            exit 1
+          fi
 
       - name: Select Xcode version
         run: |
@@ -160,9 +175,17 @@ jobs:
 
           echo "ipa_path=$ipa_path" >> "$GITHUB_OUTPUT"
 
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LANreader-${{ steps.versions.outputs.tag }}
+          path: ${{ steps.package.outputs.ipa_path }}
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Create GitHub release and upload IPA
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.source.outputs.needs_workflow_token == 'true' && secrets.HISTORICAL_RELEASE_TOKEN || github.token }}
         run: |
           gh release create "${{ steps.versions.outputs.tag }}" "${{ steps.package.outputs.ipa_path }}#LANreader.ipa" \
             --target "${{ steps.source.outputs.commit }}" \
