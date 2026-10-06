@@ -54,6 +54,11 @@ jobs:
           fi
 
           echo "commit=$source_commit" >> "$GITHUB_OUTPUT"
+          if git diff --quiet "$source_commit" "$GITHUB_SHA" -- .github/workflows; then
+            echo "manual_publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "manual_publish=true" >> "$GITHUB_OUTPUT"
+          fi
           git checkout --detach "$source_commit"
 
       - name: Select Xcode version
@@ -160,7 +165,16 @@ jobs:
 
           echo "ipa_path=$ipa_path" >> "$GITHUB_OUTPUT"
 
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LANreader-${{ steps.versions.outputs.tag }}
+          path: ${{ steps.package.outputs.ipa_path }}
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Create GitHub release and upload IPA
+        if: steps.source.outputs.manual_publish != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -168,3 +182,20 @@ jobs:
             --target "${{ steps.source.outputs.commit }}" \
             --title "v${{ steps.versions.outputs.marketing_version }}" \
             --generate-notes
+
+      - name: Summarize historical release
+        if: steps.source.outputs.manual_publish == 'true'
+        env:
+          TAG: ${{ steps.versions.outputs.tag }}
+          COMMIT: ${{ steps.source.outputs.commit }}
+          VERSION: ${{ steps.versions.outputs.marketing_version }}
+        run: |
+          echo "::warning::IPA artifact is ready; publish this historical release with a workflow-authorized token."
+          {
+            echo "### Publish historical release"
+            echo "The IPA is in artifact \`LANreader-$TAG\`. GitHub's Actions token cannot create this release because the source commit differs from master under \`.github/workflows\`."
+            echo '```bash'
+            echo "GH_TOKEN=\"\$GITHUB_TOKEN_PERSONAL\" gh run download \"$GITHUB_RUN_ID\" -R \"$GITHUB_REPOSITORY\" -n \"LANreader-$TAG\""
+            echo "GH_TOKEN=\"\$GITHUB_TOKEN_PERSONAL\" gh release create \"$TAG\" LANreader.ipa -R \"$GITHUB_REPOSITORY\" --target \"$COMMIT\" --title \"v$VERSION\" --generate-notes"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
