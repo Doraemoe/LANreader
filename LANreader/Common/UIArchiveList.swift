@@ -653,30 +653,19 @@ extension ArchiveListFeature {
                 return
             }
 
-            var requested = Set<String>()
-            for (index, page) in extraction.pages.enumerated() {
-                let pageId = String(page.path.dropFirst(1))
-                if requested.insert(pageId).inserted {
-                    await service.backgroupFetchArchivePage(
-                        page: pageId,
-                        archiveId: id,
-                        pageNumber: index + 1
-                    )
-                }
-            }
-
             var cache = ArchiveCache(
                 id: id,
                 title: archive.name,
                 tags: archive.tags,
                 thumbnail: Data(),
                 cached: false,
-                totalPages: requested.count,
+                totalPages: extraction.pages.count,
                 toc: extraction.tankoubonDetails?.toc ?? archive.toc,
                 lastUpdate: Date(),
                 progress: archive.progress
             )
             try database.saveCache(&cache)
+            try await service.cachePages(archiveId: id, pages: extraction.pages)
             await send(.cacheArchiveFinished(id))
         } catch: { error, send in
             logger.error("failed to cache archive. id=\(id) \(error)")

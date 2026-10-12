@@ -25,6 +25,33 @@ final class ImageService: Sendable {
     private static let maxDecodedImageBytes: Double = 64 * 1024 * 1024
     private static let jpegCompressionQuality: CGFloat = 0.92
 
+    func isValidPageImage(imageUrl: URL, imageData: Data? = nil) -> Bool {
+        guard let data = imageData ?? (try? Data(contentsOf: imageUrl, options: .mappedIfSafe)),
+              hasCompleteEncodedPayload(data),
+              let source = makeImageSource(imageUrl: imageUrl, imageData: data),
+              CGImageSourceGetCount(source) > 0,
+              CGImageSourceGetStatus(source) == .statusComplete,
+              let size = imagePixelSize(from: source), size.width > 0, size.height > 0 else {
+            return false
+        }
+        return (0..<CGImageSourceGetCount(source)).allSatisfy {
+            CGImageSourceGetStatusAtIndex(source, $0) == .statusComplete
+        }
+    }
+
+    func validStoredPageNumbers(folderUrl: URL?, totalPages: Int) -> Set<Int> {
+        guard let folderUrl, totalPages > 0,
+              let files = try? FileManager.default.contentsOfDirectory(
+                at: folderUrl, includingPropertiesForKeys: nil
+              ) else { return [] }
+        return Set(files.compactMap { url in
+            guard !url.hasDirectoryPath,
+                  let page = Int(url.deletingPathExtension().lastPathComponent),
+                  (1...totalPages).contains(page), isValidPageImage(imageUrl: url) else { return nil }
+            return page
+        })
+    }
+
     func isAnimatedImage(imageUrl: URL, imageData: Data? = nil) -> Bool {
         guard let imageSource = makeImageSource(imageUrl: imageUrl, imageData: imageData) else { return false }
         return CGImageSourceGetCount(imageSource) > 1
@@ -128,6 +155,7 @@ final class ImageService: Sendable {
         pageNumber: String,
         splitWideImages: Bool
     ) -> StoredPageImageResult? {
+        guard isValidPageImage(imageUrl: imageUrl, imageData: imageData) else { return nil }
         guard let storedImage = storeImageFile(
             imageUrl: imageUrl,
             imageData: imageData,
@@ -135,6 +163,15 @@ final class ImageService: Sendable {
             pageNumber: pageNumber
         ) else {
             return nil
+        }
+
+        if let files = try? FileManager.default.contentsOfDirectory(
+            at: destinationUrl, includingPropertiesForKeys: nil
+        ) {
+            for file in files where file.lastPathComponent != storedImage.url.lastPathComponent
+                && file.deletingPathExtension().lastPathComponent == pageNumber {
+                try? FileManager.default.removeItem(at: file)
+            }
         }
 
         let shouldDisplayAsSplitPages = !storedImage.isAnimated
@@ -418,7 +455,7 @@ private extension ImageService {
         )
 
         do {
-            try data.write(to: destinationUrl)
+            try data.write(to: destinationUrl, options: .atomic)
             return true
         } catch {
             return false
