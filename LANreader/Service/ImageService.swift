@@ -80,7 +80,8 @@ final class ImageService: Sendable {
             !$0.hasDirectoryPath
                 && $0.deletingPathExtension().lastPathComponent == pageNumber
         }
-        return matched.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }).first
+        return matched.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
+            .first { isValidPageImage(imageUrl: $0) }
     }
 
     /// Reads only the image header, so this never decodes pixel data and stays cheap enough to run
