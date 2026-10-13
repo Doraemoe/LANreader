@@ -267,13 +267,7 @@ private extension ImageService {
 
         guard let imageSource = makeImageSource(imageUrl: imageUrl, imageData: imageData),
               let imageSize = imagePixelSize(from: imageSource) else {
-            return storeOriginalImage(
-                imageUrl: imageUrl,
-                imageData: imageData,
-                destinationUrl: destinationUrl,
-                pageNumber: pageNumber,
-                isAnimated: false
-            )
+            return nil
         }
 
         let shouldDownsample = shouldDownsampleImage(pixelSize: imageSize)
