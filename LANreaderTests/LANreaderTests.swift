@@ -38,6 +38,66 @@ class LANreaderTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: previewURL.path(percentEncoded: false)))
     }
 
+    func testStorePageImageRejectsInvalidAndTruncatedPayloads() throws {
+        let source = tempDirectory.appendingPathComponent("download.tmp")
+        let folder = tempDirectory.appendingPathComponent("pages")
+        let payloads = [
+            Data(), Data("<html>Unauthorized</html>".utf8), Data("{\"error\":\"failed\"}".utf8),
+            Data(makeJPEGData(color: .red).dropLast(32)), Data(makeTransparentPNGData().dropLast(20))
+        ]
+        for payload in payloads {
+            try payload.write(to: source)
+            XCTAssertNil(ImageService.shared.storePageImage(
+                imageUrl: source, destinationUrl: folder, pageNumber: "1", splitWideImages: false
+            ))
+        }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: folder.path))
+    }
+
+    func testValidStoredPageNumbersCountsOnlyDistinctCompleteImagesInRange() throws {
+        let good = makeJPEGData(color: .blue)
+        for filename in ["0.jpg", "1.jpg", "1.png", "4.jpg"] {
+            try good.write(to: tempDirectory.appendingPathComponent(filename))
+        }
+        try Data("error".utf8).write(to: tempDirectory.appendingPathComponent("2.jpg"))
+        try Data(good.dropLast(32)).write(to: tempDirectory.appendingPathComponent("3.jpg"))
+        XCTAssertEqual(ImageService.shared.validStoredPageNumbers(folderUrl: tempDirectory, totalPages: 3), [1])
+    }
+
+    func testSuccessfulPageReplacementRemovesInvalidAndOlderFormats() throws {
+        let source = tempDirectory.appendingPathComponent("download.tmp")
+        let folder = tempDirectory.appendingPathComponent("pages")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try Data("error".utf8).write(to: folder.appendingPathComponent("1.img"))
+        try makeJPEGData(color: .blue).write(to: folder.appendingPathComponent("1.jpg"))
+        let replacement = makeTransparentPNGData()
+        try replacement.write(to: source)
+        let stored = try XCTUnwrap(ImageService.shared.storePageImage(
+            imageUrl: source, destinationUrl: folder, pageNumber: "1", splitWideImages: false
+        ))
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path), ["1.png"])
+        XCTAssertEqual(ImageService.shared.storedImagePath(folderUrl: folder, pageNumber: "1"), stored.url)
+        XCTAssertEqual(try Data(contentsOf: stored.url), replacement)
+    }
+
+    func testPageStorageKeepsNewImageWhenFolderURLHasABaseURL() throws {
+        let source = tempDirectory.appendingPathComponent("download.tmp")
+        let folder = try XCTUnwrap(URL(string: "current%20session/pages/", relativeTo: tempDirectory))
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try Data("error".utf8).write(to: folder.appendingPathComponent("1.img"))
+        let good = makeJPEGData(color: .blue)
+        try good.write(to: source)
+
+        let stored = try XCTUnwrap(ImageService.shared.storePageImage(
+            imageUrl: source, destinationUrl: folder, pageNumber: "1", splitWideImages: false
+        ))
+
+        XCTAssertEqual(try Data(contentsOf: stored.url), good)
+        let lookup = try XCTUnwrap(ImageService.shared.storedImagePath(folderUrl: folder, pageNumber: "1"))
+        XCTAssertEqual(try Data(contentsOf: lookup), good)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path), ["1.jpg"])
+    }
+
     func testStorePreviewImageWritesPreviewForCompleteJPEGData() throws {
         let previewURL = tempDirectory.appendingPathComponent("preview.jpg")
         let service = ImageService.shared

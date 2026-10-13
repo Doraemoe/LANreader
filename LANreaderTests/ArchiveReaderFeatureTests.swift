@@ -2586,7 +2586,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testCacheFeatureLoadCountsDistinctValidPagesAndCanCancelPolling() async throws {
+    func testCacheFeatureLoadCountsValidPagesAndStopsWhenDownloadsHaveEnded() async throws {
         let id = "cacheProgressPolling"
         let cacheFolder = LANraragiService.cachePath!.appendingPathComponent(id, conformingTo: .folder)
         try? FileManager.default.removeItem(at: cacheFolder)
@@ -2594,7 +2594,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         for filename in ["0.jpg", "1.jpg", "1.png", "4.jpg", "notes.txt"] {
             _ = FileManager.default.createFile(
                 atPath: cacheFolder.appendingPathComponent(filename).path,
-                contents: Data()
+                contents: makeCacheTestImageData()
             )
         }
         addTeardownBlock {
@@ -2632,7 +2632,10 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.receive(.updateProgressInDownloading(id, 1)) {
             $0.downloading[id]?.current = 1
         }
-        await task.cancel()
+        await store.receive(.cacheDownloadFailed(id)) {
+            $0.failedDownloads.insert(id)
+        }
+        await task.finish()
 
         XCTAssertEqual(try database.readCache(id)?.cached, false)
     }
@@ -2646,7 +2649,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         for page in 1...2 {
             _ = FileManager.default.createFile(
                 atPath: cacheFolder.appendingPathComponent("\(page).jpg").path,
-                contents: Data()
+                contents: makeCacheTestImageData()
             )
         }
         addTeardownBlock {
@@ -4316,6 +4319,14 @@ private func stubTankoubonProgressUpdate(
             headers: ["Content-Type": "application/json"]
         )
     }
+}
+
+private func makeCacheTestImageData() -> Data {
+    let image = UIGraphicsImageRenderer(size: CGSize(width: 8, height: 8)).image { context in
+        UIColor.blue.setFill()
+        context.fill(CGRect(x: 0, y: 0, width: 8, height: 8))
+    }
+    return image.jpegData(compressionQuality: 0.9)!
 }
 
 private func makeInMemoryDatabase() throws -> AppDatabase {

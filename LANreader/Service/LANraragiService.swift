@@ -6,6 +6,7 @@ import Foundation
 import Alamofire
 import Logging
 import Dependencies
+import os
 
 actor LANraragiService {
     public static let downloadPath = try? FileManager.default.url(
@@ -39,12 +40,16 @@ actor LANraragiService {
 
     private var urlSession: URLSession?
     private var urlSessionDelegate: URLSessionDelegateHandler?
+    private let backgroundSessionConfiguration: URLSessionConfiguration?
+    private var queuingCacheIDs: Set<String> = []
 
-    private(set) var useNewAPI: Bool = false
+    // shortcut: Offline startup assumes the new API; revisit if legacy-server recovery is needed.
+    private(set) var useNewAPI: Bool = true
     private(set) var supportsStamps: Bool?
     private(set) var supportsChapterMutations: Bool?
 
-    private init() {
+    init(backgroundSessionConfiguration: URLSessionConfiguration? = nil) {
+        self.backgroundSessionConfiguration = backgroundSessionConfiguration
         self.session = Session(interceptor: authInterceptor)
         self.snakeCaseEncoder = JSONDecoder()
         self.snakeCaseEncoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -54,7 +59,8 @@ actor LANraragiService {
         if let urlSession = urlSession {
             return urlSession
         }
-        let config = URLSessionConfiguration.background(withIdentifier: "com.jif.LANreader.download")
+        let config = backgroundSessionConfiguration
+            ?? URLSessionConfiguration.background(withIdentifier: "com.jif.LANreader.download")
         config.isDiscretionary = false
         config.httpMaximumConnectionsPerHost = 5
         let delegate = URLSessionDelegateHandler(imageService: imageService)
@@ -501,14 +507,6 @@ actor LANraragiService {
         return session.download(request).validate()
     }
 
-    func backgroupFetchArchivePage(page: String, archiveId: String, pageNumber: Int) {
-        var request = URLRequest(url: resolveArchivePageURL(page: page))
-        request.setValue("Bearer \(authInterceptor.encodedApiKey())", forHTTPHeaderField: "Authorization")
-        request.setValue(archiveId, forHTTPHeaderField: "X-Archive-Id")
-        request.setValue("\(pageNumber)", forHTTPHeaderField: "X-Page-Number")
-        getURLSession().downloadTask(with: request).resume()
-    }
-
     func clearNewFlag(id: String) -> DataTask<String> {
         session.request("\(url)/api/archives/\(id)/isnew", method: .delete)
             .validate(statusCode: 200...200)
@@ -591,6 +589,47 @@ actor LANraragiService {
     }
 }
 
+extension LANraragiService {
+    func backgroupFetchArchivePage(page: String, archiveId: String, pageNumber: Int) {
+        var request = URLRequest(url: resolveArchivePageURL(page: page))
+        request.setValue("Bearer \(authInterceptor.encodedApiKey())", forHTTPHeaderField: "Authorization")
+        request.setValue(archiveId, forHTTPHeaderField: "X-Archive-Id")
+        request.setValue("\(pageNumber)", forHTTPHeaderField: "X-Page-Number")
+        let task = getURLSession().downloadTask(with: request)
+        urlSessionDelegate?.track(task)
+        task.resume()
+    }
+
+    func activeCacheDownloadIDs() async -> Set<String> {
+        let tasks = await getURLSession().allTasks
+        let restoredIDs = tasks.compactMap { task in
+            task.state == .completed ? nil : task.originalRequest?.value(forHTTPHeaderField: "X-Archive-Id")
+        }
+        return queuingCacheIDs.union(urlSessionDelegate?.activeArchiveIDs() ?? []).union(restoredIDs)
+    }
+
+    func cachePages(archiveId: String, pages: [ReaderExtractedPage]) async throws {
+        guard queuingCacheIDs.insert(archiveId).inserted else { return }
+        defer { queuingCacheIDs.remove(archiveId) }
+        let tasks = await getURLSession().allTasks
+        try Task.checkCancellation()
+        let activePages = Set(tasks.compactMap { task -> Int? in
+            guard task.state != .completed,
+                  task.originalRequest?.value(forHTTPHeaderField: "X-Archive-Id") == archiveId else { return nil }
+            return task.originalRequest?.value(forHTTPHeaderField: "X-Page-Number").flatMap(Int.init)
+        }).union(urlSessionDelegate?.activePageNumbers(archiveId: archiveId) ?? [])
+        let folder = Self.cachePath?.appendingPathComponent(archiveId, conformingTo: .folder)
+        let storedPages = imageService.validStoredPageNumbers(folderUrl: folder, totalPages: pages.count)
+        // shortcut: Retry assumes unchanged source page order; add a mapping if mutable books need support.
+        for (index, page) in pages.enumerated() where !storedPages.contains(index + 1)
+            && !activePages.contains(index + 1) {
+            try Task.checkCancellation()
+            backgroupFetchArchivePage(page: page.path, archiveId: archiveId, pageNumber: index + 1)
+        }
+    }
+
+}
+
 final class AuthInterceptor: RequestInterceptor, Sendable {
 
     private let apiKey: String
@@ -615,24 +654,61 @@ final class AuthInterceptor: RequestInterceptor, Sendable {
 // Separate class to handle URLSession delegate callbacks since actors can't conform to @objc protocols
 final class URLSessionDelegateHandler: NSObject, URLSessionDelegate, URLSessionDownloadDelegate, Sendable {
     private let imageService: ImageService
+    private let activeRequests = OSAllocatedUnfairLock(initialState: [Int: URLRequest]())
+    private let logger = Logger(label: "CacheDownload")
 
     init(imageService: ImageService) {
         self.imageService = imageService
     }
 
+    func track(_ task: URLSessionTask) {
+        guard let request = task.originalRequest else { return }
+        activeRequests.withLock { $0[task.taskIdentifier] = request }
+    }
+
+    func activeArchiveIDs() -> Set<String> {
+        activeRequests.withLock { requests in
+            Set(requests.values.compactMap { $0.value(forHTTPHeaderField: "X-Archive-Id") })
+        }
+    }
+
+    func activePageNumbers(archiveId: String) -> Set<Int> {
+        activeRequests.withLock { requests in
+            Set(requests.values.compactMap { request in
+                guard request.value(forHTTPHeaderField: "X-Archive-Id") == archiveId else { return nil }
+                return request.value(forHTTPHeaderField: "X-Page-Number").flatMap(Int.init)
+            })
+        }
+    }
+
+    func urlSession(_: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        activeRequests.withLock { _ = $0.removeValue(forKey: task.taskIdentifier) }
+        if let error {
+            logger.error("Cache download failed: \(error.localizedDescription)")
+        }
+    }
+
     func urlSession(_: URLSession, downloadTask task: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+        track(task)
+        guard let response = task.response as? HTTPURLResponse, response.statusCode == 200 else {
+            logger.error("Cache download returned an unsuccessful response")
+            return
+        }
         let splitImage = UserDefaults.standard.bool(forKey: SettingsKey.splitWideImage)
 
         if let archiveId = task.originalRequest?.value(forHTTPHeaderField: "X-Archive-Id"),
            let pageNumber = task.originalRequest?.value(forHTTPHeaderField: "X-Page-Number"),
            let cachePath = LANraragiService.cachePath {
             let folder = cachePath.appendingPathComponent(archiveId, conformingTo: .folder)
-            _ = imageService.storePageImage(
+            let stored = imageService.storePageImage(
                 imageUrl: location,
                 destinationUrl: folder,
                 pageNumber: pageNumber,
                 splitWideImages: splitImage
             )
+            if stored == nil {
+                logger.error("Cache page was invalid or could not be saved. archive=\(archiveId) page=\(pageNumber)")
+            }
         }
     }
 }
