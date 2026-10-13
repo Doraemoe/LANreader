@@ -58,6 +58,9 @@ import SwiftUI
                 return .none
             case let .setErrorMessage(message):
                 state.errorMessage = message
+                if !message.isEmpty {
+                    state.showLoading = false
+                }
                 return .none
             case .binding:
                 return .none
