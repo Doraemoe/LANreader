@@ -35,6 +35,7 @@ import GRDBQuery
         Reduce { state, action in
             switch action {
             case let .load(force):
+                guard !state.cached else { return .none }
                 let exists = try? database.existsArchiveThumbnail(state.id)
                 if !force && exists == true {
                     return .none
@@ -82,9 +83,10 @@ struct ArchiveGridV2: View {
     }
 
     var body: some View {
-        let thumbnailObj = try? database.readArchiveThumbnail(store.id)
+        let thumbnailData = (try? database.readArchiveThumbnail(store.id))?.thumbnail
+            ?? (store.cached ? (try? database.readCache(store.id))?.thumbnail : nil)
         ZStack {
-            imageView(thumbnailObj: thumbnailObj)
+            imageView(thumbnailData: thumbnailData)
                 .id(store.nonce)
             bottomGradient
             topBadges
@@ -176,8 +178,8 @@ struct ArchiveGridV2: View {
     }
 
     @ViewBuilder
-    private func imageView(thumbnailObj: ArchiveThumbnail?) -> some View {
-        if let thumbnailData = thumbnailObj?.thumbnail, let uiImage = UIImage(data: thumbnailData) {
+    private func imageView(thumbnailData: Data?) -> some View {
+        if let thumbnailData, let uiImage = UIImage(data: thumbnailData) {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFit()

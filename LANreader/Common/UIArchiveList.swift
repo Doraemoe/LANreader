@@ -650,7 +650,7 @@ extension ArchiveListFeature {
                 id: id,
                 title: archive.name,
                 tags: archive.tags,
-                thumbnail: Data(),
+                thumbnail: (try? database.readArchiveThumbnail(id))?.thumbnail,
                 cached: false,
                 totalPages: extraction.pages.count,
                 toc: extraction.tankoubonDetails?.toc ?? archive.toc,

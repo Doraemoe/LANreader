@@ -306,6 +306,61 @@ final class CacheDownloadTests: XCTestCase {
     }
 
     @MainActor
+    func testCachedCoversSurviveDatabaseClearAndStayOffline() async throws {
+        let cover = cacheTestImageData()
+        let previousCover = UIImage(systemName: "book")!.pngData()!
+        let storedCovers: [Data?] = [nil, Data(), previousCover, cover]
+        stub(condition: isHost("localhost")) { @Sendable _ in
+            XCTFail("Cached covers must not request the server")
+            return HTTPStubsResponse(error: URLError(.notConnectedToInternet))
+        }
+        for id in ["cached-cover", "TANK_cached-cover"] {
+            for oldCover in storedCovers {
+                let database = try AppDatabase(DatabaseQueue())
+                var cache = ArchiveCache(
+                    id: id, title: "Archive", tags: "", thumbnail: oldCover,
+                    cached: true, totalPages: 1, toc: nil, lastUpdate: Date()
+                )
+                try database.saveCache(&cache)
+                var thumbnail = ArchiveThumbnail(id: id, thumbnail: cover, lastUpdate: Date())
+                try database.saveArchiveThumbnail(&thumbnail)
+                let state = GridFeature.State(archive: Shared(value: cache.toArchiveItem()), cached: true)
+                let service = LANraragiService(backgroundSessionConfiguration: .ephemeral)
+                let gridStore = Store(initialState: state) { GridFeature() } withDependencies: {
+                    $0.appDatabase = database
+                    $0.lanraragiService = service
+                }
+                let renderedCover = try XCTUnwrap(renderCachedCover(gridStore, database: database))
+                try database.clearDatabase()
+                XCTAssertNil(try database.readArchiveThumbnail(id))
+                XCTAssertEqual(try database.readCache(id)?.thumbnail, cover)
+                XCTAssertEqual(renderCachedCover(gridStore, database: database), renderedCover)
+
+                let store = TestStore(initialState: state) { GridFeature() } withDependencies: {
+                    $0.appDatabase = database
+                    $0.lanraragiService = service
+                }
+                for force in [false, true] {
+                    await store.send(.load(force))
+                    await store.finish()
+                }
+            }
+        }
+    }
+
+    func testClearingDatabasePreservesCachedCoverWithoutSharedThumbnail() throws {
+        let database = try AppDatabase(DatabaseQueue())
+        let cover = Data("saved cover".utf8)
+        var cache = ArchiveCache(
+            id: "cached-cover", title: "Archive", tags: "", thumbnail: cover,
+            cached: true, totalPages: 1, toc: nil, lastUpdate: Date(timeIntervalSince1970: 1), progress: 1
+        )
+        try database.saveCache(&cache)
+        try database.clearDatabase()
+        XCTAssertEqual(try database.readCache(cache.id), cache)
+    }
+
+    @MainActor
     func testReaderCacheActionDownloadsSplitSourcePageOnce() async throws {
         let id = "cacheReader-" + UUID().uuidString
         let folder = LANraragiService.cachePath!.appendingPathComponent(id)
@@ -325,6 +380,8 @@ final class CacheDownloadTests: XCTestCase {
             PageFeature.State(archiveId: id, pageId: "/cache-reader/2", pageNumber: 2)
         ]
         let database = try AppDatabase(DatabaseQueue())
+        var thumbnail = ArchiveThumbnail(id: id, thumbnail: good, lastUpdate: Date())
+        try database.saveArchiveThumbnail(&thumbnail)
         let service = LANraragiService(backgroundSessionConfiguration: .ephemeral)
         let store = TestStore(initialState: state) { ArchiveReaderFeature() } withDependencies: {
             $0.appDatabase = database
@@ -337,6 +394,9 @@ final class CacheDownloadTests: XCTestCase {
         try await waitForCacheDownloads(service, archiveId: id)
         XCTAssertEqual(requests.withLock { $0.sorted() }, [1, 2])
         XCTAssertEqual(try database.readCache(id)?.totalPages, 2)
+        XCTAssertEqual(try database.readCache(id)?.thumbnail, good)
+        try database.clearDatabase()
+        XCTAssertEqual(try database.readCache(id)?.thumbnail, good)
         XCTAssertEqual(ImageService.shared.validStoredPageNumbers(folderUrl: folder, totalPages: 2), [1, 2])
     }
 
@@ -410,6 +470,16 @@ final class CacheDownloadTests: XCTestCase {
         ))
     }
 
+}
+
+@MainActor
+private func renderCachedCover(_ store: StoreOf<GridFeature>, database: AppDatabase) -> Data? {
+    withDependencies {
+        $0.appDatabase = database
+    } operation: {
+        ImageRenderer(content: ArchiveGridV2(store: store).frame(width: 180, height: 270))
+            .uiImage?.pngData()
+    }
 }
 
 private func cacheTestImageData() -> Data {

@@ -476,14 +476,8 @@ final class ArchiveListFeatureTests: XCTestCase {
             ]
         )
         let archive = ArchiveItem(
-            id: archiveId,
-            name: "Archive to Cache",
-            extension: "zip",
-            tags: "artist:Example",
-            isNew: false,
-            progress: 1,
-            pagecount: 2,
-            dateAdded: nil,
+            id: archiveId, name: "Archive to Cache", extension: "zip",
+            tags: "artist:Example", isNew: false, progress: 1, pagecount: 2, dateAdded: nil,
             toc: [ArchiveChapter(name: "Chapter", page: 1)]
         )
         var initialState = ArchiveListFeature.State(
@@ -494,6 +488,9 @@ final class ArchiveListFeatureTests: XCTestCase {
         initialState.archives = [GridFeature.State(archive: Shared(value: archive))]
 
         let database = try makeArchiveListTestDatabase()
+        let cover = Data([0xFF, 0xD8, 0xFF, 0xDB])
+        var thumbnail = ArchiveThumbnail(id: archiveId, thumbnail: cover, lastUpdate: Date())
+        try database.saveArchiveThumbnail(&thumbnail)
         let store = TestStore(initialState: initialState) {
             ArchiveListFeature()
         } withDependencies: {
@@ -515,7 +512,10 @@ final class ArchiveListFeatureTests: XCTestCase {
         XCTAssertEqual(cache.totalPages, 2)
         XCTAssertEqual(cache.toc, archive.toc)
         XCTAssertEqual(cache.progress, archive.progress)
+        XCTAssertEqual(cache.thumbnail, cover)
         XCTAssertFalse(cache.cached)
+        try database.clearDatabase()
+        XCTAssertEqual(try database.readCache(archiveId)?.thumbnail, cover)
     }
 
     @MainActor
