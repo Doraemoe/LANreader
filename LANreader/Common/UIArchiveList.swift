@@ -455,15 +455,8 @@ import Logging
             case .loadCategory:
                 return .run { send in
                     let categories = try await service.retrieveCategories().value
-                    let items = categories.map { item in
-                        item.toCategoryItem()
-                    }.sorted { first, second in
-                        if first.pinned != "1" && second.pinned == "1" {
-                            return false
-                        } else {
-                            return true
-                        }
-                    }
+                    let items = categories.map { $0.toCategoryItem() }
+                        .sorted { $0.pinned == "1" && $1.pinned != "1" }
                     await send(.populateCategory(items))
                 } catch: { error, send in
                     logger.error("failed to load category. \(error)")
