@@ -373,15 +373,6 @@ extension AppDatabase {
 
     func clearDatabase() throws {
         try dbWriter.write { database in
-            try database.execute(sql: """
-                UPDATE archiveCache
-                SET thumbnail = (
-                    SELECT thumbnail FROM archiveThumbnail WHERE archiveThumbnail.id = archiveCache.id
-                )
-                WHERE id IN (
-                    SELECT id FROM archiveThumbnail WHERE length(thumbnail) > 0
-                )
-                """)
             _ = try Archive.deleteAll(database)
             _ = try ArchiveThumbnail.deleteAll(database)
             _ = try ArchiveImage.deleteAll(database)
