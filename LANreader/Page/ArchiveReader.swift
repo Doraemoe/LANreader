@@ -958,7 +958,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                     }
                     .cancellable(id: CancelId.updateProgress, cancelInFlight: true)
                 }
-                return .run(priority: .background) { [state] _ in
+                let progressEffect: Effect<Action> = .run(priority: .background) { [state] _ in
                     try await clock.sleep(for: .seconds(0.5))
                     if state.serverProgress {
                         if isTank {
@@ -971,13 +971,17 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                             ).value
                         }
                     }
-                    if shouldClearNewFlag {
-                        _ = try await service.clearNewFlag(id: state.currentArchiveId).value
-                    }
                 } catch: { [state] error, _ in
                     logger.error("failed to update archive progress. id=\(state.currentArchiveId) \(error)")
                 }
                 .cancellable(id: CancelId.updateProgress, cancelInFlight: true)
+                guard shouldClearNewFlag else { return progressEffect }
+                return .merge(
+                    progressEffect,
+                    .run(priority: .background) { [id = state.currentArchiveId] _ in
+                        _ = await service.clearNewFlag(id: id)
+                    }
+                )
             case let .chapterSelected(pageNumber):
                 guard let pageIndex = state.pages.firstIndex(where: { $0.pageNumber == pageNumber }) else {
                     return .none

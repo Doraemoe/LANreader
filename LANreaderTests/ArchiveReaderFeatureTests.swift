@@ -2018,6 +2018,52 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testRapidPageTurnsSendNewFlagBeforeProgressDebounce() async throws {
+        configureReaderDefaults()
+        try await configureVerifiedClient()
+
+        let clock = TestClock()
+        let flagSent = expectation(description: "new flag request sent")
+        flagSent.assertForOverFulfill = true
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/archive/isnew")
+                && isMethodDELETE()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { @Sendable _ in
+            flagSent.fulfill()
+            return HTTPStubsResponse(data: Data(), statusCode: 401, headers: nil)
+        }
+        let progressUpdated = expectation(description: "latest progress updated")
+        stubArchiveProgressUpdate(archiveId: "archive", progress: 3, expectation: progressUpdated)
+
+        var initialState = makeState(isNew: true)
+        initialState.pages = makePageStates(count: 4)
+        initialState.$serverProgress = SharedReader(value: true)
+        let store = makeTestStore(initialState: initialState) {
+            $0.continuousClock = clock
+        }
+
+        await store.send(.visiblePageChanged(1)) {
+            $0.currentPageIndex = 1
+            $0.allArchives[id: "archive"]?.withLock {
+                $0.progress = 2
+                $0.isNew = false
+            }
+        }
+        await store.send(.visiblePageChanged(2)) {
+            $0.currentPageIndex = 2
+            $0.allArchives[id: "archive"]?.withLock {
+                $0.progress = 3
+            }
+        }
+        await fulfillment(of: [flagSent], timeout: 1)
+        await clock.advance(by: .seconds(1))
+        await fulfillment(of: [progressUpdated], timeout: 1)
+        await store.finish()
+        XCTAssertFalse(store.state.allArchives[id: "archive"]!.wrappedValue.isNew)
+        XCTAssertTrue(store.state.errorMessage.isEmpty)
+    }
+
+    @MainActor
     func testVisiblePageChangedUsesArchiveProgressEndpointForNormalArchive() async throws {
         configureReaderDefaults()
         try await configureVerifiedClient()
