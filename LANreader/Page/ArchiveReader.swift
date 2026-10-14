@@ -1381,7 +1381,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                         id: state.currentArchiveId,
                         title: archive.name,
                         tags: archive.tags,
-                        thumbnail: Data(),
+                        thumbnail: (try? database.readArchiveThumbnail(state.currentArchiveId))?.thumbnail,
                         cached: false,
                         totalPages: pages.count,
                         toc: archive.toc,
