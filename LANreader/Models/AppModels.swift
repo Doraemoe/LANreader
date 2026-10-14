@@ -45,14 +45,6 @@ enum ReadDirection: String, CaseIterable, Identifiable {
     var id: String { self.rawValue }
 }
 
-enum ArchiveListOrder: String, CaseIterable, Identifiable {
-    case name
-    case dateAdded
-    case random
-
-    var id: String { self.rawValue }
-}
-
 enum SearchSort: String, CaseIterable, Identifiable {
     case name = "title"
     case dateAdded = "date_added"
@@ -74,18 +66,6 @@ enum SearchSortOrder: String, CaseIterable, Identifiable {
     case desc
 
     var id: String { self.rawValue }
-}
-
-enum CompressThreshold: Int, CaseIterable, Identifiable {
-    case never, one, two, three, four
-
-    var id: Int { self.rawValue }
-}
-
-enum ArchiveSelectFor: Int, CaseIterable, Identifiable {
-    case library, categoryStatic, categoryDynamic, search
-
-    var id: Int { self.rawValue }
 }
 
 struct SettingsKey {

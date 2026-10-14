@@ -168,30 +168,6 @@ extension AppDatabase {
         }
     }
 
-    func saveArchive(_ archive: inout Archive) throws {
-        try dbWriter.write { database in
-            try archive.save(database)
-        }
-    }
-
-    func readArchive(_ id: String) throws -> Archive? {
-        try dbReader.read { database in
-            try Archive.fetchOne(database, key: id)
-        }
-    }
-
-    func readAllArchive() throws -> [Archive] {
-        try dbReader.read { database in
-            try Archive.fetchAll(database)
-        }
-    }
-
-    func deleteAllArchive() throws -> Int {
-        try dbWriter.write { database in
-            try Archive.deleteAll(database)
-        }
-    }
-
     func saveTag(tagItem: inout TagItem) throws {
         try dbWriter.write { database in
             try tagItem.save(database)
@@ -249,20 +225,6 @@ extension AppDatabase {
         }
     }
 
-    func updateArchiveProgress(_ archiveId: String, progress: Int) throws -> Int {
-        try dbWriter.write { database in
-            try Archive
-                    .filter(id: archiveId)
-                    .updateAll(database, Column("progress").set(to: progress))
-        }
-    }
-
-    func deleteArchive(_ archiveId: String) throws -> Bool {
-        try dbWriter.write { database in
-            try Archive.deleteOne(database, id: archiveId)
-        }
-    }
-
     func saveArchiveThumbnail(_ archiveThumbnail: inout ArchiveThumbnail) throws {
         try dbWriter.write { database in
             try archiveThumbnail.save(database)
@@ -275,57 +237,9 @@ extension AppDatabase {
         }
     }
 
-    func deleteArchiveThumbnail(_ id: String) throws -> Bool {
-        try dbWriter.write { database in
-            try ArchiveThumbnail.deleteOne(database, key: id)
-        }
-    }
-
     func existsArchiveThumbnail(_ id: String) throws -> Bool {
         try dbReader.read { database in
             try ArchiveThumbnail.exists(database, key: id)
-        }
-    }
-
-    func saveArchiveImage(_ image: inout ArchiveImage) throws {
-        try dbWriter.write { database in
-            try image.save(database)
-        }
-    }
-
-    func readArchiveImage(_ id: String) throws -> ArchiveImage? {
-        try dbReader.read { database in
-            try ArchiveImage.fetchOne(database, key: id)
-        }
-    }
-
-    func existsArchiveImage(_ id: String) throws -> Bool {
-        try dbReader.read { database in
-            try ArchiveImage.exists(database, key: id)
-        }
-    }
-
-    func deleteArchiveImage(_ id: String) throws -> Bool {
-        try dbWriter.write { database in
-            try ArchiveImage.deleteOne(database, key: id)
-        }
-    }
-
-    func readAllCategories() throws -> [Category] {
-        try dbReader.read { database in
-            try Category.fetchAll(database)
-        }
-    }
-
-    func saveCategory(_ category: inout Category) throws {
-        try dbWriter.write { database in
-            try category.save(database)
-        }
-    }
-
-    func deleteAllCategory() throws -> Int {
-        try dbWriter.write { database in
-            try Category.deleteAll(database)
         }
     }
 
@@ -345,26 +259,6 @@ extension AppDatabase {
         try dbWriter.write({ database in
             try DownloadJob.deleteOne(database, key: id)
         })
-    }
-
-    func saveHistory(_ history: inout History) throws {
-        try dbWriter.write { database in
-            try history.save(database)
-        }
-    }
-
-    func readAllArchiveHistory() throws -> [History] {
-        try dbReader.read { database in
-            try History
-                .order(Column("lastUpdate").desc)
-                .fetchAll(database)
-        }
-    }
-
-    func deleteHistories(_ ids: [String]) throws -> Int {
-        try dbWriter.write { database in
-            try History.deleteAll(database, ids: ids)
-        }
     }
 
     func databaseSize() throws -> Int? {
