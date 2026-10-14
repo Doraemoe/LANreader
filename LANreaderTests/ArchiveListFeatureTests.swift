@@ -695,7 +695,7 @@ func makePaginatedArchiveListState() -> ArchiveListFeature.State {
     state.$searchSort = Shared(value: SearchSort.dateAdded.rawValue)
     state.$searchSortOrder = Shared(value: SearchSortOrder.desc.rawValue)
     state.$hideRead = Shared(value: false)
-    // Pagination tests must not launch the unrelated detached tag-refresh request.
+    // Pagination tests must not start the unrelated tag-refresh effect.
     state.$lastTagRefresh = Shared(value: Date().timeIntervalSince1970)
     return state
 }

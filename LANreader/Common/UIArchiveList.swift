@@ -78,6 +78,7 @@ import Logging
     public enum Action: Equatable {
         case grid(IdentifiedActionOf<GridFeature>)
         case loadCategory
+        case tagsRefreshed
         case populateCategory([CategoryItem])
         case addArchivesToCategory(String)
         case addArchivesToCategoryFinished(String, Set<String>, Bool)
@@ -121,6 +122,9 @@ import Logging
     public var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
+            case .tagsRefreshed:
+                state.$lastTagRefresh.withLock { $0 = Date().timeIntervalSince1970 }
+                return .none
             case .toggleSelectionMode:
                 guard !state.batchActionInProgress else { return .none }
                 if state.selectMode != .active && state.loading {
@@ -679,13 +683,15 @@ extension ArchiveListFeature {
         state.loading = true
         state.currentPage = page
         let start = PaginationPositioning.itemOffset(page: page, pageSize: state.serverPageSize)
-        populateTags(state: &state)
-        return search(
-            searchFilter: state.filter,
-            sort: (by: state.searchSort, order: state.searchSortOrder),
-            start: String(start),
-            append: false,
-            cancellationID: state.searchCancellationID
+        return .merge(
+            populateTags(state: state),
+            search(
+                searchFilter: state.filter,
+                sort: (by: state.searchSort, order: state.searchSortOrder),
+                start: String(start),
+                append: false,
+                cancellationID: state.searchCancellationID
+            )
         )
     }
 
@@ -713,34 +719,22 @@ extension ArchiveListFeature {
         return .send(.load)
     }
 
-    func populateTags(state: inout State) {
-        let currentTime = Date().timeIntervalSince1970
-        let lastUpdateTime = state.lastTagRefresh
-        let excludeTags = ["date_added", "source"]
+    func populateTags(state: State) -> EffectOf<Self> {
         // refresh only after 1 day
-        if currentTime - lastUpdateTime > 86400 {
-            state.$lastTagRefresh.withLock {
-                $0 = Date().timeIntervalSince1970
-            }
-            Task.detached(priority: .utility) {
-                do {
-                    let response = try await service.databaseStats().value
-                    _ = try database.deleteAllTag()
-                    response.forEach { tag in
-                        if !excludeTags.contains(tag.namespace) {
-                            let count = Int(tag.weight) ?? 1
-                            var tagItem = if tag.namespace.isEmpty {
-                                TagItem(tag: tag.text, count: count)
-                            } else {
-                                TagItem(tag: "\(tag.namespace):\(tag.text)", count: count)
-                            }
-                            try? database.saveTag(tagItem: &tagItem)
-                        }
-                    }
-                } catch {
-                    logger.error("failed to refresh tags. \(error)")
-                    UserDefaults.standard.set(lastUpdateTime, forKey: SettingsKey.lastTagRefresh)
+        guard Date().timeIntervalSince1970 - state.lastTagRefresh > 86400 else { return .none }
+        return .run(priority: .utility) { send in
+            do {
+                let response = try await service.databaseStats().value
+                let tags = response.filter { !["date_added", "source"].contains($0.namespace) }.map { tag in
+                    TagItem(
+                        tag: tag.namespace.isEmpty ? tag.text : "\(tag.namespace):\(tag.text)",
+                        count: Int(tag.weight) ?? 1
+                    )
                 }
+                try database.replaceTags(tags)
+                await send(.tagsRefreshed)
+            } catch {
+                logger.error("failed to refresh tags. \(error)")
             }
         }
     }

@@ -52,6 +52,7 @@
 		E91EE6832CAB78ED0046853C /* UIArchiveReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E91EE6822CAB78E80046853C /* UIArchiveReader.swift */; };
 		E91EE6852CAB94FC0046853C /* UIPageCollection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E91EE6842CAB94F60046853C /* UIPageCollection.swift */; };
 		E920C23D307E321B0085F875 /* CategoryFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E920C23C307E321B0085F875 /* CategoryFeatureTests.swift */; };
+		E920C257307F704E0085F875 /* TagRefreshFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E920C256307F704E0085F875 /* TagRefreshFeatureTests.swift */; };
 		E93C0F872D93ACF400B030AE /* TransactionObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = E93C0F862D93ACF400B030AE /* TransactionObserver.swift */; };
 		E93CBBA92E274F9A00AE7EEC /* TranslationStreamHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = E93CBBA82E274F9200AE7EEC /* TranslationStreamHandler.swift */; };
 		E94C1DDC2A204DDA00552ABD /* ImageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E94C1DDB2A204DDA00552ABD /* ImageService.swift */; };
@@ -195,6 +196,7 @@
 		E91EE6822CAB78E80046853C /* UIArchiveReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIArchiveReader.swift; sourceTree = "<group>"; };
 		E91EE6842CAB94F60046853C /* UIPageCollection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIPageCollection.swift; sourceTree = "<group>"; };
 		E920C23C307E321B0085F875 /* CategoryFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryFeatureTests.swift; sourceTree = "<group>"; };
+		E920C256307F704E0085F875 /* TagRefreshFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TagRefreshFeatureTests.swift; sourceTree = "<group>"; };
 		E93C0F862D93ACF400B030AE /* TransactionObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionObserver.swift; sourceTree = "<group>"; };
 		E93CBBA82E274F9200AE7EEC /* TranslationStreamHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationStreamHandler.swift; sourceTree = "<group>"; };
 		E94C1DDB2A204DDA00552ABD /* ImageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageService.swift; sourceTree = "<group>"; };
@@ -483,6 +485,7 @@
 				7D354CB824F1316E00617F4A /* Info.plist */,
 				4BD820A697A4726B7B747BFD /* Service */,
 				E920C23C307E321B0085F875 /* CategoryFeatureTests.swift */,
+				E920C256307F704E0085F875 /* TagRefreshFeatureTests.swift */,
 			);
 			path = LANreaderTests;
 			sourceTree = "<group>";
@@ -819,6 +822,7 @@
 				E920C23D307E321B0085F875 /* CategoryFeatureTests.swift in Sources */,
 				F1A2B3D52F60000400DDD001 /* LANraragiConfigFeatureTests.swift in Sources */,
 				F1A2B3C62F60000200AAA001 /* ArchiveDetailsTagParserTests.swift in Sources */,
+				E920C257307F704E0085F875 /* TagRefreshFeatureTests.swift in Sources */,
 				F1A2B3CC2F70000100AAA001 /* ArchiveListFeatureTests.swift in Sources */,
 				F1A2B3CC2F70000100AAA002 /* ArchiveListBatchTests.swift in Sources */,
 				AB3870010000000000000001 /* ArchiveListSelectionTests.swift in Sources */,

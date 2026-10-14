@@ -240,9 +240,12 @@ extension AppDatabase {
         }
     }
 
-    func deleteAllTag() throws -> Int {
+    func replaceTags(_ tags: [TagItem]) throws {
         try dbWriter.write { database in
-            try TagItem.deleteAll(database)
+            _ = try TagItem.deleteAll(database)
+            for var tag in tags {
+                try tag.save(database)
+            }
         }
     }
 
