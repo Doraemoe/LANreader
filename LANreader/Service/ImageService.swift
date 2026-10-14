@@ -556,26 +556,3 @@ extension DependencyValues {
         set { self[ImageService.self] = newValue }
     }
 }
-
-extension UIImage {
-    var topHalf: UIImage? {
-        cgImage?.cropping(
-            to: CGRect(
-                origin: .zero,
-                size: CGSize(width: size.width, height: size.height / 2)
-            )
-        )?.image
-    }
-    var bottomHalf: UIImage? {
-        cgImage?.cropping(
-            to: CGRect(
-                origin: CGPoint(x: .zero, y: size.height - (size.height/2).rounded()),
-                size: CGSize(width: size.width, height: size.height - (size.height/2).rounded())
-            )
-        )?.image
-    }
-}
-
-extension CGImage {
-    var image: UIImage { .init(cgImage: self) }
-}
