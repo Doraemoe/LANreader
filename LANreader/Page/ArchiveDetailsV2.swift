@@ -123,13 +123,7 @@ import GRDBQuery
                             ))
                             return
                         }
-                        if let cachePath = LANraragiService.cachePath {
-                            let cacheFolder = cachePath.appendingPathComponent(
-                                id,
-                                conformingTo: .folder
-                            )
-                            try? FileManager.default.removeItem(at: cacheFolder)
-                        }
+                        await service.removeCachedPages(archiveId: id)
                         await send(.deleteSuccess)
                     } catch: { [id = state.archive.id] error, send in
                         logger.error("failed to remove archive cache, id=\(id) \(error)")

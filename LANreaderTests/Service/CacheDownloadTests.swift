@@ -451,6 +451,67 @@ final class CacheDownloadTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: folder.appendingPathComponent("2.img").path))
     }
 
+    func testRemovingCachedPagesCancelsInFlightDownloadsAndLeavesNoFolder() async throws {
+        let cacheService = LANraragiService(backgroundSessionConfiguration: .ephemeral)
+        let id = "cacheRemove-" + UUID().uuidString
+        let folder = LANraragiService.cachePath!.appendingPathComponent(id)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        stubSlowCachePages(pathPrefix: "/cache-remove/")
+        try await cacheService.cachePages(archiveId: id, pages: cacheTestPages(id: id, pathPrefix: "/cache-remove/"))
+
+        await cacheService.removeCachedPages(archiveId: id)
+        try await waitForCacheDownloads(cacheService, archiveId: id)
+        try await Task.sleep(for: .milliseconds(500))
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: folder.path))
+    }
+
+    func testCachingAgainAfterRemovalStoresPages() async throws {
+        let cacheService = LANraragiService(backgroundSessionConfiguration: .ephemeral)
+        let id = "cacheRecache-" + UUID().uuidString
+        let folder = LANraragiService.cachePath!.appendingPathComponent(id)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        stubSlowCachePages(pathPrefix: "/cache-recache/")
+        let pages = cacheTestPages(id: id, pathPrefix: "/cache-recache/")
+        try await cacheService.cachePages(archiveId: id, pages: pages)
+        await cacheService.removeCachedPages(archiveId: id)
+        try await waitForCacheDownloads(cacheService, archiveId: id)
+
+        try await cacheService.cachePages(archiveId: id, pages: pages)
+        try await waitForCacheDownloads(cacheService, archiveId: id)
+
+        XCTAssertEqual(ImageService.shared.validStoredPageNumbers(folderUrl: folder, totalPages: 3), [1, 2, 3])
+    }
+
+    @MainActor
+    func testRemovingCacheFromListCancelsInFlightDownloads() async throws {
+        let id = "cacheFeatureRemove-" + UUID().uuidString
+        let folder = LANraragiService.cachePath!.appendingPathComponent(id)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        stubSlowCachePages(pathPrefix: "/cache-feature-remove/")
+        let database = try AppDatabase(DatabaseQueue())
+        var cache = cacheTestRecord(id: id)
+        try database.saveCache(&cache)
+        let service = LANraragiService(backgroundSessionConfiguration: .ephemeral)
+        try await service.cachePages(archiveId: id, pages: cacheTestPages(id: id, pathPrefix: "/cache-feature-remove/"))
+        var initialState = CacheFeature.State()
+        initialState.downloading[id] = PageProgress(current: 0, total: 3)
+        let store = TestStore(initialState: initialState) { CacheFeature() } withDependencies: {
+            $0.appDatabase = database
+            $0.lanraragiService = service
+            $0.continuousClock = TestClock()
+        }
+        store.exhaustivity = .off
+
+        await store.send(.removeCache(id)) { $0.downloading.removeValue(forKey: id) }
+        await store.finish()
+        try await waitForCacheDownloads(service, archiveId: id)
+        try await Task.sleep(for: .milliseconds(500))
+
+        XCTAssertNil(try database.readCache(id))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: folder.path))
+    }
+
     func testBackgroundCacheTransportFailureLeavesNoPageOrActiveDownload() async throws {
         let cacheService = LANraragiService(backgroundSessionConfiguration: .ephemeral)
         let id = "cacheTransport-" + UUID().uuidString
@@ -483,6 +544,19 @@ private func cacheTestImageData() -> Data {
         UIColor.blue.setFill()
         context.fill(CGRect(x: 0, y: 0, width: 8, height: 8))
     }.jpegData(compressionQuality: 0.9)!
+}
+
+private func stubSlowCachePages(pathPrefix: String) {
+    let data = cacheTestImageData()
+    stub(condition: isHost("localhost") && pathStartsWith(pathPrefix)) { @Sendable _ in
+        let response = HTTPStubsResponse(data: data, statusCode: 200, headers: ["Content-Type": "image/jpeg"])
+        response.requestTime = 0.3
+        return response
+    }
+}
+
+private func cacheTestPages(id: String, pathPrefix: String, count: Int = 3) -> [ReaderExtractedPage] {
+    (1...count).map { ReaderExtractedPage(archiveId: id, path: "\(pathPrefix)\($0)", archivePageNumber: $0) }
 }
 
 private func waitForCacheDownloads(_ service: LANraragiService, archiveId: String) async throws {
