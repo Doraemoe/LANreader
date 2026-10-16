@@ -1308,6 +1308,12 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                 )
                 self.updateEstimatedPageAspectRatio(state: &state)
                 return .none
+            case let .page(.element(id: id, action: .load(true))):
+                self.setSplitSiblingsLoaded(false, id: id, state: &state)
+                return .none
+            case let .page(.element(id: id, action: .setError)):
+                self.setSplitSiblingsLoaded(true, id: id, state: &state)
+                return .none
             case .page:
                 return .none
             case .showAutoPageConfig:
@@ -1595,12 +1601,33 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         )
         insertedPage.imageLoaded = true
         insertedPage.imageAspectRatio = current.imageAspectRatio
+        // Match by half, not id: the original item keeps its normal id while showing a split half.
+        if let existingSiblingId = state.pages.first(where: {
+            $0.pageId == current.pageId && $0.id != id && $0.pageMode == siblingMode
+        })?.id {
+            state.pages[id: existingSiblingId]?.imageLoaded = true
+            return
+        }
         guard state.pages[id: insertedPage.id] == nil else { return }
 
         let leadingSplitMode = PageMode.preferredSplitMode(priorityLeft: state.piorityLeft)
         let insertAfterCurrent = splitMode == leadingSplitMode
         let insertedIndex = insertAfterCurrent ? sourcePageIndex + 1 : sourcePageIndex
         state.pages.insert(insertedPage, at: insertedIndex)
+    }
+
+    private func setSplitSiblingsLoaded(
+        _ loaded: Bool,
+        id: PageFeature.State.ID,
+        state: inout State
+    ) {
+        guard let page = state.pages[id: id] else { return }
+        let siblingIds = state.pages
+            .filter { $0.pageId == page.pageId && $0.id != id && $0.pageMode.isSplitMode }
+            .map(\.id)
+        for siblingId in siblingIds {
+            state.pages[id: siblingId]?.imageLoaded = loaded
+        }
     }
 
     private func normalizePageDisplay(
@@ -1614,9 +1641,12 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         state.pages[id: keepId]?.pageMode = .normal
         state.pages[id: keepId]?.pendingSplitMode = nil
         state.pages[id: keepId]?.imageLoaded = true
+        if let imageAspectRatio = current.imageAspectRatio {
+            state.pages[id: keepId]?.imageAspectRatio = imageAspectRatio
+        }
 
         state.pages.removeAll {
-            $0.pageId == current.pageId && $0.id != keepId && $0.pageMode.isSplitMode
+            $0.pageId == current.pageId && $0.id != keepId
         }
     }
 
