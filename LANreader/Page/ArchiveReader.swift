@@ -1425,9 +1425,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                         let errorMessage = String(localized: "archive.cache.remove.failed")
                         await send(.setError(errorMessage))
                     } else {
-                        let cacheFolder = LANraragiService.cachePath!
-                            .appendingPathComponent(id, conformingTo: .folder)
-                        try? FileManager.default.removeItem(at: cacheFolder)
+                        await service.removeCachedPages(archiveId: id)
                         await send(.removeCacheSuccess)
                     }
                 } catch: { [id = state.currentArchiveId] error, send in
