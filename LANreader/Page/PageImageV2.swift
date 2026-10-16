@@ -159,6 +159,9 @@ import Logging
                 state.imageLoaded = false
 
                 if force {
+                    if state.pageMode.isSplitMode {
+                        state.pendingSplitMode = state.pageMode
+                    }
                     state.pageMode = .loading
                     state.imageAspectRatio = nil
                 } else if state.pageMode == .loading {
