@@ -13,7 +13,7 @@ struct AppDatabase {
         try cleanImageCache()
     }
 
-    var migrator: DatabaseMigrator {
+    private var migrator: DatabaseMigrator {
         var migrator = DatabaseMigrator()
 
         migrator.registerMigration("archiveList") { database in

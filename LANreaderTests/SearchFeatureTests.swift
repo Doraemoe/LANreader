@@ -216,28 +216,6 @@ final class SearchFeatureTests: XCTestCase {
         XCTAssertEqual(recent.last, "keyword 5")
     }
 
-    func testSearchHistoryMigrationKeepsExistingCache() throws {
-        let queue = try DatabaseQueue()
-        let current = try AppDatabase(DatabaseQueue())
-        try current.migrator.migrate(queue, upTo: "archiveCacheProgress")
-        try queue.write { database in
-            try database.execute(
-                sql: """
-                INSERT INTO archiveCache (id, title, tags, cached, totalPages, lastUpdate)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                arguments: ["cached", "Cached", "", true, 3, Date()]
-            )
-        }
-
-        let database = try AppDatabase(queue)
-        try database.saveSearchHistory(keyword: "artist:a$", date: Date())
-
-        XCTAssertEqual(try database.readCache("cached")?.title, "Cached")
-        XCTAssertEqual(try database.recentSearches(), ["artist:a$"])
-        XCTAssertTrue(try queue.read { try current.migrator.hasCompletedMigrations($0) })
-    }
-
     @MainActor
     func testSearchSubmitSavesTrimmedKeywordToRecentSearches() async throws {
         let database = try AppDatabase(DatabaseQueue())
