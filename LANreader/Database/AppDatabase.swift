@@ -179,9 +179,8 @@ extension AppDatabase {
 
     func saveSearchHistory(keyword: String, date: Date) throws {
         try dbWriter.write { database in
-            _ = try SearchHistory.deleteOne(database, key: keyword)
             var entry = SearchHistory(keyword: keyword, lastUsed: date)
-            try entry.insert(database)
+            try entry.insert(database, onConflict: .replace)
             try database.execute(
                 sql: """
                 DELETE FROM searchHistory WHERE keyword NOT IN (

@@ -222,7 +222,6 @@ class UISearchViewV2Controller: UIViewController {
         setupDelegates()
         setupObserve()
         store.send(.loadPopularTag)
-        store.send(.loadRecentSearches)
         navigationItem.title = String(localized: "search")
     }
 

@@ -326,6 +326,8 @@ final class SearchFeatureTests: XCTestCase {
         let navigation = UINavigationController(rootViewController: controller)
         navigation.loadViewIfNeeded()
         controller.loadViewIfNeeded()
+        controller.beginAppearanceTransition(true, animated: false)
+        controller.endAppearanceTransition()
         await Task.yield()
 
         let recent = try XCTUnwrap(
@@ -359,6 +361,8 @@ final class SearchFeatureTests: XCTestCase {
         let navigation = UINavigationController(rootViewController: controller)
         navigation.loadViewIfNeeded()
         controller.loadViewIfNeeded()
+        controller.beginAppearanceTransition(true, animated: false)
+        controller.endAppearanceTransition()
         await Task.yield()
         let searchBar = try XCTUnwrap(
             controller.navigationItem.searchController?.searchBar
