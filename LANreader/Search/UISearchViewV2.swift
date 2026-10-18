@@ -226,6 +226,11 @@ class UISearchViewV2Controller: UIViewController {
         navigationItem.title = String(localized: "search")
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        store.send(.loadRecentSearches)
+    }
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         suggestionsContainerView.layer.shadowPath = UIBezierPath(

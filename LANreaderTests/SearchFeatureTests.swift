@@ -377,6 +377,32 @@ final class SearchFeatureTests: XCTestCase {
         controller.searchBarTextDidEndEditing(searchBar)
         XCTAssertTrue(suggestions.isHidden)
     }
+
+    @MainActor
+    func testSearchTabReloadsRecentSearchesSavedElsewhereWhenItAppears() async throws {
+        let database = try AppDatabase(DatabaseQueue())
+        let store = withDependencies {
+            $0.appDatabase = database
+        } operation: {
+            Store(initialState: SearchFeature.State()) { SearchFeature() }
+        }
+        let controller = UISearchViewV2Controller(store: store)
+        let navigation = UINavigationController(rootViewController: controller)
+        navigation.loadViewIfNeeded()
+        controller.loadViewIfNeeded()
+        XCTAssertEqual(store.recentSearches, [])
+
+        try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
+        controller.beginAppearanceTransition(true, animated: false)
+        controller.endAppearanceTransition()
+        await Task.yield()
+
+        XCTAssertEqual(store.recentSearches, ["artist:a$"])
+        let recent = try XCTUnwrap(
+            controller.children.compactMap { $0 as? UIHostingController<RecentSearchesView> }.first
+        )
+        XCTAssertFalse(recent.view.isHidden)
+    }
 }
 
 private extension UIView {
