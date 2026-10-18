@@ -35,7 +35,6 @@ import UIKit
         case searchCleared
         case loadRecentSearches
         case recentSearchTapped(String)
-        case deleteRecentSearch(String)
         case clearRecentSearches
         case archiveList(ArchiveListFeature.Action)
     }
@@ -116,14 +115,6 @@ import UIKit
             case let .recentSearchTapped(keyword):
                 state.keyword = keyword
                 return .send(.searchSubmit(keyword))
-            case let .deleteRecentSearch(keyword):
-                state.recentSearches.removeAll { $0 == keyword }
-                do {
-                    try database.deleteSearchHistory(keyword: keyword)
-                } catch {
-                    logger.error("failed to delete search history. \(error)")
-                }
-                return .none
             case .clearRecentSearches:
                 state.recentSearches = []
                 do {
@@ -203,15 +194,11 @@ class UISearchViewV2Controller: UIViewController {
         )
     }()
 
-    private lazy var recentSearchesView: RecentSearchesView = {
-        let view = RecentSearchesView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.isHidden = true
-        view.onSelect = { [weak self] keyword in self?.runRecentSearch(keyword) }
-        view.onDelete = { [weak self] keyword in self?.store.send(.deleteRecentSearch(keyword)) }
-        view.onClear = { [weak self] in self?.store.send(.clearRecentSearches) }
-        return view
-    }()
+    private lazy var recentSearchesController = UIHostingController(
+        rootView: RecentSearchesView(store: store) { [weak self] keyword in
+            self?.runRecentSearch(keyword)
+        }
+    )
 
     // Constraints for animated height changes
     private var suggestionsHeightConstraint: NSLayoutConstraint?
@@ -322,13 +309,15 @@ class UISearchViewV2Controller: UIViewController {
     }
 
     private func layoutRecentSearches() {
-        view.addSubview(recentSearchesView)
+        add(recentSearchesController)
+        let recentView: UIView = recentSearchesController.view
         let listView: UIView = archiveListViewController.view
+        recentView.isHidden = true
         NSLayoutConstraint.activate([
-            recentSearchesView.topAnchor.constraint(equalTo: listView.topAnchor),
-            recentSearchesView.leadingAnchor.constraint(equalTo: listView.leadingAnchor),
-            recentSearchesView.trailingAnchor.constraint(equalTo: listView.trailingAnchor),
-            recentSearchesView.bottomAnchor.constraint(equalTo: listView.bottomAnchor)
+            recentView.topAnchor.constraint(equalTo: listView.topAnchor),
+            recentView.leadingAnchor.constraint(equalTo: listView.leadingAnchor),
+            recentView.trailingAnchor.constraint(equalTo: listView.trailingAnchor),
+            recentView.bottomAnchor.constraint(equalTo: listView.bottomAnchor)
         ])
     }
 
@@ -358,8 +347,7 @@ class UISearchViewV2Controller: UIViewController {
 
         observe { [weak self] in
             guard let self else { return }
-            recentSearchesView.update(searches: store.recentSearches)
-            recentSearchesView.isHidden = !store.showsRecentSearches
+            recentSearchesController.view.isHidden = !store.showsRecentSearches
         }
     }
 

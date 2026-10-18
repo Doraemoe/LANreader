@@ -3,6 +3,7 @@ import ComposableArchitecture
 import GRDB
 import OHHTTPStubs
 import OHHTTPStubsSwift
+import SwiftUI
 import UIKit
 @testable import LANreader
 
@@ -277,11 +278,10 @@ final class SearchFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testDeleteAndClearRecentSearches() async throws {
+    func testClearRecentSearches() async throws {
         let database = try AppDatabase(DatabaseQueue())
         try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
         try database.saveSearchHistory(keyword: "female:b$", date: Date(timeIntervalSince1970: 2))
-        try database.saveSearchHistory(keyword: "male:c$", date: Date(timeIntervalSince1970: 3))
         let store = TestStore(initialState: SearchFeature.State()) {
             SearchFeature()
         } withDependencies: {
@@ -289,12 +289,8 @@ final class SearchFeatureTests: XCTestCase {
         }
 
         await store.send(.loadRecentSearches) {
-            $0.recentSearches = ["male:c$", "female:b$", "artist:a$"]
+            $0.recentSearches = ["female:b$", "artist:a$"]
         }
-        await store.send(.deleteRecentSearch("female:b$")) {
-            $0.recentSearches = ["male:c$", "artist:a$"]
-        }
-        XCTAssertEqual(try database.recentSearches(), ["male:c$", "artist:a$"])
 
         await store.send(.clearRecentSearches) {
             $0.recentSearches = []
@@ -332,30 +328,30 @@ final class SearchFeatureTests: XCTestCase {
         controller.loadViewIfNeeded()
         await Task.yield()
 
-        let recentView = try XCTUnwrap(controller.view.firstSubview(of: RecentSearchesView.self))
-        XCTAssertFalse(recentView.isHidden)
-        XCTAssertEqual(recentView.tableView.numberOfRows(inSection: 0), 1)
-        let suggestions = try XCTUnwrap(
-            controller.view.firstSubview(of: UITableView.self) { !($0.superview is RecentSearchesView) }
+        let recent = try XCTUnwrap(
+            controller.children.compactMap { $0 as? UIHostingController<RecentSearchesView> }.first
         )
+        XCTAssertFalse(recent.view.isHidden)
+        XCTAssertEqual(recent.rootView.store.recentSearches, ["artist:a$"])
+        let suggestions = try XCTUnwrap(controller.view.firstSubview(of: UITableView.self))
         XCTAssertTrue(suggestions.isHidden)
 
-        recentView.tableView.delegate?.tableView?(recentView.tableView, didSelectRowAt: IndexPath(row: 0, section: 0))
+        recent.rootView.onSelect("artist:a$")
         await Task.yield()
 
         XCTAssertEqual(store.keyword, "artist:a$")
         XCTAssertEqual(store.archiveList.filter.filter, "artist:a$")
-        XCTAssertTrue(recentView.isHidden)
+        XCTAssertTrue(recent.view.isHidden)
     }
 }
 
 private extension UIView {
-    func firstSubview<View: UIView>(of type: View.Type, where predicate: (View) -> Bool = { _ in true }) -> View? {
+    func firstSubview<View: UIView>(of type: View.Type) -> View? {
         for subview in subviews {
-            if let match = subview as? View, predicate(match) {
+            if let match = subview as? View {
                 return match
             }
-            if let match = subview.firstSubview(of: type, where: predicate) {
+            if let match = subview.firstSubview(of: type) {
                 return match
             }
         }

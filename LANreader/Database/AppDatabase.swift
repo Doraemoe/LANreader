@@ -203,12 +203,6 @@ extension AppDatabase {
         }
     }
 
-    func deleteSearchHistory(keyword: String) throws {
-        try dbWriter.write { database in
-            _ = try SearchHistory.deleteOne(database, key: keyword)
-        }
-    }
-
     func clearSearchHistory() throws {
         try dbWriter.write { database in
             _ = try SearchHistory.deleteAll(database)
