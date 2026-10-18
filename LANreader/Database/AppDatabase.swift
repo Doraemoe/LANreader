@@ -13,7 +13,7 @@ struct AppDatabase {
         try cleanImageCache()
     }
 
-    private var migrator: DatabaseMigrator {
+    var migrator: DatabaseMigrator {
         var migrator = DatabaseMigrator()
 
         migrator.registerMigration("archiveList") { database in
@@ -111,6 +111,13 @@ struct AppDatabase {
             }
         }
 
+        migrator.registerMigration("searchHistory") { database in
+            try database.create(table: "searchHistory") { table in
+                table.column("keyword", .text).primaryKey().collate(.nocase)
+                table.column("lastUsed", .datetime).notNull()
+            }
+        }
+
         return migrator
     }
 
@@ -165,6 +172,46 @@ extension AppDatabase {
     func deleteCache(_ id: String) throws -> Bool {
         try dbWriter.write { database in
             try ArchiveCache.deleteOne(database, id: id)
+        }
+    }
+
+    static let searchHistoryLimit = 20
+
+    func saveSearchHistory(keyword: String, date: Date) throws {
+        try dbWriter.write { database in
+            _ = try SearchHistory.deleteOne(database, key: keyword)
+            var entry = SearchHistory(keyword: keyword, lastUsed: date)
+            try entry.insert(database)
+            try database.execute(
+                sql: """
+                DELETE FROM searchHistory WHERE keyword NOT IN (
+                    SELECT keyword FROM searchHistory ORDER BY lastUsed DESC LIMIT ?
+                )
+                """,
+                arguments: [Self.searchHistoryLimit]
+            )
+        }
+    }
+
+    func recentSearches() throws -> [String] {
+        try dbReader.read { database in
+            try SearchHistory
+                .order(SearchHistory.Columns.lastUsed.desc)
+                .limit(Self.searchHistoryLimit)
+                .fetchAll(database)
+                .map(\.keyword)
+        }
+    }
+
+    func deleteSearchHistory(keyword: String) throws {
+        try dbWriter.write { database in
+            _ = try SearchHistory.deleteOne(database, key: keyword)
+        }
+    }
+
+    func clearSearchHistory() throws {
+        try dbWriter.write { database in
+            _ = try SearchHistory.deleteAll(database)
         }
     }
 
