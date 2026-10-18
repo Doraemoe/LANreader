@@ -107,8 +107,7 @@ import UIKit
             case .searchCleared:
                 guard state.archiveList.filter.filter != nil else { return .none }
                 state.archiveList.filter = SearchFilter(category: nil, filter: nil)
-                state.archiveList.selected.removeAll()
-                return .send(.archiveList(.resetArchives))
+                return .send(.archiveList(.reloadFromFirstPage))
             case .loadRecentSearches:
                 state.recentSearches = (try? database.recentSearches()) ?? []
                 return .none
@@ -116,9 +115,9 @@ import UIKit
                 state.keyword = keyword
                 return .send(.searchSubmit(keyword))
             case .clearRecentSearches:
-                state.recentSearches = []
                 do {
                     try database.clearSearchHistory()
+                    state.recentSearches = []
                 } catch {
                     logger.error("failed to clear search history. \(error)")
                 }

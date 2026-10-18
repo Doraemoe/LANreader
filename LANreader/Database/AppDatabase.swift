@@ -113,7 +113,7 @@ struct AppDatabase {
 
         migrator.registerMigration("searchHistory") { database in
             try database.create(table: "searchHistory") { table in
-                table.column("keyword", .text).primaryKey().collate(.nocase)
+                table.column("keyword", .text).primaryKey().collate(.caseInsensitiveCompare)
                 table.column("lastUsed", .datetime).notNull()
             }
         }

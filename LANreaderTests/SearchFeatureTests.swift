@@ -198,8 +198,10 @@ final class SearchFeatureTests: XCTestCase {
         try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
         try database.saveSearchHistory(keyword: "female:b$", date: Date(timeIntervalSince1970: 2))
         try database.saveSearchHistory(keyword: "ARTIST:A$", date: Date(timeIntervalSince1970: 3))
+        try database.saveSearchHistory(keyword: "artist:Éclair$", date: Date(timeIntervalSince1970: 4))
+        try database.saveSearchHistory(keyword: "artist:éclair$", date: Date(timeIntervalSince1970: 5))
 
-        XCTAssertEqual(try database.recentSearches(), ["ARTIST:A$", "female:b$"])
+        XCTAssertEqual(try database.recentSearches(), ["artist:éclair$", "ARTIST:A$", "female:b$"])
     }
 
     func testSearchHistoryKeepsOnlyMostRecentEntries() throws {
@@ -265,6 +267,8 @@ final class SearchFeatureTests: XCTestCase {
         var initialState = SearchFeature.State()
         initialState.recentSearches = ["artist:a$"]
         initialState.archiveList.filter = SearchFilter(category: nil, filter: "artist:a$")
+        initialState.archiveList.loading = true
+        initialState.archiveList.total = 100
         let store = TestStore(initialState: initialState) {
             SearchFeature()
         }
@@ -273,7 +277,50 @@ final class SearchFeatureTests: XCTestCase {
         await store.send(.searchCleared) {
             $0.archiveList.filter = SearchFilter(category: nil, filter: nil)
         }
-        await store.receive(\.archiveList.resetArchives)
+        await store.receive(\.archiveList.reloadFromFirstPage) {
+            $0.archiveList.loading = false
+            $0.archiveList.total = 0
+        }
+        XCTAssertTrue(store.state.showsRecentSearches)
+    }
+
+    @MainActor
+    func testSearchClearedCancelsPendingResults() async throws {
+        defer {
+            UserDefaults.resetStandardUserDefaults()
+            HTTPStubs.removeAllStubs()
+        }
+        try await configureArchiveListTestClient()
+        let requested = expectation(description: "Search request started")
+        stub(condition: isHost("localhost") && isPath("/api/search")) { @Sendable _ in
+            requested.fulfill()
+            let response = HTTPStubsResponse(
+                data: Data(#"{"data":[],"recordsFiltered":100,"recordsTotal":100}"#.utf8),
+                statusCode: 200, headers: ["Content-Type": "application/json"]
+            )
+            response.responseTime = 1
+            return response
+        }
+        var state = SearchFeature.State()
+        state.recentSearches = ["artist:a$"]
+        state.archiveList.filter = SearchFilter(category: nil, filter: "artist:a$")
+        state.archiveList.$lastTagRefresh = Shared(value: Date().timeIntervalSince1970)
+        state.archiveList.$searchSort = Shared(value: SearchSort.name.rawValue)
+        let store = TestStore(initialState: state) { SearchFeature() }
+
+        await store.send(.archiveList(.load)) {
+            $0.archiveList.loading = true
+        }
+        await fulfillment(of: [requested], timeout: 2)
+        await store.send(.searchCleared) {
+            $0.archiveList.filter = SearchFilter(category: nil, filter: nil)
+        }
+        await store.receive(\.archiveList.reloadFromFirstPage) {
+            $0.archiveList.loading = false
+        }
+        await store.finish()
+        XCTAssertTrue(store.state.archiveList.archivesToDisplay.isEmpty)
+        XCTAssertEqual(store.state.archiveList.total, 0)
         XCTAssertTrue(store.state.showsRecentSearches)
     }
 
@@ -297,6 +344,30 @@ final class SearchFeatureTests: XCTestCase {
         }
         XCTAssertEqual(try database.recentSearches(), [])
         XCTAssertFalse(store.state.showsRecentSearches)
+    }
+
+    @MainActor
+    func testClearRecentSearchesKeepsHistoryWhenDeletionFails() async throws {
+        let queue = try DatabaseQueue()
+        let database = try AppDatabase(queue)
+        try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
+        try await queue.write { database in
+            try database.execute(sql: """
+                CREATE TRIGGER rejectHistoryDeletion BEFORE DELETE ON searchHistory
+                BEGIN SELECT RAISE(ABORT, 'simulated write failure'); END
+                """)
+        }
+        var state = SearchFeature.State()
+        state.recentSearches = ["artist:a$"]
+        let store = TestStore(initialState: state) { SearchFeature() } withDependencies: {
+            $0.appDatabase = database
+        }
+
+        await store.send(.clearRecentSearches)
+
+        XCTAssertEqual(store.state.recentSearches, ["artist:a$"])
+        XCTAssertEqual(try database.recentSearches(), ["artist:a$"])
+        XCTAssertTrue(store.state.showsRecentSearches)
     }
 
     @MainActor
