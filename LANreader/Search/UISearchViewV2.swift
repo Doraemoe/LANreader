@@ -204,6 +204,7 @@ class UISearchViewV2Controller: UIViewController {
     private var suggestionsHeightConstraint: NSLayoutConstraint?
     private var hasRenderedSuggestions = false
     private var isEditingSearchText = false
+    private var isBrowsingSuggestions = false
 
     // MARK: - Init
     init(store: StoreOf<SearchFeature>) {
@@ -365,7 +366,7 @@ class UISearchViewV2Controller: UIViewController {
         let showsRecentSearches = store.showsRecentSearches
         let isFieldEmpty = activeSearchBar.text?.isEmpty ?? true
         // Recent searches fill the empty field's space, so popular tags wait for the field to be focused.
-        guard isEditingSearchText || (isFieldEmpty && !showsRecentSearches) else {
+        guard isEditingSearchText || isBrowsingSuggestions || (isFieldEmpty && !showsRecentSearches) else {
             hideSuggestions(animated: false)
             return
         }
@@ -378,6 +379,7 @@ class UISearchViewV2Controller: UIViewController {
         activeSearchBar.text = keyword
         store.send(.recentSearchTapped(keyword))
         isEditingSearchText = false
+        isBrowsingSuggestions = false
         activeSearchBar.resignFirstResponder()
         hideSuggestions()
     }
@@ -456,6 +458,7 @@ class UISearchViewV2Controller: UIViewController {
 extension UISearchViewV2Controller: UISearchBarDelegate {
     func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
         isEditingSearchText = true
+        isBrowsingSuggestions = false
         renderSuggestions()
     }
 
@@ -474,6 +477,7 @@ extension UISearchViewV2Controller: UISearchBarDelegate {
     }
 
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        isBrowsingSuggestions = false
         store.send(.binding(.set(\.keyword, "")))
         store.send(.searchCleared)
     }
@@ -482,6 +486,7 @@ extension UISearchViewV2Controller: UISearchBarDelegate {
         guard let text = searchBar.text, !text.isEmpty else { return }
         store.send(.binding(.set(\.keyword, text)))
         store.send(.searchSubmit(text))
+        isBrowsingSuggestions = false
         hideSuggestions()
         searchBar.resignFirstResponder()
     }
@@ -507,7 +512,14 @@ extension UISearchViewV2Controller: UITableViewDataSource, UITableViewDelegate {
         let suggestion = store.suggestedTag[indexPath.row]
         store.send(.suggestionTapped(suggestion))
         activeSearchBar.text = store.keyword
+        isBrowsingSuggestions = false
         hideSuggestions()
         tableView.deselectRow(at: indexPath, animated: true)
+    }
+
+    // Dragging the suggestions dismisses the keyboard, which must not also dismiss the suggestions.
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        guard scrollView === suggestionsTableView else { return }
+        isBrowsingSuggestions = true
     }
 }

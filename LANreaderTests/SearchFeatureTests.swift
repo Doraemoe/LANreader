@@ -343,6 +343,40 @@ final class SearchFeatureTests: XCTestCase {
         XCTAssertEqual(store.archiveList.filter.filter, "artist:a$")
         XCTAssertTrue(recent.view.isHidden)
     }
+
+    @MainActor
+    func testDraggingPopularTagsKeepsThemOpenAfterKeyboardDismisses() async throws {
+        let database = try AppDatabase(DatabaseQueue())
+        try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
+        var popularTag = TagItem(tag: "female:b", count: 10)
+        try database.saveTag(tagItem: &popularTag)
+        let store = withDependencies {
+            $0.appDatabase = database
+        } operation: {
+            Store(initialState: SearchFeature.State()) { SearchFeature() }
+        }
+        let controller = UISearchViewV2Controller(store: store)
+        let navigation = UINavigationController(rootViewController: controller)
+        navigation.loadViewIfNeeded()
+        controller.loadViewIfNeeded()
+        await Task.yield()
+        let searchBar = try XCTUnwrap(
+            controller.navigationItem.searchController?.searchBar
+                ?? controller.view.firstSubview(of: UISearchBar.self)
+        )
+        let suggestions = try XCTUnwrap(controller.view.firstSubview(of: UITableView.self))
+        XCTAssertTrue(suggestions.isHidden)
+
+        controller.searchBarTextDidBeginEditing(searchBar)
+        XCTAssertFalse(suggestions.isHidden)
+        controller.scrollViewWillBeginDragging(suggestions)
+        controller.searchBarTextDidEndEditing(searchBar)
+        XCTAssertFalse(suggestions.isHidden)
+
+        controller.searchBarTextDidBeginEditing(searchBar)
+        controller.searchBarTextDidEndEditing(searchBar)
+        XCTAssertTrue(suggestions.isHidden)
+    }
 }
 
 private extension UIView {
