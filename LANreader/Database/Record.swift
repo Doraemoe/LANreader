@@ -63,6 +63,11 @@ public struct DownloadJob: Identifiable, Equatable, Sendable {
     var lastUpdate: Date
 }
 
+struct SearchHistory: Equatable {
+    var keyword: String
+    var lastUsed: Date
+}
+
 struct History: Identifiable, Equatable {
     var id: String
     var lastUpdate: Date
@@ -92,6 +97,13 @@ extension Archive {
                 progress: progress,
                 pagecount: pageCount,
                 dateAdded: extractDateAdded(tags: tagString))
+    }
+}
+
+extension SearchHistory: Codable, FetchableRecord, MutablePersistableRecord {
+    internal enum Columns {
+        static let keyword = Column(CodingKeys.keyword)
+        static let lastUsed = Column(CodingKeys.lastUsed)
     }
 }
 

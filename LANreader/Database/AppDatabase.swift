@@ -111,6 +111,13 @@ struct AppDatabase {
             }
         }
 
+        migrator.registerMigration("searchHistory") { database in
+            try database.create(table: "searchHistory") { table in
+                table.column("keyword", .text).primaryKey().collate(.caseInsensitiveCompare)
+                table.column("lastUsed", .datetime).notNull()
+            }
+        }
+
         return migrator
     }
 
@@ -165,6 +172,39 @@ extension AppDatabase {
     func deleteCache(_ id: String) throws -> Bool {
         try dbWriter.write { database in
             try ArchiveCache.deleteOne(database, id: id)
+        }
+    }
+
+    static let searchHistoryLimit = 20
+
+    func saveSearchHistory(keyword: String, date: Date) throws {
+        try dbWriter.write { database in
+            var entry = SearchHistory(keyword: keyword, lastUsed: date)
+            try entry.insert(database, onConflict: .replace)
+            try database.execute(
+                sql: """
+                DELETE FROM searchHistory WHERE keyword NOT IN (
+                    SELECT keyword FROM searchHistory ORDER BY lastUsed DESC LIMIT ?
+                )
+                """,
+                arguments: [Self.searchHistoryLimit]
+            )
+        }
+    }
+
+    func recentSearches() throws -> [String] {
+        try dbReader.read { database in
+            try SearchHistory
+                .order(SearchHistory.Columns.lastUsed.desc)
+                .limit(Self.searchHistoryLimit)
+                .fetchAll(database)
+                .map(\.keyword)
+        }
+    }
+
+    func clearSearchHistory() throws {
+        try dbWriter.write { database in
+            _ = try SearchHistory.deleteAll(database)
         }
     }
 

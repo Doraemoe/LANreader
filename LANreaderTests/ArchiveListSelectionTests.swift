@@ -231,13 +231,20 @@ final class ArchiveListSelectionTests: XCTestCase {
     }
 
     @MainActor
-    func testNewSearchClearsSelection() async {
+    func testNewSearchClearsSelection() async throws {
+        let database = try AppDatabase(DatabaseQueue())
         var state = SearchFeature.State()
         state.archiveList.selected = ["old-result"]
-        let store = TestStore(initialState: state) { SearchFeature() }
+        let store = TestStore(initialState: state) { SearchFeature() } withDependencies: {
+            $0.appDatabase = database
+            $0.date.now = Date(timeIntervalSince1970: 1)
+        }
         await store.send(.searchSubmit("new query")) {
             $0.archiveList.filter = SearchFilter(category: nil, filter: "new query")
             $0.archiveList.selected = []
+        }
+        await store.receive(\.loadRecentSearches) {
+            $0.recentSearches = ["new query"]
         }
     }
 

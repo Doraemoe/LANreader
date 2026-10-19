@@ -1,6 +1,10 @@
 import XCTest
 import ComposableArchitecture
 import GRDB
+import OHHTTPStubs
+import OHHTTPStubsSwift
+import SwiftUI
+import UIKit
 @testable import LANreader
 
 final class SearchFeatureTests: XCTestCase {
@@ -187,6 +191,306 @@ final class SearchFeatureTests: XCTestCase {
         await store.send(.suggestionTapped(TagWithType(tag: "artist:e auo", type: .suggested))) {
             $0.keyword = "language:english$, artist:e auo$,"
         }
+    }
+
+    func testRecentSearchesAreNewestFirstAndIgnoreCaseDuplicates() throws {
+        let database = try AppDatabase(DatabaseQueue())
+        try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
+        try database.saveSearchHistory(keyword: "female:b$", date: Date(timeIntervalSince1970: 2))
+        try database.saveSearchHistory(keyword: "ARTIST:A$", date: Date(timeIntervalSince1970: 3))
+        try database.saveSearchHistory(keyword: "artist:Éclair$", date: Date(timeIntervalSince1970: 4))
+        try database.saveSearchHistory(keyword: "artist:éclair$", date: Date(timeIntervalSince1970: 5))
+
+        XCTAssertEqual(try database.recentSearches(), ["artist:éclair$", "ARTIST:A$", "female:b$"])
+    }
+
+    func testSearchHistoryKeepsOnlyMostRecentEntries() throws {
+        let database = try AppDatabase(DatabaseQueue())
+        for index in 0..<(AppDatabase.searchHistoryLimit + 5) {
+            try database.saveSearchHistory(
+                keyword: "keyword \(index)",
+                date: Date(timeIntervalSince1970: Double(index))
+            )
+        }
+
+        let recent = try database.recentSearches()
+        XCTAssertEqual(recent.count, AppDatabase.searchHistoryLimit)
+        XCTAssertEqual(recent.first, "keyword \(AppDatabase.searchHistoryLimit + 4)")
+        XCTAssertEqual(recent.last, "keyword 5")
+    }
+
+    @MainActor
+    func testSearchSubmitSavesTrimmedKeywordToRecentSearches() async throws {
+        let database = try AppDatabase(DatabaseQueue())
+        let store = TestStore(initialState: SearchFeature.State()) {
+            SearchFeature()
+        } withDependencies: {
+            $0.appDatabase = database
+            $0.date.now = Date(timeIntervalSince1970: 10)
+        }
+
+        await store.send(.searchSubmit(" artist:a$ ")) {
+            $0.archiveList.filter = SearchFilter(category: nil, filter: " artist:a$ ")
+        }
+        await store.receive(\.loadRecentSearches) {
+            $0.recentSearches = ["artist:a$"]
+        }
+        XCTAssertFalse(store.state.showsRecentSearches)
+    }
+
+    @MainActor
+    func testRecentSearchTappedRunsThatSearch() async throws {
+        let database = try AppDatabase(DatabaseQueue())
+        try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
+        var initialState = SearchFeature.State()
+        initialState.recentSearches = ["artist:a$"]
+        let store = TestStore(initialState: initialState) {
+            SearchFeature()
+        } withDependencies: {
+            $0.appDatabase = database
+            $0.date.now = Date(timeIntervalSince1970: 10)
+        }
+        XCTAssertTrue(store.state.showsRecentSearches)
+
+        await store.send(.recentSearchTapped("artist:a$")) {
+            $0.keyword = "artist:a$"
+        }
+        await store.receive(\.searchSubmit) {
+            $0.archiveList.filter = SearchFilter(category: nil, filter: "artist:a$")
+        }
+        await store.receive(\.loadRecentSearches)
+        XCTAssertFalse(store.state.showsRecentSearches)
+    }
+
+    @MainActor
+    func testSearchClearedReturnsToRecentSearches() async throws {
+        var initialState = SearchFeature.State()
+        initialState.recentSearches = ["artist:a$"]
+        initialState.archiveList.filter = SearchFilter(category: nil, filter: "artist:a$")
+        initialState.archiveList.loading = true
+        initialState.archiveList.total = 100
+        let store = TestStore(initialState: initialState) {
+            SearchFeature()
+        }
+        XCTAssertFalse(store.state.showsRecentSearches)
+
+        await store.send(.searchCleared) {
+            $0.archiveList.filter = SearchFilter(category: nil, filter: nil)
+        }
+        await store.receive(\.archiveList.reloadFromFirstPage) {
+            $0.archiveList.loading = false
+            $0.archiveList.total = 0
+        }
+        XCTAssertTrue(store.state.showsRecentSearches)
+    }
+
+    @MainActor
+    func testSearchClearedCancelsPendingResults() async throws {
+        defer {
+            UserDefaults.resetStandardUserDefaults()
+            HTTPStubs.removeAllStubs()
+        }
+        try await configureArchiveListTestClient()
+        let requested = expectation(description: "Search request started")
+        stub(condition: isHost("localhost") && isPath("/api/search")) { @Sendable _ in
+            requested.fulfill()
+            let response = HTTPStubsResponse(
+                data: Data(#"{"data":[],"recordsFiltered":100,"recordsTotal":100}"#.utf8),
+                statusCode: 200, headers: ["Content-Type": "application/json"]
+            )
+            response.responseTime = 1
+            return response
+        }
+        var state = SearchFeature.State()
+        state.recentSearches = ["artist:a$"]
+        state.archiveList.filter = SearchFilter(category: nil, filter: "artist:a$")
+        state.archiveList.$lastTagRefresh = Shared(value: Date().timeIntervalSince1970)
+        state.archiveList.$searchSort = Shared(value: SearchSort.name.rawValue)
+        let store = TestStore(initialState: state) { SearchFeature() }
+
+        await store.send(.archiveList(.load)) {
+            $0.archiveList.loading = true
+        }
+        await fulfillment(of: [requested], timeout: 2)
+        await store.send(.searchCleared) {
+            $0.archiveList.filter = SearchFilter(category: nil, filter: nil)
+        }
+        await store.receive(\.archiveList.reloadFromFirstPage) {
+            $0.archiveList.loading = false
+        }
+        await store.finish()
+        XCTAssertTrue(store.state.archiveList.archivesToDisplay.isEmpty)
+        XCTAssertEqual(store.state.archiveList.total, 0)
+        XCTAssertTrue(store.state.showsRecentSearches)
+    }
+
+    @MainActor
+    func testClearRecentSearches() async throws {
+        let database = try AppDatabase(DatabaseQueue())
+        try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
+        try database.saveSearchHistory(keyword: "female:b$", date: Date(timeIntervalSince1970: 2))
+        let store = TestStore(initialState: SearchFeature.State()) {
+            SearchFeature()
+        } withDependencies: {
+            $0.appDatabase = database
+        }
+
+        await store.send(.loadRecentSearches) {
+            $0.recentSearches = ["female:b$", "artist:a$"]
+        }
+
+        await store.send(.clearRecentSearches) {
+            $0.recentSearches = []
+        }
+        XCTAssertEqual(try database.recentSearches(), [])
+        XCTAssertFalse(store.state.showsRecentSearches)
+    }
+
+    @MainActor
+    func testClearRecentSearchesKeepsHistoryWhenDeletionFails() async throws {
+        let queue = try DatabaseQueue()
+        let database = try AppDatabase(queue)
+        try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
+        try await queue.write { database in
+            try database.execute(sql: """
+                CREATE TRIGGER rejectHistoryDeletion BEFORE DELETE ON searchHistory
+                BEGIN SELECT RAISE(ABORT, 'simulated write failure'); END
+                """)
+        }
+        var state = SearchFeature.State()
+        state.recentSearches = ["artist:a$"]
+        let store = TestStore(initialState: state) { SearchFeature() } withDependencies: {
+            $0.appDatabase = database
+        }
+
+        await store.send(.clearRecentSearches)
+
+        XCTAssertEqual(store.state.recentSearches, ["artist:a$"])
+        XCTAssertEqual(try database.recentSearches(), ["artist:a$"])
+        XCTAssertTrue(store.state.showsRecentSearches)
+    }
+
+    @MainActor
+    func testSearchTabShowsRecentSearchesAndRunsTappedSearch() async throws {
+        UserDefaults.standard.set("https://localhost", forKey: SettingsKey.lanraragiUrl)
+        defer {
+            UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiUrl)
+            HTTPStubs.removeAllStubs()
+        }
+        stub(condition: isPath("/api/search")) { @Sendable _ in
+            HTTPStubsResponse(
+                data: Data(#"{"data":[],"recordsFiltered":0,"recordsTotal":0}"#.utf8),
+                statusCode: 200, headers: ["Content-Type": "application/json"]
+            )
+        }
+        let database = try AppDatabase(DatabaseQueue())
+        try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
+        var popularTag = TagItem(tag: "female:b", count: 10)
+        try database.saveTag(tagItem: &popularTag)
+        let store = withDependencies {
+            $0.appDatabase = database
+            $0.date.now = Date(timeIntervalSince1970: 10)
+        } operation: {
+            Store(initialState: SearchFeature.State()) { SearchFeature() }
+        }
+        let controller = UISearchViewV2Controller(store: store)
+        let navigation = UINavigationController(rootViewController: controller)
+        navigation.loadViewIfNeeded()
+        controller.loadViewIfNeeded()
+        controller.beginAppearanceTransition(true, animated: false)
+        controller.endAppearanceTransition()
+        await Task.yield()
+
+        let recent = try XCTUnwrap(
+            controller.children.compactMap { $0 as? UIHostingController<RecentSearchesView> }.first
+        )
+        XCTAssertFalse(recent.view.isHidden)
+        XCTAssertEqual(recent.rootView.store.recentSearches, ["artist:a$"])
+        let suggestions = try XCTUnwrap(controller.view.firstSubview(of: UITableView.self))
+        XCTAssertTrue(suggestions.isHidden)
+
+        recent.rootView.onSelect("artist:a$")
+        await Task.yield()
+
+        XCTAssertEqual(store.keyword, "artist:a$")
+        XCTAssertEqual(store.archiveList.filter.filter, "artist:a$")
+        XCTAssertTrue(recent.view.isHidden)
+    }
+
+    @MainActor
+    func testDraggingPopularTagsKeepsThemOpenAfterKeyboardDismisses() async throws {
+        let database = try AppDatabase(DatabaseQueue())
+        try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
+        var popularTag = TagItem(tag: "female:b", count: 10)
+        try database.saveTag(tagItem: &popularTag)
+        let store = withDependencies {
+            $0.appDatabase = database
+        } operation: {
+            Store(initialState: SearchFeature.State()) { SearchFeature() }
+        }
+        let controller = UISearchViewV2Controller(store: store)
+        let navigation = UINavigationController(rootViewController: controller)
+        navigation.loadViewIfNeeded()
+        controller.loadViewIfNeeded()
+        controller.beginAppearanceTransition(true, animated: false)
+        controller.endAppearanceTransition()
+        await Task.yield()
+        let searchBar = try XCTUnwrap(
+            controller.navigationItem.searchController?.searchBar
+                ?? controller.view.firstSubview(of: UISearchBar.self)
+        )
+        let suggestions = try XCTUnwrap(controller.view.firstSubview(of: UITableView.self))
+        XCTAssertTrue(suggestions.isHidden)
+
+        controller.searchBarTextDidBeginEditing(searchBar)
+        XCTAssertFalse(suggestions.isHidden)
+        controller.scrollViewWillBeginDragging(suggestions)
+        controller.searchBarTextDidEndEditing(searchBar)
+        XCTAssertFalse(suggestions.isHidden)
+
+        controller.searchBarTextDidBeginEditing(searchBar)
+        controller.searchBarTextDidEndEditing(searchBar)
+        XCTAssertTrue(suggestions.isHidden)
+    }
+
+    @MainActor
+    func testSearchTabReloadsRecentSearchesSavedElsewhereWhenItAppears() async throws {
+        let database = try AppDatabase(DatabaseQueue())
+        let store = withDependencies {
+            $0.appDatabase = database
+        } operation: {
+            Store(initialState: SearchFeature.State()) { SearchFeature() }
+        }
+        let controller = UISearchViewV2Controller(store: store)
+        let navigation = UINavigationController(rootViewController: controller)
+        navigation.loadViewIfNeeded()
+        controller.loadViewIfNeeded()
+        XCTAssertEqual(store.recentSearches, [])
+
+        try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
+        controller.beginAppearanceTransition(true, animated: false)
+        controller.endAppearanceTransition()
+        await Task.yield()
+
+        XCTAssertEqual(store.recentSearches, ["artist:a$"])
+        let recent = try XCTUnwrap(
+            controller.children.compactMap { $0 as? UIHostingController<RecentSearchesView> }.first
+        )
+        XCTAssertFalse(recent.view.isHidden)
+    }
+}
+
+private extension UIView {
+    func firstSubview<View: UIView>(of type: View.Type) -> View? {
+        for subview in subviews {
+            if let match = subview as? View {
+                return match
+            }
+            if let match = subview.firstSubview(of: type) {
+                return match
+            }
+        }
+        return nil
     }
 }
 

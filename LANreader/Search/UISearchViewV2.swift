@@ -11,11 +11,18 @@ import UIKit
         var keyword = ""
         var suggestedTag = [TagWithType]()
         var popularTag = [TagWithType]()
+        var recentSearches = [String]()
         var archiveList = ArchiveListFeature.State(
             filter: SearchFilter(category: nil, filter: nil),
             loadOnAppear: false,
             currentTab: .search
         )
+
+        var showsRecentSearches: Bool {
+            archiveList.filter.category == nil
+                && archiveList.filter.filter?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false
+                && !recentSearches.isEmpty
+        }
     }
 
     public enum Action: Equatable, BindableAction {
@@ -25,12 +32,17 @@ import UIKit
         case loadPopularTag
         case suggestionTapped(TagWithType)
         case searchSubmit(String)
+        case searchCleared
+        case loadRecentSearches
+        case recentSearchTapped(String)
+        case clearRecentSearches
         case archiveList(ArchiveListFeature.Action)
     }
 
     @Dependency(\.lanraragiService) var service
     @Dependency(\.appDatabase) var database
     @Dependency(\.continuousClock) var clock
+    @Dependency(\.date.now) var now
 
     enum CancelId { case search }
 
@@ -83,7 +95,33 @@ import UIKit
                 }
                 state.archiveList.filter = SearchFilter(category: nil, filter: keyword)
                 state.archiveList.selected.removeAll()
-                return .cancel(id: CancelId.search)
+                let historyKeyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !historyKeyword.isEmpty {
+                    do {
+                        try database.saveSearchHistory(keyword: historyKeyword, date: now)
+                    } catch {
+                        logger.error("failed to save search history. \(error)")
+                    }
+                }
+                return .merge(.cancel(id: CancelId.search), .send(.loadRecentSearches))
+            case .searchCleared:
+                guard state.archiveList.filter.filter != nil else { return .none }
+                state.archiveList.filter = SearchFilter(category: nil, filter: nil)
+                return .send(.archiveList(.reloadFromFirstPage))
+            case .loadRecentSearches:
+                state.recentSearches = (try? database.recentSearches()) ?? []
+                return .none
+            case let .recentSearchTapped(keyword):
+                state.keyword = keyword
+                return .send(.searchSubmit(keyword))
+            case .clearRecentSearches:
+                do {
+                    try database.clearSearchHistory()
+                    state.recentSearches = []
+                } catch {
+                    logger.error("failed to clear search history. \(error)")
+                }
+                return .none
             case .binding:
                 return .none
             case .archiveList:
@@ -155,10 +193,17 @@ class UISearchViewV2Controller: UIViewController {
         )
     }()
 
+    private lazy var recentSearchesController = UIHostingController(
+        rootView: RecentSearchesView(store: store) { [weak self] keyword in
+            self?.runRecentSearch(keyword)
+        }
+    )
+
     // Constraints for animated height changes
     private var suggestionsHeightConstraint: NSLayoutConstraint?
     private var hasRenderedSuggestions = false
     private var isEditingSearchText = false
+    private var isBrowsingSuggestions = false
 
     // MARK: - Init
     init(store: StoreOf<SearchFeature>) {
@@ -177,6 +222,11 @@ class UISearchViewV2Controller: UIViewController {
         setupObserve()
         store.send(.loadPopularTag)
         navigationItem.title = String(localized: "search")
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        store.send(.loadRecentSearches)
     }
 
     override func viewDidLayoutSubviews() {
@@ -208,6 +258,7 @@ class UISearchViewV2Controller: UIViewController {
 
         // Child archive list
         add(archiveListViewController)
+        layoutRecentSearches()
 
         view.addSubview(suggestionsContainerView)
         suggestionsContainerView.addSubview(suggestionsBackgroundView)
@@ -261,6 +312,19 @@ class UISearchViewV2Controller: UIViewController {
         ])
     }
 
+    private func layoutRecentSearches() {
+        add(recentSearchesController)
+        let recentView: UIView = recentSearchesController.view
+        let listView: UIView = archiveListViewController.view
+        recentView.isHidden = true
+        NSLayoutConstraint.activate([
+            recentView.topAnchor.constraint(equalTo: listView.topAnchor),
+            recentView.leadingAnchor.constraint(equalTo: listView.leadingAnchor),
+            recentView.trailingAnchor.constraint(equalTo: listView.trailingAnchor),
+            recentView.bottomAnchor.constraint(equalTo: listView.bottomAnchor)
+        ])
+    }
+
     private func setupDelegates() {
         if UIDevice.current.userInterfaceIdiom == .phone {
             searchController.searchBar.delegate = self
@@ -282,26 +346,45 @@ class UISearchViewV2Controller: UIViewController {
 
     private func setupObserve() {
         observe { [weak self] in
-            guard let self else { return }
-            let selecting = store.archiveList.selectMode == .active
-            activeSearchBar.isUserInteractionEnabled = !selecting
-            if selecting {
-                activeSearchBar.resignFirstResponder()
-                searchController.isActive = false
-                isEditingSearchText = false
-                hideSuggestions(animated: false)
-                return
-            }
-            _ = store.suggestedTag
-            let isFieldEmpty = activeSearchBar.text?.isEmpty ?? true
-            guard isEditingSearchText || isFieldEmpty else {
-                hideSuggestions(animated: false)
-                return
-            }
-            suggestionsTableView.reloadData()
-            updateSuggestionsVisibility(animated: hasRenderedSuggestions)
-            hasRenderedSuggestions = true
+            self?.renderSuggestions()
         }
+
+        observe { [weak self] in
+            guard let self else { return }
+            recentSearchesController.view.isHidden = !store.showsRecentSearches
+        }
+    }
+
+    private func renderSuggestions() {
+        let selecting = store.archiveList.selectMode == .active
+        activeSearchBar.isUserInteractionEnabled = !selecting
+        if selecting {
+            activeSearchBar.resignFirstResponder()
+            searchController.isActive = false
+            isEditingSearchText = false
+            hideSuggestions(animated: false)
+            return
+        }
+        _ = store.suggestedTag
+        let showsRecentSearches = store.showsRecentSearches
+        let isFieldEmpty = activeSearchBar.text?.isEmpty ?? true
+        // Recent searches fill the empty field's space, so popular tags wait for the field to be focused.
+        guard isEditingSearchText || isBrowsingSuggestions || (isFieldEmpty && !showsRecentSearches) else {
+            hideSuggestions(animated: false)
+            return
+        }
+        suggestionsTableView.reloadData()
+        updateSuggestionsVisibility(animated: hasRenderedSuggestions)
+        hasRenderedSuggestions = true
+    }
+
+    private func runRecentSearch(_ keyword: String) {
+        activeSearchBar.text = keyword
+        store.send(.recentSearchTapped(keyword))
+        isEditingSearchText = false
+        isBrowsingSuggestions = false
+        activeSearchBar.resignFirstResponder()
+        hideSuggestions()
     }
 
     // MARK: - Suggestions Handling
@@ -378,22 +461,35 @@ class UISearchViewV2Controller: UIViewController {
 extension UISearchViewV2Controller: UISearchBarDelegate {
     func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
         isEditingSearchText = true
+        isBrowsingSuggestions = false
+        renderSuggestions()
     }
 
     func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
         isEditingSearchText = false
+        renderSuggestions()
     }
 
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        isEditingSearchText = true
+        isEditingSearchText = searchBar.isFirstResponder
         store.send(.binding(.set(\.keyword, searchText)))
+        if searchText.isEmpty {
+            store.send(.searchCleared)
+        }
         store.send(.generateSuggestion(searchText))
+    }
+
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        isBrowsingSuggestions = false
+        store.send(.binding(.set(\.keyword, "")))
+        store.send(.searchCleared)
     }
 
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         guard let text = searchBar.text, !text.isEmpty else { return }
         store.send(.binding(.set(\.keyword, text)))
         store.send(.searchSubmit(text))
+        isBrowsingSuggestions = false
         hideSuggestions()
         searchBar.resignFirstResponder()
     }
@@ -419,7 +515,14 @@ extension UISearchViewV2Controller: UITableViewDataSource, UITableViewDelegate {
         let suggestion = store.suggestedTag[indexPath.row]
         store.send(.suggestionTapped(suggestion))
         activeSearchBar.text = store.keyword
+        isBrowsingSuggestions = false
         hideSuggestions()
         tableView.deselectRow(at: indexPath, animated: true)
+    }
+
+    // Dragging the suggestions dismisses the keyboard, which must not also dismiss the suggestions.
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        guard scrollView === suggestionsTableView else { return }
+        isBrowsingSuggestions = true
     }
 }
