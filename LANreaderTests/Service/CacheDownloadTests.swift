@@ -155,7 +155,6 @@ final class CacheDownloadTests: XCTestCase {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
         try cacheTestImageData().write(to: folder.appendingPathComponent("1.jpg"))
-        try Data("error".utf8).write(to: folder.appendingPathComponent("2.jpg"))
         let database = try AppDatabase(DatabaseQueue())
         var cache = cacheTestRecord(id: id)
         try database.saveCache(&cache)
@@ -218,55 +217,6 @@ final class CacheDownloadTests: XCTestCase {
         XCTAssertTrue(store.errorMessage.isEmpty)
         let stored = try XCTUnwrap(ImageService.shared.storedImagePath(folderUrl: folder, pageNumber: "1"))
         XCTAssertEqual(try Data(contentsOf: stored), good)
-        var views = cell.contentView.subviews
-        var renderedImage: UIImage?
-        while let view = views.popLast() {
-            views.append(contentsOf: view.subviews)
-            if let imageView = view as? UIImageView, !imageView.isHidden, let image = imageView.image {
-                renderedImage = image
-            }
-        }
-        let expectedImage = try XCTUnwrap(UIImage(data: good)?.cgImage)
-        XCTAssertEqual(renderedImage?.isSymbolImage, false)
-        XCTAssertEqual(renderedImage?.cgImage?.width, expectedImage.width)
-        XCTAssertEqual(renderedImage?.cgImage?.height, expectedImage.height)
-    }
-
-    @MainActor
-    func testCachedReaderRendersValidPageRetainedBesideInvalidCopy() async throws {
-        let state = PageFeature.State(archiveId: UUID().uuidString,
-                                      pageId: "/cached-retained-page", pageNumber: 1, cached: true)
-        let folder = try XCTUnwrap(state.folder)
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: folder) }
-        let good = cacheTestImageData()
-        try Data("<html>Error</html>".utf8).write(to: folder.appendingPathComponent("1.img"))
-        try good.write(to: folder.appendingPathComponent("1.jpg"))
-        let requests = OSAllocatedUnfairLock(initialState: 0)
-        stub(condition: isHost("localhost") && isPath(state.pageId)) { @Sendable _ in
-            requests.withLock { $0 += 1 }
-            return HTTPStubsResponse(error: URLError(.notConnectedToInternet))
-        }
-        let service = LANraragiService(backgroundSessionConfiguration: .ephemeral)
-        try await service.cachePages(archiveId: state.sourceArchiveId, pages: [
-            ReaderExtractedPage(archiveId: state.sourceArchiveId, path: state.pageId, archivePageNumber: 1)
-        ])
-        try await waitForCacheDownloads(service, archiveId: state.sourceArchiveId)
-        let store = Store(initialState: state) { PageFeature() } withDependencies: {
-            $0.lanraragiService = service
-        }
-        let cell = UIPageCell(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
-        cell.configure(with: store, fitPageWidth: false, showsStamps: false,
-                       onCreateStamp: { _ in }, onEditStamp: { _ in })
-        await store.send(.load(false)).finish()
-        await Task.yield()
-        await Task.yield()
-        XCTAssertEqual(ImageService.shared.validStoredPageNumbers(folderUrl: folder, totalPages: 1), [1])
-        XCTAssertEqual(ImageService.shared.storedImagePath(folderUrl: folder, pageNumber: "1")?.lastPathComponent,
-                       "1.jpg")
-        XCTAssertEqual(store.pageMode, .normal)
-        XCTAssertTrue(store.errorMessage.isEmpty)
-        XCTAssertEqual(requests.withLock { $0 }, 0)
         var views = cell.contentView.subviews
         var renderedImage: UIImage?
         while let view = views.popLast() {

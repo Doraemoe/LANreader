@@ -163,7 +163,7 @@ import ComposableArchitecture
                 for (id, progress) in inProgress {
                     let cacheFolder = LANraragiService.cachePath!
                         .appendingPathComponent(id, conformingTo: .folder)
-                    let downloadedPages = imageService.validStoredPageNumbers(
+                    let downloadedPages = imageService.storedPageNumbers(
                         folderUrl: cacheFolder, totalPages: progress.total
                     ).count
                     if downloadedPages == progress.total && progress.total > 0 {

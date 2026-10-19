@@ -64,6 +64,24 @@ class LANreaderTests: XCTestCase {
         XCTAssertEqual(ImageService.shared.validStoredPageNumbers(folderUrl: tempDirectory, totalPages: 3), [1])
     }
 
+    func testStoredPageNumbersCountsStoredPagesByName() throws {
+        let good = makeJPEGData(color: .blue)
+        for filename in ["0.jpg", "1.jpg", "2.png", "4.jpg", "cover.jpg"] {
+            try good.write(to: tempDirectory.appendingPathComponent(filename))
+        }
+        XCTAssertEqual(ImageService.shared.storedPageNumbers(folderUrl: tempDirectory, totalPages: 3), [1, 2])
+    }
+
+    func testStoredImagePathFindsStoredPageByNumber() throws {
+        try makeJPEGData(color: .blue).write(to: tempDirectory.appendingPathComponent("3.jpg"))
+
+        XCTAssertEqual(
+            ImageService.shared.storedImagePath(folderUrl: tempDirectory, pageNumber: "3")?.lastPathComponent,
+            "3.jpg"
+        )
+        XCTAssertNil(ImageService.shared.storedImagePath(folderUrl: tempDirectory, pageNumber: "4"))
+    }
+
     func testSuccessfulPageReplacementRemovesInvalidAndOlderFormats() throws {
         let source = tempDirectory.appendingPathComponent("download.tmp")
         let folder = tempDirectory.appendingPathComponent("pages")

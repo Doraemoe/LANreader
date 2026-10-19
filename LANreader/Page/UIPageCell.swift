@@ -288,7 +288,6 @@ class UIPageCell: UICollectionViewCell {
         scrollView.zoomScale = 1.0
         scrollView.setContentOffset(.zero, animated: false)
         setupObserve(store: store)
-        renderCurrentState(store: store)
         if showsStamps {
             store.send(.loadStamps)
         }
@@ -385,6 +384,7 @@ class UIPageCell: UICollectionViewCell {
                 imageView.isHidden = true
                 animatedImageView.isHidden = true
                 progressView.isHidden = true
+                progressViewLabel.isHidden = false
                 progressViewLabel.text = store.errorMessage
             }
         }
@@ -413,7 +413,7 @@ class UIPageCell: UICollectionViewCell {
     private func renderImage(store: StoreOf<PageFeature>, pageMode: PageMode) {
         animatedImageView.resetFirstFrameState()
 
-        guard let contentPath = imageService.storedImagePath(
+        guard let contentPath = store.storedImageURL ?? imageService.storedImagePath(
             folderUrl: store.folder,
             pageNumber: "\(store.pageNumber)"
         ) else {
@@ -483,32 +483,6 @@ class UIPageCell: UICollectionViewCell {
             return .right
         case .loading, .normal, .error:
             return nil
-        }
-    }
-
-    private func renderCurrentState(store: StoreOf<PageFeature>) {
-        let pageMode = store.pageMode
-        if store.errorMessage.isEmpty {
-            if store.imageLoaded {
-                progressView.isHidden = true
-                progressViewLabel.isHidden = true
-                renderImage(store: store, pageMode: pageMode)
-            } else {
-                imageView.isHidden = true
-                animatedImageView.isHidden = true
-                progressView.isHidden = false
-                progressViewLabel.isHidden = false
-                progressView.progress = Float(store.progress)
-                progressViewLabel.text = store.translationStatus.isEmpty ?
-                String(format: "%.2f%%", store.progress * 100) :
-                store.translationStatus
-            }
-        } else {
-            imageView.isHidden = true
-            animatedImageView.isHidden = true
-            progressView.isHidden = true
-            progressViewLabel.isHidden = false
-            progressViewLabel.text = store.errorMessage
         }
     }
 

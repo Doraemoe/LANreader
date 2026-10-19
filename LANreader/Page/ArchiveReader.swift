@@ -1599,10 +1599,12 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         )
         insertedPage.imageLoaded = true
         insertedPage.imageAspectRatio = current.imageAspectRatio
+        insertedPage.storedImageURL = current.storedImageURL
         // Match by half, not id: the original item keeps its normal id while showing a split half.
         if let existingSiblingId = state.pages.first(where: {
             $0.pageId == current.pageId && $0.id != id && $0.pageMode == siblingMode
         })?.id {
+            state.pages[id: existingSiblingId]?.storedImageURL = current.storedImageURL
             state.pages[id: existingSiblingId]?.imageLoaded = true
             return
         }
@@ -1641,6 +1643,9 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         state.pages[id: keepId]?.imageLoaded = true
         if let imageAspectRatio = current.imageAspectRatio {
             state.pages[id: keepId]?.imageAspectRatio = imageAspectRatio
+        }
+        if let storedImageURL = current.storedImageURL {
+            state.pages[id: keepId]?.storedImageURL = storedImageURL
         }
 
         state.pages.removeAll {
