@@ -59,6 +59,7 @@ import Logging
 
         var showsReadFilterEmptyState: Bool {
             hideRead && !loading && !archives.isEmpty && archivesToDisplay.isEmpty
+                && (paginationActive || archives.count >= total)
         }
 
         var canStartBatchAction: Bool {
@@ -223,6 +224,7 @@ import Logging
                     state.archivesToDisplay = .init()
                     state.total = 0
                 }
+                let visibleCountBefore = state.archivesToDisplay.count
                 state.archives.append(contentsOf: gridFeatureState)
 
                 // LANraragi exposes no page-size parameter, so the size is inferred from a
@@ -256,6 +258,10 @@ import Logging
                     state.preserveSelectionOnNextPopulate = false
                 } else {
                     state.selected.formIntersection(state.archivesToDisplay.ids)
+                }
+                if !archives.isEmpty, state.archivesToDisplay.count == visibleCountBefore,
+                   state.canAppendHiddenArchives {
+                    return .send(.appendArchives(String(state.archives.count)))
                 }
                 return .none
             case let .refreshThumbnail(archiveId):
@@ -405,6 +411,9 @@ import Logging
                     state.archivesToDisplay = IdentifiedArray(uniqueElements: result)
                 } else {
                     state.archivesToDisplay = state.archives
+                }
+                if state.archivesToDisplay.count < state.archives.count, state.canAppendHiddenArchives {
+                    return .send(.appendArchives(String(state.archives.count)))
                 }
                 return .none
             case let .goToPage(page):
@@ -794,6 +803,11 @@ extension ArchiveListFeature.State {
 
     var showsPager: Bool {
         paginationActive && pageCount > 1
+    }
+
+    var canAppendHiddenArchives: Bool {
+        hideRead && !paginationActive && searchSort != SearchSort.random.rawValue
+            && selectMode != .active && archives.count < total
     }
 }
 
