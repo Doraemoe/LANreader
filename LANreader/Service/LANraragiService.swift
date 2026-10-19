@@ -115,20 +115,6 @@ actor LANraragiService {
         }
     }
 
-    func stampSupportForCurrentServer() async -> Bool? {
-        if supportsStamps == nil {
-            await checkServerVersionAtStartup()
-        }
-        return supportsStamps
-    }
-
-    func chapterMutationSupportForCurrentServer() async -> Bool? {
-        if supportsChapterMutations == nil {
-            await checkServerVersionAtStartup()
-        }
-        return supportsChapterMutations
-    }
-
     func updateServerCapabilities(serverVersion: String) {
         self.useNewAPI = Self.compareVersions(serverVersion, isAtLeast: Self.newAPIMinVersion)
         self.supportsStamps = Self.compareVersions(serverVersion, isAtLeast: Self.stampsMinVersion)
