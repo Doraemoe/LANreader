@@ -449,10 +449,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                     state.inCache = true
                 }
                 return .run { send in
-                    let stampsSupported = await service.stampSupportForCurrentServer()
-                    await send(.stampsSupportResolved(stampsSupported))
-                    let chapterMutationsSupported = await service.chapterMutationSupportForCurrentServer()
-                    await send(.chapterMutationSupportResolved(chapterMutationsSupported))
+                    await send(.stampsSupportResolved(await service.supportsStamps))
+                    await send(.chapterMutationSupportResolved(await service.supportsChapterMutations))
                     let extraction = try await service.extractArchiveForReading(id: id)
 
                     if extraction.pages.isEmpty {

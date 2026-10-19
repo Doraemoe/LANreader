@@ -3,6 +3,7 @@ import ComposableArchitecture
 import GRDB
 import OHHTTPStubs
 import OHHTTPStubsSwift
+import os
 @testable import LANreader
 
 // swiftlint:disable type_body_length file_length
@@ -204,6 +205,34 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         ))
         XCTAssertTrue(store.state.showStamps)
         XCTAssertNil(store.state.stampCreationTarget)
+    }
+
+    @MainActor
+    func testOpeningReaderWithUnknownCapabilitiesDoesNotCheckServerVersion() async throws {
+        configureReaderDefaults()
+        UserDefaults.standard.set("https://localhost", forKey: SettingsKey.lanraragiUrl)
+        UserDefaults.standard.set("apiKey", forKey: SettingsKey.lanraragiApiKey)
+        let infoRequests = OSAllocatedUnfairLock(initialState: 0)
+        stub(condition: isHost("localhost") && isPath("/api/info")) { @Sendable _ in
+            infoRequests.withLock { $0 += 1 }
+            return HTTPStubsResponse(error: URLError(.timedOut))
+        }
+        stubExtractArchive(archiveId: "archive", pages: ["./api/archives/archive/page?path=1.jpg"])
+        let service = LANraragiService(backgroundSessionConfiguration: .ephemeral)
+        let database = try makeInMemoryDatabase()
+        let store = makeTestStore(initialState: makeState()) {
+            $0.lanraragiService = service
+            $0.appDatabase = database
+        }
+        store.exhaustivity = .off
+
+        await store.send(.extractArchive)
+        await store.receive(.stampsSupportResolved(nil))
+        await store.receive(.chapterMutationSupportResolved(nil))
+        await store.receive(\.finishExtracting)
+
+        XCTAssertEqual(infoRequests.withLock { $0 }, 0)
+        XCTAssertTrue(store.state.canUseStamps)
     }
 
     @MainActor
