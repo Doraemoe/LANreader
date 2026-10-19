@@ -82,6 +82,56 @@ class LANreaderTests: XCTestCase {
         XCTAssertNil(ImageService.shared.storedImagePath(folderUrl: tempDirectory, pageNumber: "4"))
     }
 
+    func testReadingSessionPagesLiveInCachesAndOfflineCachesAreExcludedFromBackup() throws {
+        let sessionFolder = try XCTUnwrap(LANraragiService.downloadPath)
+        let cachesFolder = try FileManager.default.url(
+            for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: false
+        )
+        XCTAssertEqual(sessionFolder.deletingLastPathComponent().standardizedFileURL, cachesFolder.standardizedFileURL)
+
+        let cacheFolder = try XCTUnwrap(LANraragiService.cachePath)
+        let values = try cacheFolder.resourceValues(forKeys: [.isExcludedFromBackupKey])
+        XCTAssertEqual(values.isExcludedFromBackup, true)
+    }
+
+    func testExcludeFromBackupCreatesAndMarksFolder() throws {
+        let folder = tempDirectory.appendingPathComponent("cached", conformingTo: .folder)
+
+        try PageStorage.excludeFromBackup(folder)
+
+        let values = try folder.resourceValues(forKeys: [.isExcludedFromBackupKey])
+        XCTAssertEqual(values.isExcludedFromBackup, true)
+    }
+
+    func testStaleLaunchItemsSkipPagesDownloadedAfterLaunch() throws {
+        let fileManager = FileManager.default
+        let temporaryFolder = tempDirectory.appendingPathComponent("tmp", conformingTo: .folder)
+        let sessionFolder = tempDirectory.appendingPathComponent("current session", conformingTo: .folder)
+        let legacyFolder = tempDirectory.appendingPathComponent("legacy session", conformingTo: .folder)
+        let oldPage = sessionFolder.appendingPathComponent("archive/1.jpg")
+        for folder in [temporaryFolder, oldPage.deletingLastPathComponent(), legacyFolder] {
+            try fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
+        }
+        try Data("old".utf8).write(to: temporaryFolder.appendingPathComponent("download.tmp"))
+        try makeJPEGData(color: .blue).write(to: oldPage)
+
+        let staleItems = PageStorage.takeStaleItems(
+            temporaryFolder: temporaryFolder,
+            sessionFolder: sessionFolder,
+            legacySessionFolder: legacyFolder
+        )
+        XCTAssertFalse(fileManager.fileExists(atPath: sessionFolder.path))
+        let newPage = sessionFolder.appendingPathComponent("archive/1.jpg")
+        try fileManager.createDirectory(at: newPage.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try makeJPEGData(color: .red).write(to: newPage)
+
+        PageStorage.remove(staleItems)
+
+        XCTAssertEqual(try fileManager.contentsOfDirectory(atPath: temporaryFolder.path), [])
+        XCTAssertFalse(fileManager.fileExists(atPath: legacyFolder.path))
+        XCTAssertTrue(fileManager.fileExists(atPath: newPage.path))
+    }
+
     func testSuccessfulPageReplacementRemovesInvalidAndOlderFormats() throws {
         let source = tempDirectory.appendingPathComponent("download.tmp")
         let folder = tempDirectory.appendingPathComponent("pages")

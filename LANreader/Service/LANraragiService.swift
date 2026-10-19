@@ -10,7 +10,7 @@ import os
 
 actor LANraragiService {
     public static let downloadPath = try? FileManager.default.url(
-        for: .documentDirectory,
+        for: .cachesDirectory,
         in: .userDomainMask,
         appropriateFor: nil,
         create: true
@@ -20,7 +20,7 @@ actor LANraragiService {
     public static let cachePath = try? FileManager.default.url(
         for: .documentDirectory,
         in: .userDomainMask,
-        appropriateFor: .picturesDirectory,
+        appropriateFor: nil,
         create: true
     )
     .appendingPathComponent("cached", conformingTo: .folder)
