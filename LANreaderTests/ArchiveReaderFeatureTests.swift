@@ -2901,6 +2901,77 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testLoadingStoredPageKeepsItsURLAndForcedReloadClearsIt() async throws {
+        let state = PageFeature.State(archiveId: UUID().uuidString, pageId: "/stored-url", pageNumber: 1, cached: true)
+        let folder = try XCTUnwrap(state.folder)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let pageURL = folder.appendingPathComponent("1.jpg")
+        try makeReaderPageData().write(to: pageURL)
+        let store = TestStore(initialState: state) { PageFeature() }
+        store.exhaustivity = .off
+
+        await store.send(.load(false))
+        await store.receive(\.storedImageResolved)
+        XCTAssertEqual(store.state.storedImageURL?.standardizedFileURL, pageURL.standardizedFileURL)
+        XCTAssertNotNil(store.state.imageAspectRatio)
+
+        await store.send(.load(true)) {
+            $0.storedImageURL = nil
+        }
+        await store.receive(\.setError)
+        XCTAssertNil(store.state.storedImageURL)
+    }
+
+    @MainActor
+    func testPageCellRendersFromStoredURLAndShowsErrorsOnConfigure() throws {
+        let imageURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("stored-url-\(UUID().uuidString).jpg")
+        let good = makeReaderPageData()
+        try good.write(to: imageURL)
+        defer { try? FileManager.default.removeItem(at: imageURL) }
+        var loaded = PageFeature.State(archiveId: UUID().uuidString, pageId: "/cell-url", pageNumber: 1)
+        loaded.pageMode = .normal
+        loaded.imageLoaded = true
+        loaded.storedImageURL = imageURL
+        let cell = UIPageCell(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
+        cell.configure(with: Store(initialState: loaded) { PageFeature() }, fitPageWidth: false,
+                       showsStamps: false, onCreateStamp: { _ in }, onEditStamp: { _ in })
+
+        let rendered = visibleSubviews(of: UIImageView.self, in: cell).compactMap(\.image).last
+        XCTAssertEqual(rendered?.isSymbolImage, false)
+        XCTAssertEqual(rendered?.cgImage?.width, UIImage(data: good)?.cgImage?.width)
+
+        var failed = PageFeature.State(archiveId: UUID().uuidString, pageId: "/cell-error", pageNumber: 1)
+        failed.imageLoaded = true
+        failed.errorMessage = "Page failed"
+        cell.configure(with: Store(initialState: failed) { PageFeature() }, fitPageWidth: false,
+                       showsStamps: false, onCreateStamp: { _ in }, onEditStamp: { _ in })
+
+        XCTAssertTrue(visibleSubviews(of: UILabel.self, in: cell).contains { $0.text == "Page failed" })
+    }
+
+    @MainActor
+    func testSplitPageResolutionCopiesStoredURLToInsertedSibling() async {
+        configureReaderDefaults(splitWideImage: true)
+        var initialState = makeState(progress: 1)
+        initialState.$splitImage = SharedReader(value: true)
+        initialState.pages = makePageStates(count: 2)
+        let storedURL = URL(fileURLWithPath: "/tmp/archive/1.jpg")
+        initialState.pages[0].storedImageURL = storedURL
+        initialState.currentPageIndex = 0
+        let store = makeTestStore(initialState: initialState)
+        store.exhaustivity = .off
+
+        await store.send(.page(.element(
+            id: initialState.pages[0].id,
+            action: .storedImageResolved(shouldDisplayAsSplitPages: true)
+        )))
+
+        XCTAssertEqual(store.state.pages.map(\.storedImageURL), [storedURL, storedURL, nil])
+    }
+
+    @MainActor
     func testSplitPageResolutionBeforeCurrentPreservesVisiblePage() async {
         configureReaderDefaults(splitWideImage: true)
         var initialState = makeState(progress: 3)
@@ -5007,6 +5078,20 @@ private func stubReaderPageFailure(path: String) {
     stub(condition: isHost("localhost") && isPath(path) && isMethodGET()) { _ in
         HTTPStubsResponse(data: Data(), statusCode: 500, headers: nil)
     }
+}
+
+@MainActor
+private func visibleSubviews<View: UIView>(of type: View.Type, in root: UIView) -> [View] {
+    var views = [root]
+    var matches = [View]()
+    while let view = views.popLast() {
+        guard !view.isHidden else { continue }
+        views.append(contentsOf: view.subviews)
+        if let match = view as? View {
+            matches.append(match)
+        }
+    }
+    return matches
 }
 
 private func makeReaderPageData(size: CGSize = CGSize(width: 200, height: 100)) -> Data {

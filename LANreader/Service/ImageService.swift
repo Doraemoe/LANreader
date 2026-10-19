@@ -39,6 +39,19 @@ final class ImageService: Sendable {
         }
     }
 
+    func storedPageNumbers(folderUrl: URL?, totalPages: Int) -> Set<Int> {
+        guard let folderUrl, totalPages > 0,
+              let files = try? FileManager.default.contentsOfDirectory(
+                at: folderUrl, includingPropertiesForKeys: nil
+              ) else { return [] }
+        return Set(files.compactMap { url in
+            guard !url.hasDirectoryPath,
+                  let page = Int(url.deletingPathExtension().lastPathComponent),
+                  (1...totalPages).contains(page) else { return nil }
+            return page
+        })
+    }
+
     func validStoredPageNumbers(folderUrl: URL?, totalPages: Int) -> Set<Int> {
         guard let folderUrl, totalPages > 0,
               let files = try? FileManager.default.contentsOfDirectory(
@@ -76,12 +89,11 @@ final class ImageService: Sendable {
             return nil
         }
 
-        let matched = files.filter {
+        // Pages are validated before they are stored, so the stored file can be used as is.
+        return files.first {
             !$0.hasDirectoryPath
                 && $0.deletingPathExtension().lastPathComponent == pageNumber
         }
-        return matched.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
-            .first { isValidPageImage(imageUrl: $0) }
     }
 
     /// Reads only the image header, so this never decodes pixel data and stays cheap enough to run
