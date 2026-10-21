@@ -1,7 +1,7 @@
 import Foundation
 
 enum DeepLink: Equatable {
-    case read(archiveId: String)
+    case read(archiveId: String, preferCached: Bool)
     case search(query: String)
     case download(URL)
 
@@ -24,7 +24,7 @@ enum DeepLink: Equatable {
                   archiveId.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_" || $0 == "-") }) else {
                 return nil
             }
-            self = .read(archiveId: archiveId)
+            self = .read(archiveId: archiveId, preferCached: value("preferCached")?.lowercased() == "true")
         case "search":
             guard let query = value("query"), !query.isEmpty else { return nil }
             self = .search(query: query)

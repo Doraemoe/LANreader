@@ -103,8 +103,8 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
                 return .none
             case let .openURL(url):
                 switch DeepLink(url: url) {
-                case let .read(archiveId):
-                    return loadDeepLinkArchive(id: archiveId)
+                case let .read(archiveId, preferCached):
+                    return loadDeepLinkArchive(id: archiveId, preferCached: preferCached)
                 case let .search(query):
                     state.pendingDeepLink = .search(query: query)
                     return .send(.search(.recentSearchTapped(query)))
@@ -162,8 +162,12 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
         .ifLet(\.$destination, action: \.destination)
     }
 
-    private func loadDeepLinkArchive(id: String) -> Effect<Action> {
+    private func loadDeepLinkArchive(id: String, preferCached: Bool) -> Effect<Action> {
         .run { send in
+            if preferCached, let cache = try? database.readCache(id), cache.cached {
+                await send(.deepLinkArchiveLoaded(cache.toArchiveItem(), cached: true))
+                return
+            }
             do {
                 let archive = if id.isTankoubonArchiveId {
                     try await tankoubonArchiveItem(id: id)
@@ -172,10 +176,6 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
                 }
                 await send(.deepLinkArchiveLoaded(archive, cached: false))
             } catch {
-                if let cache = try? database.readCache(id), cache.cached {
-                    await send(.deepLinkArchiveLoaded(cache.toArchiveItem(), cached: true))
-                    return
-                }
                 logger.error("failed to open archive from link. id=\(id) \(error)")
                 await send(.setErrorMessage(String(localized: "error.deeplink.archive")))
             }

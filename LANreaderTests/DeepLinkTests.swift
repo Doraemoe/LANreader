@@ -15,8 +15,18 @@ final class DeepLinkTests: XCTestCase {
     }
 
     func testParsesReadAndSearchLinks() throws {
-        XCTAssertEqual(DeepLink(url: try url("lanreader://read?id=abc123")), .read(archiveId: "abc123"))
-        XCTAssertEqual(DeepLink(url: try url("LANREADER://Read?id=TANK_42")), .read(archiveId: "TANK_42"))
+        XCTAssertEqual(
+            DeepLink(url: try url("lanreader://read?id=abc123")),
+            .read(archiveId: "abc123", preferCached: false)
+        )
+        XCTAssertEqual(
+            DeepLink(url: try url("LANREADER://Read?id=TANK_42&preferCached=TRUE")),
+            .read(archiveId: "TANK_42", preferCached: true)
+        )
+        XCTAssertEqual(
+            DeepLink(url: try url("lanreader://read?id=abc123&preferCached=false")),
+            .read(archiveId: "abc123", preferCached: false)
+        )
         XCTAssertEqual(
             DeepLink(url: try url("lanreader://search?query=artist%3Ae%20auo%24%2C")),
             .search(query: "artist:e auo$,")
@@ -64,21 +74,31 @@ final class DeepLinkTests: XCTestCase {
     }
 
     @MainActor
-    func testReadLinkFallsBackToCachedArchiveWhenServerFails() async throws {
+    func testPreferCachedReadLinkOpensCachedArchiveWithoutServer() async throws {
         try await configureArchiveListTestClient()
-        stubArchiveMetadata(id: "abc123", statusCode: 500)
-        let database = try AppDatabase(DatabaseQueue())
-        var cache = ArchiveCache(
-            id: "abc123", title: "Cached archive", tags: "", thumbnail: nil,
-            cached: true, totalPages: 12, toc: nil, lastUpdate: Date(), progress: 4
-        )
-        try database.saveCache(&cache)
+        stubArchiveMetadata(id: "abc123", statusCode: 200)
+        let database = try savedCache(id: "abc123")
         let store = try makeAppTestStore(database: database)
 
-        await store.send(.openURL(try url("lanreader://read?id=abc123")))
+        await store.send(.openURL(try url("lanreader://read?id=abc123&preferCached=true")))
         await store.receive(\.deepLinkArchiveLoaded)
 
+        let cache = try XCTUnwrap(database.readCache("abc123"))
         XCTAssertEqual(store.state.pendingDeepLink, .reader(cache.toArchiveItem(), cached: true))
+    }
+
+    @MainActor
+    func testReadLinkIgnoresCacheWithoutPreferCached() async throws {
+        try await configureArchiveListTestClient()
+        stubArchiveMetadata(id: "abc123", statusCode: 500)
+        let store = try makeAppTestStore(database: savedCache(id: "abc123"))
+
+        await store.send(.openURL(try url("lanreader://read?id=abc123")))
+        await store.receive(\.setErrorMessage) {
+            $0.errorMessage = String(localized: "error.deeplink.archive")
+        }
+
+        XCTAssertNil(store.state.pendingDeepLink)
     }
 
     @MainActor
@@ -175,6 +195,16 @@ private func waitUntil(_ condition: () -> Bool) async {
     for _ in 0..<100 where !condition() {
         try? await Task.sleep(for: .milliseconds(10))
     }
+}
+
+private func savedCache(id: String) throws -> AppDatabase {
+    let database = try AppDatabase(DatabaseQueue())
+    var cache = ArchiveCache(
+        id: id, title: "Cached archive", tags: "", thumbnail: nil,
+        cached: true, totalPages: 12, toc: nil, lastUpdate: Date(), progress: 4
+    )
+    try database.saveCache(&cache)
+    return database
 }
 
 private func url(_ string: String) throws -> URL {

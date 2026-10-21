@@ -45,7 +45,7 @@ Other apps and shortcuts can open LANreader with links in the form `lanreader://
 
 | Link | Action |
 | --- | --- |
-| `lanreader://read?id=<archive-id>` | Opens the archive or Tankoubon in the reader at its saved page. Uses the cached copy when the server can't be reached. |
+| `lanreader://read?id=<archive-id>` | Opens the archive or Tankoubon in the reader at its saved page. Add `&preferCached=true` to open the downloaded copy offline when there is one. |
 | `lanreader://search?query=<query>` | Opens Search and runs the query. |
 | `lanreader://download?url=<url>` | Queues the `http` or `https` URL as a download on your LANraragi server, like the share extension. |
 
