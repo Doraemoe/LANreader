@@ -283,6 +283,12 @@ actor LANraragiService {
             .serializingDecodable(ArchiveRandomResponse.self)
     }
 
+    func retrieveArchiveMetadata(id: String) async -> DataTask<ArchiveIndexResponse> {
+        session.request("\(url)/api/archives/\(id)/metadata")
+            .validate(statusCode: 200...200)
+            .serializingDecodable(ArchiveIndexResponse.self)
+    }
+
     func retrieveTankoubon(id: String) async -> DataTask<TankoubonMetadataResponse> {
         session.request("\(url)/api/tankoubons/\(id)")
             .validate(statusCode: 200...200)

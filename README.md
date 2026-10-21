@@ -39,6 +39,18 @@ The AppStore version is a paid app. You can still follow [Test on your device](#
 
 ![237701532-4518935c-ca93-43a8-b190-064c6424aea5](https://github.com/Doraemoe/LANreader/assets/1129569/e8dab3ba-8eb0-49e6-930e-2c8b2fbd5cad)
 
+## Deep links
+
+Other apps and shortcuts can open LANreader with links in the form `lanreader://<action>?<parameter>=<value>`. Percent-encode every value.
+
+| Link | Action |
+| --- | --- |
+| `lanreader://read?id=<archive-id>` | Opens the archive or Tankoubon in the reader at its saved page. Add `&preferCached=true` to open the downloaded copy offline when there is one. |
+| `lanreader://search?query=<query>` | Opens Search and runs the query. |
+| `lanreader://download?url=<url>` | Queues the `http` or `https` URL as a download on your LANraragi server, like the share extension. |
+
+Archive IDs come from the LANraragi server LANreader is connected to.
+
 ## Test on your device
 
 ### AltStore

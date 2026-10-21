@@ -24,6 +24,9 @@ public struct UIAppTabView: UIViewControllerRepresentable {
 
 class UITabViewController: UITabBarController {
     private let store: StoreOf<AppFeature>
+    private var libraryNav: UINavigationController?
+    private var searchNav: UINavigationController?
+    private var searchView: UISearchViewV2Controller?
 
     init(store: StoreOf<AppFeature>) {
         self.store = store
@@ -82,5 +85,44 @@ class UITabViewController: UITabBarController {
         settingsView.navigationItem.title = String(localized: "settings")
 
         self.viewControllers = [libraryNav, categoryNav, searchNav, settingsNav]
+        self.libraryNav = libraryNav
+        self.searchNav = searchNav
+        self.searchView = searchView
+        observeDeepLinks()
+    }
+
+    private func observeDeepLinks() {
+        observe { [weak self] in
+            guard let self,
+                  let route = store.pendingDeepLink,
+                  store.destination == nil else { return }
+            open(route)
+            store.send(.deepLinkHandled)
+        }
+    }
+
+    private func open(_ route: DeepLinkRoute) {
+        switch route {
+        case let .reader(archive, cached):
+            guard let libraryNav else { return }
+            let sharedArchive = cached ? nil : Shared(store.$archiveItems[id: archive.id])
+            let readerStore = Store(
+                initialState: ArchiveReaderFeature.State(
+                    currentArchiveId: archive.id,
+                    allArchives: [sharedArchive ?? Shared(value: archive)],
+                    cached: cached
+                )
+            ) {
+                ArchiveReaderFeature()
+            }
+            selectedViewController = libraryNav
+            libraryNav.popToRootViewController(animated: false)
+            libraryNav.pushViewController(UIArchiveReaderController(store: readerStore), animated: true)
+        case let .search(query):
+            guard let searchNav else { return }
+            selectedViewController = searchNav
+            searchNav.popToRootViewController(animated: false)
+            searchView?.showSearch(keyword: query)
+        }
     }
 }

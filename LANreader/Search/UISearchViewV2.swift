@@ -378,6 +378,15 @@ class UISearchViewV2Controller: UIViewController {
         hasRenderedSuggestions = true
     }
 
+    func showSearch(keyword: String) {
+        loadViewIfNeeded()
+        activeSearchBar.text = keyword
+        isEditingSearchText = false
+        isBrowsingSuggestions = false
+        activeSearchBar.resignFirstResponder()
+        hideSuggestions(animated: false)
+    }
+
     private func runRecentSearch(_ keyword: String) {
         activeSearchBar.text = keyword
         store.send(.recentSearchTapped(keyword))

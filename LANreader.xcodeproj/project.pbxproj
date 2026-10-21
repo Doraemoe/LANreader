@@ -14,6 +14,7 @@
 		4BD82C152E77BFD137EC03DD /* LANraragiConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82CD5954DDD63ABB7DD22 /* LANraragiConfigView.swift */; };
 		4BD82C7F9CB71CAF8F33C171 /* ViewSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD8297D9DA6589446C724EC /* ViewSettings.swift */; };
 		4BD82CED54A4C9689B0E9E55 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD82694B57396B2CD6BACED /* ContentView.swift */; };
+		E9CA49D82F80000100A53A54 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9CA49D92F80000100A53A54 /* DeepLink.swift */; };
 		4BD82F2BEC56B95FB9BC9841 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD827ECEE1938273E758358 /* SettingsView.swift */; };
 		4BD82FB1458C45231D987E32 /* LANraragiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD824A308A90B5740411016 /* LANraragiService.swift */; };
 		6DA711FA92BEE61419224BB4 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA71C5CFBC9FDA5C1244254 /* LoadingView.swift */; };
@@ -109,6 +110,7 @@
 		F1A2B3CC2F70000100AAA001 /* ArchiveListFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3CD2F70000100AAA001 /* ArchiveListFeatureTests.swift */; };
 		F1A2B3CC2F70000100AAA002 /* ArchiveListBatchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3CD2F70000100AAA002 /* ArchiveListBatchTests.swift */; };
 		F1A2B3CE2F70000100AAA003 /* ArchiveListHideReadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3CF2F70000100AAA003 /* ArchiveListHideReadTests.swift */; };
+		F1A2B3D22F70000100AAA005 /* DeepLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3D32F70000100AAA005 /* DeepLinkTests.swift */; };
 		F1A2B3CE2F80000100AAA001 /* LogTextRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3CF2F80000100AAA001 /* LogTextRendererTests.swift */; };
 		F1A2B3D52F60000400DDD001 /* LANraragiConfigFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3D42F60000400DDD001 /* LANraragiConfigFeatureTests.swift */; };
 		F1A2B3D62F90000100AAA001 /* SearchKeyword.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3D72F90000100AAA001 /* SearchKeyword.swift */; };
@@ -159,6 +161,7 @@
 		4BD825A4E56818113C2F7801 /* ReadSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ReadSettings.swift; path = LANreader/ReadSettings.swift; sourceTree = SOURCE_ROOT; };
 		4BD8260539525571C37E4F39 /* .swiftlint.yml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
 		4BD82694B57396B2CD6BACED /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		E9CA49D92F80000100A53A54 /* DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLink.swift; sourceTree = "<group>"; };
 		4BD827ECEE1938273E758358 /* SettingsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = LANreader/SettingsView.swift; sourceTree = SOURCE_ROOT; };
 		4BD8297D9DA6589446C724EC /* ViewSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ViewSettings.swift; path = LANreader/ViewSettings.swift; sourceTree = SOURCE_ROOT; };
 		4BD82CD5954DDD63ABB7DD22 /* LANraragiConfigView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = LANraragiConfigView.swift; path = LANreader/LANraragiConfigView.swift; sourceTree = SOURCE_ROOT; };
@@ -253,6 +256,7 @@
 		F1A2B3CD2F70000100AAA001 /* ArchiveListFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveListFeatureTests.swift; sourceTree = "<group>"; };
 		F1A2B3CD2F70000100AAA002 /* ArchiveListBatchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveListBatchTests.swift; sourceTree = "<group>"; };
 		F1A2B3CF2F70000100AAA003 /* ArchiveListHideReadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveListHideReadTests.swift; sourceTree = "<group>"; };
+		F1A2B3D32F70000100AAA005 /* DeepLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkTests.swift; sourceTree = "<group>"; };
 		F1A2B3CF2F80000100AAA001 /* LogTextRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogTextRendererTests.swift; sourceTree = "<group>"; };
 		F1A2B3D42F60000400DDD001 /* LANraragiConfigFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LANraragiConfigFeatureTests.swift; sourceTree = "<group>"; };
 		F1A2B3D72F90000100AAA001 /* SearchKeyword.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchKeyword.swift; sourceTree = "<group>"; };
@@ -485,6 +489,7 @@
 				F1A2B3CD2F70000100AAA001 /* ArchiveListFeatureTests.swift */,
 				F1A2B3CD2F70000100AAA002 /* ArchiveListBatchTests.swift */,
 				F1A2B3CF2F70000100AAA003 /* ArchiveListHideReadTests.swift */,
+				F1A2B3D32F70000100AAA005 /* DeepLinkTests.swift */,
 				AB3870010000000000000002 /* ArchiveListSelectionTests.swift */,
 				F1A2B3CF2F80000100AAA001 /* LogTextRendererTests.swift */,
 				F1A2B3D92F90000200AAA001 /* SearchFeatureTests.swift */,
@@ -527,6 +532,7 @@
 				4BD8274F482337A2C904D45A /* Setting */,
 				4BD824C107853A5BC514F2AD /* Page */,
 				4BD82694B57396B2CD6BACED /* ContentView.swift */,
+				E9CA49D92F80000100A53A54 /* DeepLink.swift */,
 				E9A4DD112D5ACE9B00E16FEC /* UINavigationHelper.swift */,
 				E9A4DD0D2D558D1E00E16FEC /* UIAppTabView.swift */,
 				7D3DFF15251777B200686612 /* LANreaderApp.swift */,
@@ -799,6 +805,7 @@
 				E9965AAA2D6830DB00114E32 /* UICacheView.swift in Sources */,
 				E9A452242D90F0D60010CEE3 /* SupportView.swift in Sources */,
 				4BD82CED54A4C9689B0E9E55 /* ContentView.swift in Sources */,
+				E9CA49D82F80000100A53A54 /* DeepLink.swift in Sources */,
 				E997D8002AF20EE2007C91F1 /* ArchiveGridV2.swift in Sources */,
 				F1A2B3E12FA0000100AAA001 /* PaginationPositioning.swift in Sources */,
 				F1A2B3E32FA0000100AAA001 /* PaginationBar.swift in Sources */,
@@ -837,6 +844,7 @@
 				F1A2B3CC2F70000100AAA001 /* ArchiveListFeatureTests.swift in Sources */,
 				F1A2B3CC2F70000100AAA002 /* ArchiveListBatchTests.swift in Sources */,
 				F1A2B3CE2F70000100AAA003 /* ArchiveListHideReadTests.swift in Sources */,
+				F1A2B3D22F70000100AAA005 /* DeepLinkTests.swift in Sources */,
 				AB3870010000000000000001 /* ArchiveListSelectionTests.swift in Sources */,
 				F1A2B3CE2F80000100AAA001 /* LogTextRendererTests.swift in Sources */,
 				F1A2B3E52FA0000100AAA001 /* PaginationPositioningTests.swift in Sources */,
@@ -1019,7 +1027,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreader.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 262;
+				CURRENT_PROJECT_VERSION = 263;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1030,7 +1038,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.11.5;
+				MARKETING_VERSION = 3.11.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1047,7 +1055,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreaderRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 262;
+				CURRENT_PROJECT_VERSION = 263;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1058,7 +1066,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.11.5;
+				MARKETING_VERSION = 3.11.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1121,7 +1129,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 262;
+				CURRENT_PROJECT_VERSION = 263;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1133,7 +1141,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.11.5;
+				MARKETING_VERSION = 3.11.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1151,7 +1159,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 262;
+				CURRENT_PROJECT_VERSION = 263;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1163,7 +1171,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 3.11.5;
+				MARKETING_VERSION = 3.11.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jif.LANreader.3.Action;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
