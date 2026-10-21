@@ -49,7 +49,7 @@ Other apps and shortcuts can open LANreader with links in the form `lanreader://
 | `lanreader://search?query=<query>` | Opens Search and runs the query. |
 | `lanreader://download?url=<url>` | Queues the `http` or `https` URL as a download on your LANraragi server, like the share extension. |
 
-Archive IDs come from the LANraragi server LANreader is connected to. Older `lanreader://<website>/<path>` links are no longer supported; use `download?url=` instead.
+Archive IDs come from the LANraragi server LANreader is connected to.
 
 ## Test on your device
 
