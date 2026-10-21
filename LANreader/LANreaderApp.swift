@@ -11,9 +11,7 @@ struct LANreaderApp: App {
     @Environment(\.scenePhase) var scenePhase
     @Dependency(\.lanraragiService) var lanraragiService
 
-    let store = Store(initialState: AppFeature.State()) {
-        AppFeature()
-    }
+    let store: StoreOf<AppFeature>
 
     private let transactionObserver = TransactionObserver()
 
@@ -55,6 +53,9 @@ struct LANreaderApp: App {
             }
         } catch {
             fatalError("Unresolved error \(error)")
+        }
+        store = Store(initialState: AppFeature.State()) {
+            AppFeature()
         }
     }
 
