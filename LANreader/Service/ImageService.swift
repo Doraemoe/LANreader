@@ -1,6 +1,7 @@
 import UIKit
 import Dependencies
 import ImageIO
+import Logging
 import UniformTypeIdentifiers
 
 enum ImageSplitSide: Sendable {
@@ -25,18 +26,38 @@ final class ImageService: Sendable {
     private static let maxDecodedImageBytes: Double = 64 * 1024 * 1024
     private static let jpegCompressionQuality: CGFloat = 0.92
 
+    private let logger = Logger(label: "ImageService")
+
     func isValidPageImage(imageUrl: URL, imageData: Data? = nil) -> Bool {
-        guard let data = imageData ?? (try? Data(contentsOf: imageUrl, options: .mappedIfSafe)),
-              hasCompleteEncodedPayload(data),
-              let source = makeImageSource(imageUrl: imageUrl, imageData: data),
-              CGImageSourceGetCount(source) > 0,
-              CGImageSourceGetStatus(source) == .statusComplete,
-              let size = imagePixelSize(from: source), size.width > 0, size.height > 0 else {
-            return false
+        pageImageProblem(imageUrl: imageUrl, imageData: imageData) == nil
+    }
+
+    private func pageImageProblem(imageUrl: URL, imageData: Data?) -> String? {
+        guard let data = imageData ?? (try? Data(contentsOf: imageUrl, options: .mappedIfSafe)) else {
+            return "unreadable data"
         }
-        return (0..<CGImageSourceGetCount(source)).allSatisfy {
-            CGImageSourceGetStatusAtIndex(source, $0) == .statusComplete
+        let header = data.prefix(12).map { String(format: "%02x", $0) }.joined()
+        let details = "bytes=\(data.count) header=\(header)"
+        guard hasCompleteEncodedPayload(data) else {
+            return "incomplete payload \(details)"
         }
+        guard let source = makeImageSource(imageUrl: imageUrl, imageData: data) else {
+            return "no image source \(details)"
+        }
+        let type = (CGImageSourceGetType(source) as String?) ?? "unknown"
+        let count = CGImageSourceGetCount(source)
+        let status = CGImageSourceGetStatus(source)
+        guard count > 0, status == .statusComplete else {
+            return "source status=\(status.rawValue) frames=\(count) type=\(type) \(details)"
+        }
+        guard let size = imagePixelSize(from: source), size.width > 0, size.height > 0 else {
+            return "no pixel size type=\(type) \(details)"
+        }
+        if let frame = (0..<count).first(where: { CGImageSourceGetStatusAtIndex(source, $0) != .statusComplete }) {
+            let frameStatus = CGImageSourceGetStatusAtIndex(source, frame)
+            return "frame \(frame) status=\(frameStatus.rawValue) frames=\(count) type=\(type) \(details)"
+        }
+        return nil
     }
 
     func storedPageNumbers(folderUrl: URL?, totalPages: Int) -> Set<Int> {
@@ -168,13 +189,17 @@ final class ImageService: Sendable {
         pageNumber: String,
         splitWideImages: Bool
     ) -> StoredPageImageResult? {
-        guard isValidPageImage(imageUrl: imageUrl, imageData: imageData) else { return nil }
+        if let problem = pageImageProblem(imageUrl: imageUrl, imageData: imageData) {
+            logger.error("rejected page image. page=\(pageNumber) file=\(imageUrl.lastPathComponent) \(problem)")
+            return nil
+        }
         guard let storedImage = storeImageFile(
             imageUrl: imageUrl,
             imageData: imageData,
             destinationUrl: destinationUrl,
             pageNumber: pageNumber
         ) else {
+            logger.error("failed to store page image. page=\(pageNumber) file=\(imageUrl.lastPathComponent)")
             return nil
         }
 
@@ -336,7 +361,7 @@ private extension ImageService {
         let pngSignature = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
         if imageData.starts(with: pngSignature) {
             let pngTrailer = Data([0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82])
-            return imageData.suffix(12) == pngTrailer
+            return imageData.range(of: pngTrailer, options: .backwards) != nil
         }
 
         return true
@@ -465,6 +490,7 @@ private extension ImageService {
             try data.write(to: destinationUrl, options: .atomic)
             return true
         } catch {
+            logger.error("failed to write image. path=\(destinationUrl.lastPathComponent) \(error)")
             return false
         }
     }
