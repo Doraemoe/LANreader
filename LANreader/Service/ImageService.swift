@@ -355,7 +355,7 @@ private extension ImageService {
         }
 
         if imageData.starts(with: [0xFF, 0xD8]) {
-            return hasJPEGEndMarker(imageData)
+            return imageData.range(of: Data([0xFF, 0xD9]), options: .backwards) != nil
         }
 
         let pngSignature = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
@@ -365,28 +365,6 @@ private extension ImageService {
         }
 
         return true
-    }
-
-    private func hasJPEGEndMarker(_ imageData: Data) -> Bool {
-        let trailingSkippableBytes = Set([UInt8(0x00), 0x09, 0x0A, 0x0D, 0x20])
-        var endIndex = imageData.endIndex
-
-        while endIndex > imageData.startIndex {
-            let indexBeforeEnd = imageData.index(before: endIndex)
-            if trailingSkippableBytes.contains(imageData[indexBeforeEnd]) {
-                endIndex = indexBeforeEnd
-            } else {
-                break
-            }
-        }
-
-        guard endIndex >= imageData.index(imageData.startIndex, offsetBy: 2) else {
-            return false
-        }
-
-        let markerEnd = imageData.index(before: endIndex)
-        let markerStart = imageData.index(before: markerEnd)
-        return imageData[markerStart] == 0xFF && imageData[markerEnd] == 0xD9
     }
 
     private func cgImageHasAlpha(_ image: CGImage) -> Bool {

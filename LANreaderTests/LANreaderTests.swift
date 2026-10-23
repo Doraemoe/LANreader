@@ -54,14 +54,17 @@ class LANreaderTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: folder.path))
     }
 
-    func testStorePageImageAcceptsPNGWithDataAfterEndChunk() throws {
+    func testStorePageImageAcceptsImagesWithDataAfterEndMarker() throws {
         let source = tempDirectory.appendingPathComponent("download.tmp")
         let folder = tempDirectory.appendingPathComponent("pages")
-        try (makeTransparentPNGData() + Data(repeating: 0, count: 64)).write(to: source)
+        let trailer = Data("trailing metadata".utf8) + Data(repeating: 0, count: 64)
+        for image in [makeTransparentPNGData(), makeJPEGData(color: .red)] {
+            try (image + trailer).write(to: source)
 
-        XCTAssertNotNil(ImageService.shared.storePageImage(
-            imageUrl: source, destinationUrl: folder, pageNumber: "1", splitWideImages: false
-        ))
+            XCTAssertNotNil(ImageService.shared.storePageImage(
+                imageUrl: source, destinationUrl: folder, pageNumber: "1", splitWideImages: false
+            ))
+        }
     }
 
     func testValidStoredPageNumbersCountsOnlyDistinctCompleteImagesInRange() throws {
