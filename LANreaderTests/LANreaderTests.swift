@@ -28,22 +28,21 @@ class LANreaderTests: XCTestCase {
         tempDirectory = nil
     }
 
-    func testStorePreviewImageRejectsTruncatedJPEGData() throws {
+    func testStorePreviewImageRejectsNonImageData() throws {
         let previewURL = tempDirectory.appendingPathComponent("preview.jpg")
         let service = ImageService.shared
 
-        let truncatedJPEG = makeJPEGData(color: .systemBlue).dropLast(32)
+        let errorPage = Data("<html>Unauthorized</html>".utf8)
 
-        XCTAssertFalse(service.storePreviewImage(imageData: truncatedJPEG, destinationUrl: previewURL))
+        XCTAssertFalse(service.storePreviewImage(imageData: errorPage, destinationUrl: previewURL))
         XCTAssertFalse(FileManager.default.fileExists(atPath: previewURL.path(percentEncoded: false)))
     }
 
-    func testStorePageImageRejectsInvalidAndTruncatedPayloads() throws {
+    func testStorePageImageRejectsNonImagePayloads() throws {
         let source = tempDirectory.appendingPathComponent("download.tmp")
         let folder = tempDirectory.appendingPathComponent("pages")
         let payloads = [
-            Data(), Data("<html>Unauthorized</html>".utf8), Data("{\"error\":\"failed\"}".utf8),
-            Data(makeJPEGData(color: .red).dropLast(32)), Data(makeTransparentPNGData().dropLast(20))
+            Data(), Data("<html>Unauthorized</html>".utf8), Data("{\"error\":\"failed\"}".utf8)
         ]
         for payload in payloads {
             try payload.write(to: source)
@@ -67,13 +66,13 @@ class LANreaderTests: XCTestCase {
         }
     }
 
-    func testValidStoredPageNumbersCountsOnlyDistinctCompleteImagesInRange() throws {
+    func testValidStoredPageNumbersCountsOnlyDistinctReadableImagesInRange() throws {
         let good = makeJPEGData(color: .blue)
         for filename in ["0.jpg", "1.jpg", "1.png", "4.jpg"] {
             try good.write(to: tempDirectory.appendingPathComponent(filename))
         }
         try Data("error".utf8).write(to: tempDirectory.appendingPathComponent("2.jpg"))
-        try Data(good.dropLast(32)).write(to: tempDirectory.appendingPathComponent("3.jpg"))
+        try Data("{\"error\":\"failed\"}".utf8).write(to: tempDirectory.appendingPathComponent("3.jpg"))
         XCTAssertEqual(ImageService.shared.validStoredPageNumbers(folderUrl: tempDirectory, totalPages: 3), [1])
     }
 

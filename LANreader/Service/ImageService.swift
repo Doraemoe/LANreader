@@ -38,9 +38,6 @@ final class ImageService: Sendable {
         }
         let header = data.prefix(12).map { String(format: "%02x", $0) }.joined()
         let details = "bytes=\(data.count) header=\(header)"
-        guard hasCompleteEncodedPayload(data) else {
-            return "incomplete payload \(details)"
-        }
         guard let source = makeImageSource(imageUrl: imageUrl, imageData: data) else {
             return "no image source \(details)"
         }
@@ -241,7 +238,7 @@ final class ImageService: Sendable {
         imageData: Data,
         destinationUrl: URL,
     ) -> Bool {
-        guard hasCompleteEncodedPayload(imageData) else {
+        guard isValidPageImage(imageUrl: destinationUrl, imageData: imageData) else {
             return false
         }
 
@@ -347,24 +344,6 @@ private extension ImageService {
             return nil
         }
         return StoredImageFile(url: mainPath, isAnimated: isAnimated)
-    }
-
-    private func hasCompleteEncodedPayload(_ imageData: Data) -> Bool {
-        guard imageData.count > 4 else {
-            return false
-        }
-
-        if imageData.starts(with: [0xFF, 0xD8]) {
-            return imageData.range(of: Data([0xFF, 0xD9]), options: .backwards) != nil
-        }
-
-        let pngSignature = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
-        if imageData.starts(with: pngSignature) {
-            let pngTrailer = Data([0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82])
-            return imageData.range(of: pngTrailer, options: .backwards) != nil
-        }
-
-        return true
     }
 
     private func cgImageHasAlpha(_ image: CGImage) -> Bool {
