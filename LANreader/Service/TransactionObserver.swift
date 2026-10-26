@@ -15,11 +15,6 @@ actor TransactionObserver {
         }
     }
 
-    func cancel() {
-        updates?.cancel()
-        updates = nil
-    }
-
     private func handle(updatedTransaction verificationResult: VerificationResult<Transaction>) async {
         guard case .verified(let transaction) = verificationResult else {
             // Ignore unverified transactions.

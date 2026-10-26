@@ -78,7 +78,6 @@ struct SettingsKey {
     static let tapRightKey = "settings:read:tap:right"
     static let readDirection = "settings:read:direction"
     static let disablePageFlipAnimation = "settings:read:disable:page:flip:animation"
-    static let showOriginal = "settings:read:image:showOriginal"
     static let splitWideImage = "settings:read:split:Image"
     static let splitPiorityLeft = "settings:read:split:piorityLeft"
     static let autoPageInterval = "settings:read:auto:page:interval"
@@ -97,7 +96,6 @@ struct SettingsKey {
     static let paginateArchiveList = "settings:view:paginate"
 
     static let lastTagRefresh = "lastTagRefresh"
-    static let tabBarHidden = "tab:bar:hidden"
 
     static let translationUrl = "settings:advanced:translation:url"
     static let translationEnabled = "settings:advanced:translation:enabled"

@@ -123,7 +123,7 @@ struct AppDatabase {
 
     func cleanImageCache() throws {
         try dbWriter.write { database in
-            _ = try ArchiveImage.deleteAll(database)
+            try database.execute(sql: "DELETE FROM archiveImage")
         }
     }
 }
@@ -310,10 +310,8 @@ extension AppDatabase {
 
     func clearDatabase() throws {
         try dbWriter.write { database in
-            _ = try Archive.deleteAll(database)
+            try database.execute(sql: "DELETE FROM archive; DELETE FROM archiveImage; DELETE FROM category")
             _ = try ArchiveThumbnail.deleteAll(database)
-            _ = try ArchiveImage.deleteAll(database)
-            _ = try Category.deleteAll(database)
             _ = try TagItem.deleteAll(database)
         }
     }

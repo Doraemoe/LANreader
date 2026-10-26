@@ -41,7 +41,6 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
 
         @Shared(.archive) var archiveItems: IdentifiedArrayOf<ArchiveItem> = []
 
-        var tabName = "library"
         var pendingDeepLink: DeepLinkRoute?
         var successMessage = ""
         var errorMessage = ""

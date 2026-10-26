@@ -76,7 +76,6 @@ import Logging
         case loadStamps
         case stampsLoaded([ArchiveStamp])
         case stampsLoadFailed(endpointUnavailable: Bool)
-        case setIsLoading(Bool)
         case subscribeToProgress(DownloadRequest)
         case cancelSubscribeImageProgress
         case setProgress(Double)
@@ -166,124 +165,104 @@ import Logging
                     state.pageMode = .loading
                     state.imageAspectRatio = nil
                     state.storedImageURL = nil
-                } else if state.pageMode == .loading {
-                    let normalPath = imageService.storedImagePath(
-                        folderUrl: state.folder,
-                        pageNumber: String(state.pageNumber)
+                } else if let normalPath = imageService.storedImagePath(
+                    folderUrl: state.folder,
+                    pageNumber: String(state.pageNumber)
+                ) {
+                    state.storedImageURL = normalPath
+                    let shouldDisplayAsSplitPages = state.splitImage
+                        && imageService.shouldSplitWideImage(imageUrl: normalPath)
+                    state.imageAspectRatio = imageService.imageAspectRatio(imageUrl: normalPath)
+                    return applyStoredImage(
+                        shouldDisplayAsSplitPages: shouldDisplayAsSplitPages,
+                        state: &state
                     )
-
-                    if let normalPath {
-                        state.storedImageURL = normalPath
-                        let shouldDisplayAsSplitPages = state.splitImage
-                            && imageService.shouldSplitWideImage(imageUrl: normalPath)
-                        state.imageAspectRatio = imageService.imageAspectRatio(imageUrl: normalPath)
-                        return applyStoredImage(
-                            shouldDisplayAsSplitPages: shouldDisplayAsSplitPages,
-                            state: &state
-                        )
-                    }
-                } else {
-                    state.loading = false
-                    state.imageLoaded = true
-                    return .none
                 }
 
-                if state.pageMode == .loading {
-                    if state.cached {
-                        return .send(.setError(String(localized: "archive.cache.page.load.failed")))
-                    } else {
-                        return .run { [state] send in
-                            await send(.cancelSubscribeImageProgress)
+                if state.cached {
+                    return .send(.setError(String(localized: "archive.cache.page.load.failed")))
+                }
+                return .run { [state] send in
+                    await send(.cancelSubscribeImageProgress)
 
-                            do {
-                                let task = await service.fetchArchivePage(
-                                    page: state.pageId,
-                                    pageNumber: state.sourcePageNumber
-                                )
-                                await send(.subscribeToProgress(task))
-                                let imageUrl = try await task
-                                    .serializingDownloadedFileURL()
-                                    .value
-                                await send(.cancelSubscribeImageProgress)
+                    do {
+                        let task = await service.fetchArchivePage(page: state.pageId)
+                        await send(.subscribeToProgress(task))
+                        let imageUrl = try await task
+                            .serializingDownloadedFileURL()
+                            .value
+                        await send(.cancelSubscribeImageProgress)
 
-                                let animated = imageService.isAnimatedImage(imageUrl: imageUrl)
-                                var translated: Data?
-                                if state.translationEnabled && !animated {
-                                    await send(.setProgress(2.0))
+                        let animated = imageService.isAnimatedImage(imageUrl: imageUrl)
+                        var translated: Data?
+                        if state.translationEnabled && !animated {
+                            await send(.setProgress(2.0))
 
-                                    guard let request = await translatorService.translatePage(original: imageUrl) else {
-                                        await send(
-                                            .setError(
-                                                String(localized: "archive.page.translate.request.failed")
-                                            )
-                                        )
-                                        return
-                                    }
-
-                                    let handler = TranslationStreamHandler()
-                                    let statusStream = await handler.processStreamResponse(request)
-                                    var lastCode = ""
-                                    for try await status in statusStream {
-                                        switch status {
-                                        case .progress(let code):
-                                            if code != lastCode {
-                                                let translationString = String(
-                                                    localized: "archive.page.translate.progress"
-                                                )
-                                                let progressString = handler.handleProgressCode(code: code)
-                                                lastCode = code
-                                                await send(
-                                                    .setTranslationStatus("\(translationString) \(progressString)")
-                                                )
-                                            }
-                                        case .pending(let queuePosition):
-                                            if let position = queuePosition {
-                                                let queueString = String(localized: "archive.page.translate.queue")
-                                                await send(.setTranslationStatus("\(queueString) \(position)"))
-                                            } else {
-                                                let pendingString = String(localized: "archive.page.translate.pending")
-                                                await send(.setTranslationStatus(pendingString))
-                                            }
-                                        case .error(let message):
-                                            await send(.setError(message))
-                                        case .completed(let data):
-                                            translated = data
-                                        }
-                                    }
-                                }
-
-                                guard let storedPageImage = imageService.storePageImage(
-                                    imageUrl: imageUrl,
-                                    imageData: translated,
-                                    destinationUrl: state.folder!,
-                                    pageNumber: String(state.pageNumber),
-                                    splitWideImages: state.splitImage
-                                ) else {
-                                    await send(.setError(String(localized: "archive.page.store.failed")))
-                                    return
-                                }
+                            guard let request = await translatorService.translatePage(original: imageUrl) else {
                                 await send(
-                                    .setStoredImage(
-                                        shouldDisplayAsSplitPages: storedPageImage.shouldDisplayAsSplitPages
+                                    .setError(
+                                        String(localized: "archive.page.translate.request.failed")
                                     )
                                 )
-                            } catch is CancellationError {
-                                await send(.cancelSubscribeImageProgress)
-                            } catch {
-                                logger.error("failed to load image. \(error)")
-                                await send(.cancelSubscribeImageProgress)
-                                await send(.setError(error.localizedDescription))
+                                return
+                            }
+
+                            let handler = TranslationStreamHandler()
+                            let statusStream = await handler.processStreamResponse(request)
+                            var lastCode = ""
+                            for try await status in statusStream {
+                                switch status {
+                                case .progress(let code):
+                                    if code != lastCode {
+                                        let translationString = String(
+                                            localized: "archive.page.translate.progress"
+                                        )
+                                        let progressString = handler.handleProgressCode(code: code)
+                                        lastCode = code
+                                        await send(
+                                            .setTranslationStatus("\(translationString) \(progressString)")
+                                        )
+                                    }
+                                case .pending(let queuePosition):
+                                    if let position = queuePosition {
+                                        let queueString = String(localized: "archive.page.translate.queue")
+                                        await send(.setTranslationStatus("\(queueString) \(position)"))
+                                    } else {
+                                        let pendingString = String(localized: "archive.page.translate.pending")
+                                        await send(.setTranslationStatus(pendingString))
+                                    }
+                                case .error(let message):
+                                    await send(.setError(message))
+                                case .completed(let data):
+                                    translated = data
+                                }
                             }
                         }
-                        .cancellable(id: CancelId.imageLoad, cancelInFlight: true)
+
+                        guard let storedPageImage = imageService.storePageImage(
+                            imageUrl: imageUrl,
+                            imageData: translated,
+                            destinationUrl: state.folder!,
+                            pageNumber: String(state.pageNumber),
+                            splitWideImages: state.splitImage
+                        ) else {
+                            await send(.setError(String(localized: "archive.page.store.failed")))
+                            return
+                        }
+                        await send(
+                            .setStoredImage(
+                                shouldDisplayAsSplitPages: storedPageImage.shouldDisplayAsSplitPages
+                            )
+                        )
+                    } catch is CancellationError {
+                        await send(.cancelSubscribeImageProgress)
+                    } catch {
+                        logger.error("failed to load image. \(error)")
+                        await send(.cancelSubscribeImageProgress)
+                        await send(.setError(error.localizedDescription))
                     }
                 }
-                state.loading = false
-                state.imageLoaded = true
-                return .none
-            case let .setIsLoading(loading):
-                state.loading = loading
-                return .none
+                .cancellable(id: CancelId.imageLoad, cancelInFlight: true)
             case let .setProgress(progres):
                 state.progress = progres
                 return .none
@@ -340,7 +319,6 @@ public enum PageMode: String, Sendable {
     case left
     case right
     case normal
-    case error
 }
 
 extension PageMode {
@@ -348,7 +326,7 @@ extension PageMode {
         switch self {
         case .loading:
             PageMode.normal.rawValue
-        case .left, .right, .normal, .error:
+        case .left, .right, .normal:
             rawValue
         }
     }
@@ -363,7 +341,7 @@ extension PageMode {
             return .right
         case .right:
             return .left
-        case .loading, .normal, .error:
+        case .loading, .normal:
             return nil
         }
     }

@@ -81,22 +81,6 @@ enum ReaderPositioning {
         )
     }
 
-    static func defaultStartPageIndex(
-        pageCount: Int,
-        readDirection: ReadDirection,
-        doublePageLayout: Bool,
-        spreadOffset: Int = 0
-    ) -> Int {
-        initialPageIndex(
-            progress: 0,
-            pageCount: pageCount,
-            fromStart: true,
-            readDirection: readDirection,
-            doublePageLayout: doublePageLayout,
-            spreadOffset: spreadOffset
-        )
-    }
-
     static func clampedPageIndex(_ index: Int, pageCount: Int) -> Int {
         guard pageCount > 0 else { return 0 }
         return min(max(index, 0), pageCount - 1)

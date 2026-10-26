@@ -810,45 +810,6 @@ class LANraragiServiceTest: XCTestCase {
         XCTAssertNil(actual)
     }
 
-    func testUpdateCategory() async throws {
-        try await configureVerifiedClient()
-
-        stub(condition: isHost("localhost")
-                && isPath("/api/categories/SET_12345678")
-                && isMethodPUT()
-                && hasBody(Data("name=name&pinned=0&search=search".utf8))
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-            HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("UpdateSearchCategoryResponse.json", type(of: self))!,
-                    statusCode: 200, headers: ["Content-Type": "application/json"])
-        }
-
-        let item = CategoryItem(id: "SET_12345678", name: "name", archives: [],
-                                search: "search", pinned: "0")
-
-        let actual = try await service.updateCategory(item: item).value
-        XCTAssertEqual(actual.success, 1)
-    }
-
-    func testUpdateCategoryUnauthorized() async throws {
-        try await configureVerifiedClient()
-
-        stub(condition: isHost("localhost")
-                && isPath("/api/categories/SET_12345678")
-                && isMethodPUT()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-            HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("UnauthorizedResponse.json", type(of: self))!,
-                    statusCode: 401, headers: ["Content-Type": "application/json"])
-        }
-
-        let item = CategoryItem(id: "SET_12345678", name: "name", archives: [],
-                                search: "search", pinned: "0")
-
-        let actual = try? await service.updateCategory(item: item).value
-        XCTAssertNil(actual)
-    }
-
     func testExtractArchive() async throws {
         try await configureVerifiedClient()
 

@@ -39,7 +39,7 @@ enum StampOverlayPositioning {
                 horizontalPercentage: (position.horizontalPercentage - 50) * 2,
                 verticalPercentage: position.verticalPercentage
             )
-        case .loading, .normal, .error:
+        case .loading, .normal:
             return position
         }
     }
@@ -88,7 +88,7 @@ enum StampOverlayPositioning {
             sourceHorizontal = 50 + displayedHorizontal / 2
         case .normal:
             sourceHorizontal = displayedHorizontal
-        case .loading, .error:
+        case .loading:
             return nil
         }
         return ArchiveStampPosition(
@@ -99,8 +99,6 @@ enum StampOverlayPositioning {
 }
 
 class UIPageCell: UICollectionViewCell {
-    static let reuseIdentifier = "UIPageCell"
-
     var store: StoreOf<PageFeature>?
 
     private let logger = Logger(label: "UIPageCell")
@@ -481,7 +479,7 @@ class UIPageCell: UICollectionViewCell {
             return .left
         case .right:
             return .right
-        case .loading, .normal, .error:
+        case .loading, .normal:
             return nil
         }
     }
