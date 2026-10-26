@@ -213,11 +213,20 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         UserDefaults.standard.set("https://localhost", forKey: SettingsKey.lanraragiUrl)
         UserDefaults.standard.set("apiKey", forKey: SettingsKey.lanraragiApiKey)
         let infoRequests = OSAllocatedUnfairLock(initialState: 0)
+        stub(condition: isHost("localhost")) { @Sendable _ in
+            HTTPStubsResponse(data: Data(), statusCode: 404, headers: nil)
+        }
         stub(condition: isHost("localhost") && isPath("/api/info")) { @Sendable _ in
             infoRequests.withLock { $0 += 1 }
             return HTTPStubsResponse(error: URLError(.timedOut))
         }
-        stubExtractArchive(archiveId: "archive", pages: ["./api/archives/archive/page?path=1.jpg"])
+        stub(condition: isHost("localhost") && isPath("/api/archives/archive/files") && isMethodGET()) { @Sendable _ in
+            HTTPStubsResponse(
+                data: Data(#"{"pages":["./api/archives/archive/page?path=1.jpg"]}"#.utf8),
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
         let service = LANraragiService(backgroundSessionConfiguration: .ephemeral)
         let database = try makeInMemoryDatabase()
         let store = makeTestStore(initialState: makeState()) {
@@ -232,6 +241,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.receive(\.finishExtracting)
 
         XCTAssertEqual(infoRequests.withLock { $0 }, 0)
+        XCTAssertEqual(store.state.pages.count, 1)
         XCTAssertTrue(store.state.canUseStamps)
     }
 
@@ -318,6 +328,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         ) {
             PageFeature()
         }
+        store.timeout = .seconds(5)
 
         await store.send(.loadStamps) {
             $0.stampsLoading = true
@@ -342,6 +353,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         ) {
             PageFeature()
         }
+        store.timeout = .seconds(5)
 
         await store.send(.loadStamps) {
             $0.stampsLoading = true
@@ -377,6 +389,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         ) {
             PageFeature()
         }
+        store.timeout = .seconds(5)
 
         await store.send(.loadStamps) {
             $0.stampsLoading = true
