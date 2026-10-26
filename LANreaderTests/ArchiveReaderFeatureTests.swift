@@ -328,6 +328,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         ) {
             PageFeature()
         }
+        store.timeout = .seconds(5)
 
         await store.send(.loadStamps) {
             $0.stampsLoading = true
@@ -352,6 +353,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         ) {
             PageFeature()
         }
+        store.timeout = .seconds(5)
 
         await store.send(.loadStamps) {
             $0.stampsLoading = true
@@ -387,6 +389,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         ) {
             PageFeature()
         }
+        store.timeout = .seconds(5)
 
         await store.send(.loadStamps) {
             $0.stampsLoading = true

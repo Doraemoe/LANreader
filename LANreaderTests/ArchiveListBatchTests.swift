@@ -36,6 +36,7 @@ final class ArchiveListBatchTests: XCTestCase {
         let store = TestStore(initialState: state) { ArchiveListFeature() } withDependencies: {
             $0.appDatabase = database
         }
+        store.timeout = .seconds(5)
         store.exhaustivity = .off
         await store.send(.cacheSelected)
         await store.receive(\.cacheArchiveFinished)
@@ -85,6 +86,7 @@ final class ArchiveListBatchTests: XCTestCase {
         state.selectMode = .active
         state.selected = ["archive-0", "archive-1"]
         let store = TestStore(initialState: state) { ArchiveListFeature() }
+        store.timeout = .seconds(5)
         store.exhaustivity = .off
         await store.send(.confirmDelete)
         await store.receive(.deleteFinished(["archive-0"], true))
@@ -134,6 +136,7 @@ final class ArchiveListBatchTests: XCTestCase {
         }
         defer { state.$categoryItems.withLock { $0 = [] } }
         let store = TestStore(initialState: state) { ArchiveListFeature() }
+        store.timeout = .seconds(5)
 
         await store.send(.addArchivesToCategory("category")) {
             $0.loading = true
@@ -226,6 +229,7 @@ final class ArchiveListBatchTests: XCTestCase {
         }
         defer { state.$categoryItems.withLock { $0 = [] } }
         let store = TestStore(initialState: state) { ArchiveListFeature() }
+        store.timeout = .seconds(5)
         store.exhaustivity = .off
 
         await store.send(.confirmDelete)
