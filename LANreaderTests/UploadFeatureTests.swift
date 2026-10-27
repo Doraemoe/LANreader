@@ -53,18 +53,31 @@ final class UploadFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testCheckJobStatusRemovesExpiredJobsWithoutRefreshingThem() async throws {
+    func testCheckJobStatusKeepsFinishedJobsForADay() async throws {
         let database = try AppDatabase(DatabaseQueue())
-        var expiredJob = Self.makeJob(id: 7, lastUpdate: now.addingTimeInterval(-3601))
+        var expiredJob = Self.makeJob(
+            id: 7,
+            isActive: false,
+            isSuccess: true,
+            lastUpdate: now.addingTimeInterval(-24 * 60 * 60 - 1)
+        )
         let completedJob = Self.makeJob(
             id: 8,
             isActive: false,
             isSuccess: true,
-            lastUpdate: now.addingTimeInterval(-60)
+            lastUpdate: now.addingTimeInterval(-2 * 60 * 60)
+        )
+        let failedJob = Self.makeJob(
+            id: 9,
+            isActive: false,
+            isError: true,
+            lastUpdate: now.addingTimeInterval(-2 * 60 * 60)
         )
         var storedCompletedJob = completedJob
+        var storedFailedJob = failedJob
         try database.saveDownloadJob(&expiredJob)
         try database.saveDownloadJob(&storedCompletedJob)
+        try database.saveDownloadJob(&storedFailedJob)
 
         let store = TestStore(initialState: UploadFeature.State()) {
             UploadFeature()
@@ -77,11 +90,84 @@ final class UploadFeatureTests: XCTestCase {
         await store.receive(\.jobsLoaded) {
             $0.hasLoadedJobs = true
             $0.jobDetails[8] = completedJob
+            $0.jobDetails[9] = failedJob
             $0.retiredJobIDs = [7]
         }
         await task.finish()
 
-        XCTAssertEqual(try database.readAllDownloadJobs(), [completedJob])
+        XCTAssertEqual(try database.readAllDownloadJobs(), [completedJob, failedJob])
+    }
+
+    @MainActor
+    func testCheckJobStatusRefreshesOldUnfinishedJobInsteadOfExpiringIt() async throws {
+        let database = try AppDatabase(DatabaseQueue())
+        let queuedJob = Self.makeJob(id: 7, lastUpdate: now.addingTimeInterval(-25 * 60 * 60))
+        var storedJob = queuedJob
+        try database.saveDownloadJob(&storedJob)
+        let service = try await Self.configuredService()
+        Self.stubJobStatus(id: 7, state: "finished", success: 1)
+
+        let store = TestStore(initialState: UploadFeature.State()) {
+            UploadFeature()
+        } withDependencies: {
+            $0.appDatabase = database
+            $0.lanraragiService = service
+            $0.date.now = now
+        }
+
+        let task = await store.send(.checkJobStatus)
+        await store.receive(\.jobsLoaded) {
+            $0.hasLoadedJobs = true
+            $0.jobDetails[7] = queuedJob
+        }
+
+        let refreshedJob = Self.makeJob(
+            id: 7,
+            title: "Archive Title",
+            isActive: false,
+            isSuccess: true,
+            message: "Done",
+            lastUpdate: now
+        )
+        await store.receive(\.jobStatusUpdated) {
+            $0.jobDetails[7] = refreshedJob
+        }
+        await task.finish()
+
+        XCTAssertEqual(try database.readAllDownloadJobs(), [refreshedJob])
+    }
+
+    @MainActor
+    func testCheckJobStatusDropsUnfinishedJobNotUpdatedForADayWhenRefreshFails() async throws {
+        let database = try AppDatabase(DatabaseQueue())
+        let staleJob = Self.makeJob(id: 7, lastUpdate: now.addingTimeInterval(-24 * 60 * 60 - 1))
+        var storedJob = staleJob
+        try database.saveDownloadJob(&storedJob)
+        let service = try await Self.configuredService()
+        stub(condition: isHost("localhost") && isPath("/api/minion/7/detail")) { @Sendable _ in
+            HTTPStubsResponse(data: Data(), statusCode: 404, headers: nil)
+        }
+
+        let store = TestStore(initialState: UploadFeature.State()) {
+            UploadFeature()
+        } withDependencies: {
+            $0.appDatabase = database
+            $0.lanraragiService = service
+            $0.date.now = now
+        }
+
+        let task = await store.send(.checkJobStatus)
+        await store.receive(\.jobsLoaded) {
+            $0.hasLoadedJobs = true
+            $0.jobDetails[7] = staleJob
+        }
+        await store.receive(\.jobsLoaded) {
+            $0.jobDetails[7] = nil
+            $0.retiredJobIDs = [7]
+        }
+        await task.finish()
+
+        XCTAssertEqual(try database.readAllDownloadJobs(), [])
     }
 
     @MainActor
