@@ -11,22 +11,14 @@ import UIKit
         )
     }
 
-    public enum Action: Equatable, BindableAction {
-        case binding(BindingAction<State>)
-
+    public enum Action: Equatable {
         case archiveList(ArchiveListFeature.Action)
     }
 
-    @Dependency(\.lanraragiService) var service
-    @Dependency(\.appDatabase) var database
-
     public var body: some ReducerOf<Self> {
-        BindingReducer()
-
         Scope(\.archiveList, action: \.archiveList) {
             ArchiveListFeature()
         }
-
     }
 }
 

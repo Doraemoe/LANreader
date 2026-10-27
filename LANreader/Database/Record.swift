@@ -3,17 +3,6 @@
 import Foundation
 import GRDB
 
-struct Archive: Identifiable {
-    var id: String
-    var isNew: Bool
-    var pageCount: Int
-    var progress: Int
-    var tags: [String]
-    var title: String
-    var `extension`: String
-    var lastUpdate: Date
-}
-
 struct TagItem {
     var tag: String
     var count: Int
@@ -37,21 +26,6 @@ struct ArchiveCache: Identifiable, Equatable {
     var progress: Int = 0
 }
 
-struct ArchiveImage: Identifiable, Equatable {
-    var id: String
-    var image: String
-    var lastUpdate: Date
-}
-
-struct Category: Identifiable {
-    var id: String
-    var name: String
-    var archives: [String]
-    var search: String
-    var pinned: Bool
-    var lastUpdate: Date
-}
-
 public struct DownloadJob: Identifiable, Equatable, Sendable {
     public var id: Int
     var url: String
@@ -66,38 +40,6 @@ public struct DownloadJob: Identifiable, Equatable, Sendable {
 struct SearchHistory: Equatable {
     var keyword: String
     var lastUsed: Date
-}
-
-struct History: Identifiable, Equatable {
-    var id: String
-    var lastUpdate: Date
-}
-
-extension Archive: Codable, FetchableRecord, MutablePersistableRecord {
-    internal enum Columns {
-        static let id = Column(CodingKeys.id)
-        static let isNew = Column(CodingKeys.isNew)
-        static let pageCount = Column(CodingKeys.pageCount)
-        static let progress = Column(CodingKeys.progress)
-        static let tags = Column(CodingKeys.tags)
-        static let title = Column(CodingKeys.title)
-        static let `extension` = Column(CodingKeys.extension)
-        static let lastUpdate = Column(CodingKeys.lastUpdate)
-    }
-}
-
-extension Archive {
-    func toArchiveItem() -> ArchiveItem {
-        let tagString = tags.joined(separator: ",")
-        return ArchiveItem(id: id,
-                name: title,
-                extension: `extension`,
-                tags: tagString,
-                isNew: isNew,
-                progress: progress,
-                pagecount: pageCount,
-                dateAdded: extractDateAdded(tags: tagString))
-    }
 }
 
 extension SearchHistory: Codable, FetchableRecord, MutablePersistableRecord {
@@ -153,31 +95,6 @@ extension ArchiveCache {
     }
 }
 
-extension ArchiveImage: Codable, FetchableRecord, MutablePersistableRecord {
-    internal enum Columns {
-        static let id = Column(CodingKeys.id)
-        static let image = Column(CodingKeys.image)
-        static let lastUpdate = Column(CodingKeys.lastUpdate)
-    }
-}
-
-extension Category: Codable, FetchableRecord, MutablePersistableRecord {
-    internal enum Columns {
-        static let id = Column(CodingKeys.id)
-        static let name = Column(CodingKeys.name)
-        static let archives = Column(CodingKeys.archives)
-        static let search = Column(CodingKeys.search)
-        static let pinned = Column(CodingKeys.pinned)
-        static let lastUpdate = Column(CodingKeys.lastUpdate)
-    }
-}
-
-extension Category {
-    func toCategoryItem() -> CategoryItem {
-        CategoryItem(id: id, name: name, archives: archives, search: search, pinned: pinned ? "1" : "0")
-    }
-}
-
 extension DownloadJob: Codable, FetchableRecord, MutablePersistableRecord {
     public enum Columns {
         static let id = Column(CodingKeys.id)
@@ -187,13 +104,6 @@ extension DownloadJob: Codable, FetchableRecord, MutablePersistableRecord {
         static let isSuccess = Column(CodingKeys.isSuccess)
         static let isError = Column(CodingKeys.isError)
         static let message = Column(CodingKeys.message)
-        static let lastUpdate = Column(CodingKeys.lastUpdate)
-    }
-}
-
-extension History: Codable, FetchableRecord, MutablePersistableRecord {
-    internal enum Columns {
-        static let id = Column(CodingKeys.id)
         static let lastUpdate = Column(CodingKeys.lastUpdate)
     }
 }

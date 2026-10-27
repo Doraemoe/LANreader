@@ -170,10 +170,6 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     }
 
     private func setupCell() {
-        collectionView.register(
-            UIPageCell.self, forCellWithReuseIdentifier: "Page"
-        )
-
         let pageCellRegistration = UICollectionView
             .CellRegistration<UIPageCell, String> { [weak self] cell, _, pageId in
                 guard let self, let pageStore = self.pageStore(id: pageId) else { return }

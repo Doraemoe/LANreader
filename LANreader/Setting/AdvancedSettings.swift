@@ -9,7 +9,7 @@ struct AdvancedSettings: View {
             let store = Store(initialState: TranslationConfigFeature.State()) {
                 TranslationConfigFeature()
             }
-            navigation.push(UITranslationConfigController(store: store, navigation: navigation))
+            navigation.push(UITranslationConfigController(store: store))
         } label: {
             HStack {
                 Text("settings.advanced.translation")

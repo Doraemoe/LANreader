@@ -24,20 +24,11 @@ import SwiftUI
 
     public var body: some ReducerOf<Self> {
         BindingReducer()
-
-        Reduce { _, action in
-            switch action {
-            default:
-                return .none
-            }
-        }
     }
 }
 
 struct TranslationConfigView: View {
     @Bindable var store: StoreOf<TranslationConfigFeature>
-
-    var navigation: NavigationHelper?
 
     var body: some View {
         Form {
@@ -163,12 +154,10 @@ struct TranslationConfigView: View {
 
 class UITranslationConfigController: UIViewController {
     private let store: StoreOf<TranslationConfigFeature>
-    private let navigation: NavigationHelper
     private var hostingController: UIHostingController<TranslationConfigView>!
 
-    init(store: StoreOf<TranslationConfigFeature>, navigation: NavigationHelper) {
+    init(store: StoreOf<TranslationConfigFeature>) {
         self.store = store
-        self.navigation = navigation
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -179,7 +168,7 @@ class UITranslationConfigController: UIViewController {
     @objc override func viewDidLoad() {
         super.viewDidLoad()
 
-        hostingController = UIHostingController(rootView: TranslationConfigView(store: store, navigation: navigation))
+        hostingController = UIHostingController(rootView: TranslationConfigView(store: store))
         add(hostingController)
         NSLayoutConstraint.activate([
             hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),

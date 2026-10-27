@@ -10,7 +10,6 @@ import SwiftUI
         @Shared(.appStorage(SettingsKey.tapRightKey)) var tapRight = PageControl.previous.rawValue
         @Shared(.appStorage(SettingsKey.readDirection)) var readDirection = ReadDirection.leftRight.rawValue
         @Shared(.appStorage(SettingsKey.disablePageFlipAnimation)) var disablePageFlipAnimation = false
-        @Shared(.appStorage(SettingsKey.showOriginal)) var showOriginal = false
         @Shared(.appStorage(SettingsKey.splitWideImage)) var splitWideImage = false
         @Shared(.appStorage(SettingsKey.splitPiorityLeft)) var splitPiorityLeft = false
         @Shared(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false

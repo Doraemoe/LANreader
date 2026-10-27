@@ -383,18 +383,6 @@ struct ServerInfo: Decodable {
     let versionName: String
 }
 
-struct DatabaseBackup: Decodable {
-    let archives: [DatabaseBackupArchive]
-
-    struct DatabaseBackupArchive: Decodable {
-        let arcid: String
-        let filename: String?
-        let tags: String?
-        let thumbhash: String?
-        let title: String?
-    }
-}
-
 extension JobStatus {
     func toDownloadJob(url: String) -> DownloadJob {
         DownloadJob(
@@ -422,33 +410,11 @@ extension ArchiveIndexResponse {
                 dateAdded: extractDateAdded(tags: tags ?? ""),
                 toc: toc)
     }
-
-    func toArchive() -> Archive {
-        let tagArray = tags?.split(separator: ",")
-            .map { String($0).trimmingCharacters(in: .whitespaces) } ?? []
-        return Archive(id: arcid,
-                isNew: Bool(isnew) ?? false,
-                pageCount: pagecount,
-                progress: progress,
-                tags: tagArray,
-                title: title,
-                extension: `extension`,
-                lastUpdate: Date())
-    }
 }
 
 extension ArchiveCategoriesResponse {
     func toCategoryItem() -> CategoryItem {
         CategoryItem(id: id, name: name, archives: archives, search: search, pinned: pinned)
-    }
-
-    func toCategory() -> Category {
-        Category(id: id,
-                 name: name,
-                 archives: archives,
-                 search: search,
-                 pinned: pinned == "1" ? true : false,
-                 lastUpdate: Date())
     }
 }
 

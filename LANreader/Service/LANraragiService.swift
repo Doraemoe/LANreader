@@ -372,35 +372,6 @@ actor LANraragiService {
             .serializingDecodable([ArchiveCategoriesResponse].self)
     }
 
-    func addCategory(name: String, search: String) async -> DataTask<GenericSuccessResponse> {
-        var query = [String: String]()
-        query["name"] = name
-        if !search.isEmpty {
-            query["search"] = search
-        }
-        return session.request("\(url)/api/categories", method: .put, parameters: query)
-            .validate(statusCode: 200...200)
-            .serializingDecodable(GenericSuccessResponse.self)
-    }
-
-    func updateCategory(item: CategoryItem) async -> DataTask<GenericSuccessResponse> {
-        var query = [String: String]()
-        query["name"] = item.name
-        if !item.search.isEmpty {
-            query["search"] = item.search
-        }
-        query["pinned"] = item.pinned
-        return session.request("\(url)/api/categories/\(item.id)", method: .put, parameters: query)
-            .validate(statusCode: 200...200)
-            .serializingDecodable(GenericSuccessResponse.self)
-    }
-
-    func deleteCategory(id: String) async -> DataTask<GenericSuccessResponse> {
-        return session.request("\(url)/api/categories/\(id)", method: .delete)
-            .validate(statusCode: 200...200)
-            .serializingDecodable(GenericSuccessResponse.self)
-    }
-
     func addArchiveToCategory(categoryId: String, archiveId: String) async -> DataTask<GenericSuccessResponse> {
         session.request("\(url)/api/categories/\(categoryId)/\(archiveId)", method: .put)
             .validate(statusCode: 200...200)
@@ -494,7 +465,7 @@ actor LANraragiService {
         return URL(string: page, relativeTo: baseURL)!.absoluteURL
     }
 
-    func fetchArchivePage(page: String, pageNumber _: Int) -> DownloadRequest {
+    func fetchArchivePage(page: String) -> DownloadRequest {
         let request = URLRequest(url: resolveArchivePageURL(page: page))
         return session.download(request).validate()
     }
@@ -553,12 +524,6 @@ actor LANraragiService {
         session.request("\(url)/api/minion/\(id)", method: .get)
             .validate(statusCode: 200...200)
             .serializingDecodable(BasicJobStatus.self)
-    }
-
-    func databaseBackup() async -> DataTask<DatabaseBackup> {
-        session.request("\(url)/api/database/backup", method: .get)
-            .validate(statusCode: 200...200)
-            .serializingDecodable(DatabaseBackup.self)
     }
 
     func databaseStats() async -> DataTask<[StatsResponse]> {

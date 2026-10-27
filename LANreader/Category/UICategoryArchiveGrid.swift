@@ -5,27 +5,20 @@ import UIKit
 @Reducer public struct CategoryArchiveListFeature {
     @ObservableState
     public struct State: Equatable {
-        @Shared(.inMemory(SettingsKey.tabBarHidden)) var tabBarHidden = false
-
         var id: String
         var name: String
 
         var archiveList: ArchiveListFeature.State
     }
 
-    public enum Action: Equatable, BindableAction {
-        case binding(BindingAction<State>)
-
+    public enum Action: Equatable {
         case archiveList(ArchiveListFeature.Action)
     }
 
     public var body: some ReducerOf<Self> {
-        BindingReducer()
-
         Scope(\.archiveList, action: \.archiveList) {
             ArchiveListFeature()
         }
-
     }
 }
 

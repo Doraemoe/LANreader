@@ -27,19 +27,10 @@ import SwiftUI
         Scope(\.database, action: \.database) {
             DatabaseSettingsFeature()
         }
-
-        Reduce { _, action in
-            switch action {
-            default:
-                return .none
-            }
-        }
     }
 }
 
 struct SettingsView: View {
-    @Environment(NavigationHelper.self) private var navigation
-
     @Bindable var store: StoreOf<SettingsFeature>
 
     var body: some View {

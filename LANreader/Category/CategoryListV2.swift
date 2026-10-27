@@ -14,9 +14,7 @@ import SwiftUI
         var errorMessage = ""
     }
 
-    public enum Action: BindableAction {
-        case binding(BindingAction<State>)
-
+    public enum Action {
         case loadCategory(Bool)
         case populateCategory([CategoryItem])
         case setErrorMessage(String)
@@ -25,8 +23,6 @@ import SwiftUI
     @Dependency(\.lanraragiService) var service
 
     public var body: some ReducerOf<Self> {
-        BindingReducer()
-
         Reduce { state, action in
             switch action {
             case let .loadCategory(loading):
@@ -52,15 +48,13 @@ import SwiftUI
                     state.showLoading = false
                 }
                 return .none
-            case .binding:
-                return .none
             }
         }
     }
 }
 
 struct CategoryListV2: View {
-    @Bindable var store: StoreOf<CategoryFeature>
+    let store: StoreOf<CategoryFeature>
     let onTapCategory: (StoreOf<CategoryArchiveListFeature>) -> Void
     @State private var searchText = ""
 
