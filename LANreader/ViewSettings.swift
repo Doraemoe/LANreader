@@ -10,7 +10,6 @@ import SwiftUI
         @Shared(.appStorage(SettingsKey.searchSortCustom)) var searchSortCustom = ""
         @Shared(.appStorage(SettingsKey.blurInterfaceWhenInactive)) var blurInterfaceWhenInactive = false
         @Shared(.appStorage(SettingsKey.paginateArchiveList)) var paginateArchiveList = false
-        @Shared(.appStorage(SettingsKey.enablePasscode)) var enablePasscode = false
         @Shared(.appStorage(SettingsKey.passcode)) var storedPasscode = ""
     }
 
@@ -19,7 +18,6 @@ import SwiftUI
 
         case destination(PresentationAction<Destination.Action>)
 
-        case setEnablePasscode(Bool)
         case showLockScreen(Bool)
     }
 
@@ -28,12 +26,8 @@ import SwiftUI
 
         Reduce { state, action in
             switch action {
-            case let .setEnablePasscode(isEnable):
-                state.$enablePasscode.withLock {
-                    $0 = isEnable
-                }
-                return .none
             case let .showLockScreen(isEnable):
+                guard state.destination == nil else { return .none }
                 state.destination = .lockScreen(
                     LockScreenFeature.State(lockState: isEnable ? .new : .remove)
                 )
@@ -82,27 +76,13 @@ struct ViewSettings: View {
             }
         })
         .padding()
-        Toggle(isOn: Binding(self.store.$enablePasscode), label: {
+        Toggle(isOn: Binding(
+            get: { !store.storedPasscode.isEmpty },
+            set: { store.send(.showLockScreen($0)) }
+        ), label: {
             Text("settings.view.passcode")
         })
         .padding()
-        .onAppear {
-            // Correct invalid passcode status
-            if store.enablePasscode && store.storedPasscode.isEmpty {
-                store.send(.setEnablePasscode(false))
-            } else if !store.enablePasscode && !store.storedPasscode.isEmpty {
-                store.send(.setEnablePasscode(true))
-            }
-        }
-        .onChange(of: store.enablePasscode) { oldPasscode, newEnable in
-            if oldPasscode && store.storedPasscode.isEmpty {
-                // heppens when correct invalid passcode status
-            } else if !oldPasscode && !store.storedPasscode.isEmpty {
-                // heppens when correct invalid passcode status
-            } else if store.destination == nil {
-                store.send(.showLockScreen(newEnable))
-            }
-        }
         .fullScreenCover(
             item: $store.scope(\.$destination, action: \.destination).lockScreen
         ) { store in

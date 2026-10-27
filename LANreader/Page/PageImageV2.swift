@@ -239,19 +239,19 @@ import Logging
                             }
                         }
 
-                        guard let storedPageImage = imageService.storePageImage(
+                        guard let storedURL = imageService.storePageImage(
                             imageUrl: imageUrl,
                             imageData: translated,
                             destinationUrl: state.folder!,
-                            pageNumber: String(state.pageNumber),
-                            splitWideImages: state.splitImage
+                            pageNumber: String(state.pageNumber)
                         ) else {
                             await send(.setError(String(localized: "archive.page.store.failed")))
                             return
                         }
                         await send(
                             .setStoredImage(
-                                shouldDisplayAsSplitPages: storedPageImage.shouldDisplayAsSplitPages
+                                shouldDisplayAsSplitPages: state.splitImage
+                                    && imageService.shouldSplitWideImage(imageUrl: storedURL)
                             )
                         )
                     } catch is CancellationError {

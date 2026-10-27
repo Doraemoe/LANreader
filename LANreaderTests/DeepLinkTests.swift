@@ -158,6 +158,32 @@ final class DeepLinkTests: XCTestCase {
     }
 
     @MainActor
+    func testHttpDownloadLinkQueuesUrlUnchangedAndSavesJob() async throws {
+        try await configureArchiveListTestClient()
+        stub(condition: isHost("localhost")
+                && isPath("/api/download_url")
+                && isMethodPOST()
+                && containsQueryParams(["url": "http://example.com/g/1"])) { @Sendable _ in
+            HTTPStubsResponse(
+                data: Data(#"{"job":42,"operation":"download_url","success":1,"url":"http://example.com/g/1"}"#.utf8),
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+        let database = try AppDatabase(DatabaseQueue())
+        let store = try makeAppTestStore(database: database)
+
+        await store.send(.openURL(try url("lanreader://download?url=http%3A%2F%2Fexample.com%2Fg%2F1")))
+        await store.receive(\.queueUrlDownload)
+        await store.receive(\.setSuccessMessage)
+
+        let jobs = try database.readAllDownloadJobs()
+        XCTAssertEqual(jobs.map(\.id), [42])
+        XCTAssertEqual(jobs.first?.url, "http://example.com/g/1")
+        XCTAssertEqual(jobs.first?.isActive, true)
+    }
+
+    @MainActor
     func testTabBarOpensReaderOnLibraryTabAndSearchOnSearchTab() async throws {
         let database = try AppDatabase(DatabaseQueue())
         let store = withDependencies {

@@ -31,8 +31,13 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     var collectionView: UICollectionView!
     var dataSource: UICollectionViewDiffableDataSource<Section, ReaderCollectionItem>!
     private var lastReportedVisiblePageIndex: Int?
-    private var appliedPageIds: [String] = []
     private var appliedCollectionItems: [ReaderCollectionItem] = []
+    private var appliedPageIds: [String] {
+        appliedCollectionItems.compactMap {
+            guard case let .page(id) = $0 else { return nil }
+            return id
+        }
+    }
     private var appliedDoublePageLayout: Bool?
     private var appliedAspectRatios: [Double] = []
     private var isApplyingSnapshot = false
@@ -352,10 +357,9 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         observe { [weak self] in
             guard let self else { return }
             guard !store.pages.isEmpty else { return }
-            let pageIds = store.pages.map(\.id)
-            let items = collectionItems(pageIds: pageIds)
+            let items = collectionItems()
             guard items != appliedCollectionItems else { return }
-            applyPageSnapshot(pageIds: pageIds, items: items)
+            applyPageSnapshot(items: items)
         }
         observe { [weak self] in
             guard let self else { return }
@@ -392,9 +396,8 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         }
     }
 
-    private func applyPageSnapshot(pageIds: [String], items: [ReaderCollectionItem]) {
+    private func applyPageSnapshot(items: [ReaderCollectionItem]) {
         let snapshotAnchor = currentSnapshotAnchor()
-        appliedPageIds = pageIds
         appliedCollectionItems = items
         appliedAspectRatios = currentAspectRatios()
         snapshotGeneration += 1
@@ -640,9 +643,9 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             if let key = press.key {
                 switch key.keyCode {
                 case .keyboardLeftArrow:
-                    handleKeyboardAction(action: store.tapRight)
+                    handlePageControl(store.tapRight, source: .keyboard)
                 case .keyboardRightArrow:
-                    handleKeyboardAction(action: store.tapLeft)
+                    handlePageControl(store.tapLeft, source: .keyboard)
                 default:
                     super.pressesBegan(presses, with: event)
                 }
@@ -673,8 +676,8 @@ private extension UIPageCollectionController {
             && store.spreadPairingOffset == 1
     }
 
-    func collectionItems(pageIds: [String]? = nil) -> [ReaderCollectionItem] {
-        var items = (pageIds ?? store.pages.map(\.id)).map(ReaderCollectionItem.page)
+    func collectionItems() -> [ReaderCollectionItem] {
+        var items = store.pages.map { ReaderCollectionItem.page($0.id) }
         if usesShiftedSpreadPairing {
             items.insert(.spreadPlaceholder, at: 0)
         }
@@ -714,37 +717,23 @@ extension UIPageCollectionController: UIGestureRecognizerDelegate {
         if store.readDirection != ReadDirection.upDown.rawValue {
             switch region {
             case .left:
-                handleTapAction(action: store.tapLeft)
+                handlePageControl(store.tapLeft, source: .tap)
             case .middle:
-                handleTapAction(action: store.tapMiddle)
+                handlePageControl(store.tapMiddle, source: .tap)
             case .right:
-                handleTapAction(action: store.tapRight)
+                handlePageControl(store.tapRight, source: .tap)
             }
         } else {
             store.send(.toggleControlUi(nil))
         }
     }
 
-    private func handleTapAction(action: String) {
+    private func handlePageControl(_ action: String, source: ReaderNavigationSource) {
         switch action {
         case PageControl.next.rawValue:
-            store.send(.navigate(.next, source: .tap))
+            store.send(.navigate(.next, source: source))
         case PageControl.previous.rawValue:
-            store.send(.navigate(.previous, source: .tap))
-        case PageControl.navigation.rawValue:
-            store.send(.toggleControlUi(nil))
-        default:
-            // This should not happen
-            break
-        }
-    }
-
-    private func handleKeyboardAction(action: String) {
-        switch action {
-        case PageControl.next.rawValue:
-            store.send(.navigate(.next, source: .keyboard))
-        case PageControl.previous.rawValue:
-            store.send(.navigate(.previous, source: .keyboard))
+            store.send(.navigate(.previous, source: source))
         case PageControl.navigation.rawValue:
             store.send(.toggleControlUi(nil))
         default:
@@ -1101,7 +1090,6 @@ extension UIPageCollectionController {
         let snapshot = NSDiffableDataSourceSnapshot<
             Section, ReaderCollectionItem
         >()
-        appliedPageIds = []
         appliedCollectionItems = []
         appliedAspectRatios = []
         activeAnimatedScrollTargetPageId = nil

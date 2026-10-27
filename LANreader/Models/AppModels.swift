@@ -90,7 +90,6 @@ struct SettingsKey {
     static let searchSortCustom = "settings:search:sort:custom"
     static let searchSortOrder = "settings:search:sort:order"
     static let blurInterfaceWhenInactive = "settings:view:blur:inactive"
-    static let enablePasscode = "settings:view:passcode:enable"
     static let passcode = "settings:view:passcode"
     static let hideRead = "settings:view:hideRead"
     static let paginateArchiveList = "settings:view:paginate"

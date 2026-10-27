@@ -9,16 +9,6 @@ enum ImageSplitSide: Sendable {
     case right
 }
 
-private struct StoredImageFile {
-    let url: URL
-    let isAnimated: Bool
-}
-
-struct StoredPageImageResult: Sendable {
-    let url: URL
-    let shouldDisplayAsSplitPages: Bool
-}
-
 final class ImageService: Sendable {
     static let shared = ImageService()
 
@@ -183,14 +173,13 @@ final class ImageService: Sendable {
         imageUrl: URL,
         imageData: Data? = nil,
         destinationUrl: URL,
-        pageNumber: String,
-        splitWideImages: Bool
-    ) -> StoredPageImageResult? {
+        pageNumber: String
+    ) -> URL? {
         if let problem = pageImageProblem(imageUrl: imageUrl, imageData: imageData) {
             logger.error("rejected page image. page=\(pageNumber) file=\(imageUrl.lastPathComponent) \(problem)")
             return nil
         }
-        guard let storedImage = storeImageFile(
+        guard let storedURL = storeImageFile(
             imageUrl: imageUrl,
             imageData: imageData,
             destinationUrl: destinationUrl,
@@ -203,20 +192,13 @@ final class ImageService: Sendable {
         if let files = try? FileManager.default.contentsOfDirectory(
             at: destinationUrl, includingPropertiesForKeys: nil
         ) {
-            for file in files where file.lastPathComponent != storedImage.url.lastPathComponent
+            for file in files where file.lastPathComponent != storedURL.lastPathComponent
                 && file.deletingPathExtension().lastPathComponent == pageNumber {
                 try? FileManager.default.removeItem(at: file)
             }
         }
 
-        let shouldDisplayAsSplitPages = !storedImage.isAnimated
-            && splitWideImages
-            && shouldSplitWideImage(imageUrl: storedImage.url)
-
-        return StoredPageImageResult(
-            url: storedImage.url,
-            shouldDisplayAsSplitPages: shouldDisplayAsSplitPages
-        )
+        return storedURL
     }
 
     func generatePreviewImage(
@@ -252,12 +234,6 @@ private extension ImageService {
         destinationUrl: URL,
         maxPixelSize: CGFloat
     ) -> Bool {
-        guard CGImageSourceGetCount(imageSource) > 0,
-              CGImageSourceGetStatus(imageSource) == .statusComplete,
-              CGImageSourceGetStatusAtIndex(imageSource, 0) == .statusComplete else {
-            return false
-        }
-
         let options = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,
@@ -280,7 +256,12 @@ private extension ImageService {
             return false
         }
 
-        return writeJPEGImage(outputImage, destinationUrl: destinationUrl)
+        return writeCGImage(
+            outputImage,
+            destinationUrl: destinationUrl,
+            type: .jpeg,
+            compressionQuality: Self.jpegCompressionQuality
+        )
     }
 
     private func storeImageFile(
@@ -288,14 +269,13 @@ private extension ImageService {
         imageData: Data?,
         destinationUrl: URL,
         pageNumber: String
-    ) -> StoredImageFile? {
+    ) -> URL? {
         if isAnimatedImage(imageUrl: imageUrl, imageData: imageData) {
             return storeOriginalImage(
                 imageUrl: imageUrl,
                 imageData: imageData,
                 destinationUrl: destinationUrl,
-                pageNumber: pageNumber,
-                isAnimated: true
+                pageNumber: pageNumber
             )
         }
 
@@ -306,23 +286,19 @@ private extension ImageService {
 
         let shouldDownsample = shouldDownsampleImage(pixelSize: imageSize)
         if shouldDownsample {
-            guard let url = writeStaticImage(
+            return writeStaticImage(
                 from: imageSource,
                 destinationUrl: destinationUrl,
                 pageNumber: pageNumber,
                 maxPixelSize: Self.maxStoredLongEdge
-            ) else {
-                return nil
-            }
-            return StoredImageFile(url: url, isAnimated: false)
+            )
         }
 
         return storeOriginalImage(
             imageUrl: imageUrl,
             imageData: imageData,
             destinationUrl: destinationUrl,
-            pageNumber: pageNumber,
-            isAnimated: false
+            pageNumber: pageNumber
         )
     }
 
@@ -330,9 +306,8 @@ private extension ImageService {
         imageUrl: URL,
         imageData: Data?,
         destinationUrl: URL,
-        pageNumber: String,
-        isAnimated: Bool
-    ) -> StoredImageFile? {
+        pageNumber: String
+    ) -> URL? {
         let fileExt = preferredFileExtension(imageUrl: imageUrl, imageData: imageData)
         let mainPath = destinationUrl.appendingPathComponent("\(pageNumber).\(fileExt)")
 
@@ -343,7 +318,7 @@ private extension ImageService {
         guard writeData(originalData, destinationUrl: mainPath) else {
             return nil
         }
-        return StoredImageFile(url: mainPath, isAnimated: isAnimated)
+        return mainPath
     }
 
     private func cgImageHasAlpha(_ image: CGImage) -> Bool {
@@ -381,15 +356,6 @@ private extension ImageService {
         context.fill(CGRect(x: 0, y: 0, width: image.width, height: image.height))
         context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
         return context.makeImage()
-    }
-
-    private func writeJPEGImage(_ image: CGImage, destinationUrl: URL) -> Bool {
-        writeCGImage(
-            image,
-            destinationUrl: destinationUrl,
-            type: .jpeg,
-            compressionQuality: 0.9
-        )
     }
 
     private func writeStaticImage(

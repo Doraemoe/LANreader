@@ -196,17 +196,7 @@ import Logging
             if !processedUrl.isEmpty {
                 do {
                     let response = try await service.queueUrlDownload(downloadUrl: processedUrl).value
-                    if response.success == 1 {
-                        var downloadJob = DownloadJob(
-                            id: response.job,
-                            url: response.url,
-                            title: "",
-                            isActive: true,
-                            isSuccess: false,
-                            isError: false,
-                            message: "",
-                            lastUpdate: now
-                        )
+                    if var downloadJob = response.toQueuedDownloadJob(lastUpdate: now) {
                         try? database.saveDownloadJob(&downloadJob)
                         jobs.append(downloadJob)
                     } else {
