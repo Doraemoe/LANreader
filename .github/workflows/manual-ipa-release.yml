@@ -9,6 +9,7 @@ on:
         type: string
 
 permissions:
+  checks: read
   contents: write
 
 jobs:
@@ -71,21 +72,33 @@ jobs:
             exit 1
           fi
 
+      - name: Require passing CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.commit }}
+        run: |
+          results="$(
+            gh api "repos/$GITHUB_REPOSITORY/commits/$SOURCE_COMMIT/check-runs?filter=latest" \
+              --jq '[.check_runs[] | select(.app.slug == "github-actions" and (.name | startswith("verify ("))) | (.conclusion // .status)] | join(" ")'
+          )"
+
+          if [[ -z "$results" ]]; then
+            echo "::error::No CI verify check found for $SOURCE_COMMIT."
+            exit 1
+          fi
+
+          for result in $results; do
+            if [[ "$result" != "success" ]]; then
+              echo "::error::CI verify check for $SOURCE_COMMIT is $result. Wait for it to pass, or re-run it from the Actions tab."
+              exit 1
+            fi
+          done
+          echo "CI passed for $SOURCE_COMMIT."
+
       - name: Select Xcode version
         run: |
           sudo xcode-select -s /Applications/Xcode_26.6.app
           xcodebuild -version
-
-      - name: Install verification tools
-        run: |
-          packages=()
-          command -v actionlint >/dev/null 2>&1 || packages+=(actionlint)
-          command -v swiftlint >/dev/null 2>&1 || packages+=(swiftlint)
-          if (( ${#packages[@]} )); then
-            brew install "${packages[@]}"
-          fi
-          actionlint -version
-          swiftlint version
 
       - name: Resolve app versions
         id: versions
@@ -131,11 +144,6 @@ jobs:
       - name: Trust Swift macros
         working-directory: ci_scripts
         run: zsh ci_post_clone.sh
-
-      - name: Verify repository
-        run: ./scripts/verify
-        env:
-          LANREADER_RESULTS_DIR: ${{ runner.temp }}/lanreader-results
 
       - name: Build unsigned Release app for Any iOS Device (arm64)
         run: |
