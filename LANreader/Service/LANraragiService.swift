@@ -675,8 +675,6 @@ final class URLSessionDelegateHandler: NSObject, URLSessionDelegate, URLSessionD
             logger.error("Cache download returned an unsuccessful response")
             return
         }
-        let splitImage = UserDefaults.standard.bool(forKey: SettingsKey.splitWideImage)
-
         if let archiveId = task.originalRequest?.value(forHTTPHeaderField: "X-Archive-Id"),
            let pageNumber = task.originalRequest?.value(forHTTPHeaderField: "X-Page-Number"),
            !discardedArchiveIDs.withLock({ $0.contains(archiveId) }),
@@ -685,8 +683,7 @@ final class URLSessionDelegateHandler: NSObject, URLSessionDelegate, URLSessionD
             let stored = imageService.storePageImage(
                 imageUrl: location,
                 destinationUrl: folder,
-                pageNumber: pageNumber,
-                splitWideImages: splitImage
+                pageNumber: pageNumber
             )
             if stored == nil {
                 logger.error("Cache page was invalid or could not be saved. archive=\(archiveId) page=\(pageNumber)")

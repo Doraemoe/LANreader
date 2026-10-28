@@ -1130,7 +1130,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
 
                 guard state.cached || state.sliderReadyThumbnailPages.contains(page.pageNumber) else {
                     state.sliderPreviewImageURL = nil
-                    state.sliderPreviewLoading = self.hasPendingSliderPreviewThumbnailJobs(state: state)
+                    state.sliderPreviewLoading = !state.sliderThumbnailJobsById.isEmpty
                     return .none
                 }
 
@@ -1206,7 +1206,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
             case let .sliderPreviewUnavailable(pageIndex):
                 guard state.sliderPreviewPageIndex == pageIndex else { return .none }
                 if !self.restoreExistingSliderPreviewIfAvailable(state: &state, pageIndex: pageIndex) {
-                    state.sliderPreviewLoading = self.hasPendingSliderPreviewThumbnailJobs(state: state)
+                    state.sliderPreviewLoading = !state.sliderThumbnailJobsById.isEmpty
                     state.sliderPreviewImageURL = nil
                 }
                 return .none
@@ -1436,39 +1436,9 @@ public struct ChapterMutationTarget: Equatable, Sendable {
             case .alert:
                 return .none
             case .loadPreviousArchive:
-                guard let currentIndex = state.allArchives.firstIndex(where: { $0.id == state.currentArchiveId }) else {
-                    return .none
-                }
-                guard currentIndex > 0 else { return .none }
-                let newShared = state.allArchives[currentIndex - 1]
-                state.currentArchiveId = newShared.wrappedValue.id
-                self.resetState(state: &state)
-                return .merge(
-                    .cancel(id: CancelId.sliderPreviewThumbnailQueue),
-                    .cancel(id: CancelId.sliderPreviewThumbnailPolling),
-                    .cancel(id: CancelId.sliderPreviewLoad),
-                    .cancel(id: CancelId.stampCreation),
-                    .cancel(id: CancelId.stampMutation),
-                    .cancel(id: CancelId.chapterCreation),
-                    state.cached ? .send(.loadCached) : .send(.extractArchive)
-                )
+                return switchArchive(offset: -1, state: &state)
             case .loadNextArchive:
-                guard let currentIndex = state.allArchives.firstIndex(where: { $0.id == state.currentArchiveId }) else {
-                    return .none
-                }
-                guard currentIndex < state.allArchives.count - 1 else { return .none }
-                let newShared = state.allArchives[currentIndex + 1]
-                state.currentArchiveId = newShared.wrappedValue.id
-                self.resetState(state: &state)
-                return .merge(
-                    .cancel(id: CancelId.sliderPreviewThumbnailQueue),
-                    .cancel(id: CancelId.sliderPreviewThumbnailPolling),
-                    .cancel(id: CancelId.sliderPreviewLoad),
-                    .cancel(id: CancelId.stampCreation),
-                    .cancel(id: CancelId.stampMutation),
-                    .cancel(id: CancelId.chapterCreation),
-                    state.cached ? .send(.loadCached) : .send(.extractArchive)
-                )
+                return switchArchive(offset: 1, state: &state)
             }
         }
         .forEach(\.pages, action: \.page) {
@@ -1693,32 +1663,42 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         state.sliderPreviewLoading = false
     }
 
+    private func switchArchive(offset: Int, state: inout State) -> Effect<Action> {
+        guard let currentIndex = state.allArchives.firstIndex(where: { $0.id == state.currentArchiveId }),
+              state.allArchives.indices.contains(currentIndex + offset) else {
+            return .none
+        }
+        state.currentArchiveId = state.allArchives[currentIndex + offset].wrappedValue.id
+        self.resetState(state: &state)
+        return .merge(
+            .cancel(id: CancelId.sliderPreviewThumbnailQueue),
+            .cancel(id: CancelId.sliderPreviewThumbnailPolling),
+            .cancel(id: CancelId.sliderPreviewLoad),
+            .cancel(id: CancelId.stampCreation),
+            .cancel(id: CancelId.stampMutation),
+            .cancel(id: CancelId.chapterCreation),
+            state.cached ? .send(.loadCached) : .send(.extractArchive)
+        )
+    }
+
     private func resetSliderPreviewArchiveState(state: inout State) {
         resetSliderPreviewDisplayState(state: &state)
         state.sliderThumbnailJobsById = [:]
         state.sliderReadyThumbnailPages = []
     }
 
-    private func hasPendingSliderPreviewThumbnailJobs(state: State) -> Bool {
-        !state.sliderThumbnailJobsById.isEmpty
-    }
-
-    private func previewFileURL(state: State, pageIndex: Int) -> URL? {
-        guard pageIndex >= 0, pageIndex < state.pages.count else {
-            return nil
-        }
-        return Self.sliderPreviewFileURL(
-            archiveId: state.currentArchiveId,
-            pageNumber: state.pages[pageIndex].pageNumber
-        )
-    }
-
     private func restoreExistingSliderPreviewIfAvailable(
         state: inout State,
         pageIndex: Int
     ) -> Bool {
-        guard let existingPreviewURL = self.previewFileURL(state: state, pageIndex: pageIndex),
-              FileManager.default.fileExists(atPath: existingPreviewURL.path(percentEncoded: false)) else {
+        guard state.pages.indices.contains(pageIndex) else {
+            return false
+        }
+        let existingPreviewURL = Self.sliderPreviewFileURL(
+            archiveId: state.currentArchiveId,
+            pageNumber: state.pages[pageIndex].pageNumber
+        )
+        guard FileManager.default.fileExists(atPath: existingPreviewURL.path(percentEncoded: false)) else {
             return false
         }
         state.sliderPreviewImageURL = existingPreviewURL

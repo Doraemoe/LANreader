@@ -383,6 +383,22 @@ struct ServerInfo: Decodable {
     let versionName: String
 }
 
+extension QueueUrlDownloadResponse {
+    func toQueuedDownloadJob(lastUpdate: Date) -> DownloadJob? {
+        guard success == 1 else { return nil }
+        return DownloadJob(
+            id: job,
+            url: url,
+            title: "",
+            isActive: true,
+            isSuccess: false,
+            isError: false,
+            message: "",
+            lastUpdate: lastUpdate
+        )
+    }
+}
+
 extension JobStatus {
     func toDownloadJob(url: String) -> DownloadJob {
         DownloadJob(

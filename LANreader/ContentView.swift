@@ -124,26 +124,13 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
                 return .none
             case let .queueUrlDownload(url):
                 return .run { send in
-                    var comp = URLComponents(url: url, resolvingAgainstBaseURL: false)!
-                    comp.scheme = "https"
-                    let urlToDownload = try comp.asURL().absoluteString
-                    let response = try await service.queueUrlDownload(downloadUrl: urlToDownload).value
-                    if response.success != 1 {
+                    let response = try await service.queueUrlDownload(downloadUrl: url.absoluteString).value
+                    guard var downloadJob = response.toQueuedDownloadJob(lastUpdate: Date()) else {
                         await send(.setErrorMessage(String(localized: "error.download.queue")))
-                    } else {
-                        var downloadJob = DownloadJob(
-                            id: response.job,
-                            url: response.url,
-                            title: "",
-                            isActive: true,
-                            isSuccess: false,
-                            isError: false,
-                            message: "",
-                            lastUpdate: Date()
-                        )
-                        try database.saveDownloadJob(&downloadJob)
-                        await send(.setSuccessMessage(String(localized: "download.queue.success")))
+                        return
                     }
+                    try database.saveDownloadJob(&downloadJob)
+                    await send(.setSuccessMessage(String(localized: "download.queue.success")))
                 } catch: { error, send in
                     logger.error("failed to queue url to download. url=\(url) \(error)")
                     await send(.setErrorMessage(error.localizedDescription))
