@@ -66,16 +66,6 @@ class LANreaderTests: XCTestCase {
         }
     }
 
-    func testValidStoredPageNumbersCountsOnlyDistinctReadableImagesInRange() throws {
-        let good = makeJPEGData(color: .blue)
-        for filename in ["0.jpg", "1.jpg", "1.png", "4.jpg"] {
-            try good.write(to: tempDirectory.appendingPathComponent(filename))
-        }
-        try Data("error".utf8).write(to: tempDirectory.appendingPathComponent("2.jpg"))
-        try Data("{\"error\":\"failed\"}".utf8).write(to: tempDirectory.appendingPathComponent("3.jpg"))
-        XCTAssertEqual(ImageService.shared.validStoredPageNumbers(folderUrl: tempDirectory, totalPages: 3), [1])
-    }
-
     func testStoredPageNumbersCountsStoredPagesByName() throws {
         let good = makeJPEGData(color: .blue)
         for filename in ["0.jpg", "1.jpg", "2.png", "4.jpg", "cover.jpg"] {

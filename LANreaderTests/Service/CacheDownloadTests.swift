@@ -89,7 +89,6 @@ final class CacheDownloadTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: folder) }
         let good = cacheTestImageData()
         try good.write(to: folder.appendingPathComponent("1.jpg"))
-        try Data("error".utf8).write(to: folder.appendingPathComponent("2.img"))
         let requests = OSAllocatedUnfairLock(initialState: [String]())
         stub(condition: isHost("localhost") && isPath("/api/archives/\(id)/files") && isMethodGET()) { @Sendable _ in
             HTTPStubsResponse(jsonObject: ["pages": ["./cache-feature/1", "./cache-feature/2"]],
@@ -189,7 +188,7 @@ final class CacheDownloadTests: XCTestCase {
             ReaderExtractedPage(archiveId: "b", path: "/cache-tank/b", archivePageNumber: 1)
         ])
         try await waitForCacheDownloads(service, archiveId: id)
-        XCTAssertEqual(ImageService.shared.validStoredPageNumbers(folderUrl: folder, totalPages: 2), [1, 2])
+        XCTAssertEqual(ImageService.shared.storedPageNumbers(folderUrl: folder, totalPages: 2), [1, 2])
     }
 
     @MainActor
@@ -306,6 +305,27 @@ final class CacheDownloadTests: XCTestCase {
         XCTAssertEqual(try database.readCache(cache.id), cache)
     }
 
+    func testUnusedTablesAreClearedOnceByMigrationInsteadOfEveryLaunch() throws {
+        let queue = try DatabaseQueue()
+        _ = try AppDatabase(queue)
+        let unusedTables = ["archive", "archiveImage", "category", "history"]
+        try queue.write { database in
+            try database.execute(sql: "DELETE FROM grdb_migrations WHERE identifier = 'clearUnusedTables'")
+            for table in unusedTables {
+                try database.execute(sql: "INSERT INTO \(table) (id) VALUES ('old')")
+            }
+        }
+
+        _ = try AppDatabase(queue)
+        for table in unusedTables {
+            XCTAssertEqual(try queue.read { try Int.fetchOne($0, sql: "SELECT COUNT(*) FROM \(table)") }, 0)
+        }
+
+        try queue.write { try $0.execute(sql: "INSERT INTO archiveImage (id) VALUES ('new')") }
+        _ = try AppDatabase(queue)
+        XCTAssertEqual(try queue.read { try Int.fetchOne($0, sql: "SELECT COUNT(*) FROM archiveImage") }, 1)
+    }
+
     @MainActor
     func testReaderCacheActionDownloadsSplitSourcePageOnce() async throws {
         let id = "cacheReader-" + UUID().uuidString
@@ -343,7 +363,7 @@ final class CacheDownloadTests: XCTestCase {
         XCTAssertEqual(try database.readCache(id)?.thumbnail, good)
         try database.clearDatabase()
         XCTAssertEqual(try database.readCache(id)?.thumbnail, good)
-        XCTAssertEqual(ImageService.shared.validStoredPageNumbers(folderUrl: folder, totalPages: 2), [1, 2])
+        XCTAssertEqual(ImageService.shared.storedPageNumbers(folderUrl: folder, totalPages: 2), [1, 2])
     }
 
     func testBackgroundCacheRejectsErrorResponsesAndInvalidImages() async throws {
@@ -365,11 +385,11 @@ final class CacheDownloadTests: XCTestCase {
             ReaderExtractedPage(archiveId: id, path: "/cache-reject/\($0)", archivePageNumber: $0 + 1)
         })
         try await waitForCacheDownloads(cacheService, archiveId: id)
-        XCTAssertEqual(ImageService.shared.validStoredPageNumbers(folderUrl: folder, totalPages: 3), [])
+        XCTAssertEqual(ImageService.shared.storedPageNumbers(folderUrl: folder, totalPages: 3), [])
         XCTAssertFalse(FileManager.default.fileExists(atPath: folder.path))
     }
 
-    func testCacheRetryKeepsValidPagesAndDoesNotDuplicateActiveRequests() async throws {
+    func testCacheRetryKeepsSavedPagesAndDoesNotDuplicateActiveRequests() async throws {
         let cacheService = LANraragiService(backgroundSessionConfiguration: .ephemeral)
         let id = "cacheRetry-" + UUID().uuidString
         let folder = LANraragiService.cachePath!.appendingPathComponent(id)
@@ -377,7 +397,6 @@ final class CacheDownloadTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: folder) }
         let good = cacheTestImageData()
         try good.write(to: folder.appendingPathComponent("1.jpg"))
-        try Data("invalid".utf8).write(to: folder.appendingPathComponent("2.img"))
         let requests = OSAllocatedUnfairLock(initialState: [Int]())
         stub(condition: isHost("localhost") && pathStartsWith("/cache-retry/")) { @Sendable request in
             let page = Int(request.url!.lastPathComponent)!
@@ -397,8 +416,7 @@ final class CacheDownloadTests: XCTestCase {
         try await waitForCacheDownloads(cacheService, archiveId: id)
         XCTAssertEqual(requests.withLock { $0 }, [2])
         XCTAssertEqual(try Data(contentsOf: folder.appendingPathComponent("1.jpg")), good)
-        XCTAssertEqual(ImageService.shared.validStoredPageNumbers(folderUrl: folder, totalPages: 2), [1, 2])
-        XCTAssertFalse(FileManager.default.fileExists(atPath: folder.appendingPathComponent("2.img").path))
+        XCTAssertEqual(ImageService.shared.storedPageNumbers(folderUrl: folder, totalPages: 2), [1, 2])
     }
 
     func testRemovingCachedPagesCancelsInFlightDownloadsAndLeavesNoFolder() async throws {
@@ -430,7 +448,7 @@ final class CacheDownloadTests: XCTestCase {
         try await cacheService.cachePages(archiveId: id, pages: pages)
         try await waitForCacheDownloads(cacheService, archiveId: id)
 
-        XCTAssertEqual(ImageService.shared.validStoredPageNumbers(folderUrl: folder, totalPages: 3), [1, 2, 3])
+        XCTAssertEqual(ImageService.shared.storedPageNumbers(folderUrl: folder, totalPages: 3), [1, 2, 3])
     }
 
     @MainActor

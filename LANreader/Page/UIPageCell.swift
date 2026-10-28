@@ -407,71 +407,38 @@ class UIPageCell: UICollectionViewCell {
         .store(in: &observationTokens)
     }
 
-    // swiftlint:disable function_body_length
     private func renderImage(store: StoreOf<PageFeature>, pageMode: PageMode) {
         animatedImageView.resetFirstFrameState()
 
-        guard let contentPath = store.storedImageURL ?? imageService.storedImagePath(
+        var staticImage: UIImage?
+        var animatedImage: AnimatedImage?
+        if let contentPath = store.storedImageURL ?? imageService.storedImagePath(
             folderUrl: store.folder,
             pageNumber: "\(store.pageNumber)"
-        ) else {
-            imageView.image = UIImage(systemName: "rectangle.slash")
-            imageView.isHidden = false
-            animatedImageView.image = nil
-            animatedImageView.isHidden = true
-            updateImageLayout(for: imageView.image?.size)
-            return
-        }
-
-        if let splitSide = splitSide(for: pageMode) {
-            imageView.image = imageService.splitImage(imageUrl: contentPath, side: splitSide)
-                ?? UIImage(systemName: "rectangle.slash")
-            imageView.isHidden = false
-            animatedImageView.image = nil
-            animatedImageView.isHidden = true
-            updateImageLayout(for: imageView.image?.size)
-            return
-        }
-
-        if imageService.isAnimatedImage(imageUrl: contentPath) {
-            do {
-                if let previewImage = previewImage(at: contentPath) {
-                    imageView.image = previewImage
-                } else {
-                    imageView.image = UIImage(systemName: "rectangle.slash")
-                }
-                imageView.isHidden = false
-
-                let image = try AnimatedImage(
-                    contentsOf: contentPath,
-                    withConfiguration: Self.animatedImageConfiguration
-                )
-                animatedImageView.image = image
-                animatedImageView.isHidden = false
-            } catch {
-                logger.error("failed to render animated image. \(error)")
-                if let staticImage = previewImage(at: contentPath) {
-                    imageView.image = staticImage
-                } else {
-                    imageView.image = UIImage(systemName: "rectangle.slash")
-                }
-                imageView.isHidden = false
-                animatedImageView.image = nil
-                animatedImageView.isHidden = true
-            }
-        } else {
-            if let staticImage = previewImage(at: contentPath) {
-                imageView.image = staticImage
+        ) {
+            if let splitSide = splitSide(for: pageMode) {
+                staticImage = imageService.splitImage(imageUrl: contentPath, side: splitSide)
             } else {
-                imageView.image = UIImage(systemName: "rectangle.slash")
+                staticImage = previewImage(at: contentPath)
+                if imageService.isAnimatedImage(imageUrl: contentPath) {
+                    do {
+                        animatedImage = try AnimatedImage(
+                            contentsOf: contentPath,
+                            withConfiguration: Self.animatedImageConfiguration
+                        )
+                    } catch {
+                        logger.error("failed to render animated image. \(error)")
+                    }
+                }
             }
-            imageView.isHidden = false
-            animatedImageView.image = nil
-            animatedImageView.isHidden = true
         }
+
+        imageView.image = staticImage ?? UIImage(systemName: "rectangle.slash")
+        imageView.isHidden = false
+        animatedImageView.image = animatedImage
+        animatedImageView.isHidden = animatedImage == nil
         updateImageLayout(for: imageView.image?.size)
     }
-    // swiftlint:enable function_body_length
 
     private func splitSide(for pageMode: PageMode) -> ImageSplitSide? {
         switch pageMode {
