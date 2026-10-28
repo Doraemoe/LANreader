@@ -306,6 +306,27 @@ final class CacheDownloadTests: XCTestCase {
         XCTAssertEqual(try database.readCache(cache.id), cache)
     }
 
+    func testUnusedTablesAreClearedOnceByMigrationInsteadOfEveryLaunch() throws {
+        let queue = try DatabaseQueue()
+        _ = try AppDatabase(queue)
+        let unusedTables = ["archive", "archiveImage", "category", "history"]
+        try queue.write { database in
+            try database.execute(sql: "DELETE FROM grdb_migrations WHERE identifier = 'clearUnusedTables'")
+            for table in unusedTables {
+                try database.execute(sql: "INSERT INTO \(table) (id) VALUES ('old')")
+            }
+        }
+
+        _ = try AppDatabase(queue)
+        for table in unusedTables {
+            XCTAssertEqual(try queue.read { try Int.fetchOne($0, sql: "SELECT COUNT(*) FROM \(table)") }, 0)
+        }
+
+        try queue.write { try $0.execute(sql: "INSERT INTO archiveImage (id) VALUES ('new')") }
+        _ = try AppDatabase(queue)
+        XCTAssertEqual(try queue.read { try Int.fetchOne($0, sql: "SELECT COUNT(*) FROM archiveImage") }, 1)
+    }
+
     @MainActor
     func testReaderCacheActionDownloadsSplitSourcePageOnce() async throws {
         let id = "cacheReader-" + UUID().uuidString

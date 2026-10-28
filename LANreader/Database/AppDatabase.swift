@@ -10,7 +10,6 @@ struct AppDatabase {
     init(_ dbWriter: DatabaseWriter) throws {
         self.dbWriter = dbWriter
         try migrator.migrate(dbWriter)
-        try cleanImageCache()
     }
 
     private var migrator: DatabaseMigrator {
@@ -118,13 +117,13 @@ struct AppDatabase {
             }
         }
 
-        return migrator
-    }
-
-    func cleanImageCache() throws {
-        try dbWriter.write { database in
-            try database.execute(sql: "DELETE FROM archiveImage")
+        migrator.registerMigration("clearUnusedTables") { database in
+            for table in ["archive", "archiveImage", "category", "history"] {
+                try database.execute(sql: "DELETE FROM \(table)")
+            }
         }
+
+        return migrator
     }
 }
 
@@ -310,7 +309,6 @@ extension AppDatabase {
 
     func clearDatabase() throws {
         try dbWriter.write { database in
-            try database.execute(sql: "DELETE FROM archive; DELETE FROM archiveImage; DELETE FROM category")
             _ = try ArchiveThumbnail.deleteAll(database)
             _ = try TagItem.deleteAll(database)
         }
