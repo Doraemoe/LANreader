@@ -60,6 +60,19 @@ final class ImageService: Sendable {
         })
     }
 
+    func validStoredPageNumbers(folderUrl: URL?, totalPages: Int) -> Set<Int> {
+        guard let folderUrl, totalPages > 0,
+              let files = try? FileManager.default.contentsOfDirectory(
+                at: folderUrl, includingPropertiesForKeys: nil
+              ) else { return [] }
+        return Set(files.compactMap { url in
+            guard !url.hasDirectoryPath,
+                  let page = Int(url.deletingPathExtension().lastPathComponent),
+                  (1...totalPages).contains(page), isValidPageImage(imageUrl: url) else { return nil }
+            return page
+        })
+    }
+
     func isAnimatedImage(imageUrl: URL, imageData: Data? = nil) -> Bool {
         guard let imageSource = makeImageSource(imageUrl: imageUrl, imageData: imageData) else { return false }
         return CGImageSourceGetCount(imageSource) > 1

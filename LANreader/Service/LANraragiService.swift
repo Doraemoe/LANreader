@@ -578,7 +578,7 @@ extension LANraragiService {
             return task.originalRequest?.value(forHTTPHeaderField: "X-Page-Number").flatMap(Int.init)
         }).union(urlSessionDelegate?.activePageNumbers(archiveId: archiveId) ?? [])
         let folder = Self.cachePath?.appendingPathComponent(archiveId, conformingTo: .folder)
-        let storedPages = imageService.storedPageNumbers(folderUrl: folder, totalPages: pages.count)
+        let storedPages = imageService.validStoredPageNumbers(folderUrl: folder, totalPages: pages.count)
         // shortcut: Retry assumes unchanged source page order; add a mapping if mutable books need support.
         for (index, page) in pages.enumerated() where !storedPages.contains(index + 1)
             && !activePages.contains(index + 1) {
