@@ -29,6 +29,7 @@ Use this file as the source of truth for Codex-style work in this repository.
 - Current active GitHub workflows are `ci.yml` and `manual-ipa-release.yml`.
 - Local unsigned IPA packaging is supported.
 - Manual releases derive tags as `<MARKETING_VERSION>-<CURRENT_PROJECT_VERSION>`.
+- Manual releases do not rerun tests. They require the source commit's latest CI `verify (…)` check to have passed, so keep that check name when editing CI.
 
 ## Repo Map
 
