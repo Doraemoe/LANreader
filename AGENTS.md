@@ -56,6 +56,17 @@ Use this file as the source of truth for Codex-style work in this repository.
 - Reader rendering has special handling for animated images and HEIC conversion; inspect `ImageService.swift`, `UIPageCell.swift`, and `PageImageV2.swift` together before changing image behavior.
 - Reader navigation crosses three ownership layers: `ArchiveReader.swift` owns feature state and intent, `ReaderPositioning.swift` owns pure index calculations, and `UIPageCollection.swift` performs UIKit scrolling. Inspect all three before changing page jumps, restore behavior, double-page layout, or RTL behavior.
 
+## Working Rules
+
+- Keep changes aligned with existing TCA and dependency-injection patterns. Do not rewrite features into a different architecture as a drive-by cleanup.
+- Do not replace UIKit-backed collection views with pure SwiftUI `LazyVStack`, `LazyHStack`, or similar containers unless the task explicitly asks for that change and performance has been re-validated.
+- When changing reader, archive grid, or cache-list behavior, inspect the SwiftUI wrapper and the UIKit controller/cell together before deciding where the fix belongs.
+- Prefer narrow fixes. This repo has some legacy naming and release automation debt; do not normalize unrelated names unless the task is explicitly about release tooling or rebranding.
+- Add user-facing strings to `Localizable.xcstrings`; do not hard-code new English UI copy in Swift views.
+- When adding translations, check LANraragi's Weblate project for established terminology and adapt it to concise app UI copy.
+- Before committing, review `git diff` and `git status` so unrelated or pre-existing worktree changes are not included.
+- If you touch CI or release automation, treat `.github/workflows/ci.yml` and `.github/workflows/manual-ipa-release.yml` as the active sources of truth.
+
 ## Reader and Cache Invariants
 
 - LANraragi page numbers are one-based. Reader collection indices are zero-based and can diverge further when split-page items are inserted. Resolve server-facing page numbers through `PageFeature.State.pageNumber` or `sourcePageNumber` instead of treating them as collection indices.
@@ -84,24 +95,37 @@ Use this file as the source of truth for Codex-style work in this repository.
 - Tests clear `UserDefaults` and remove HTTP stubs in teardown.
 - When changing LANraragi API behavior, add or update stubbed tests before relying on simulator-only verification.
 - Reader reducer and positioning behavior belongs in focused `ArchiveReaderFeatureTests` coverage, including relevant single-page, double-page, split-page, RTL, cached, and Tankoubon cases.
-- For behavior, persistence, service, or reader changes, run `./scripts/verify` before creating a PR. Documentation-only changes do not require an Xcode test run.
+- Stub every request a network-backed test triggers, including follow-up requests such as thumbnails, so no test reaches a real host.
+- Give `TestStore`s that wait on stubbed requests an explicit timeout; the 1-second default is too short on CI runners.
 
-## AI-Native Quality Workflow
+## Verification
 
 - Use Xcode MCP for fast local builds, focused or full tests, build diagnostics, documentation lookup, and simulator smoke checks. Confirm the active scheme and destination before running it.
 - When Xcode MCP requires its `device-interaction` agent, delegate only the simulator UI interactions to a subagent that loads that skill; keep session setup and teardown in the parent task.
 - Keep the repository scripts and GitHub Actions as the reproducible source of truth; report Xcode MCP results separately from script and CI results.
 - During iteration, run `./scripts/verify-changes [base-ref]`. It selects repository checks, lint, or the full iOS suite from the changed files and defaults unknown code paths to the full suite.
 - Before handing off application, test, project, persistence, service, reader, image, or build changes, run `./scripts/verify`. CI runs the same full command on pull requests and `master` regardless of the local tier.
+- Documentation-only changes do not require an Xcode test run.
 - Treat executable checks as the source of truth. Do not claim a command, scenario, or result was verified unless it actually ran; report skipped checks and remaining gaps explicitly.
 - Test the real behavior entry path, not only a newly extracted helper. Reader changes should exercise reducer intent, pure logic, and the affected UIKit integration or scrolling path; reducer and extracted-helper tests alone are insufficient.
 - Match evidence to risk: API changes need complete request-contract tests; persistence changes need migration and backward-compatibility coverage; reader changes need layout, direction, cache, and Tankoubon cases as applicable; localized copy needs catalog validation and a compiling app target.
 - Keep changes narrow enough to review. Encode reusable lessons in the narrowest useful regression test or automated guardrail when practical.
 - Add a concise rule to this guide only when future contributors need non-obvious context that executable checks cannot provide. Formal decision records and postmortems are not required.
+
+## Code Review
+
+- Report only defects: wrong behavior, data loss, crashes, or broken builds and releases. Give each finding a file and line plus a concrete failing scenario, and label it Important or Pre-existing.
+- Check changes against the invariants above: reader paging and navigation source, offline caches, Tankoubon boundaries, additive migrations, the LANraragi request contract, and the CI `verify (…)` check name.
+- Also look for silent data loss, where pages, cache entries, upload jobs, or settings are dropped or skipped without the user seeing an error.
+- Cache Retry must re-download both missing and broken pages, not only missing ones.
+- Keep the Save URL extension and the deep-link format in sync, and check that deep links and the lock screen still work on cold start.
+- Skip style, naming, formatting, anything SwiftLint enforces, `Localizable.xcstrings` key order, and performance suggestions without a measured problem on a device.
+- Re-reviews cover only the new commits and do not repeat findings already resolved in the thread. If the same area needs a third round, reconsider the approach instead of patching again.
+
+## Pull Requests
+
 - In pull requests, provide exact commands and outcomes plus behavior evidence such as focused test names, screenshots, or a concise manual scenario. The author summary is evidence to verify, not proof by itself.
 - Before creating or editing a pull request, read `.github/pull_request_template.md`, preserve its exact headings, order, and checklist, replace its placeholder prompts with specific content, and read back the live body after publication to confirm it still matches the template.
-
-## Pull Request Versioning
 
 When asked to create a pull request:
 
@@ -109,15 +133,3 @@ When asked to create a pull request:
 - Before creating the PR, read the current `MARKETING_VERSION`, tell the user its value, and ask whether it should be bumped. If the user already specified the marketing-version change, do not ask again.
 - If a marketing-version bump is requested, update all LANreader and Action target build settings together.
 - Verify the resolved values across every build configuration in `LANreader.xcodeproj/project.pbxproj`; do not update only the main app target or only one configuration.
-
-## Working Rules
-
-- Keep changes aligned with existing TCA and dependency-injection patterns. Do not rewrite features into a different architecture as a drive-by cleanup.
-- Do not replace UIKit-backed collection views with pure SwiftUI `LazyVStack`, `LazyHStack`, or similar containers unless the task explicitly asks for that change and performance has been re-validated.
-- When changing reader, archive grid, or cache-list behavior, inspect the SwiftUI wrapper and the UIKit controller/cell together before deciding where the fix belongs.
-- Prefer narrow fixes. This repo has some legacy naming and release automation debt; do not normalize unrelated names unless the task is explicitly about release tooling or rebranding.
-- Add user-facing strings to `Localizable.xcstrings`; do not hard-code new English UI copy in Swift views.
-- When adding translations, check LANraragi's Weblate project for established terminology and adapt it to concise app UI copy.
-- If you need a local build, use the scripts in `scripts/`. They use the normal Xcode folders by default and support repo-local cache overrides when needed.
-- Before committing, review `git diff` and `git status` so unrelated or pre-existing worktree changes are not included.
-- If you touch CI or release automation, treat `.github/workflows/ci.yml` and `.github/workflows/manual-ipa-release.yml` as the active sources of truth.
