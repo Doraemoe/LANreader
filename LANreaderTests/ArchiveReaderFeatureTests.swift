@@ -1033,6 +1033,39 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testReaderKeepsCurrentPageWhenWidthChangesWithoutRotation() async throws {
+        configureReaderDefaults()
+        var initialState = makeState(progress: 1)
+        initialState.pages = makePageStates(count: 25)
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        } withDependencies: {
+            $0.continuousClock = ImmediateClock()
+            $0.uuid = .incrementing
+        }
+        let controller = UIPageCollectionController(store: store)
+        controller.loadViewIfNeeded()
+        controller.view.frame = CGRect(x: 0, y: 0, width: 382, height: 644)
+        controller.view.layoutIfNeeded()
+        await Task.yield()
+        store.send(.requestJump(13, source: .initialRestore))
+        controller.view.layoutIfNeeded()
+        await Task.yield()
+        await Task.yield()
+        XCTAssertEqual(controller.collectionView.contentOffset.x, 13 * 382, accuracy: 1)
+        XCTAssertEqual(store.currentPageIndex, 13)
+
+        controller.view.frame = CGRect(x: 0, y: 0, width: 466, height: 562)
+        controller.view.setNeedsLayout()
+        controller.view.layoutIfNeeded()
+        await Task.yield()
+        await Task.yield()
+
+        XCTAssertEqual(controller.collectionView.contentOffset.x, 13 * 466, accuracy: 1)
+        XCTAssertEqual(store.currentPageIndex, 13)
+    }
+
+    @MainActor
     func testUIPageLongPressRequestsStampAtRenderedImagePosition() async throws {
         configureReaderDefaults()
 
@@ -4186,7 +4219,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
-    func testToggleDoublePageLayoutDisablesLayoutAndKeepsCurrentPage() async {
+    func testToggleDoublePageLayoutDisablesLayoutAndReturnsToFirstPageOfSpread() async {
         configureReaderDefaults(doublePageLayout: true)
         var initialState = makeState(progress: 3, doublePageLayout: true)
         initialState.pages = makePageStates(count: 5)
@@ -4198,13 +4231,34 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             $0.spreadPairingOffset = 0
             $0.$doublePageLayout.withLock { $0 = false }
         }
-        await store.receive(.requestJump(2, source: .layoutChange)) {
+        await store.receive(.requestJump(1, source: .layoutChange)) {
             $0.scrollRequest = makeScrollRequest(
                 id: 0,
-                targetPageIndex: 2,
+                targetPageIndex: 1,
                 source: .layoutChange,
                 animated: false
             )
+        }
+    }
+
+    @MainActor
+    func testToggleDoublePageLayoutOnThenOffReturnsToStartingPage() async {
+        for direction in [ReadDirection.leftRight, .rightLeft] {
+            configureReaderDefaults(readDirection: direction)
+            var initialState = makeState(progress: 10, readDirection: direction)
+            initialState.pages = makePageStates(count: 25)
+            initialState.currentPageIndex = 9
+            let store = makeTestStore(initialState: initialState) {
+                $0.continuousClock = ImmediateClock()
+            }
+            store.exhaustivity = .off
+
+            await store.send(.toggleDoublePageLayout)
+            await store.receive(.requestJump(10, source: .layoutChange))
+            await store.send(.visiblePageChanged(10))
+            await store.send(.toggleDoublePageLayout)
+            await store.receive(.requestJump(9, source: .layoutChange))
+            XCTAssertFalse(store.state.doublePageLayout)
         }
     }
 

@@ -448,35 +448,62 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     }
 
     // MARK: - Rotation / Size Change Handling
-    private var pendingResnap = false
+    private var lastLayoutWidth: CGFloat?
+    private var pageIndexToRestoreAfterResize: Int?
 
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
         guard collectionView != nil else { return }
-        // Capture current visual page index before transition
-        let indexPathToRestore = currentVisualPageIndexPath()
-        pendingResnap = true
+        pageIndexToRestoreAfterResize = pageIndexToRestoreAfterResize ?? store.currentPageIndex
         coordinator.animate(alongsideTransition: { _ in
             self.collectionView.collectionViewLayout.invalidateLayout()
         }, completion: { _ in
-            // On completion ensure we snap exactly to the intended page
-            self.resnap(to: indexPathToRestore)
-            self.pendingResnap = false
+            self.restorePageAfterResize()
         })
+    }
+
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        // Width changes without a rotation, such as unfolding or a sidebar appearing, keep the old
+        // content offset while every page changes size, so remember the page before layout moves it.
+        let width = view.bounds.width
+        if let lastLayoutWidth, lastLayoutWidth != width, !appliedCollectionItems.isEmpty {
+            pageIndexToRestoreAfterResize = pageIndexToRestoreAfterResize ?? store.currentPageIndex
+        }
+        lastLayoutWidth = width
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        // Safety snap if layout changed and coordinator completion hasn't fired yet
-        if pendingResnap {
-            resnap(to: currentVisualPageIndexPath())
-            pendingResnap = false
-        }
+        restorePageAfterResize()
         consumePendingScrollRequestIfPossible()
     }
 
+    private func restorePageAfterResize() {
+        guard let pageIndex = pageIndexToRestoreAfterResize else { return }
+        collectionView.layoutIfNeeded()
+        resnap(to: indexPath(forPageIndex: pageIndex))
+        lastReportedVisiblePageIndex = pageIndex
+        pageIndexToRestoreAfterResize = nil
+    }
+
+    private func indexPath(forPageIndex pageIndex: Int) -> IndexPath? {
+        let anchorIndex = ReaderPositioning.scrollAnchorIndex(
+            forPageIndex: pageIndex,
+            pageCount: store.pages.count,
+            readDirection: resolvedReadDirection,
+            doublePageLayout: store.doublePageLayout,
+            spreadOffset: store.spreadPairingOffset
+        )
+        guard store.pages.indices.contains(anchorIndex),
+              let pageIndexPath = dataSource.indexPath(for: .page(store.pages[anchorIndex].id)) else {
+            return nil
+        }
+        return startOfGroupIndexPath(for: pageIndexPath)
+    }
+
     private func reportVisiblePageIfNeeded() {
-        guard !isApplyingSnapshot else { return }
+        guard !isApplyingSnapshot, pageIndexToRestoreAfterResize == nil else { return }
         guard let visibleItemIndex = currentVisibleItemIndex(),
               let visiblePageIndex = pageIndex(atCollectionItemIndex: visibleItemIndex) else { return }
         let pageIndex = ReaderPositioning.canonicalPageIndex(
@@ -610,11 +637,6 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     }
 
     // Returns index path representing the start of the current visual page (accounts for double page layout)
-    private func currentVisualPageIndexPath() -> IndexPath? {
-        guard let visibleIndex = currentVisibleItemIndex() else { return nil }
-        return startOfGroupIndexPath(for: IndexPath(row: visibleIndex, section: 0))
-    }
-
     // For double page layout treat a pair of items as one visual page; return left item index path
     private func startOfGroupIndexPath(for indexPath: IndexPath) -> IndexPath {
         guard store.readDirection != ReadDirection.upDown.rawValue,
