@@ -1066,6 +1066,40 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     }
 
     @MainActor
+    func testVerticalReaderKeepsTopPageProgressWhenWidthChanges() async throws {
+        configureReaderDefaults(readDirection: .upDown)
+        var initialState = makeState(progress: 1, readDirection: .upDown)
+        initialState.pages = makePageStates(count: 25)
+        let store = Store(initialState: initialState) {
+            ArchiveReaderFeature()
+        } withDependencies: {
+            $0.continuousClock = ImmediateClock()
+            $0.uuid = .incrementing
+        }
+        let controller = UIPageCollectionController(store: store)
+        controller.loadViewIfNeeded()
+        controller.view.frame = CGRect(x: 0, y: 0, width: 382, height: 644)
+        controller.view.layoutIfNeeded()
+        await Task.yield()
+        let collectionView = controller.collectionView!
+        collectionView.collectionViewLayout.invalidateLayout()
+        collectionView.layoutIfNeeded()
+        let pagePath = IndexPath(row: 5, section: 0)
+        let narrowFrame = try XCTUnwrap(collectionView.layoutAttributesForItem(at: pagePath)?.frame)
+        collectionView.setContentOffset(CGPoint(x: 0, y: narrowFrame.minY + narrowFrame.height * 0.4), animated: false)
+        collectionView.layoutIfNeeded()
+
+        controller.view.frame = CGRect(x: 0, y: 0, width: 466, height: 562)
+        controller.view.setNeedsLayout()
+        controller.view.layoutIfNeeded()
+        await Task.yield()
+
+        let wideFrame = try XCTUnwrap(collectionView.layoutAttributesForItem(at: pagePath)?.frame)
+        XCTAssertGreaterThan(wideFrame.height, narrowFrame.height)
+        XCTAssertEqual(collectionView.contentOffset.y, wideFrame.minY + wideFrame.height * 0.4, accuracy: 1)
+    }
+
+    @MainActor
     func testUIPageLongPressRequestsStampAtRenderedImagePosition() async throws {
         configureReaderDefaults()
 
