@@ -115,6 +115,7 @@ Use this file as the source of truth for Codex-style work in this repository.
 ## Code Review
 
 - Report only defects: wrong behavior, data loss, crashes, or broken builds and releases. Give each finding a file and line plus a concrete failing scenario, and label it Important or Pre-existing.
+- Report only issues that can happen in real use. Name the user action, device, or data that triggers it. Drop findings that need an unlikely timing race, a state the code already prevents, or input the app never produces.
 - Check changes against the invariants above: reader paging and navigation source, offline caches, Tankoubon boundaries, additive migrations, the LANraragi request contract, and the CI `verify (…)` check name.
 - Also look for silent data loss, where pages, cache entries, upload jobs, or settings are dropped or skipped without the user seeing an error.
 - Cache Retry must re-download both missing and broken pages, not only missing ones.
