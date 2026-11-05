@@ -13,12 +13,18 @@ import SwiftUI
         @Shared(.appStorage(SettingsKey.splitWideImage)) var splitWideImage = false
         @Shared(.appStorage(SettingsKey.splitPiorityLeft)) var splitPiorityLeft = false
         @Shared(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
+        @Shared(.appStorage(SettingsKey.automaticPageLayout)) var automaticPageLayout = false
         @Shared(.appStorage(SettingsKey.fitPageWidth)) var fitPageWidth = false
         @Shared(.appStorage(SettingsKey.restartFinished)) var restartFinished = false
+
+        var pageLayoutMode: ReaderPageLayoutMode {
+            ReaderPageLayoutMode(automatic: automaticPageLayout, double: doublePageLayout)
+        }
     }
     public enum Action: BindableAction {
         case binding(BindingAction<State>)
         case splitWideImageChanged(Bool)
+        case pageLayoutModeChanged(ReaderPageLayoutMode)
     }
 
     public var body: some ReducerOf<Self> {
@@ -26,6 +32,10 @@ import SwiftUI
 
         Reduce { state, action in
             switch action {
+            case let .pageLayoutModeChanged(mode):
+                guard mode != .double || !state.splitWideImage else { return .none }
+                mode.save(automatic: state.$automaticPageLayout, double: state.$doublePageLayout)
+                return .none
             case let .splitWideImageChanged(isEnabled):
                 state.$splitWideImage.withLock { $0 = isEnabled }
                 if isEnabled {
@@ -68,6 +78,16 @@ struct ReadSettings: View {
             .padding()
         }
         if store.readDirection != ReadDirection.upDown.rawValue {
+            Picker("settings.read.layout", selection: Binding(
+                get: { store.pageLayoutMode },
+                set: { store.send(.pageLayoutModeChanged($0)) }
+            )) {
+                ForEach(ReaderPageLayoutMode.allCases, id: \.self) { mode in
+                    Text(LocalizedStringKey(mode.localizationKey)).tag(mode)
+                }
+            }
+            .disabled(store.splitWideImage)
+            .padding()
             Toggle("settings.read.fit.page.width", isOn: Binding(self.store.$fitPageWidth))
                 .padding()
         }

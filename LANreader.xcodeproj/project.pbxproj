@@ -120,6 +120,7 @@
 		F1A2B3E52FA0000100AAA001 /* PaginationPositioningTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3E62FA0000100AAA001 /* PaginationPositioningTests.swift */; };
 		F1A2B3F02FB0000100AAA001 /* ReaderPageLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3F12FB0000100AAA001 /* ReaderPageLayout.swift */; };
 		F1A2B3F22FC0000100AAA001 /* ReaderPositioningInvariantTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3F32FC0000100AAA001 /* ReaderPositioningInvariantTests.swift */; };
+		BADC0DE12FC0000100AAA001 /* AutomaticPageLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BADC0DE22FC0000100AAA001 /* AutomaticPageLayoutTests.swift */; };
 		F1A2B3F52FD0000100AAA001 /* StampOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3F42FD0000100AAA001 /* StampOverlayView.swift */; };
 		F1A2B3F62FD0000100AAA001 /* UploadFeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3F72FD0000100AAA001 /* UploadFeatureTests.swift */; };
 /* End PBXBuildFile section */
@@ -266,6 +267,7 @@
 		F1A2B3E62FA0000100AAA001 /* PaginationPositioningTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaginationPositioningTests.swift; sourceTree = "<group>"; };
 		F1A2B3F12FB0000100AAA001 /* ReaderPageLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderPageLayout.swift; sourceTree = "<group>"; };
 		F1A2B3F32FC0000100AAA001 /* ReaderPositioningInvariantTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderPositioningInvariantTests.swift; sourceTree = "<group>"; };
+		BADC0DE22FC0000100AAA001 /* AutomaticPageLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticPageLayoutTests.swift; sourceTree = "<group>"; };
 		F1A2B3F42FD0000100AAA001 /* StampOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StampOverlayView.swift; sourceTree = "<group>"; };
 		F1A2B3F72FD0000100AAA001 /* UploadFeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadFeatureTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -496,6 +498,7 @@
 				F1A2B3D92F90000200AAA001 /* SearchFeatureTests.swift */,
 				F1A2B3E62FA0000100AAA001 /* PaginationPositioningTests.swift */,
 				F1A2B3F32FC0000100AAA001 /* ReaderPositioningInvariantTests.swift */,
+				BADC0DE22FC0000100AAA001 /* AutomaticPageLayoutTests.swift */,
 				F1A2B3F72FD0000100AAA001 /* UploadFeatureTests.swift */,
 				7D354CB824F1316E00617F4A /* Info.plist */,
 				4BD820A697A4726B7B747BFD /* Service */,
@@ -849,6 +852,7 @@
 				F1A2B3CE2F80000100AAA001 /* LogTextRendererTests.swift in Sources */,
 				F1A2B3E52FA0000100AAA001 /* PaginationPositioningTests.swift in Sources */,
 				F1A2B3F22FC0000100AAA001 /* ReaderPositioningInvariantTests.swift in Sources */,
+				BADC0DE12FC0000100AAA001 /* AutomaticPageLayoutTests.swift in Sources */,
 				F1A2B3F62FD0000100AAA001 /* UploadFeatureTests.swift in Sources */,
 				F1A2B3D82F90000200AAA001 /* SearchFeatureTests.swift in Sources */,
 				4BD82555CE41A0467CCC6411 /* LANraragiServiceTest.swift in Sources */,
@@ -1027,7 +1031,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreader.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 271;
+				CURRENT_PROJECT_VERSION = 272;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1055,7 +1059,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreaderRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 271;
+				CURRENT_PROJECT_VERSION = 272;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1129,7 +1133,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 271;
+				CURRENT_PROJECT_VERSION = 272;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1159,7 +1163,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 271;
+				CURRENT_PROJECT_VERSION = 272;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
