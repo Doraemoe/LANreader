@@ -304,18 +304,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     private func scrollToPage(for request: ScrollRequest) -> Bool {
         guard collectionView.numberOfSections > 0 else { return false }
         guard !store.pages.isEmpty else { return false }
-        let pageIndex = ReaderPositioning.scrollAnchorIndex(
-            forPageIndex: request.targetPageIndex,
-            pageCount: store.pages.count,
-            readDirection: resolvedReadDirection,
-            doublePageLayout: store.doublePageLayout,
-            spreadOffset: store.spreadPairingOffset
-        )
-        guard store.pages.indices.contains(pageIndex),
-              let pageIndexPath = dataSource.indexPath(for: .page(store.pages[pageIndex].id)) else {
-            return false
-        }
-        let indexPath = startOfGroupIndexPath(for: pageIndexPath)
+        guard let indexPath = indexPath(forPageIndex: request.targetPageIndex) else { return false }
         collectionView.layoutIfNeeded()
         guard collectionView.layoutAttributesForItem(at: indexPath) != nil else {
             return false
@@ -448,35 +437,94 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     }
 
     // MARK: - Rotation / Size Change Handling
-    private var pendingResnap = false
+    private var lastLayoutWidth: CGFloat?
+    private var resizeRestoreTarget: ResizeRestoreTarget?
+
+    private struct ResizeRestoreTarget {
+        let pageIndex: Int
+        let progressThroughPage: CGFloat
+    }
 
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
         guard collectionView != nil else { return }
-        // Capture current visual page index before transition
-        let indexPathToRestore = currentVisualPageIndexPath()
-        pendingResnap = true
+        resizeRestoreTarget = resizeRestoreTarget ?? currentResizeRestoreTarget()
         coordinator.animate(alongsideTransition: { _ in
             self.collectionView.collectionViewLayout.invalidateLayout()
         }, completion: { _ in
-            // On completion ensure we snap exactly to the intended page
-            self.resnap(to: indexPathToRestore)
-            self.pendingResnap = false
+            self.restorePageAfterResize()
         })
+    }
+
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        // Width changes without a rotation, such as unfolding or a sidebar appearing, keep the old
+        // content offset while every page changes size, so remember the page before layout moves it.
+        let width = view.bounds.width
+        if let lastLayoutWidth, lastLayoutWidth != width, !appliedCollectionItems.isEmpty {
+            resizeRestoreTarget = resizeRestoreTarget ?? currentResizeRestoreTarget()
+            collectionView.collectionViewLayout.invalidateLayout()
+        }
+        lastLayoutWidth = width
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        // Safety snap if layout changed and coordinator completion hasn't fired yet
-        if pendingResnap {
-            resnap(to: currentVisualPageIndexPath())
-            pendingResnap = false
-        }
+        restorePageAfterResize()
         consumePendingScrollRequestIfPossible()
     }
 
+    // Vertical mode reports the lowest visible page, so keep the top page and how far it was read instead.
+    private func currentResizeRestoreTarget() -> ResizeRestoreTarget {
+        let visibleRect = CGRect(origin: collectionView.contentOffset, size: collectionView.bounds.size)
+        let visibleTop = visibleRect.minY + collectionView.adjustedContentInset.top
+        guard store.readDirection == ReadDirection.upDown.rawValue,
+              let attributes = collectionView.collectionViewLayout.layoutAttributesForElements(in: visibleRect)?
+                .filter({ $0.representedElementCategory == .cell && $0.frame.maxY > visibleTop })
+                .min(by: { $0.indexPath.row < $1.indexPath.row }),
+              attributes.frame.height > 0,
+              let pageIndex = pageIndex(atCollectionItemIndex: attributes.indexPath.row) else {
+            return ResizeRestoreTarget(pageIndex: store.currentPageIndex, progressThroughPage: 0)
+        }
+        let progress = (visibleTop - attributes.frame.minY) / attributes.frame.height
+        return ResizeRestoreTarget(pageIndex: pageIndex, progressThroughPage: min(max(progress, 0), 1))
+    }
+
+    private func restorePageAfterResize() {
+        guard let target = resizeRestoreTarget else { return }
+        collectionView.layoutIfNeeded()
+        let indexPath = indexPath(forPageIndex: target.pageIndex)
+        resnap(to: indexPath)
+        if target.progressThroughPage > 0, let indexPath,
+           let attributes = collectionView.layoutAttributesForItem(at: indexPath) {
+            let top = attributes.frame.minY + attributes.frame.height * target.progressThroughPage
+            let offsetY = top - collectionView.adjustedContentInset.top
+            collectionView.setContentOffset(
+                clampedContentOffset(CGPoint(x: collectionView.contentOffset.x, y: offsetY)), animated: false
+            )
+        }
+        lastReportedVisiblePageIndex = store.currentPageIndex
+        resizeRestoreTarget = nil
+        reportVisiblePageIfNeeded()
+    }
+
+    private func indexPath(forPageIndex pageIndex: Int) -> IndexPath? {
+        let anchorIndex = ReaderPositioning.scrollAnchorIndex(
+            forPageIndex: pageIndex,
+            pageCount: store.pages.count,
+            readDirection: resolvedReadDirection,
+            doublePageLayout: store.doublePageLayout,
+            spreadOffset: store.spreadPairingOffset
+        )
+        guard store.pages.indices.contains(anchorIndex),
+              let pageIndexPath = dataSource.indexPath(for: .page(store.pages[anchorIndex].id)) else {
+            return nil
+        }
+        return startOfGroupIndexPath(for: pageIndexPath)
+    }
+
     private func reportVisiblePageIfNeeded() {
-        guard !isApplyingSnapshot else { return }
+        guard !isApplyingSnapshot, resizeRestoreTarget == nil else { return }
         guard let visibleItemIndex = currentVisibleItemIndex(),
               let visiblePageIndex = pageIndex(atCollectionItemIndex: visibleItemIndex) else { return }
         let pageIndex = ReaderPositioning.canonicalPageIndex(
@@ -610,11 +658,6 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     }
 
     // Returns index path representing the start of the current visual page (accounts for double page layout)
-    private func currentVisualPageIndexPath() -> IndexPath? {
-        guard let visibleIndex = currentVisibleItemIndex() else { return nil }
-        return startOfGroupIndexPath(for: IndexPath(row: visibleIndex, section: 0))
-    }
-
     // For double page layout treat a pair of items as one visual page; return left item index path
     private func startOfGroupIndexPath(for indexPath: IndexPath) -> IndexPath {
         guard store.readDirection != ReadDirection.upDown.rawValue,

@@ -561,15 +561,24 @@ public struct ChapterMutationTarget: Equatable, Sendable {
             case .toggleDoublePageLayout:
                 guard state.canToggleDoublePageLayout else { return .none }
                 let enabled = !state.doublePageLayout
+                let previousSpreadOffset = state.spreadPairingOffset
                 state.spreadPairingOffset = enabled ? state.safeCurrentPageIndex % 2 : 0
                 state.$doublePageLayout.withLock { $0 = enabled }
-                let targetIndex = ReaderPositioning.canonicalPageIndex(
-                    forVisibleIndex: state.currentPageIndex,
-                    pageCount: state.pages.count,
-                    readDirection: state.resolvedReadDirection,
-                    doublePageLayout: enabled,
-                    spreadOffset: state.spreadPairingOffset
-                )
+                let targetIndex = enabled
+                    ? ReaderPositioning.canonicalPageIndex(
+                        forVisibleIndex: state.currentPageIndex,
+                        pageCount: state.pages.count,
+                        readDirection: state.resolvedReadDirection,
+                        doublePageLayout: true,
+                        spreadOffset: state.spreadPairingOffset
+                    )
+                    : ReaderPositioning.scrollAnchorIndex(
+                        forPageIndex: state.currentPageIndex,
+                        pageCount: state.pages.count,
+                        readDirection: state.resolvedReadDirection,
+                        doublePageLayout: true,
+                        spreadOffset: previousSpreadOffset
+                    )
                 return .send(.requestJump(targetIndex, source: .layoutChange))
             case .toggleStampsVisibility:
                 guard state.canUseStamps else { return .none }

@@ -268,17 +268,16 @@ class UISearchViewV2Controller: UIViewController {
         suggestionsHeightConstraint?.isActive = true
 
         if UIDevice.current.userInterfaceIdiom == .phone {
+            let safeArea = view.safeAreaLayoutGuide
             NSLayoutConstraint.activate([
                 archiveListViewController.view.topAnchor.constraint(equalTo: view.topAnchor),
                 archiveListViewController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
                 archiveListViewController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
                 archiveListViewController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-                suggestionsContainerView.topAnchor.constraint(
-                    equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8
-                ),
-                suggestionsContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-                suggestionsContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)
+                suggestionsContainerView.topAnchor.constraint(equalTo: safeArea.topAnchor, constant: 8),
+                suggestionsContainerView.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: 16),
+                suggestionsContainerView.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -16)
             ])
         } else {
             NSLayoutConstraint.activate([
