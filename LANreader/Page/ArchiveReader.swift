@@ -164,6 +164,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         var currentArchiveId = ""
         var currentPageIndex = 0
         var spreadPairingOffset = 0
+        var spreadAnchorPageIndex: Int?
         var doublePageLayout = false
         var readerSize: CGSize = .zero
         var scrollRequest: ScrollRequest?
@@ -279,7 +280,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         }
 
         var pageLayoutMode: ReaderPageLayoutMode {
-            automaticPageLayout ? .automatic : (manualDoublePageLayout ? .double : .single)
+            ReaderPageLayoutMode(automatic: automaticPageLayout, double: manualDoublePageLayout)
         }
 
         var canUseStamps: Bool {
@@ -429,14 +430,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                        progress: cachedProgress,
                        archivePageCount: cachedArchive?.pagecount ?? 0
                    )
-                   state.currentPageIndex = ReaderPositioning.initialPageIndex(
-                       progress: cachedProgress,
-                       pageCount: state.pages.count,
-                       fromStart: state.fromStart,
-                       restartFinishedArchive: restartFinishedArchive,
-                       readDirection: state.resolvedReadDirection,
-                       doublePageLayout: state.doublePageLayout,
-                       spreadOffset: state.spreadPairingOffset
+                   self.restoreInitialPage(
+                       progress: cachedProgress, restartFinishedArchive: restartFinishedArchive, state: &state
                    )
                    state.controlUiHidden = true
                    state.extracting = false
@@ -519,16 +514,9 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                         progress: archive.progress,
                         archivePageCount: archive.pagecount
                     )
-                    let pageIndexToShow = ReaderPositioning.initialPageIndex(
-                        progress: archive.progress,
-                        pageCount: state.pages.count,
-                        fromStart: state.fromStart,
-                        restartFinishedArchive: restartFinishedArchive,
-                        readDirection: state.resolvedReadDirection,
-                        doublePageLayout: state.doublePageLayout,
-                        spreadOffset: state.spreadPairingOffset
+                    self.restoreInitialPage(
+                        progress: archive.progress, restartFinishedArchive: restartFinishedArchive, state: &state
                     )
-                    state.currentPageIndex = pageIndexToShow
                     state.controlUiHidden = true
                 }
                 state.extracting = false
@@ -569,10 +557,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                 )
             case let .pageLayoutModeChanged(mode):
                 guard state.canToggleDoublePageLayout else { return .none }
-                state.$automaticPageLayout.withLock { $0 = mode == .automatic }
-                if mode != .automatic {
-                    state.$manualDoublePageLayout.withLock { $0 = mode == .double }
-                }
+                mode.save(automatic: state.$automaticPageLayout, double: state.$manualDoublePageLayout)
                 return updatePageLayout(state: &state)
             case let .readerSizeChanged(size):
                 guard size.width > 0, size.height > 0 else { return .none }
@@ -1732,46 +1717,82 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         Int(Date().timeIntervalSince1970 * 1000) + pageNumber + attempt
     }
 
-    private func updatePageLayout(state: inout State) -> Effect<Action> {
-        let compatible = state.resolvedReadDirection != .upDown && !state.splitImage
-        let enabled = compatible && (state.automaticPageLayout
-            ? state.pages.count > 1 && ReaderPageLayout.automaticDoublePageLayout(
-                readerSize: state.readerSize, currentlyEnabled: state.doublePageLayout
-            )
-            : state.manualDoublePageLayout)
-        guard enabled != state.doublePageLayout else { return .none }
+    private func resolvedDoublePageLayout(state: State) -> Bool {
+        guard state.resolvedReadDirection != .upDown, !state.splitImage else { return false }
+        guard state.automaticPageLayout else { return state.manualDoublePageLayout }
+        return state.pages.count > 1 && ReaderPageLayout.automaticDoublePageLayout(
+            readerSize: state.readerSize, currentlyEnabled: state.doublePageLayout
+        )
+    }
 
+    private func restoreInitialPage(progress: Int, restartFinishedArchive: Bool, state: inout State) {
+        let storedIndex = ReaderPositioning.initialPageIndex(
+            progress: progress,
+            pageCount: state.pages.count,
+            fromStart: state.fromStart,
+            restartFinishedArchive: restartFinishedArchive,
+            readDirection: state.resolvedReadDirection,
+            doublePageLayout: false
+        )
+        let enabled = resolvedDoublePageLayout(state: state)
+        state.doublePageLayout = false
+        state.spreadPairingOffset = 0
+        state.spreadAnchorPageIndex = nil
+        state.currentPageIndex = enabled
+            ? applyPageLayout(true, pageIndex: storedIndex, restoring: true, state: &state)
+            : storedIndex
+    }
+
+    private func updatePageLayout(state: inout State) -> Effect<Action> {
+        guard !state.pages.isEmpty else { return .none }
+        let enabled = resolvedDoublePageLayout(state: state)
+        guard enabled != state.doublePageLayout else { return .none }
+        let restoring = state.scrollRequest?.source == .initialRestore
         // A pending initial restore or slider jump has priority over the last reported visible page.
         let pageIndex = state.scrollRequest?.targetPageIndex ?? state.currentPageIndex
-        let previousSpreadOffset = state.spreadPairingOffset
-        state.spreadPairingOffset = enabled ? ReaderPositioning.clampedPageIndex(
-            pageIndex, pageCount: state.pages.count
-        ) % 2 : 0
+        let targetIndex = applyPageLayout(enabled, pageIndex: pageIndex, restoring: restoring, state: &state)
+        return .send(.requestJump(targetIndex, source: restoring ? .initialRestore : .layoutChange))
+    }
+
+    /// Saved progress is the trailing page of a spread, so a restored page is paired with the page
+    /// before it, while any other page starts its spread. Turning spreads off returns to the page the
+    /// spread was built around while it is still on screen, or else to the spread's first page.
+    private func applyPageLayout(_ enabled: Bool, pageIndex: Int, restoring: Bool, state: inout State) -> Int {
+        let pageCount = state.pages.count
+        let readDirection = state.resolvedReadDirection
+        let previousOffset = state.spreadPairingOffset
+        let anchorIndex = state.spreadAnchorPageIndex
         state.doublePageLayout = enabled
-        guard !state.pages.isEmpty else { return .none }
-        let targetIndex = enabled
-            ? ReaderPositioning.canonicalPageIndex(
-                forVisibleIndex: pageIndex,
-                pageCount: state.pages.count,
-                readDirection: state.resolvedReadDirection,
-                doublePageLayout: true,
-                spreadOffset: state.spreadPairingOffset
+        guard enabled else {
+            state.spreadPairingOffset = 0
+            state.spreadAnchorPageIndex = nil
+            let spreadStart = ReaderPositioning.scrollAnchorIndex(
+                forPageIndex: pageIndex, pageCount: pageCount, readDirection: readDirection,
+                doublePageLayout: true, spreadOffset: previousOffset
             )
-            : ReaderPositioning.scrollAnchorIndex(
-                forPageIndex: pageIndex,
-                pageCount: state.pages.count,
-                readDirection: state.resolvedReadDirection,
-                doublePageLayout: true,
-                spreadOffset: previousSpreadOffset
+            let spreadEnd = ReaderPositioning.canonicalPageIndex(
+                forVisibleIndex: pageIndex, pageCount: pageCount, readDirection: readDirection,
+                doublePageLayout: true, spreadOffset: previousOffset
             )
-        return .send(.requestJump(targetIndex, source: .layoutChange))
+            if let anchorIndex, (spreadStart...max(spreadStart, spreadEnd)).contains(anchorIndex) {
+                return anchorIndex
+            }
+            return spreadStart
+        }
+        let clampedIndex = ReaderPositioning.clampedPageIndex(pageIndex, pageCount: pageCount)
+        state.spreadPairingOffset = restoring && clampedIndex > 0 ? (clampedIndex + 1) % 2 : clampedIndex % 2
+        state.spreadAnchorPageIndex = clampedIndex
+        return ReaderPositioning.canonicalPageIndex(
+            forVisibleIndex: clampedIndex, pageCount: pageCount, readDirection: readDirection,
+            doublePageLayout: true, spreadOffset: state.spreadPairingOffset
+        )
     }
 
     func resetState(state: inout State) {
         state.pages = []
         state.currentPageIndex = 0
         state.spreadPairingOffset = 0
-        state.doublePageLayout = !state.automaticPageLayout && state.manualDoublePageLayout
+        state.spreadAnchorPageIndex = nil
         state.fromStart = false
         state.scrollRequest = nil
         state.collectionScrolling = false

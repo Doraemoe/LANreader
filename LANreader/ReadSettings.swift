@@ -18,7 +18,7 @@ import SwiftUI
         @Shared(.appStorage(SettingsKey.restartFinished)) var restartFinished = false
 
         var pageLayoutMode: ReaderPageLayoutMode {
-            automaticPageLayout ? .automatic : (doublePageLayout ? .double : .single)
+            ReaderPageLayoutMode(automatic: automaticPageLayout, double: doublePageLayout)
         }
     }
     public enum Action: BindableAction {
@@ -34,10 +34,7 @@ import SwiftUI
             switch action {
             case let .pageLayoutModeChanged(mode):
                 guard mode != .double || !state.splitWideImage else { return .none }
-                state.$automaticPageLayout.withLock { $0 = mode == .automatic }
-                if mode != .automatic {
-                    state.$doublePageLayout.withLock { $0 = mode == .double }
-                }
+                mode.save(automatic: state.$automaticPageLayout, double: state.$doublePageLayout)
                 return .none
             case let .splitWideImageChanged(isEnabled):
                 state.$splitWideImage.withLock { $0 = isEnabled }

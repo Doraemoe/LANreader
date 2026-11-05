@@ -50,6 +50,18 @@ public enum ReaderPageLayoutMode: String, CaseIterable, Sendable {
     case double
     case automatic
 
+    init(automatic: Bool, double: Bool) {
+        self = automatic ? .automatic : (double ? .double : .single)
+    }
+
+    /// Choosing single or double also becomes the manual preference that applies when automatic is off.
+    func save(automatic: Shared<Bool>, double: Shared<Bool>) {
+        automatic.withLock { $0 = self == .automatic }
+        if self != .automatic {
+            double.withLock { $0 = self == .double }
+        }
+    }
+
     var localizationKey: String { "settings.read.layout.\(rawValue)" }
 
     var systemImage: String {

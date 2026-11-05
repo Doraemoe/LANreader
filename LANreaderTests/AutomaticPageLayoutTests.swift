@@ -69,6 +69,7 @@ final class AutomaticPageLayoutTests: XCTestCase {
     func testAutomaticRoundTripPreservesPageAndPreferencesInBothDirections() async {
         for direction in [ReadDirection.leftRight, .rightLeft] {
             let store = makeAutomaticReaderStore(direction: direction)
+            store.send(.scrollRequestHandled(store.scrollRequest!.id))
             store.send(.readerSizeChanged(CGSize(width: 466, height: 562)))
             await Task.yield()
             XCTAssertTrue(store.doublePageLayout)
@@ -87,13 +88,22 @@ final class AutomaticPageLayoutTests: XCTestCase {
     }
 
     @MainActor
-    func testAutomaticPreservesPendingInitialRestore() async {
+    func testAutomaticRestoreShowsSavedPageAsTrailingPageAndKeepsItWhenNarrowing() async {
         let store = makeAutomaticReaderStore()
         store.send(.requestJump(19, source: .initialRestore))
         store.send(.readerSizeChanged(CGSize(width: 466, height: 562)))
         await Task.yield()
-        XCTAssertEqual(store.scrollRequest?.targetPageIndex, 20)
-        XCTAssertEqual(store.spreadPairingOffset, 1)
+        // Spread [18, 19] keeps the saved page, so reopening does not move progress forward.
+        XCTAssertEqual(store.scrollRequest?.targetPageIndex, 19)
+        XCTAssertEqual(store.scrollRequest?.source, .initialRestore)
+        XCTAssertEqual(store.spreadPairingOffset, 0)
+        store.send(.scrollRequestHandled(store.scrollRequest!.id))
+        store.send(.visiblePageChanged(19))
+
+        store.send(.readerSizeChanged(CGSize(width: 382, height: 644)))
+        await Task.yield()
+        XCTAssertFalse(store.doublePageLayout)
+        XCTAssertEqual(store.scrollRequest?.targetPageIndex, 19)
     }
 
     @MainActor

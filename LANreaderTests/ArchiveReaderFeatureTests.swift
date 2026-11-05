@@ -1724,6 +1724,41 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             $0.pages = makePageStates(count: 5)
             $0.currentPageIndex = 2
             $0.controlUiHidden = true
+            $0.doublePageLayout = false
+        }
+        await store.receive(.requestJump(2, source: .initialRestore)) {
+            $0.scrollRequest = makeScrollRequest(
+                id: 0,
+                targetPageIndex: 2,
+                source: .initialRestore,
+                animated: false
+            )
+        }
+        await store.receive(.primePageAspectRatios)
+        await store.receive(.prepareSliderPreviewThumbnails)
+        await store.receive(
+            .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
+        ) {
+            $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
+        }
+    }
+
+    @MainActor
+    func testFinishExtractingInWideAutomaticReaderShowsSavedPageAsTrailingPage() async throws {
+        configureReaderDefaults()
+        try await configureReadyThumbnailQueue()
+        var initialState = makeState(progress: 3)
+        initialState.$automaticPageLayout = Shared(value: true)
+        initialState.readerSize = CGSize(width: 466, height: 562)
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.finishExtracting(makeExtractedPages(count: 5), nil)) {
+            $0.pages = makePageStates(count: 5)
+            $0.currentPageIndex = 2
+            $0.controlUiHidden = true
+            $0.doublePageLayout = true
+            $0.spreadPairingOffset = 1
+            $0.spreadAnchorPageIndex = 2
         }
         await store.receive(.requestJump(2, source: .initialRestore)) {
             $0.scrollRequest = makeScrollRequest(
@@ -4199,6 +4234,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await store.send(.pageLayoutModeChanged(.double)) {
             $0.$manualDoublePageLayout.withLock { $0 = true }
             $0.doublePageLayout = true
+            $0.spreadAnchorPageIndex = 2
         }
         await store.receive(.requestJump(3, source: .layoutChange)) {
             $0.scrollRequest = makeScrollRequest(
@@ -4222,6 +4258,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             $0.spreadPairingOffset = 1
             $0.$manualDoublePageLayout.withLock { $0 = true }
             $0.doublePageLayout = true
+            $0.spreadAnchorPageIndex = 1
         }
         await store.receive(.requestJump(2, source: .layoutChange)) {
             $0.scrollRequest = makeScrollRequest(
@@ -4245,6 +4282,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             $0.spreadPairingOffset = 1
             $0.$manualDoublePageLayout.withLock { $0 = true }
             $0.doublePageLayout = true
+            $0.spreadAnchorPageIndex = 1
         }
         await store.receive(.requestJump(2, source: .layoutChange)) {
             $0.scrollRequest = makeScrollRequest(
