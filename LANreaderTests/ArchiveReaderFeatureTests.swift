@@ -13,6 +13,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: SettingsKey.readDirection)
         UserDefaults.standard.removeObject(forKey: SettingsKey.disablePageFlipAnimation)
         UserDefaults.standard.removeObject(forKey: SettingsKey.doublePageLayout)
+        UserDefaults.standard.removeObject(forKey: SettingsKey.automaticPageLayout)
         UserDefaults.standard.removeObject(forKey: SettingsKey.fitPageWidth)
         UserDefaults.standard.removeObject(forKey: SettingsKey.showStamps)
         UserDefaults.standard.removeObject(forKey: SettingsKey.autoPageInterval)
@@ -3551,7 +3552,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
 
         controller.loadViewIfNeeded()
         await Task.yield()
-        await store.send(.toggleDoublePageLayout).finish()
+        await store.send(.pageLayoutModeChanged(.double)).finish()
         await Task.yield()
         await Task.yield()
         await waitForScrollRequestToFinish(store)
@@ -3585,9 +3586,9 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         await Task.yield()
         await Task.yield()
 
-        store.send(.toggleDoublePageLayout)
-        store.send(.toggleDoublePageLayout)
-        store.send(.toggleDoublePageLayout)
+        store.send(.pageLayoutModeChanged(.double))
+        store.send(.pageLayoutModeChanged(.single))
+        store.send(.pageLayoutModeChanged(.double))
         await Task.yield()
         await Task.yield()
         await Task.yield()
@@ -4195,8 +4196,9 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         initialState.currentPageIndex = 2
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.toggleDoublePageLayout) {
-            $0.$doublePageLayout.withLock { $0 = true }
+        await store.send(.pageLayoutModeChanged(.double)) {
+            $0.$manualDoublePageLayout.withLock { $0 = true }
+            $0.doublePageLayout = true
         }
         await store.receive(.requestJump(3, source: .layoutChange)) {
             $0.scrollRequest = makeScrollRequest(
@@ -4216,9 +4218,10 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         initialState.currentPageIndex = 1
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.toggleDoublePageLayout) {
+        await store.send(.pageLayoutModeChanged(.double)) {
             $0.spreadPairingOffset = 1
-            $0.$doublePageLayout.withLock { $0 = true }
+            $0.$manualDoublePageLayout.withLock { $0 = true }
+            $0.doublePageLayout = true
         }
         await store.receive(.requestJump(2, source: .layoutChange)) {
             $0.scrollRequest = makeScrollRequest(
@@ -4238,9 +4241,10 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         initialState.currentPageIndex = 1
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.toggleDoublePageLayout) {
+        await store.send(.pageLayoutModeChanged(.double)) {
             $0.spreadPairingOffset = 1
-            $0.$doublePageLayout.withLock { $0 = true }
+            $0.$manualDoublePageLayout.withLock { $0 = true }
+            $0.doublePageLayout = true
         }
         await store.receive(.requestJump(2, source: .layoutChange)) {
             $0.scrollRequest = makeScrollRequest(
@@ -4261,9 +4265,10 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         initialState.spreadPairingOffset = 1
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.toggleDoublePageLayout) {
+        await store.send(.pageLayoutModeChanged(.single)) {
             $0.spreadPairingOffset = 0
-            $0.$doublePageLayout.withLock { $0 = false }
+            $0.$manualDoublePageLayout.withLock { $0 = false }
+            $0.doublePageLayout = false
         }
         await store.receive(.requestJump(1, source: .layoutChange)) {
             $0.scrollRequest = makeScrollRequest(
@@ -4287,10 +4292,10 @@ final class ArchiveReaderFeatureTests: XCTestCase {
             }
             store.exhaustivity = .off
 
-            await store.send(.toggleDoublePageLayout)
+            await store.send(.pageLayoutModeChanged(.double))
             await store.receive(.requestJump(10, source: .layoutChange))
             await store.send(.visiblePageChanged(10))
-            await store.send(.toggleDoublePageLayout)
+            await store.send(.pageLayoutModeChanged(.single))
             await store.receive(.requestJump(9, source: .layoutChange))
             XCTAssertFalse(store.state.doublePageLayout)
         }
@@ -4302,14 +4307,14 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         var verticalState = makeState(readDirection: .upDown)
         verticalState.pages = makePageStates(count: 4)
         let verticalStore = makeTestStore(initialState: verticalState)
-        await verticalStore.send(.toggleDoublePageLayout)
+        await verticalStore.send(.pageLayoutModeChanged(.double))
 
         configureReaderDefaults(splitWideImage: true)
         var splitState = makeState()
         splitState.pages = makePageStates(count: 4)
         splitState.$splitImage = SharedReader(value: true)
         let splitStore = makeTestStore(initialState: splitState)
-        await splitStore.send(.toggleDoublePageLayout)
+        await splitStore.send(.pageLayoutModeChanged(.double))
     }
 }
 
@@ -4451,6 +4456,7 @@ private func configureReaderDefaults(
 ) {
     UserDefaults.standard.set(readDirection.rawValue, forKey: SettingsKey.readDirection)
     UserDefaults.standard.set(doublePageLayout, forKey: SettingsKey.doublePageLayout)
+    UserDefaults.standard.set(false, forKey: SettingsKey.automaticPageLayout)
     UserDefaults.standard.set(autoPageInterval, forKey: SettingsKey.autoPageInterval)
     UserDefaults.standard.set(splitWideImage, forKey: SettingsKey.splitWideImage)
     UserDefaults.standard.set(splitPiorityLeft, forKey: SettingsKey.splitPiorityLeft)
@@ -4721,14 +4727,15 @@ private func makeState(
     let archives = allArchives ?? [
         makeArchive(id: archiveId, progress: progress, isNew: isNew, pageCount: archivePageCount)
     ]
-    let state = ArchiveReaderFeature.State(
+    var state = ArchiveReaderFeature.State(
         currentArchiveId: archiveId,
         allArchives: archives.map { Shared(value: $0) },
         fromStart: fromStart,
         cached: cached
     )
     state.$readDirection = SharedReader(value: readDirection.rawValue)
-    state.$doublePageLayout = Shared(value: doublePageLayout)
+    state.$manualDoublePageLayout = Shared(value: doublePageLayout)
+    state.doublePageLayout = doublePageLayout
     state.$autoPageInterval = SharedReader(value: autoPageInterval)
     state.$restartFinished = SharedReader(value: restartFinished)
     return state

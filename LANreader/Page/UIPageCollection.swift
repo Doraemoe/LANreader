@@ -145,6 +145,10 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         collectionView.setCollectionViewLayout(makeLayout(), animated: false)
         collectionView.layoutIfNeeded()
         isApplyingSnapshot = snapshotWasInFlight
+        if store.collectionScrolling {
+            activeAnimatedScrollTargetPageId = nil
+            store.send(.collectionScrollEnded)
+        }
         lastReportedVisiblePageIndex = nil
         if appliedCollectionItems == collectionItems() {
             consumePendingScrollRequestIfPossible()
@@ -334,6 +338,18 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         }
         return true
     }
+    private func observeLayoutPreferences() {
+        observe { [weak self] in
+            guard let self else { return }
+            _ = store.manualDoublePageLayout
+            _ = store.automaticPageLayout
+            _ = store.readDirection
+            _ = store.splitImage
+            _ = store.pages.count
+            view.setNeedsLayout()
+        }
+    }
+
     private func setupObserve() {
         observe { [weak self] in
             guard let self else { return }
@@ -422,6 +438,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         setupCollectionView()
         setupCell()
         setupObserve()
+        observeLayoutPreferences()
         setupGesture()
 
         collectionView.delegate = self
@@ -461,7 +478,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         // Width changes without a rotation, such as unfolding or a sidebar appearing, keep the old
         // content offset while every page changes size, so remember the page before layout moves it.
         let width = view.bounds.width
-        if let lastLayoutWidth, lastLayoutWidth != width, !appliedCollectionItems.isEmpty {
+        if lastLayoutWidth != width, !appliedCollectionItems.isEmpty {
             resizeRestoreTarget = resizeRestoreTarget ?? currentResizeRestoreTarget()
             collectionView.collectionViewLayout.invalidateLayout()
         }
@@ -471,6 +488,12 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         restorePageAfterResize()
+        collectionView.layoutIfNeeded()
+        // Window height stays stable when the reader's navigation controls appear or disappear.
+        let height = view.window.map {
+            $0.bounds.height - $0.safeAreaInsets.top - $0.safeAreaInsets.bottom
+        } ?? view.bounds.height
+        store.send(.readerSizeChanged(CGSize(width: availableItemWidth(), height: height)))
         consumePendingScrollRequestIfPossible()
     }
 
@@ -484,7 +507,11 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
                 .min(by: { $0.indexPath.row < $1.indexPath.row }),
               attributes.frame.height > 0,
               let pageIndex = pageIndex(atCollectionItemIndex: attributes.indexPath.row) else {
-            return ResizeRestoreTarget(pageIndex: store.currentPageIndex, progressThroughPage: 0)
+            let animatedTarget = activeAnimatedScrollTargetPageId.flatMap { store.pages.index(id: $0) }
+            return ResizeRestoreTarget(
+                pageIndex: store.scrollRequest?.targetPageIndex ?? animatedTarget ?? store.currentPageIndex,
+                progressThroughPage: 0
+            )
         }
         let progress = (visibleTop - attributes.frame.minY) / attributes.frame.height
         return ResizeRestoreTarget(pageIndex: pageIndex, progressThroughPage: min(max(progress, 0), 1))
@@ -506,6 +533,10 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         lastReportedVisiblePageIndex = store.currentPageIndex
         resizeRestoreTarget = nil
         reportVisiblePageIfNeeded()
+        if store.collectionScrolling {
+            activeAnimatedScrollTargetPageId = nil
+            store.send(.collectionScrollEnded)
+        }
     }
 
     private func indexPath(forPageIndex pageIndex: Int) -> IndexPath? {
@@ -524,7 +555,8 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     }
 
     private func reportVisiblePageIfNeeded() {
-        guard !isApplyingSnapshot, resizeRestoreTarget == nil else { return }
+        // A freshly created collection still has provisional geometry until its first parent layout.
+        guard lastLayoutWidth != nil, !isApplyingSnapshot, resizeRestoreTarget == nil else { return }
         guard let visibleItemIndex = currentVisibleItemIndex(),
               let visiblePageIndex = pageIndex(atCollectionItemIndex: visibleItemIndex) else { return }
         let pageIndex = ReaderPositioning.canonicalPageIndex(

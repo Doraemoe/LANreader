@@ -1,7 +1,7 @@
 import CoreGraphics
 import Foundation
 
-/// Pure layout math for the continuous vertical reader.
+/// Pure layout math for reader sizing and automatic spread selection.
 ///
 /// Page height is treated as a known layout input derived from the image aspect ratio, rather than
 /// something discovered by self-sizing after the image decodes. Pages whose real dimensions are not
@@ -17,6 +17,13 @@ enum ReaderPageLayout {
     /// Aspect ratio (height / width) used before any page in the archive has been measured.
     /// Roughly matches the common A-series and B-series page proportions.
     static let defaultAspectRatio: Double = 1.4
+
+    static func automaticDoublePageLayout(readerSize: CGSize, currentlyEnabled: Bool) -> Bool {
+        guard readerSize.width > 0, readerSize.height > 0 else { return currentlyEnabled }
+        // Use a fixed page shape so individual images cannot change the reading layout.
+        let pageWidth = min(readerSize.width / 2, readerSize.height / defaultAspectRatio)
+        return currentlyEnabled ? pageWidth > 220 : pageWidth >= 230
+    }
 
     static func validatedAspectRatio(_ aspectRatio: Double?) -> Double {
         guard let aspectRatio, aspectRatio.isFinite, aspectRatio > 0 else {

@@ -155,7 +155,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         @SharedReader(.appStorage(SettingsKey.splitWideImage)) var splitImage = false
         @SharedReader(.appStorage(SettingsKey.splitPiorityLeft)) var piorityLeft = false
         @SharedReader(.appStorage(SettingsKey.autoPageInterval)) var autoPageInterval = 5.0
-        @Shared(.appStorage(SettingsKey.doublePageLayout)) var doublePageLayout = false
+        @Shared(.appStorage(SettingsKey.doublePageLayout)) var manualDoublePageLayout = false
+        @Shared(.appStorage(SettingsKey.automaticPageLayout)) var automaticPageLayout = false
         @SharedReader(.appStorage(SettingsKey.fitPageWidth)) var fitPageWidth = false
         @Shared(.appStorage(SettingsKey.showStamps)) var showStamps = false
         @SharedReader(.appStorage(SettingsKey.restartFinished)) var restartFinished = false
@@ -163,6 +164,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         var currentArchiveId = ""
         var currentPageIndex = 0
         var spreadPairingOffset = 0
+        var doublePageLayout = false
+        var readerSize: CGSize = .zero
         var scrollRequest: ScrollRequest?
         var pages: IdentifiedArrayOf<PageFeature.State> = []
         var collectionScrolling = false
@@ -215,6 +218,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
             self.allArchives = IdentifiedArray(uniqueElements: allArchives)
             self.fromStart = fromStart
             self.cached = cached
+            self.doublePageLayout = !automaticPageLayout && manualDoublePageLayout
         }
 
         var resolvedReadDirection: ReadDirection {
@@ -274,6 +278,10 @@ public struct ChapterMutationTarget: Equatable, Sendable {
             !pages.isEmpty && resolvedReadDirection != .upDown && !splitImage
         }
 
+        var pageLayoutMode: ReaderPageLayoutMode {
+            automaticPageLayout ? .automatic : (manualDoublePageLayout ? .double : .single)
+        }
+
         var canUseStamps: Bool {
             !cached && stampsSupported != false
         }
@@ -299,7 +307,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         case primePageAspectRatios
         case pageAspectRatiosPrimed([Int: Double])
         case toggleControlUi(Bool?)
-        case toggleDoublePageLayout
+        case pageLayoutModeChanged(ReaderPageLayoutMode)
+        case readerSizeChanged(CGSize)
         case toggleStampsVisibility
         case stampCreationRequested(pageId: String, position: ArchiveStampPosition)
         case stampCommentChanged(String)
@@ -558,28 +567,17 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                     .cancel(id: CancelId.autoPage),
                     .cancel(id: CancelId.sliderPreviewLoad)
                 )
-            case .toggleDoublePageLayout:
+            case let .pageLayoutModeChanged(mode):
                 guard state.canToggleDoublePageLayout else { return .none }
-                let enabled = !state.doublePageLayout
-                let previousSpreadOffset = state.spreadPairingOffset
-                state.spreadPairingOffset = enabled ? state.safeCurrentPageIndex % 2 : 0
-                state.$doublePageLayout.withLock { $0 = enabled }
-                let targetIndex = enabled
-                    ? ReaderPositioning.canonicalPageIndex(
-                        forVisibleIndex: state.currentPageIndex,
-                        pageCount: state.pages.count,
-                        readDirection: state.resolvedReadDirection,
-                        doublePageLayout: true,
-                        spreadOffset: state.spreadPairingOffset
-                    )
-                    : ReaderPositioning.scrollAnchorIndex(
-                        forPageIndex: state.currentPageIndex,
-                        pageCount: state.pages.count,
-                        readDirection: state.resolvedReadDirection,
-                        doublePageLayout: true,
-                        spreadOffset: previousSpreadOffset
-                    )
-                return .send(.requestJump(targetIndex, source: .layoutChange))
+                state.$automaticPageLayout.withLock { $0 = mode == .automatic }
+                if mode != .automatic {
+                    state.$manualDoublePageLayout.withLock { $0 = mode == .double }
+                }
+                return updatePageLayout(state: &state)
+            case let .readerSizeChanged(size):
+                guard size.width > 0, size.height > 0 else { return .none }
+                state.readerSize = size
+                return updatePageLayout(state: &state)
             case .toggleStampsVisibility:
                 guard state.canUseStamps else { return .none }
                 let showsStamps = !state.showStamps
@@ -1734,10 +1732,46 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         Int(Date().timeIntervalSince1970 * 1000) + pageNumber + attempt
     }
 
+    private func updatePageLayout(state: inout State) -> Effect<Action> {
+        let compatible = state.resolvedReadDirection != .upDown && !state.splitImage
+        let enabled = compatible && (state.automaticPageLayout
+            ? state.pages.count > 1 && ReaderPageLayout.automaticDoublePageLayout(
+                readerSize: state.readerSize, currentlyEnabled: state.doublePageLayout
+            )
+            : state.manualDoublePageLayout)
+        guard enabled != state.doublePageLayout else { return .none }
+
+        // A pending initial restore or slider jump has priority over the last reported visible page.
+        let pageIndex = state.scrollRequest?.targetPageIndex ?? state.currentPageIndex
+        let previousSpreadOffset = state.spreadPairingOffset
+        state.spreadPairingOffset = enabled ? ReaderPositioning.clampedPageIndex(
+            pageIndex, pageCount: state.pages.count
+        ) % 2 : 0
+        state.doublePageLayout = enabled
+        guard !state.pages.isEmpty else { return .none }
+        let targetIndex = enabled
+            ? ReaderPositioning.canonicalPageIndex(
+                forVisibleIndex: pageIndex,
+                pageCount: state.pages.count,
+                readDirection: state.resolvedReadDirection,
+                doublePageLayout: true,
+                spreadOffset: state.spreadPairingOffset
+            )
+            : ReaderPositioning.scrollAnchorIndex(
+                forPageIndex: pageIndex,
+                pageCount: state.pages.count,
+                readDirection: state.resolvedReadDirection,
+                doublePageLayout: true,
+                spreadOffset: previousSpreadOffset
+            )
+        return .send(.requestJump(targetIndex, source: .layoutChange))
+    }
+
     func resetState(state: inout State) {
         state.pages = []
         state.currentPageIndex = 0
         state.spreadPairingOffset = 0
+        state.doublePageLayout = !state.automaticPageLayout && state.manualDoublePageLayout
         state.fromStart = false
         state.scrollRequest = nil
         state.collectionScrolling = false
@@ -2091,18 +2125,27 @@ struct ArchiveReader: View {
 
             Spacer(minLength: 2)
 
-            readerToolbarButton(
-                systemImage: store.doublePageLayout
-                    ? "rectangle.split.2x1.fill"
-                    : "rectangle.portrait.fill",
-                tint: Color(uiColor: .systemGreen),
-                disabled: !store.canToggleDoublePageLayout,
-                accessibilityLabel: store.doublePageLayout
-                    ? "archive.reader.doublePage.disable"
-                    : "archive.reader.doublePage.enable"
-            ) {
-                store.send(.toggleDoublePageLayout)
+            Menu {
+                Picker("settings.read.layout", selection: Binding(
+                    get: { store.pageLayoutMode },
+                    set: { store.send(.pageLayoutModeChanged($0)) }
+                )) {
+                    ForEach(ReaderPageLayoutMode.allCases, id: \.self) { mode in
+                        Label(LocalizedStringKey(mode.localizationKey), systemImage: mode.systemImage).tag(mode)
+                    }
+                }
+            } label: {
+                readerToolbarGlyph(
+                    systemImage: store.pageLayoutMode.systemImage,
+                    tint: Color(uiColor: .systemGreen)
+                )
             }
+            .disabled(!store.canToggleDoublePageLayout)
+            .buttonStyle(.plain)
+            .clipShape(Circle())
+            .opacity(store.canToggleDoublePageLayout ? 1 : 0.4)
+            .accessibilityLabel(Text("settings.read.layout"))
+            .accessibilityValue(Text(LocalizedStringKey(store.pageLayoutMode.localizationKey)))
 
             readerMoreMenu(store: store)
         }
