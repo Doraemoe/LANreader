@@ -10,23 +10,29 @@ final class AutomaticPageLayoutTests: XCTestCase {
             (CGSize(width: 440, height: 900), false),
             (CGSize(width: 896, height: 414), true),
             (CGSize(width: 896, height: 280), false),
-            (CGSize(width: 834, height: 1_194), true)
+            (CGSize(width: 834, height: 1_150), false),
+            (CGSize(width: 1_032, height: 1_332), false),
+            (CGSize(width: 1_194, height: 790), true),
+            (CGSize(width: 590, height: 790), false)
         ] {
             XCTAssertEqual(
                 ReaderPageLayout.automaticDoublePageLayout(readerSize: size, currentlyEnabled: false),
                 enabled, "\(size)"
             )
         }
-        let betweenThresholds = CGSize(width: 450, height: 700)
-        XCTAssertFalse(ReaderPageLayout.automaticDoublePageLayout(
-            readerSize: betweenThresholds, currentlyEnabled: false
-        ))
-        XCTAssertTrue(ReaderPageLayout.automaticDoublePageLayout(
-            readerSize: betweenThresholds, currentlyEnabled: true
-        ))
-        XCTAssertFalse(ReaderPageLayout.automaticDoublePageLayout(
-            readerSize: CGSize(width: 440, height: 700), currentlyEnabled: true
-        ))
+        for betweenThresholds in [CGSize(width: 450, height: 560), CGSize(width: 790, height: 1_000)] {
+            XCTAssertFalse(ReaderPageLayout.automaticDoublePageLayout(
+                readerSize: betweenThresholds, currentlyEnabled: false
+            ), "\(betweenThresholds)")
+            XCTAssertTrue(ReaderPageLayout.automaticDoublePageLayout(
+                readerSize: betweenThresholds, currentlyEnabled: true
+            ), "\(betweenThresholds)")
+        }
+        for belowThresholds in [CGSize(width: 440, height: 560), CGSize(width: 770, height: 1_000)] {
+            XCTAssertFalse(ReaderPageLayout.automaticDoublePageLayout(
+                readerSize: belowThresholds, currentlyEnabled: true
+            ), "\(belowThresholds)")
+        }
     }
 
     @MainActor

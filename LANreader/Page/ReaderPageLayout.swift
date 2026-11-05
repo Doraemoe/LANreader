@@ -20,9 +20,13 @@ enum ReaderPageLayout {
 
     static func automaticDoublePageLayout(readerSize: CGSize, currentlyEnabled: Bool) -> Bool {
         guard readerSize.width > 0, readerSize.height > 0 else { return currentlyEnabled }
+        // Portrait tablets show one larger page; near-square readers such as an unfolded Duo show two.
+        let readerAspectRatio = readerSize.width / readerSize.height
         // Use a fixed page shape so individual images cannot change the reading layout.
         let pageWidth = min(readerSize.width / 2, readerSize.height / defaultAspectRatio)
-        return currentlyEnabled ? pageWidth > 220 : pageWidth >= 230
+        return currentlyEnabled
+            ? readerAspectRatio > 0.78 && pageWidth > 220
+            : readerAspectRatio >= 0.8 && pageWidth >= 230
     }
 
     static func validatedAspectRatio(_ aspectRatio: Double?) -> Double {
