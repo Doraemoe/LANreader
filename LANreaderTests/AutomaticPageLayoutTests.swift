@@ -6,21 +6,24 @@ final class AutomaticPageLayoutTests: XCTestCase {
     func testAutomaticLayoutUsesFittedPageWidthAndHysteresis() {
         for (size, enabled) in [
             (CGSize(width: 382, height: 644), false),
-            (CGSize(width: 466, height: 562), true),
+            (CGSize(width: 466, height: 562), false),
+            (CGSize(width: 562, height: 466), true),
+            (CGSize(width: 734, height: 372), true),
             (CGSize(width: 440, height: 900), false),
             (CGSize(width: 896, height: 414), true),
             (CGSize(width: 896, height: 280), false),
             (CGSize(width: 834, height: 1_150), false),
             (CGSize(width: 1_032, height: 1_332), false),
             (CGSize(width: 1_194, height: 790), true),
-            (CGSize(width: 590, height: 790), false)
+            (CGSize(width: 590, height: 790), false),
+            (CGSize(width: 800, height: 790), false)
         ] {
             XCTAssertEqual(
                 ReaderPageLayout.automaticDoublePageLayout(readerSize: size, currentlyEnabled: false),
                 enabled, "\(size)"
             )
         }
-        for betweenThresholds in [CGSize(width: 450, height: 560), CGSize(width: 790, height: 1_000)] {
+        for betweenThresholds in [CGSize(width: 450, height: 330), CGSize(width: 800, height: 800)] {
             XCTAssertFalse(ReaderPageLayout.automaticDoublePageLayout(
                 readerSize: betweenThresholds, currentlyEnabled: false
             ), "\(betweenThresholds)")
@@ -28,7 +31,7 @@ final class AutomaticPageLayoutTests: XCTestCase {
                 readerSize: betweenThresholds, currentlyEnabled: true
             ), "\(betweenThresholds)")
         }
-        for belowThresholds in [CGSize(width: 440, height: 560), CGSize(width: 770, height: 1_000)] {
+        for belowThresholds in [CGSize(width: 440, height: 330), CGSize(width: 780, height: 800)] {
             XCTAssertFalse(ReaderPageLayout.automaticDoublePageLayout(
                 readerSize: belowThresholds, currentlyEnabled: true
             ), "\(belowThresholds)")
@@ -76,7 +79,7 @@ final class AutomaticPageLayoutTests: XCTestCase {
         for direction in [ReadDirection.leftRight, .rightLeft] {
             let store = makeAutomaticReaderStore(direction: direction)
             store.send(.scrollRequestHandled(store.scrollRequest!.id))
-            store.send(.readerSizeChanged(CGSize(width: 466, height: 562)))
+            store.send(.readerSizeChanged(CGSize(width: 562, height: 466)))
             await Task.yield()
             XCTAssertTrue(store.doublePageLayout)
             XCTAssertEqual(store.scrollRequest?.targetPageIndex, 14)
@@ -97,7 +100,7 @@ final class AutomaticPageLayoutTests: XCTestCase {
     func testAutomaticRestoreShowsSavedPageAsTrailingPageAndKeepsItWhenNarrowing() async {
         let store = makeAutomaticReaderStore()
         store.send(.requestJump(19, source: .initialRestore))
-        store.send(.readerSizeChanged(CGSize(width: 466, height: 562)))
+        store.send(.readerSizeChanged(CGSize(width: 562, height: 466)))
         await Task.yield()
         // Spread [18, 19] keeps the saved page, so reopening does not move progress forward.
         XCTAssertEqual(store.scrollRequest?.targetPageIndex, 19)
@@ -129,7 +132,7 @@ final class AutomaticPageLayoutTests: XCTestCase {
     @MainActor
     func testManualSelectionOverridesAutomaticUntilItIsSelectedAgain() async {
         let store = makeAutomaticReaderStore()
-        store.send(.readerSizeChanged(CGSize(width: 466, height: 562)))
+        store.send(.readerSizeChanged(CGSize(width: 562, height: 466)))
         await Task.yield()
         store.send(.pageLayoutModeChanged(.single))
         await Task.yield()
@@ -157,10 +160,10 @@ final class AutomaticPageLayoutTests: XCTestCase {
                 await resizeReader(controller, to: CGSize(width: 382, height: 644))
                 XCTAssertFalse(store.doublePageLayout)
                 XCTAssertEqual(store.currentPageIndex, 13)
-                await resizeReader(controller, to: CGSize(width: 466, height: 562))
+                await resizeReader(controller, to: CGSize(width: 562, height: 466))
                 XCTAssertTrue(store.doublePageLayout)
                 XCTAssertEqual(store.currentPageIndex, 14)
-                XCTAssertEqual(controller.collectionView.contentOffset.x, 7 * 466, accuracy: 1)
+                XCTAssertEqual(controller.collectionView.contentOffset.x, 7 * 562, accuracy: 1)
             }
             await resizeReader(controller, to: CGSize(width: 382, height: 644))
             XCTAssertEqual(store.currentPageIndex, 13)
@@ -172,7 +175,7 @@ final class AutomaticPageLayoutTests: XCTestCase {
     @MainActor
     func testAutomaticRemembersSizeBeforePagesArrive() async {
         let store = makeAutomaticReaderStore(archiveId: "TANK_fixture", pageCount: 0)
-        store.send(.readerSizeChanged(CGSize(width: 466, height: 562)))
+        store.send(.readerSizeChanged(CGSize(width: 562, height: 466)))
         XCTAssertFalse(store.doublePageLayout)
         store.send(.finishExtracting((1...25).map {
             ReaderExtractedPage(archiveId: "source", path: "/fixture/\($0).jpg", archivePageNumber: $0)
@@ -189,7 +192,7 @@ final class AutomaticPageLayoutTests: XCTestCase {
         let store = makeAutomaticReaderStore(archiveId: "TANK_fixture")
         let controller = UIPageCollectionController(store: store)
         controller.loadViewIfNeeded()
-        await resizeReader(controller, to: CGSize(width: 466, height: 562))
+        await resizeReader(controller, to: CGSize(width: 562, height: 466))
         XCTAssertTrue(store.doublePageLayout)
         XCTAssertTrue(store.cached)
         XCTAssertEqual(store.pages[13].sourceArchiveId, "source")
@@ -205,13 +208,13 @@ final class AutomaticPageLayoutTests: XCTestCase {
         store.$automaticPageLayout.withLock { $0 = false }
         let controller = UIPageCollectionController(store: store)
         controller.loadViewIfNeeded()
-        await resizeReader(controller, to: CGSize(width: 466, height: 562))
+        await resizeReader(controller, to: CGSize(width: 562, height: 466))
         XCTAssertFalse(store.doublePageLayout)
         store.$automaticPageLayout.withLock { $0 = true }
-        await resizeReader(controller, to: CGSize(width: 466, height: 562))
+        await resizeReader(controller, to: CGSize(width: 562, height: 466))
         XCTAssertTrue(store.doublePageLayout)
         store.$automaticPageLayout.withLock { $0 = false }
-        await resizeReader(controller, to: CGSize(width: 466, height: 562))
+        await resizeReader(controller, to: CGSize(width: 562, height: 466))
         XCTAssertFalse(store.doublePageLayout)
     }
 
@@ -223,7 +226,7 @@ final class AutomaticPageLayoutTests: XCTestCase {
         await resizeReader(controller, to: CGSize(width: 382, height: 644))
         controller.scrollViewWillBeginDragging(controller.collectionView)
         XCTAssertTrue(store.collectionScrolling)
-        await resizeReader(controller, to: CGSize(width: 466, height: 562))
+        await resizeReader(controller, to: CGSize(width: 562, height: 466))
         XCTAssertTrue(store.doublePageLayout)
         XCTAssertFalse(store.collectionScrolling)
         XCTAssertEqual(store.currentPageIndex, 14)
@@ -238,7 +241,7 @@ final class AutomaticPageLayoutTests: XCTestCase {
             await resizeReader(controller, to: CGSize(width: 382, height: 644))
             store.send(.requestJump(count - 1, source: .slider))
             await resizeReader(controller, to: CGSize(width: 382, height: 644))
-            await resizeReader(controller, to: CGSize(width: 466, height: 562))
+            await resizeReader(controller, to: CGSize(width: 562, height: 466))
             XCTAssertEqual(store.doublePageLayout, count > 1)
             XCTAssertEqual(store.currentPageIndex, count - 1)
             await resizeReader(controller, to: CGSize(width: 382, height: 644))
@@ -251,7 +254,7 @@ final class AutomaticPageLayoutTests: XCTestCase {
     func testAutomaticUIKitIgnoresTemporaryReaderHeightChanges() async {
         let store = makeAutomaticReaderStore()
         let controller = UIPageCollectionController(store: store)
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 466, height: 562))
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 562, height: 466))
         let parent = UIViewController()
         window.rootViewController = parent
         parent.addChild(controller)
@@ -260,9 +263,9 @@ final class AutomaticPageLayoutTests: XCTestCase {
         window.isHidden = false
         defer { window.isHidden = true }
         XCTAssertNotNil(controller.view.window)
-        await resizeReader(controller, to: CGSize(width: 466, height: 400))
+        await resizeReader(controller, to: CGSize(width: 562, height: 400))
         XCTAssertTrue(store.doublePageLayout)
-        await resizeReader(controller, to: CGSize(width: 466, height: 280))
+        await resizeReader(controller, to: CGSize(width: 562, height: 280))
         XCTAssertTrue(store.doublePageLayout)
         XCTAssertEqual(store.currentPageIndex, 14)
         _ = window

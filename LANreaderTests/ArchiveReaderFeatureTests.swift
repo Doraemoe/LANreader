@@ -1749,7 +1749,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         try await configureReadyThumbnailQueue()
         var initialState = makeState(progress: 3)
         initialState.$automaticPageLayout = Shared(value: true)
-        initialState.readerSize = CGSize(width: 466, height: 562)
+        initialState.readerSize = CGSize(width: 562, height: 466)
         let store = makeTestStore(initialState: initialState)
 
         await store.send(.finishExtracting(makeExtractedPages(count: 5), nil)) {
