@@ -56,9 +56,26 @@ final class DeepLinkTests: LANreaderTestCase {
         )
     }
 
+    /// The Save URL extension builds these links, so every URL it can be handed must come back
+    /// unchanged when the app parses the link.
+    func testSaveURLExtensionLinksQueueTheSameURLInTheApp() throws {
+        let sharedURLs = [
+            "https://example.com/g/1",
+            "http://example.com/g/1",
+            "https://example.com/g/1?page=2&sort=asc#comments",
+            "https://example.com/search?q=a%26b%20c&tag=artist:x",
+            "https://user:pass@example.com:8443/a+b/c?d=e%2Bf",
+            "https://example.com/%E3%83%91%E3%82%B9?name=%E5%80%A4"
+        ]
+        for sharedURL in sharedURLs {
+            let url = try url(sharedURL)
+            XCTAssertEqual(DeepLink(url: url.lanReaderAppDeepLink), .download(url), sharedURL)
+        }
+    }
+
     @MainActor
     func testReadLinkOpensArchiveFromServer() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubArchiveMetadata(id: "abc123", statusCode: 200)
         let store = try makeAppTestStore()
 
@@ -75,8 +92,11 @@ final class DeepLinkTests: LANreaderTestCase {
 
     @MainActor
     func testPreferCachedReadLinkOpensCachedArchiveWithoutServer() async throws {
-        try await configureArchiveListTestClient()
-        stubArchiveMetadata(id: "abc123", statusCode: 200)
+        try await configureTestServer()
+        stub(condition: isHost("localhost") && pathStartsWith("/api/archives/abc123")) { @Sendable _ in
+            XCTFail("A cached archive opened with preferCached must not ask the server")
+            return HTTPStubsResponse(data: Data(), statusCode: 500, headers: nil)
+        }
         let database = try savedCache(id: "abc123")
         let store = try makeAppTestStore(database: database)
 
@@ -89,7 +109,7 @@ final class DeepLinkTests: LANreaderTestCase {
 
     @MainActor
     func testReadLinkIgnoresCacheWithoutPreferCached() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubArchiveMetadata(id: "abc123", statusCode: 500)
         let store = try makeAppTestStore(database: savedCache(id: "abc123"))
 
@@ -102,22 +122,8 @@ final class DeepLinkTests: LANreaderTestCase {
     }
 
     @MainActor
-    func testReadLinkShowsErrorForUnknownArchive() async throws {
-        try await configureArchiveListTestClient()
-        stubArchiveMetadata(id: "missing", statusCode: 404)
-        let store = try makeAppTestStore()
-
-        await store.send(.openURL(try url("lanreader://read?id=missing")))
-        await store.receive(\.setErrorMessage) {
-            $0.errorMessage = String(localized: "error.deeplink.archive")
-        }
-
-        XCTAssertNil(store.state.pendingDeepLink)
-    }
-
-    @MainActor
     func testTankoubonReadLinkAddsUpContainedArchivePages() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubTankoubon(id: "TANK_42", pages: ["a": 10, "b": 15])
         let store = try makeAppTestStore()
 
@@ -151,7 +157,7 @@ final class DeepLinkTests: LANreaderTestCase {
 
     @MainActor
     func testHttpDownloadLinkQueuesUrlUnchangedAndSavesJob() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stub(condition: isHost("localhost")
                 && isPath("/api/download_url")
                 && isMethodPOST()

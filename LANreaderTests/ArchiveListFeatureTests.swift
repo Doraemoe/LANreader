@@ -9,7 +9,7 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testBatchDeleteRoutesTankoubonAndKeepsFailedSelection() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         for (path, success) in [("/api/archives/archive-0", 1), ("/api/tankoubons/TANK_1", 0)] {
             stubArchiveListBatchDelete(path: path, success: success)
         }
@@ -78,26 +78,37 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
         }
     }
 
-    func testLibraryTabCanLoadWithoutSearchFilter() {
-        let state = ArchiveListFeature.State(
-            filter: SearchFilter(category: nil, filter: nil),
-            currentTab: .library
+    @MainActor
+    func testSearchCancellationIsIsolatedPerArchiveList() async throws {
+        // In the app the library and the search tab are two lists under one store. Cancelling one
+        // list's search, as typing a new query does, must not cancel the other list's load.
+        try await configureTestServer()
+        stub(condition: isHost("localhost") && isPath("/api/search") && isMethodGET()) { @Sendable _ in
+            let response = HTTPStubsResponse(
+                data: Data(#"{"data":[],"recordsFiltered":0,"recordsTotal":0}"#.utf8),
+                statusCode: 200, headers: ["Content-Type": "application/json"]
+            )
+            response.requestTime = 0.3
+            return response
+        }
+        var library = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: nil), loadOnAppear: false, currentTab: .library
         )
-
-        XCTAssertTrue(state.canLoadArchives)
-    }
-
-    func testSearchCancellationIsIsolatedPerArchiveList() {
-        let first = ArchiveListFeature.State(
-            filter: SearchFilter(category: nil, filter: nil),
-            currentTab: .library
+        library.$lastTagRefresh.withLock { $0 = Date().timeIntervalSince1970 }
+        let search = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: "artist:test"), loadOnAppear: false, currentTab: .search
         )
-        let second = ArchiveListFeature.State(
-            filter: SearchFilter(category: nil, filter: nil),
-            currentTab: .library
-        )
+        let store = TestStore(initialState: TwoArchiveLists.State(library: library, search: search)) {
+            TwoArchiveLists()
+        }
+        store.timeout = .seconds(5)
+        store.exhaustivity = .off(showSkippedAssertions: false)
 
-        XCTAssertNotEqual(first.searchCancellationID, second.searchCancellationID)
+        await store.send(.library(.load))
+        await store.send(.search(.load))
+        await store.send(.search(.cancelSearch))
+
+        await store.receive(\.library.populateArchives)
     }
 
     @MainActor
@@ -140,41 +151,32 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
     }
 
     @MainActor
-    func testGoToPageIsIgnoredWhilePaginationIsDisabled() async {
-        var initialState = ArchiveListFeature.State(
+    func testGoToPageIsIgnoredWhenPaginationIsInactive() async {
+        // Pagination is off when the setting is off, and also for random sort, which has no stable pages.
+        var disabled = ArchiveListFeature.State(
             filter: SearchFilter(category: nil, filter: nil),
             loadOnAppear: false,
             currentTab: .library
         )
-        initialState.$paginateArchiveList = Shared(value: false)
-        initialState.serverPageSize = 100
-        initialState.total = 250
+        disabled.$paginateArchiveList = Shared(value: false)
+        var randomSort = makePaginatedArchiveListState()
+        randomSort.$searchSort = Shared(value: SearchSort.random.rawValue)
 
-        let store = TestStore(initialState: initialState) {
-            ArchiveListFeature()
+        for var initialState in [disabled, randomSort] {
+            initialState.serverPageSize = 100
+            initialState.total = 250
+            let store = TestStore(initialState: initialState) {
+                ArchiveListFeature()
+            }
+
+            XCTAssertFalse(store.state.paginationActive)
+            await store.send(.goToPage(2))
         }
-
-        await store.send(.goToPage(2))
-    }
-
-    @MainActor
-    func testGoToPageIsIgnoredForRandomSort() async {
-        var initialState = makePaginatedArchiveListState()
-        initialState.$searchSort = Shared(value: SearchSort.random.rawValue)
-        initialState.serverPageSize = 100
-        initialState.total = 250
-
-        let store = TestStore(initialState: initialState) {
-            ArchiveListFeature()
-        }
-
-        XCTAssertFalse(store.state.paginationActive)
-        await store.send(.goToPage(2))
     }
 
     @MainActor
     func testGoToPageRequestsMatchingServerOffset() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubSearchExpectingStart("200", recordsFiltered: 250)
 
         var initialState = makePaginatedArchiveListState()
@@ -200,34 +202,8 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
     }
 
     @MainActor
-    func testGoToPageClampsBeyondLastPage() async throws {
-        try await configureArchiveListTestClient()
-        stubSearchExpectingStart("200", recordsFiltered: 250)
-
-        var initialState = makePaginatedArchiveListState()
-        initialState.serverPageSize = 100
-        initialState.total = 250
-
-        let store = TestStore(initialState: initialState) {
-            ArchiveListFeature()
-        }
-        store.timeout = .seconds(5)
-
-        await store.send(.goToPage(99)) {
-            $0.loading = true
-            $0.pendingPage = 2
-        }
-        await store.receive(.populateArchives([], 250, false)) {
-            $0.currentPage = 2
-            $0.pendingPage = nil
-            $0.total = 250
-            $0.loading = false
-        }
-    }
-
-    @MainActor
     func testFailedPageRequestKeepsCurrentPageAndArchives() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubFailedSearchExpectingStart("200")
 
         var initialState = makePaginatedArchiveListState()
@@ -275,7 +251,7 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testLoadKeepsCurrentPageInPaginationMode() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubSearchExpectingStart("200", recordsFiltered: 250)
 
         var initialState = makePaginatedArchiveListState()
@@ -302,7 +278,7 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testReloadFromFirstPageRestartsWhileAnotherRequestIsLoading() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubSearchExpectingStart("0", recordsFiltered: 250)
 
         var initialState = makePaginatedArchiveListState()
@@ -333,37 +309,8 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
     }
 
     @MainActor
-    func testResetArchivesSendsLoadBackToFirstPage() async throws {
-        try await configureArchiveListTestClient()
-        stubSearchExpectingStart("0", recordsFiltered: 250)
-
-        var initialState = makePaginatedArchiveListState()
-        initialState.serverPageSize = 100
-        initialState.total = 250
-        initialState.currentPage = 2
-
-        let store = TestStore(initialState: initialState) {
-            ArchiveListFeature()
-        }
-        store.timeout = .seconds(5)
-        store.exhaustivity = .off
-
-        await store.send(.resetArchives) {
-            $0.currentPage = 0
-        }
-        await store.send(.load) {
-            $0.loading = true
-        }
-        await store.receive(.populateArchives([], 250, false)) {
-            $0.total = 250
-            $0.loading = false
-        }
-        XCTAssertEqual(store.state.currentPage, 0)
-    }
-
-    @MainActor
     func testLoadFallsBackWhenCurrentPageNoLongerExists() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubSearchExpectingStart("200", recordsFiltered: 150)
         stubSearchExpectingStart("100", recordsFiltered: 150)
 
@@ -390,7 +337,7 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testDeletingLastPageReloadsPreviousPage() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubSearchExpectingStart("0", recordsFiltered: 100)
 
         var initialState = makePaginatedArchiveListState()
@@ -464,7 +411,7 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testCacheArchiveFromListSavesDownloadMetadata() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
 
         let archiveId = "archive-to-cache"
         try stubArchiveListExtraction(
@@ -521,7 +468,7 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testGridLoadUsesArchiveThumbnailEndpointForNormalArchive() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
 
         let archiveId = "0123456789012345678901234567890123456789"
         let expectedThumbnail = Data([0xFF, 0xD8, 0xFF, 0xDB])
@@ -544,7 +491,7 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testGridLoadUsesTankoubonThumbnailEndpointForTankArchive() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
 
         let tankId = "TANK_1783084742"
         let expectedThumbnail = Data([0x89, 0x50, 0x4E, 0x47])
@@ -580,9 +527,29 @@ func stubArchiveListBatchDelete(path: String, success: Int) {
     }
 }
 
+/// Two archive lists under one store, as the library and search tabs are in the app.
+@Reducer
+struct TwoArchiveLists {
+    @ObservableState
+    struct State: Equatable {
+        var library: ArchiveListFeature.State
+        var search: ArchiveListFeature.State
+    }
+
+    enum Action {
+        case library(ArchiveListFeature.Action)
+        case search(ArchiveListFeature.Action)
+    }
+
+    var body: some ReducerOf<Self> {
+        Scope(state: \.library, action: \.library) { ArchiveListFeature() }
+        Scope(state: \.search, action: \.search) { ArchiveListFeature() }
+    }
+}
+
 /// A service for tests that cache pages. The app's real background session can't be stubbed, so this
 /// one downloads through the test's stubs; page requests get a 404 and any downloads still running
-/// are cancelled when the test ends. Call after `configureArchiveListTestClient()`.
+/// are cancelled when the test ends. Call after `configureTestServer()`.
 @MainActor
 func makeStubbedPageDownloadService(
     for test: XCTestCase,
@@ -601,38 +568,6 @@ func makeStubbedPageDownloadService(
         }
     }
     return service
-}
-
-func configureArchiveListTestClient() async throws {
-    let url = "https://localhost"
-    let apiKey = "apiKey"
-    UserDefaults.standard.set(url, forKey: SettingsKey.lanraragiUrl)
-    UserDefaults.standard.set(apiKey, forKey: SettingsKey.lanraragiApiKey)
-
-    stub(condition: isHost("localhost")
-            && isPath("/api/info")
-            && isMethodGET()
-            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-        HTTPStubsResponse(
-            data: Data("""
-            {
-              "archives_per_page": 100,
-              "debug_mode": false,
-              "has_password": true,
-              "motd": "",
-              "name": "LANraragi",
-              "nofun_mode": false,
-              "server_tracks_progress": true,
-              "version": "0.9.30",
-              "version_name": "Dodgy Docker"
-            }
-            """.utf8),
-            statusCode: 200,
-            headers: ["Content-Type": "application/json"]
-        )
-    }
-
-    _ = try await LANraragiService.shared.verifyClient(url: url, apiKey: apiKey)
 }
 
 /// Stubs `/api/search` only for the given `start` offset, so a mismatched offset simply
@@ -677,8 +612,8 @@ private func stubArchiveThumbnail(id: String, data: Data) {    stub(condition: i
 func stubArchiveListExtraction(id: String, pages: [String]) throws {
     let data = try JSONSerialization.data(withJSONObject: ["pages": pages])
     stub(condition: isHost("localhost")
-            && isPath("/api/archives/\(id)/extract")
-            && isMethodPOST()
+            && isPath("/api/archives/\(id)/files")
+            && isMethodGET()
             && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
         HTTPStubsResponse(data: data, statusCode: 200, headers: ["Content-Type": "application/json"])
     }

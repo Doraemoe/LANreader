@@ -21,8 +21,63 @@ final class ArchiveListBatchTests: LANreaderTestCase {
     }
 
     @MainActor
+    func testCreateTankoubonAddsTheSelectedArchivesAndReloads() async throws {
+        try await configureTestServer()
+        stubCreateTankoubon(name: "New Tank", id: "TANK_new")
+        stubFillTankoubon(id: "TANK_new", archives: ["archive-0", "archive-1"], success: 1)
+        stub(condition: isHost("localhost") && isPath("/api/search") && isMethodGET()) { @Sendable _ in
+            HTTPStubsResponse(
+                data: Data(#"{"data":[],"recordsFiltered":0,"recordsTotal":0}"#.utf8),
+                statusCode: 200, headers: ["Content-Type": "application/json"]
+            )
+        }
+        var state = makePaginatedArchiveListState()
+        state.selectMode = .active
+        state.selected = ["archive-0", "archive-1"]
+        let store = TestStore(initialState: state) { ArchiveListFeature() }
+        store.timeout = .seconds(5)
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.createTankoubon("  New Tank ")) {
+            $0.loading = true
+            $0.batchActionInProgress = true
+        }
+        await store.receive(\.createTankoubonSucceeded) {
+            $0.batchActionInProgress = false
+            $0.successMessage = String(localized: "archive.selected.tankoubon.create.success")
+        }
+        await store.receive(\.reloadFromFirstPage)
+        await store.receive(\.populateArchives)
+    }
+
+    /// The Tankoubon exists on the server once it's created, so a failure to fill it must say that
+    /// the archives weren't added, and keep them selected to try again.
+    @MainActor
+    func testCreateTankoubonReportsWhenTheArchivesCannotBeAdded() async throws {
+        try await configureTestServer()
+        stubCreateTankoubon(name: "New Tank", id: "TANK_new")
+        stubFillTankoubon(id: "TANK_new", archives: ["archive-0", "archive-1"], success: 0)
+        var state = makePaginatedArchiveListState()
+        state.selectMode = .active
+        state.selected = ["archive-0", "archive-1"]
+        let store = TestStore(initialState: state) { ArchiveListFeature() }
+        store.timeout = .seconds(5)
+
+        await store.send(.createTankoubon("New Tank")) {
+            $0.loading = true
+            $0.batchActionInProgress = true
+        }
+        await store.receive(.createTankoubonFailed(String(localized: "archive.selected.tankoubon.contents.error"))) {
+            $0.loading = false
+            $0.batchActionInProgress = false
+            $0.errorMessage = String(localized: "archive.selected.tankoubon.contents.error")
+        }
+        XCTAssertEqual(store.state.selected, ["archive-0", "archive-1"])
+    }
+
+    @MainActor
     func testBatchDownloadExtractsOnlySelectedUncachedArchives() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         for id in ["archive-0", "archive-2"] {
             try stubArchiveListExtraction(id: id, pages: ["./api/archives/\(id)/page?path=001.jpg"])
         }
@@ -76,7 +131,7 @@ final class ArchiveListBatchTests: LANreaderTestCase {
 
     @MainActor
     func testPartialBatchDeletionPreservesFailedSelectionAfterPageReload() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubArchiveListBatchDelete(path: "/api/archives/archive-0", success: 1)
         stubArchiveListBatchDelete(path: "/api/archives/archive-1", success: 0)
         stubRemainingBatchArchive()
@@ -124,7 +179,7 @@ final class ArchiveListBatchTests: LANreaderTestCase {
 
     @MainActor
     func testBatchAddToCategoryAcceptsExistingMembershipAndKeepsFailuresSelected() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubCategoryAdd(categoryId: "category", archiveId: "archive-0", success: 1)
         stubCategoryAdd(categoryId: "category", archiveId: "archive-1", success: 1)
         stubCategoryAdd(categoryId: "category", archiveId: "archive-2", success: 0)
@@ -161,7 +216,7 @@ final class ArchiveListBatchTests: LANreaderTestCase {
 
     @MainActor
     func testBatchRemoveFromStaticCategoryKeepsFailuresSelected() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubCategoryRemove(categoryId: "category", archiveId: "archive-0", success: 1)
         stubCategoryRemove(categoryId: "category", archiveId: "archive-1", success: 0)
         var state = ArchiveListFeature.State(
@@ -204,7 +259,7 @@ final class ArchiveListBatchTests: LANreaderTestCase {
 
     @MainActor
     func testDeletingTankoubonReloadsMembersAndKeepsFailedSelection() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubArchiveListBatchDelete(path: "/api/tankoubons/TANK_1", success: 1)
         stubArchiveListBatchDelete(path: "/api/archives/archive-failed", success: 0)
         stubTankoubonDeletionReload()
@@ -311,7 +366,7 @@ final class ArchiveListBatchTests: LANreaderTestCase {
 }
 
 private func stubUnexpectedBatchExtraction() {
-    stub(condition: isPath("/api/archives/archive-1/extract")) { _ in
+    stub(condition: isPath("/api/archives/archive-1/files")) { _ in
         XCTFail("Unselected archive must not be extracted")
         return HTTPStubsResponse(data: Data(), statusCode: 500, headers: nil)
     }
@@ -326,13 +381,22 @@ private func stubRemainingBatchArchive() {
     }
 }
 
+/// The failed archive is on the second page, so only the preserved selection keeps it selected
+/// after the first page reloads.
 private func stubTankoubonDeletionReload() {
     stub(condition: isHost("localhost") && isPath("/api/search") && isMethodGET()
             && containsQueryParams(["start": "0"])) { _ in
         HTTPStubsResponse(data: Data("""
         {"data":[
           {"arcid":"archive-member","extension":"zip","isnew":"false","tags":"",
-           "title":"Member","pagecount":10,"progress":0},
+           "title":"Member","pagecount":10,"progress":0}
+        ],"recordsFiltered":2,"recordsTotal":2}
+        """.utf8), statusCode: 200, headers: ["Content-Type": "application/json"])
+    }
+    stub(condition: isHost("localhost") && isPath("/api/search") && isMethodGET()
+            && containsQueryParams(["start": "1"])) { _ in
+        HTTPStubsResponse(data: Data("""
+        {"data":[
           {"arcid":"archive-failed","extension":"zip","isnew":"false","tags":"",
            "title":"Failed","pagecount":10,"progress":0}
         ],"recordsFiltered":2,"recordsTotal":2}
@@ -365,6 +429,39 @@ private func stubCategoryRemove(categoryId: String, archiveId: String, success: 
             data: Data("{\"success\":\(success)}".utf8),
             statusCode: 200,
             headers: ["Content-Type": "application/json"]
+        )
+    }
+}
+
+private func stubCreateTankoubon(name: String, id: String) {
+    let encodedName = name.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? name
+    stub(condition: isHost("localhost")
+            && isPath("/api/tankoubons")
+            && isMethodPUT()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")
+            && { $0.ohhttpStubs_httpBody.flatMap { String(data: $0, encoding: .utf8) } == "name=\(encodedName)" }
+    ) { @Sendable _ in
+        HTTPStubsResponse(
+            jsonObject: ["operation": "create_tankoubon", "success": 1, "tankoubon_id": id],
+            statusCode: 200, headers: ["Content-Type": "application/json"]
+        )
+    }
+}
+
+private func stubFillTankoubon(id: String, archives: [String], success: Int) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/tankoubons/\(id)")
+            && isMethodPUT()
+            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")
+            && { request in
+                guard let body = request.ohhttpStubs_httpBody,
+                      let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any] else { return false }
+                return json["archives"] as? [String] == archives && json["metadata"] == nil
+            }
+    ) { @Sendable _ in
+        HTTPStubsResponse(
+            jsonObject: ["operation": "update_tankoubon", "success": success],
+            statusCode: 200, headers: ["Content-Type": "application/json"]
         )
     }
 }

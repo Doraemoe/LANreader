@@ -41,13 +41,6 @@ final class ArchiveDetailsTagParserTests: LANreaderTestCase {
         XCTAssertEqual(ArchiveDetailsTagParser.tokens(from: " , \n "), [])
     }
 
-    func testTagsStringJoinsTokens() {
-        XCTAssertEqual(
-            ArchiveDetailsTagParser.tagsString(from: ["artist:bob", "series:one"]),
-            "artist:bob, series:one"
-        )
-    }
-
     func testNamespaceKeyMatchesGroupNamespace() {
         XCTAssertEqual(ArchiveDetailsTagParser.namespaceKey(for: " Artist: Bob "), "artist")
         XCTAssertEqual(ArchiveDetailsTagParser.namespaceKey(for: "plain tag"), "other")

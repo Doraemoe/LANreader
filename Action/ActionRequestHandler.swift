@@ -29,15 +29,6 @@ final class ActionRequestHandler: NSObject, NSExtensionRequestHandling {
   }
 }
 
-extension URL {
-
-  var lanReaderAppDeepLink: URL {
-    let unreserved = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
-    let encoded = absoluteString.addingPercentEncoding(withAllowedCharacters: unreserved) ?? ""
-    return URL(string: "lanreader://download?url=\(encoded)")!
-  }
-}
-
 extension ActionRequestHandler {
   private static func inputProvider(from context: NSExtensionContext) throws -> NSItemProvider {
     for case let item as NSExtensionItem in context.inputItems {
