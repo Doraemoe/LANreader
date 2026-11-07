@@ -34,7 +34,7 @@ final class CacheDownloadTests: LANreaderTestCase {
             let path = request.url!.path
             requests.withLock { $0.append("\(request.httpMethod!) \(path)") }
             XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer YXBpS2V5")
-            XCTAssertNil(request.httpBody)
+            XCTAssertNil(request.ohhttpStubs_httpBody)
             XCTAssertNil(request.url!.query)
             if offline.withLock({ $0 }) {
                 return HTTPStubsResponse(error: URLError(.notConnectedToInternet))

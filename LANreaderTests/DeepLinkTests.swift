@@ -76,7 +76,10 @@ final class DeepLinkTests: LANreaderTestCase {
     @MainActor
     func testPreferCachedReadLinkOpensCachedArchiveWithoutServer() async throws {
         try await configureTestServer()
-        stubArchiveMetadata(id: "abc123", statusCode: 200)
+        stub(condition: isHost("localhost") && pathStartsWith("/api/archives/abc123")) { @Sendable _ in
+            XCTFail("A cached archive opened with preferCached must not ask the server")
+            return HTTPStubsResponse(data: Data(), statusCode: 500, headers: nil)
+        }
         let database = try savedCache(id: "abc123")
         let store = try makeAppTestStore(database: database)
 

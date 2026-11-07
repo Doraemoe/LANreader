@@ -326,13 +326,22 @@ private func stubRemainingBatchArchive() {
     }
 }
 
+/// The failed archive is on the second page, so only the preserved selection keeps it selected
+/// after the first page reloads.
 private func stubTankoubonDeletionReload() {
     stub(condition: isHost("localhost") && isPath("/api/search") && isMethodGET()
             && containsQueryParams(["start": "0"])) { _ in
         HTTPStubsResponse(data: Data("""
         {"data":[
           {"arcid":"archive-member","extension":"zip","isnew":"false","tags":"",
-           "title":"Member","pagecount":10,"progress":0},
+           "title":"Member","pagecount":10,"progress":0}
+        ],"recordsFiltered":2,"recordsTotal":2}
+        """.utf8), statusCode: 200, headers: ["Content-Type": "application/json"])
+    }
+    stub(condition: isHost("localhost") && isPath("/api/search") && isMethodGET()
+            && containsQueryParams(["start": "1"])) { _ in
+        HTTPStubsResponse(data: Data("""
+        {"data":[
           {"arcid":"archive-failed","extension":"zip","isnew":"false","tags":"",
            "title":"Failed","pagecount":10,"progress":0}
         ],"recordsFiltered":2,"recordsTotal":2}

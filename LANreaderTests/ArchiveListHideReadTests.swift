@@ -53,6 +53,12 @@ final class ArchiveListHideReadTests: LANreaderTestCase {
         try await configureTestServer()
         stubSearchPage(start: "0", archives: [("read-0", true), ("read-1", true)], total: 4)
         stubSearchPage(start: "2", archives: [("read-2", true), ("read-3", true)], total: 4)
+        stub(condition: isHost("localhost")
+                && isPath("/api/search")
+                && containsQueryParams(["start": "4"])) { @Sendable _ in
+            XCTFail("All 4 archives are loaded, so there is no page past the end to request")
+            return HTTPStubsResponse(data: Data(), statusCode: 500, headers: nil)
+        }
         let store = TestStore(initialState: makeHideReadScrollState()) { ArchiveListFeature() }
         store.timeout = .seconds(5)
         store.exhaustivity = .off

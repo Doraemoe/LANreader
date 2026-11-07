@@ -87,17 +87,37 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
         XCTAssertTrue(state.canLoadArchives)
     }
 
-    func testSearchCancellationIsIsolatedPerArchiveList() {
-        let first = ArchiveListFeature.State(
-            filter: SearchFilter(category: nil, filter: nil),
-            currentTab: .library
+    @MainActor
+    func testSearchCancellationIsIsolatedPerArchiveList() async throws {
+        // In the app the library and the search tab are two lists under one store. Cancelling one
+        // list's search, as typing a new query does, must not cancel the other list's load.
+        try await configureTestServer()
+        stub(condition: isHost("localhost") && isPath("/api/search") && isMethodGET()) { @Sendable _ in
+            let response = HTTPStubsResponse(
+                data: Data(#"{"data":[],"recordsFiltered":0,"recordsTotal":0}"#.utf8),
+                statusCode: 200, headers: ["Content-Type": "application/json"]
+            )
+            response.requestTime = 0.3
+            return response
+        }
+        var library = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: nil), loadOnAppear: false, currentTab: .library
         )
-        let second = ArchiveListFeature.State(
-            filter: SearchFilter(category: nil, filter: nil),
-            currentTab: .library
+        library.$lastTagRefresh.withLock { $0 = Date().timeIntervalSince1970 }
+        let search = ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: "artist:test"), loadOnAppear: false, currentTab: .search
         )
+        let store = TestStore(initialState: TwoArchiveLists.State(library: library, search: search)) {
+            TwoArchiveLists()
+        }
+        store.timeout = .seconds(5)
+        store.exhaustivity = .off(showSkippedAssertions: false)
 
-        XCTAssertNotEqual(first.searchCancellationID, second.searchCancellationID)
+        await store.send(.library(.load))
+        await store.send(.search(.load))
+        await store.send(.search(.cancelSearch))
+
+        await store.receive(\.library.populateArchives)
     }
 
     @MainActor
@@ -577,6 +597,26 @@ func stubArchiveListBatchDelete(path: String, success: Int) {
             data: Data("{\"success\":\(success)}".utf8), statusCode: 200,
             headers: ["Content-Type": "application/json"]
         )
+    }
+}
+
+/// Two archive lists under one store, as the library and search tabs are in the app.
+@Reducer
+struct TwoArchiveLists {
+    @ObservableState
+    struct State: Equatable {
+        var library: ArchiveListFeature.State
+        var search: ArchiveListFeature.State
+    }
+
+    enum Action {
+        case library(ArchiveListFeature.Action)
+        case search(ArchiveListFeature.Action)
+    }
+
+    var body: some ReducerOf<Self> {
+        Scope(state: \.library, action: \.library) { ArchiveListFeature() }
+        Scope(state: \.search, action: \.search) { ArchiveListFeature() }
     }
 }
 
