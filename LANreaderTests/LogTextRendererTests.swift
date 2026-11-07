@@ -2,7 +2,7 @@ import UIKit
 import XCTest
 @testable import LANreader
 
-final class LogTextRendererTests: XCTestCase {
+final class LogTextRendererTests: LANreaderTestCase {
     // Puppy writes CRLF line endings and "\r\n" is a single Swift Character,
     // so every entry must still be highlighted independently.
     func testEachCarriageReturnSeparatedEntryIsHighlighted() {

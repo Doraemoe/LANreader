@@ -5,7 +5,7 @@ import OHHTTPStubsSwift
 import os
 @testable import LANreader
 
-final class CategoryFeatureTests: XCTestCase {
+final class CategoryFeatureTests: LANreaderTestCase {
     override func setUp() {
         UserDefaults.standard.set("https://localhost", forKey: SettingsKey.lanraragiUrl)
         UserDefaults.standard.set("apiKey", forKey: SettingsKey.lanraragiApiKey)

@@ -3,7 +3,7 @@ import ComposableArchitecture
 import GRDB
 @testable import LANreader
 
-final class ArchiveDetailsTagParserTests: XCTestCase {
+final class ArchiveDetailsTagParserTests: LANreaderTestCase {
     func testTagGroupsUseRequestedNamespaceOrder() {
         let groups = ArchiveDetailsTagParser.tagGroups(
             from: "series:z,source:example.com,character:alice,date_added:1700000000,misc,artist:bob,group:a"

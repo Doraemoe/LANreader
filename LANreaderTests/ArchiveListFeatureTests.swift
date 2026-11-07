@@ -5,7 +5,7 @@ import OHHTTPStubs
 import OHHTTPStubsSwift
 @testable import LANreader
 
-final class ArchiveListFeatureTests: XCTestCase {
+final class ArchiveListFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testBatchDeleteRoutesTankoubonAndKeepsFailedSelection() async throws {
@@ -43,7 +43,6 @@ final class ArchiveListFeatureTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        UserDefaults.resetStandardUserDefaults()
         HTTPStubs.removeAllStubs()
     }
 
@@ -491,10 +490,12 @@ final class ArchiveListFeatureTests: XCTestCase {
         let cover = Data([0xFF, 0xD8, 0xFF, 0xDB])
         var thumbnail = ArchiveThumbnail(id: archiveId, thumbnail: cover, lastUpdate: Date())
         try database.saveArchiveThumbnail(&thumbnail)
+        let service = try await makeStubbedPageDownloadService(for: self, archiveIds: [archiveId])
         let store = TestStore(initialState: initialState) {
             ArchiveListFeature()
         } withDependencies: {
             $0.appDatabase = database
+            $0.lanraragiService = service
         }
         store.timeout = .seconds(5)
 
@@ -577,6 +578,29 @@ func stubArchiveListBatchDelete(path: String, success: Int) {
             headers: ["Content-Type": "application/json"]
         )
     }
+}
+
+/// A service for tests that cache pages. The app's real background session can't be stubbed, so this
+/// one downloads through the test's stubs; page requests get a 404 and any downloads still running
+/// are cancelled when the test ends. Call after `configureArchiveListTestClient()`.
+@MainActor
+func makeStubbedPageDownloadService(
+    for test: XCTestCase,
+    archiveIds: [String]
+) async throws -> LANraragiService {
+    let service = LANraragiService(backgroundSessionConfiguration: .ephemeral)
+    _ = try await service.verifyClient(url: "https://localhost", apiKey: "apiKey")
+    for id in archiveIds {
+        stub(condition: isHost("localhost") && isPath("/api/archives/\(id)/page") && isMethodGET()) { @Sendable _ in
+            HTTPStubsResponse(data: Data(), statusCode: 404, headers: nil)
+        }
+    }
+    test.addTeardownBlock {
+        for id in archiveIds {
+            await service.removeCachedPages(archiveId: id)
+        }
+    }
+    return service
 }
 
 func configureArchiveListTestClient() async throws {

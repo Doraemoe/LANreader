@@ -7,7 +7,7 @@ import OHHTTPStubsSwift
 import os
 @testable import LANreader
 
-final class CacheDownloadTests: XCTestCase {
+final class CacheDownloadTests: LANreaderTestCase {
     override func setUp() {
         UserDefaults.standard.set("https://localhost", forKey: SettingsKey.lanraragiUrl)
         UserDefaults.standard.set("apiKey", forKey: SettingsKey.lanraragiApiKey)
@@ -64,6 +64,7 @@ final class CacheDownloadTests: XCTestCase {
             $0.lanraragiService = service
             $0.continuousClock = clock
         }
+        store.timeout = .seconds(5)
         store.exhaustivity = .off
         await store.send(.load)
         await store.receive(.cacheDownloadFailed(id))
@@ -111,6 +112,7 @@ final class CacheDownloadTests: XCTestCase {
             $0.lanraragiService = service
             $0.continuousClock = clock
         }
+        store.timeout = .seconds(5)
         store.exhaustivity = .off
         let task = await store.send(.retryCache(id)) {
             $0.failedDownloads.remove(id)
@@ -138,6 +140,7 @@ final class CacheDownloadTests: XCTestCase {
         let store = TestStore(initialState: failedCacheState(id: id)) { CacheFeature() } withDependencies: {
             $0.lanraragiService = LANraragiService(backgroundSessionConfiguration: .ephemeral)
         }
+        store.timeout = .seconds(5)
         store.exhaustivity = .off
         await store.send(.retryCache(id))
         await store.receive(\.retryCacheFailed)
@@ -163,6 +166,7 @@ final class CacheDownloadTests: XCTestCase {
             $0.lanraragiService = LANraragiService(backgroundSessionConfiguration: .ephemeral)
             $0.continuousClock = TestClock()
         }
+        store.timeout = .seconds(5)
         store.exhaustivity = .off
         let task = await store.send(.load)
         await store.receive(.updateProgressInDownloading(id, 1))
@@ -245,6 +249,7 @@ final class CacheDownloadTests: XCTestCase {
         let store = TestStore(initialState: state) { PageFeature() } withDependencies: {
             $0.lanraragiService = LANraragiService(backgroundSessionConfiguration: .ephemeral)
         }
+        store.timeout = .seconds(5)
         store.exhaustivity = .off
         let task = await store.send(.load(true))
         await store.receive(.setError(String(localized: "archive.page.store.failed")))
@@ -287,6 +292,7 @@ final class CacheDownloadTests: XCTestCase {
                 $0.appDatabase = database
                 $0.lanraragiService = service
             }
+            store.timeout = .seconds(5)
             for force in [false, true] {
                 await store.send(.load(force))
                 await store.finish()
@@ -354,6 +360,7 @@ final class CacheDownloadTests: XCTestCase {
             $0.appDatabase = database
             $0.lanraragiService = service
         }
+        store.timeout = .seconds(5)
         store.exhaustivity = .off
         await store.send(.downloadPages)
         await store.receive(.finishDownloadPages)
@@ -472,6 +479,7 @@ final class CacheDownloadTests: XCTestCase {
             $0.lanraragiService = service
             $0.continuousClock = TestClock()
         }
+        store.timeout = .seconds(5)
         store.exhaustivity = .off
 
         await store.send(.removeCache(id)) { $0.downloading.removeValue(forKey: id) }

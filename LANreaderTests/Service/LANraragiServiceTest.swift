@@ -9,7 +9,7 @@ import SwiftUI
 @testable import LANreader
 
 // swiftlint:disable type_body_length file_length
-class LANraragiServiceTest: XCTestCase {
+class LANraragiServiceTest: LANreaderTestCase {
 
     private let url = "https://localhost"
     private let apiKey = "apiKey"
@@ -19,13 +19,13 @@ class LANraragiServiceTest: XCTestCase {
     private var service: LANraragiService!
 
     override func setUp() async throws {
+        try await super.setUp()
         UserDefaults.standard.set(url, forKey: SettingsKey.lanraragiUrl)
         UserDefaults.standard.set(apiKey, forKey: SettingsKey.lanraragiApiKey)
         service = LANraragiService.shared
     }
 
     override func tearDownWithError() throws {
-        UserDefaults.resetStandardUserDefaults()
         HTTPStubs.removeAllStubs()
     }
 

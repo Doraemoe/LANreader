@@ -4,7 +4,7 @@ import ComposableArchitecture
 @testable import LANreader
 
 @MainActor
-final class LANraragiConfigFeatureTests: XCTestCase {
+final class LANraragiConfigFeatureTests: LANreaderTestCase {
 
     func testInsecureConnectionAlertExplainsTheFailureAndEndsVerifying() async {
         var state = LANraragiConfigFeature.State()
@@ -27,6 +27,7 @@ final class LANraragiConfigFeatureTests: XCTestCase {
     // iOS rejects a plain HTTP Tailscale address before any connection is attempted, so this
     // exercises the real error the reducer branches on without contacting a server.
     func testRecognisesTheRealAppTransportSecurityRejection() async {
+        allowRequestsWithoutStubs()
         do {
             _ = try await LANraragiService.shared.verifyClient(
                 url: "http://100.64.0.1:3000",

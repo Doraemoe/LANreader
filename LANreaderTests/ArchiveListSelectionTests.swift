@@ -1,10 +1,12 @@
 import XCTest
 import ComposableArchitecture
 import GRDB
+import OHHTTPStubs
+import OHHTTPStubsSwift
 import UIKit
 @testable import LANreader
 
-final class ArchiveListSelectionTests: XCTestCase {
+final class ArchiveListSelectionTests: LANreaderTestCase {
     @MainActor
     func testReaderHidesTabBarForItsPushedLifetime() {
         let archive = ArchiveItem(
@@ -121,6 +123,11 @@ final class ArchiveListSelectionTests: XCTestCase {
 
     @MainActor
     func testPushedTagSearchCanSelectWhileNextPageLoads() async throws {
+        // Entering selection mode loads categories for the batch menu when none are loaded yet.
+        try await configureArchiveListTestClient()
+        stub(condition: isHost("localhost") && isPath("/api/categories") && isMethodGET()) { @Sendable _ in
+            HTTPStubsResponse(data: Data("[]".utf8), statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
         let database = try AppDatabase(DatabaseQueue())
         try await withDependencies {
             $0.appDatabase = database
@@ -198,8 +205,12 @@ final class ArchiveListSelectionTests: XCTestCase {
             try await checkSharedSelection(
                 controller: controller, store: store.scope(\.archiveList, action: \.archiveList), pushed: false
             )
-            XCTAssertNil(controller.navigationItem.searchController)
-            let searchBar = try XCTUnwrap(controller.view.subviews.compactMap { $0 as? UISearchBar }.first)
+            // Phones put the search bar in the navigation bar; larger screens add it to the view.
+            let searchBar = try XCTUnwrap(
+                UIDevice.current.userInterfaceIdiom == .phone
+                    ? controller.navigationItem.searchController?.searchBar
+                    : controller.view.subviews.compactMap { $0 as? UISearchBar }.first
+            )
             store.send(.archiveList(.toggleSelectionMode))
             await Task.yield()
             XCTAssertFalse(searchBar.isUserInteractionEnabled)
@@ -273,76 +284,84 @@ final class ArchiveListSelectionTests: XCTestCase {
     @MainActor
     // swiftlint:disable:next function_body_length
     func testLibrarySelectionControlsToolbarAndInterceptsReaderNavigation() async throws {
-        var libraryState = LibraryFeature.State()
-        libraryState.archiveList = makeSelectionState(count: 2)
-        libraryState.archiveList.$categoryItems.withLock {
-            $0 = [
-                CategoryItem(id: "static", name: "Static", archives: [], search: "", pinned: "0"),
+        // Archive cells read thumbnails from the database as they're created during layout.
+        let database = try AppDatabase(DatabaseQueue())
+        try await withDependencies {
+            $0.appDatabase = database
+        } operation: {
+            var libraryState = LibraryFeature.State()
+            libraryState.archiveList = makeSelectionState(count: 2)
+            libraryState.archiveList.$categoryItems.withLock {
+                $0 = [
+                    CategoryItem(id: "static", name: "Static", archives: [], search: "", pinned: "0"),
+                    CategoryItem(id: "dynamic", name: "Dynamic", archives: [], search: "tag:test", pinned: "0")
+                ]
+            }
+            defer { libraryState.archiveList.$categoryItems.withLock { $0 = [] } }
+            let libraryStore = Store(initialState: libraryState) { LibraryFeature() }
+            let store = libraryStore.scope(\.archiveList, action: \.archiveList)
+            let parent = UILibraryListViewController(store: libraryStore, navigationHelper: NavigationHelper())
+            let navigation = UINavigationController(rootViewController: parent)
+            let tabs = UITabBarController()
+            tabs.viewControllers = [navigation]
+            tabs.loadViewIfNeeded()
+            navigation.loadViewIfNeeded()
+            parent.loadViewIfNeeded()
+            let controller = try XCTUnwrap(parent.children.first as? UIArchiveListViewController)
+            await Task.yield()
+
+            XCTAssertNotNil(parent.navigationItem.rightBarButtonItem?.menu)
+            XCTAssertEqual(parent.navigationItem.leftBarButtonItems?.count, 1)
+            store.send(.toggleSelectionMode)
+            await Task.yield()
+            XCTAssertEqual(parent.navigationItem.rightBarButtonItem?.title, String(localized: "done"))
+            XCTAssertFalse(navigation.isToolbarHidden)
+            XCTAssertTrue(parent.navigationItem.leftBarButtonItems?.isEmpty ?? true)
+            if #available(iOS 18.0, *) {
+                XCTAssertTrue(tabs.isTabBarHidden)
+            } else {
+                XCTAssertTrue(tabs.tabBar.isHidden)
+            }
+            XCTAssertEqual(parent.toolbarItems?.last?.isEnabled, false)
+
+            controller.collectionView(controller.collectionView, didSelectItemAt: IndexPath(item: 0, section: 0))
+            await Task.yield()
+            XCTAssertEqual(store.selected, ["archive-0"])
+            XCTAssertEqual(navigation.viewControllers.count, 1)
+            XCTAssertEqual(parent.toolbarItems?.last?.isEnabled, true)
+            XCTAssertEqual(parent.toolbarItems?[2].menu?.children.map(\.title), ["Static"])
+            XCTAssertEqual(parent.toolbarItems?[2].isEnabled, true)
+            let categoryButton = try XCTUnwrap(parent.toolbarItems?[2])
+            let deleteButton = try XCTUnwrap(parent.toolbarItems?.last)
+            store.send(.populateCategory([
+                CategoryItem(id: "static", name: "Static", archives: ["archive-0"], search: "", pinned: "0"),
                 CategoryItem(id: "dynamic", name: "Dynamic", archives: [], search: "tag:test", pinned: "0")
-            ]
-        }
-        defer { libraryState.archiveList.$categoryItems.withLock { $0 = [] } }
-        let libraryStore = Store(initialState: libraryState) { LibraryFeature() }
-        let store = libraryStore.scope(\.archiveList, action: \.archiveList)
-        let parent = UILibraryListViewController(store: libraryStore, navigationHelper: NavigationHelper())
-        let navigation = UINavigationController(rootViewController: parent)
-        let tabs = UITabBarController()
-        tabs.viewControllers = [navigation]
-        tabs.loadViewIfNeeded()
-        navigation.loadViewIfNeeded()
-        parent.loadViewIfNeeded()
-        let controller = try XCTUnwrap(parent.children.first as? UIArchiveListViewController)
-        await Task.yield()
+            ]))
+            await Task.yield()
+            XCTAssertTrue(parent.toolbarItems?[2] === categoryButton)
+            XCTAssertTrue(parent.toolbarItems?.last === deleteButton)
+            let count = try XCTUnwrap(parent.toolbarItems?.first)
+            XCTAssertEqual(count.title, String(format: String(localized: "archive.selected"), 1))
+            XCTAssertTrue(count.isEnabled)
+            XCTAssertNil(count.customView)
+            XCTAssertNil(controller.collectionView(
+                controller.collectionView,
+                contextMenuConfigurationForItemAt: IndexPath(item: 0, section: 0),
+                point: .zero
+            ))
 
-        XCTAssertNotNil(parent.navigationItem.rightBarButtonItem?.menu)
-        XCTAssertEqual(parent.navigationItem.leftBarButtonItems?.count, 1)
-        store.send(.toggleSelectionMode)
-        await Task.yield()
-        XCTAssertEqual(parent.navigationItem.rightBarButtonItem?.title, String(localized: "done"))
-        XCTAssertFalse(navigation.isToolbarHidden)
-        XCTAssertTrue(parent.navigationItem.leftBarButtonItems?.isEmpty ?? true)
-        if #available(iOS 18.0, *) {
-            XCTAssertTrue(tabs.isTabBarHidden)
-        } else {
-            XCTAssertTrue(tabs.tabBar.isHidden)
+            store.send(.toggleSelectionMode)
+            await Task.yield()
+            XCTAssertTrue(store.selected.isEmpty)
+            XCTAssertTrue(navigation.isToolbarHidden)
+            if #available(iOS 18.0, *) {
+                XCTAssertFalse(tabs.isTabBarHidden)
+            } else {
+                XCTAssertFalse(tabs.tabBar.isHidden)
+            }
+            XCTAssertNotNil(parent.navigationItem.rightBarButtonItem?.menu)
+            XCTAssertEqual(parent.navigationItem.leftBarButtonItems?.count, 1)
         }
-        XCTAssertEqual(parent.toolbarItems?.last?.isEnabled, false)
-
-        controller.collectionView(controller.collectionView, didSelectItemAt: IndexPath(item: 0, section: 0))
-        await Task.yield()
-        XCTAssertEqual(store.selected, ["archive-0"])
-        XCTAssertEqual(navigation.viewControllers.count, 1)
-        XCTAssertEqual(parent.toolbarItems?.last?.isEnabled, true)
-        XCTAssertEqual(parent.toolbarItems?[2].menu?.children.map(\.title), ["Static"])
-        XCTAssertEqual(parent.toolbarItems?[2].isEnabled, true)
-        let categoryButton = try XCTUnwrap(parent.toolbarItems?[2])
-        let deleteButton = try XCTUnwrap(parent.toolbarItems?.last)
-        store.send(.populateCategory([
-            CategoryItem(id: "static", name: "Static", archives: ["archive-0"], search: "", pinned: "0"),
-            CategoryItem(id: "dynamic", name: "Dynamic", archives: [], search: "tag:test", pinned: "0")
-        ]))
-        await Task.yield()
-        XCTAssertTrue(parent.toolbarItems?[2] === categoryButton)
-        XCTAssertTrue(parent.toolbarItems?.last === deleteButton)
-        let count = try XCTUnwrap(parent.toolbarItems?.first)
-        XCTAssertEqual(count.title, String(format: String(localized: "archive.selected"), 1))
-        XCTAssertTrue(count.isEnabled)
-        XCTAssertNil(count.customView)
-        XCTAssertNil(controller.collectionView(
-            controller.collectionView, contextMenuConfigurationForItemAt: IndexPath(item: 0, section: 0), point: .zero
-        ))
-
-        store.send(.toggleSelectionMode)
-        await Task.yield()
-        XCTAssertTrue(store.selected.isEmpty)
-        XCTAssertTrue(navigation.isToolbarHidden)
-        if #available(iOS 18.0, *) {
-            XCTAssertFalse(tabs.isTabBarHidden)
-        } else {
-            XCTAssertFalse(tabs.tabBar.isHidden)
-        }
-        XCTAssertNotNil(parent.navigationItem.rightBarButtonItem?.menu)
-        XCTAssertEqual(parent.navigationItem.leftBarButtonItems?.count, 1)
     }
 
     @MainActor

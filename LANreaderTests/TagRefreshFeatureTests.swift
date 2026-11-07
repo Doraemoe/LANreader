@@ -5,9 +5,8 @@ import OHHTTPStubs
 import OHHTTPStubsSwift
 @testable import LANreader
 
-final class TagRefreshFeatureTests: XCTestCase {
+final class TagRefreshFeatureTests: LANreaderTestCase {
     override func tearDownWithError() throws {
-        UserDefaults.resetStandardUserDefaults()
         HTTPStubs.removeAllStubs()
     }
 

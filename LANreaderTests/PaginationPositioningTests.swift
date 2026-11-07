@@ -1,7 +1,7 @@
 import XCTest
 @testable import LANreader
 
-final class PaginationPositioningTests: XCTestCase {
+final class PaginationPositioningTests: LANreaderTestCase {
     func testPageCountRoundsUpPartialFinalPage() {
         XCTAssertEqual(PaginationPositioning.pageCount(total: 250, pageSize: 100), 3)
         XCTAssertEqual(PaginationPositioning.pageCount(total: 200, pageSize: 100), 2)

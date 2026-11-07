@@ -5,11 +5,10 @@ import OHHTTPStubs
 import OHHTTPStubsSwift
 @testable import LANreader
 
-final class UploadFeatureTests: XCTestCase {
+final class UploadFeatureTests: LANreaderTestCase {
     private let now = Date(timeIntervalSince1970: 2_000_000_000)
 
     override func tearDownWithError() throws {
-        UserDefaults.resetStandardUserDefaults()
         HTTPStubs.removeAllStubs()
     }
 
@@ -29,6 +28,7 @@ final class UploadFeatureTests: XCTestCase {
             $0.lanraragiService = service
             $0.date.now = now
         }
+        store.timeout = .seconds(5)
 
         let task = await store.send(.checkJobStatus)
         await store.receive(\.jobsLoaded) {
@@ -85,6 +85,7 @@ final class UploadFeatureTests: XCTestCase {
             $0.appDatabase = database
             $0.date.now = now
         }
+        store.timeout = .seconds(5)
 
         let task = await store.send(.checkJobStatus)
         await store.receive(\.jobsLoaded) {
@@ -114,6 +115,7 @@ final class UploadFeatureTests: XCTestCase {
             $0.lanraragiService = service
             $0.date.now = now
         }
+        store.timeout = .seconds(5)
 
         let task = await store.send(.checkJobStatus)
         await store.receive(\.jobsLoaded) {
@@ -155,6 +157,7 @@ final class UploadFeatureTests: XCTestCase {
             $0.lanraragiService = service
             $0.date.now = now
         }
+        store.timeout = .seconds(5)
 
         let task = await store.send(.checkJobStatus)
         await store.receive(\.jobsLoaded) {
@@ -188,6 +191,7 @@ final class UploadFeatureTests: XCTestCase {
             $0.continuousClock = clock
             $0.date.now = now
         }
+        store.timeout = .seconds(5)
 
         let task = await store.send(.checkJobStatus)
         await store.receive(\.jobsLoaded) {

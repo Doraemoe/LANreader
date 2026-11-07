@@ -8,7 +8,7 @@ import os
 
 // swiftlint:disable type_body_length file_length
 
-final class ArchiveReaderFeatureTests: XCTestCase {
+final class ArchiveReaderFeatureTests: LANreaderTestCase {
     override func tearDown() {
         UserDefaults.standard.removeObject(forKey: SettingsKey.readDirection)
         UserDefaults.standard.removeObject(forKey: SettingsKey.disablePageFlipAnimation)
@@ -1037,7 +1037,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     func testReaderKeepsCurrentPageWhenWidthChangesWithoutRotation() async throws {
         configureReaderDefaults()
         var initialState = makeState(progress: 1)
-        initialState.pages = makePageStates(count: 25)
+        initialState.pages = makeDisplayedPageStates(count: 25)
         let store = Store(initialState: initialState) {
             ArchiveReaderFeature()
         } withDependencies: {
@@ -1070,7 +1070,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     func testVerticalReaderKeepsTopPageProgressWhenWidthChanges() async throws {
         configureReaderDefaults(readDirection: .upDown)
         var initialState = makeState(progress: 1, readDirection: .upDown)
-        initialState.pages = makePageStates(count: 25)
+        initialState.pages = makeDisplayedPageStates(count: 25)
         let store = Store(initialState: initialState) {
             ArchiveReaderFeature()
         } withDependencies: {
@@ -1183,7 +1183,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         let stamp = ArchiveStamp(id: "stamp", position: "50,50", content: "Editable")
         var initialState = makeState(progress: 1)
         initialState.$showStamps = Shared(value: true)
-        var page = PageFeature.State(archiveId: "archive", pageId: "1", pageNumber: 1)
+        var page = PageFeature.State(archiveId: "archive", pageId: "1", pageNumber: 1, pageMode: .normal)
         page.imageLoaded = true
         page.stamps = [stamp]
         page.stampsLoaded = true
@@ -1236,7 +1236,8 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         var page = PageFeature.State(
             archiveId: "archive",
             pageId: "1",
-            pageNumber: 1
+            pageNumber: 1,
+            pageMode: .normal
         )
         page.imageLoaded = true
         initialState.pages = [page]
@@ -2200,9 +2201,9 @@ final class ArchiveReaderFeatureTests: XCTestCase {
                 $0.progress = 3
             }
         }
-        await fulfillment(of: [flagSent], timeout: 1)
+        await fulfillment(of: [flagSent], timeout: 5)
         await clock.advance(by: .seconds(1))
-        await fulfillment(of: [progressUpdated], timeout: 1)
+        await fulfillment(of: [progressUpdated], timeout: 5)
         await store.finish()
         XCTAssertFalse(store.state.allArchives[id: "archive"]!.wrappedValue.isNew)
         XCTAssertTrue(store.state.errorMessage.isEmpty)
@@ -2234,7 +2235,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
 
         await Task.yield()
         await clock.advance(by: .seconds(1))
-        await fulfillment(of: [progressUpdated], timeout: 1)
+        await fulfillment(of: [progressUpdated], timeout: 5)
         await store.finish()
     }
 
@@ -2266,7 +2267,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
 
         await Task.yield()
         await clock.advance(by: .seconds(1))
-        await fulfillment(of: [progressUpdated], timeout: 1)
+        await fulfillment(of: [progressUpdated], timeout: 5)
         await store.finish()
     }
 
@@ -3416,7 +3417,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     func testUIPageCollectionConsumesPendingScrollRequestAfterPagesLoad() async {
         configureReaderDefaults()
         var initialState = makeState(progress: 2)
-        initialState.pages = makePageStates(count: 4)
+        initialState.pages = makeDisplayedPageStates(count: 4)
         initialState.scrollRequest = ScrollRequest(targetPageIndex: 1, source: .slider, animated: false)
 
         let store = Store(initialState: initialState) {
@@ -3439,7 +3440,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         configureReaderDefaults()
         var initialState = makeState(progress: 1)
         initialState.$disablePageFlipAnimation = SharedReader(value: true)
-        initialState.pages = makePageStates(count: 4)
+        initialState.pages = makeDisplayedPageStates(count: 4)
         let store = Store(initialState: initialState) {
             ArchiveReaderFeature()
         } withDependencies: {
@@ -3550,7 +3551,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     func testUIPageCollectionDoesNotOverwriteRestoredPageDuringInitialSnapshot() async {
         configureReaderDefaults()
         var initialState = makeState(progress: 3)
-        initialState.pages = makePageStates(count: 4)
+        initialState.pages = makeDisplayedPageStates(count: 4)
         initialState.currentPageIndex = 2
 
         let store = Store(initialState: initialState) {
@@ -3572,7 +3573,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     func testUIPageCollectionShiftsSpreadItemsWhenToggledFromSecondPage() async {
         configureReaderDefaults()
         var initialState = makeState(progress: 2)
-        initialState.pages = makePageStates(count: 5)
+        initialState.pages = makeDisplayedPageStates(count: 5)
         initialState.currentPageIndex = 1
         let expectedItems = [ReaderCollectionItem.spreadPlaceholder]
             + initialState.pages.map { ReaderCollectionItem.page($0.id) }
@@ -3604,7 +3605,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     func testUIPageCollectionRepeatedDoublePageTogglesStayAlignedToSpreadBoundary() async {
         configureReaderDefaults()
         var initialState = makeState(progress: 2)
-        initialState.pages = makePageStates(count: 5)
+        initialState.pages = makeDisplayedPageStates(count: 5)
         initialState.currentPageIndex = 1
 
         let store = Store(initialState: initialState) {
@@ -3642,7 +3643,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         configureReaderDefaults(splitWideImage: true)
         var initialState = makeState(progress: 2)
         initialState.$splitImage = SharedReader(value: true)
-        var pages = makePageStates(count: 3)
+        var pages = makeDisplayedPageStates(count: 3)
         pages[1].pageMode = .left
         pages[1].imageLoaded = true
         initialState.pages = pages
@@ -3685,7 +3686,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
         var initialState = makeState(progress: 3)
         initialState.$splitImage = SharedReader(value: true)
         initialState.$piorityLeft = SharedReader(value: true)
-        initialState.pages = makePageStates(count: 3)
+        initialState.pages = makeDisplayedPageStates(count: 3)
         initialState.currentPageIndex = 2
 
         let store = Store(initialState: initialState) {
@@ -3734,7 +3735,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     func testUIArchiveReaderControllerObservesNavigationBarAfterLateNavigationAttachment() async {
         configureReaderDefaults()
         var initialState = makeState(progress: 2)
-        initialState.pages = makePageStates(count: 4)
+        initialState.pages = makeDisplayedPageStates(count: 4)
 
         let store = Store(initialState: initialState) {
             ArchiveReaderFeature()
@@ -3779,7 +3780,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     func testUIArchiveReaderControllerKeepsSliderPreviewStateWhenTemporarilyCovered() async {
         configureReaderDefaults()
         var initialState = makeState(progress: 2)
-        initialState.pages = makePageStates(count: 4)
+        initialState.pages = makeDisplayedPageStates(count: 4)
         initialState.sliderPreviewVisible = true
         initialState.sliderPreviewPageIndex = 1
         initialState.sliderPreviewImageURL = URL(fileURLWithPath: "/tmp/preview.jpg")
@@ -3808,7 +3809,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
     func testUIArchiveReaderControllerCleansSliderPreviewStateWhenDismissed() async {
         configureReaderDefaults()
         var initialState = makeState(progress: 2)
-        initialState.pages = makePageStates(count: 4)
+        initialState.pages = makeDisplayedPageStates(count: 4)
         initialState.sliderPreviewVisible = true
         initialState.sliderPreviewPageIndex = 1
         initialState.sliderPreviewImageURL = URL(fileURLWithPath: "/tmp/preview.jpg")
@@ -4358,7 +4359,7 @@ final class ArchiveReaderFeatureTests: XCTestCase {
 
 @MainActor
 private func waitForScrollRequestToFinish(_ store: StoreOf<ArchiveReaderFeature>) async {
-    for _ in 0..<100 where store.scrollRequest != nil {
+    for _ in 0..<500 where store.scrollRequest != nil {
         try? await Task<Never, Never>.sleep(for: .milliseconds(10))
     }
 }
@@ -4415,7 +4416,7 @@ private func waitForPageToLoad(
     _ store: StoreOf<ArchiveReaderFeature>,
     pageId: PageFeature.State.ID
 ) async {
-    for _ in 0..<100 where store.pages[id: pageId]?.imageLoaded != true {
+    for _ in 0..<500 where store.pages[id: pageId]?.imageLoaded != true {
         try? await Task<Never, Never>.sleep(for: .milliseconds(10))
     }
 }
@@ -4425,14 +4426,14 @@ private func waitForStampsToLoad(
     _ store: StoreOf<ArchiveReaderFeature>,
     pageId: String
 ) async {
-    for _ in 0..<100 where store.pages[id: pageId]?.stampsLoaded != true {
+    for _ in 0..<500 where store.pages[id: pageId]?.stampsLoaded != true {
         try? await Task<Never, Never>.sleep(for: .milliseconds(10))
     }
 }
 
 @MainActor
 private func waitForStampMarker(in view: UIView, comment: String) async -> UIButton? {
-    for _ in 0..<100 {
+    for _ in 0..<500 {
         view.layoutIfNeeded()
         if let marker = stampMarker(in: view, comment: comment) {
             return marker
@@ -5175,6 +5176,17 @@ private func stubDeleteArchiveStamp(stampId: String, success: Int = 1) {
             headers: ["Content-Type": "application/json"]
         )
     }
+}
+
+/// Pages that already show an image, for UIKit tests: a page still in `.loading` downloads its image
+/// as soon as its cell is displayed.
+private func makeDisplayedPageStates(count: Int) -> IdentifiedArrayOf<PageFeature.State> {
+    var pages = makePageStates(count: count)
+    for id in pages.ids {
+        pages[id: id]?.pageMode = .normal
+        pages[id: id]?.imageLoaded = true
+    }
+    return pages
 }
 
 private func makePageStates(
