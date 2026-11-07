@@ -96,6 +96,8 @@ Use this file as the source of truth for Codex-style work in this repository.
 - When changing LANraragi API behavior, add or update stubbed tests before relying on simulator-only verification.
 - Reader reducer and positioning behavior belongs in focused `ArchiveReaderFeatureTests` coverage, including relevant single-page, double-page, split-page, RTL, cached, and Tankoubon cases.
 - Stub every request a network-backed test triggers, including follow-up requests such as thumbnails, so no test reaches a real host.
+- Subclass `LANreaderTestCase`, not `XCTestCase`. It fails the test on any request no stub answers and restores the app's settings afterwards. Call `allowRequestsWithoutStubs()` only in a test that must use the real URL loading system.
+- Mark stub response closures `@Sendable` inside `@MainActor` tests. OHHTTPStubs calls them on a networking thread, and a main-actor closure crashes the test process there.
 - Give `TestStore`s that wait on stubbed requests an explicit timeout; the 1-second default is too short on CI runners.
 
 ## Verification

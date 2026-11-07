@@ -4,7 +4,7 @@ import OHHTTPStubs
 import OHHTTPStubsSwift
 @testable import LANreader
 
-final class ArchiveListHideReadTests: XCTestCase {
+final class ArchiveListHideReadTests: LANreaderTestCase {
     override func tearDown() {
         UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiUrl)
         UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiApiKey)

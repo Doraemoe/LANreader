@@ -1,7 +1,7 @@
 import XCTest
 @testable import LANreader
 
-final class ReaderPositioningInvariantTests: XCTestCase {
+final class ReaderPositioningInvariantTests: LANreaderTestCase {
     func testInitialPageIndexMatrix() {
         let cases: [InitialPageCase] = [
             .init("empty archive", 0, 0, false, false, .leftRight, false, 0),

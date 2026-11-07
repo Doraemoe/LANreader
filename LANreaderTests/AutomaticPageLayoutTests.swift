@@ -2,7 +2,7 @@ import ComposableArchitecture
 import XCTest
 @testable import LANreader
 
-final class AutomaticPageLayoutTests: XCTestCase {
+final class AutomaticPageLayoutTests: LANreaderTestCase {
     func testAutomaticLayoutUsesFittedPageWidthAndHysteresis() {
         for (size, enabled) in [
             (CGSize(width: 382, height: 644), false),

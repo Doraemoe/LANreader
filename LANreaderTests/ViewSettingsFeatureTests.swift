@@ -2,7 +2,7 @@ import XCTest
 import ComposableArchitecture
 @testable import LANreader
 
-final class ViewSettingsFeatureTests: XCTestCase {
+final class ViewSettingsFeatureTests: LANreaderTestCase {
     @MainActor
     func testPasscodeToggleOpensLockScreenOnlyWhenNoneIsShowing() async {
         let store = TestStore(initialState: ViewSettingsFeature.State()) {

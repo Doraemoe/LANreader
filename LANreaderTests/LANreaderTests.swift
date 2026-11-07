@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 import Darwin
 @testable import LANreader
 
-class LANreaderTests: XCTestCase {
+class LANreaderTests: LANreaderTestCase {
 
     private var tempDirectory: URL!
 

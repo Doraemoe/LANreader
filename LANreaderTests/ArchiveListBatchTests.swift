@@ -5,7 +5,7 @@ import OHHTTPStubs
 import OHHTTPStubsSwift
 @testable import LANreader
 
-final class ArchiveListBatchTests: XCTestCase {
+final class ArchiveListBatchTests: LANreaderTestCase {
     @MainActor
     func testCreateTankoubonRejectsSelectedTankoubon() async {
         var state = makePaginatedArchiveListState()
@@ -33,8 +33,10 @@ final class ArchiveListBatchTests: XCTestCase {
         state.archivesToDisplay = state.archives
         state.selectMode = .active
         state.selected = ["archive-0", "archive-2"]
+        let service = try await makeStubbedPageDownloadService(for: self, archiveIds: ["archive-0", "archive-2"])
         let store = TestStore(initialState: state) { ArchiveListFeature() } withDependencies: {
             $0.appDatabase = database
+            $0.lanraragiService = service
         }
         store.timeout = .seconds(5)
         store.exhaustivity = .off
@@ -284,7 +286,6 @@ final class ArchiveListBatchTests: XCTestCase {
         XCTAssertTrue(store.state.successMessage.isEmpty)
     }
     override func tearDownWithError() throws {
-        UserDefaults.resetStandardUserDefaults()
         HTTPStubs.removeAllStubs()
     }
 

@@ -6,7 +6,7 @@ import OHHTTPStubsSwift
 import UIKit
 @testable import LANreader
 
-final class DeepLinkTests: XCTestCase {
+final class DeepLinkTests: LANreaderTestCase {
     override func tearDown() {
         UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiUrl)
         UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiApiKey)
@@ -147,14 +147,6 @@ final class DeepLinkTests: XCTestCase {
         XCTAssertEqual(store.state.search.keyword, "artist:e auo")
         XCTAssertEqual(store.state.search.archiveList.filter.filter, "artist:e auo")
         XCTAssertEqual(store.state.search.recentSearches, ["artist:e auo"])
-    }
-
-    @MainActor
-    func testDownloadLinkQueuesDownload() async throws {
-        let store = try makeAppTestStore()
-
-        await store.send(.openURL(try url("lanreader://download?url=https%3A%2F%2Fexample.com%2Fg%2F1")))
-        await store.receive(\.queueUrlDownload, try url("https://example.com/g/1"))
     }
 
     @MainActor

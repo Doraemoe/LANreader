@@ -7,7 +7,7 @@ import SwiftUI
 import UIKit
 @testable import LANreader
 
-final class SearchFeatureTests: XCTestCase {
+final class SearchFeatureTests: LANreaderTestCase {
     func testSuggestionQueryKeepsSpacesInsideAPredicate() {
         XCTAssertEqual(SearchKeyword.suggestionQuery(in: "e auo"), "e auo")
         XCTAssertEqual(SearchKeyword.suggestionQuery(in: "artist:e au"), "artist:e au")
@@ -287,7 +287,6 @@ final class SearchFeatureTests: XCTestCase {
     @MainActor
     func testSearchClearedCancelsPendingResults() async throws {
         defer {
-            UserDefaults.resetStandardUserDefaults()
             HTTPStubs.removeAllStubs()
         }
         try await configureArchiveListTestClient()
