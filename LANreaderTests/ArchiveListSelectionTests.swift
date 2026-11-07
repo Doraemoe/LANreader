@@ -124,7 +124,7 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
     @MainActor
     func testPushedTagSearchCanSelectWhileNextPageLoads() async throws {
         // Entering selection mode loads categories for the batch menu when none are loaded yet.
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stub(condition: isHost("localhost") && isPath("/api/categories") && isMethodGET()) { @Sendable _ in
             HTTPStubsResponse(data: Data("[]".utf8), statusCode: 200, headers: ["Content-Type": "application/json"])
         }

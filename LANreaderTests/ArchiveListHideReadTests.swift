@@ -27,7 +27,7 @@ final class ArchiveListHideReadTests: LANreaderTestCase {
 
     @MainActor
     func testHideReadKeepsLoadingPastFullyReadPages() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubSearchPage(start: "0", archives: [("read-0", true), ("read-1", true)], total: 5)
         stubSearchPage(start: "2", archives: [("read-2", true), ("read-3", true)], total: 5)
         stubSearchPage(start: "4", archives: [("unread-4", false)], total: 5)
@@ -50,7 +50,7 @@ final class ArchiveListHideReadTests: LANreaderTestCase {
 
     @MainActor
     func testHideReadStopsAtTheEndWhenEveryArchiveIsRead() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubSearchPage(start: "0", archives: [("read-0", true), ("read-1", true)], total: 4)
         stubSearchPage(start: "2", archives: [("read-2", true), ("read-3", true)], total: 4)
         let store = TestStore(initialState: makeHideReadScrollState()) { ArchiveListFeature() }
@@ -70,7 +70,7 @@ final class ArchiveListHideReadTests: LANreaderTestCase {
 
     @MainActor
     func testTurningOnHideReadLoadsNextPageWhenArchivesAreHidden() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubSearchPage(start: "2", archives: [("unread-2", false), ("unread-3", false)], total: 4)
         var state = makeHideReadScrollState()
         state.$hideRead = Shared(value: false)
