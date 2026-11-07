@@ -203,7 +203,16 @@ final class UploadFeatureTests: LANreaderTestCase {
         await store.receive(\.jobStatusUpdated) {
             $0.jobDetails[7] = refreshedJob
         }
+
+        // Checking again replaces the running loop, so the next tick polls once, not twice.
+        let secondTask = await store.send(.checkJobStatus)
+        await store.receive(\.jobsLoaded)
+        await store.receive(\.jobStatusUpdated)
+        await clock.advance(by: .seconds(5))
+        await store.receive(\.jobsLoaded)
+        await store.receive(\.jobStatusUpdated)
         await task.cancel()
+        await secondTask.cancel()
     }
 
     private static func configuredService() async throws -> LANraragiService {
