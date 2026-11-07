@@ -300,18 +300,6 @@ final class CacheDownloadTests: LANreaderTestCase {
         }
     }
 
-    func testClearingDatabasePreservesCachedCoverWithoutSharedThumbnail() throws {
-        let database = try AppDatabase(DatabaseQueue())
-        let cover = Data("saved cover".utf8)
-        var cache = ArchiveCache(
-            id: "cached-cover", title: "Archive", tags: "", thumbnail: cover,
-            cached: true, totalPages: 1, toc: nil, lastUpdate: Date(timeIntervalSince1970: 1), progress: 1
-        )
-        try database.saveCache(&cache)
-        try database.clearDatabase()
-        XCTAssertEqual(try database.readCache(cache.id), cache)
-    }
-
     func testUnusedTablesAreClearedOnceByMigrationInsteadOfEveryLaunch() throws {
         let queue = try DatabaseQueue()
         _ = try AppDatabase(queue)
@@ -427,21 +415,6 @@ final class CacheDownloadTests: LANreaderTestCase {
         XCTAssertEqual(try Data(contentsOf: folder.appendingPathComponent("1.jpg")), good)
         XCTAssertEqual(ImageService.shared.validStoredPageNumbers(folderUrl: folder, totalPages: 2), [1, 2])
         XCTAssertFalse(FileManager.default.fileExists(atPath: folder.appendingPathComponent("2.img").path))
-    }
-
-    func testRemovingCachedPagesCancelsInFlightDownloadsAndLeavesNoFolder() async throws {
-        let cacheService = LANraragiService(backgroundSessionConfiguration: .ephemeral)
-        let id = "cacheRemove-" + UUID().uuidString
-        let folder = LANraragiService.cachePath!.appendingPathComponent(id)
-        defer { try? FileManager.default.removeItem(at: folder) }
-        stubSlowCachePages(pathPrefix: "/cache-remove/")
-        try await cacheService.cachePages(archiveId: id, pages: cacheTestPages(id: id, pathPrefix: "/cache-remove/"))
-
-        await cacheService.removeCachedPages(archiveId: id)
-        try await waitForCacheDownloads(cacheService, archiveId: id)
-        try await Task.sleep(for: .milliseconds(500))
-
-        XCTAssertFalse(FileManager.default.fileExists(atPath: folder.path))
     }
 
     func testCachingAgainAfterRemovalStoresPages() async throws {

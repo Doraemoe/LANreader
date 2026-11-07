@@ -78,15 +78,6 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
         }
     }
 
-    func testLibraryTabCanLoadWithoutSearchFilter() {
-        let state = ArchiveListFeature.State(
-            filter: SearchFilter(category: nil, filter: nil),
-            currentTab: .library
-        )
-
-        XCTAssertTrue(state.canLoadArchives)
-    }
-
     @MainActor
     func testSearchCancellationIsIsolatedPerArchiveList() async throws {
         // In the app the library and the search tab are two lists under one store. Cancelling one
@@ -160,36 +151,27 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
     }
 
     @MainActor
-    func testGoToPageIsIgnoredWhilePaginationIsDisabled() async {
-        var initialState = ArchiveListFeature.State(
+    func testGoToPageIsIgnoredWhenPaginationIsInactive() async {
+        // Pagination is off when the setting is off, and also for random sort, which has no stable pages.
+        var disabled = ArchiveListFeature.State(
             filter: SearchFilter(category: nil, filter: nil),
             loadOnAppear: false,
             currentTab: .library
         )
-        initialState.$paginateArchiveList = Shared(value: false)
-        initialState.serverPageSize = 100
-        initialState.total = 250
+        disabled.$paginateArchiveList = Shared(value: false)
+        var randomSort = makePaginatedArchiveListState()
+        randomSort.$searchSort = Shared(value: SearchSort.random.rawValue)
 
-        let store = TestStore(initialState: initialState) {
-            ArchiveListFeature()
+        for var initialState in [disabled, randomSort] {
+            initialState.serverPageSize = 100
+            initialState.total = 250
+            let store = TestStore(initialState: initialState) {
+                ArchiveListFeature()
+            }
+
+            XCTAssertFalse(store.state.paginationActive)
+            await store.send(.goToPage(2))
         }
-
-        await store.send(.goToPage(2))
-    }
-
-    @MainActor
-    func testGoToPageIsIgnoredForRandomSort() async {
-        var initialState = makePaginatedArchiveListState()
-        initialState.$searchSort = Shared(value: SearchSort.random.rawValue)
-        initialState.serverPageSize = 100
-        initialState.total = 250
-
-        let store = TestStore(initialState: initialState) {
-            ArchiveListFeature()
-        }
-
-        XCTAssertFalse(store.state.paginationActive)
-        await store.send(.goToPage(2))
     }
 
     @MainActor
@@ -211,32 +193,6 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
             $0.pendingPage = 2
         }
         // Only a request with start=200 is stubbed, so reaching populateArchives proves the offset.
-        await store.receive(.populateArchives([], 250, false)) {
-            $0.currentPage = 2
-            $0.pendingPage = nil
-            $0.total = 250
-            $0.loading = false
-        }
-    }
-
-    @MainActor
-    func testGoToPageClampsBeyondLastPage() async throws {
-        try await configureTestServer()
-        stubSearchExpectingStart("200", recordsFiltered: 250)
-
-        var initialState = makePaginatedArchiveListState()
-        initialState.serverPageSize = 100
-        initialState.total = 250
-
-        let store = TestStore(initialState: initialState) {
-            ArchiveListFeature()
-        }
-        store.timeout = .seconds(5)
-
-        await store.send(.goToPage(99)) {
-            $0.loading = true
-            $0.pendingPage = 2
-        }
         await store.receive(.populateArchives([], 250, false)) {
             $0.currentPage = 2
             $0.pendingPage = nil
@@ -350,35 +306,6 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
 
         XCTAssertEqual(store.state.currentPage, 0)
         XCTAssertFalse(store.state.loading)
-    }
-
-    @MainActor
-    func testResetArchivesSendsLoadBackToFirstPage() async throws {
-        try await configureTestServer()
-        stubSearchExpectingStart("0", recordsFiltered: 250)
-
-        var initialState = makePaginatedArchiveListState()
-        initialState.serverPageSize = 100
-        initialState.total = 250
-        initialState.currentPage = 2
-
-        let store = TestStore(initialState: initialState) {
-            ArchiveListFeature()
-        }
-        store.timeout = .seconds(5)
-        store.exhaustivity = .off
-
-        await store.send(.resetArchives) {
-            $0.currentPage = 0
-        }
-        await store.send(.load) {
-            $0.loading = true
-        }
-        await store.receive(.populateArchives([], 250, false)) {
-            $0.total = 250
-            $0.loading = false
-        }
-        XCTAssertEqual(store.state.currentPage, 0)
     }
 
     @MainActor

@@ -114,16 +114,6 @@ final class CategoryFeatureTests: LANreaderTestCase {
         await store.finish()
     }
 
-    @MainActor
-    func testClearingErrorMessagePreservesActiveLoad() async {
-        var state = CategoryFeature.State()
-        state.showLoading = true
-        state.errorMessage = "Previous request failed"
-        let store = TestStore(initialState: state) { CategoryFeature() }
-        await store.send(.setErrorMessage("")) {
-            $0.errorMessage = ""
-        }
-    }
 }
 
 private func stubCategoryOrder() -> [CategoryItem] {

@@ -141,12 +141,6 @@ actor LANraragiService {
         return true // versions are equal
     }
 
-    func retrieveArchiveIndex() async -> DataTask<[ArchiveIndexResponse]> {
-        session.request("\(url)/api/archives") { $0.timeoutInterval = 240 }
-            .validate()
-            .serializingDecodable([ArchiveIndexResponse].self)
-    }
-
     func retrieveArchiveThumbnail(id: String, page: Int = 0) async throws -> Data? {
         try await fetchArchiveThumbnail(id: id, page: page)
     }

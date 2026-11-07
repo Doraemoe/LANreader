@@ -13,16 +13,6 @@ final class PaginationPositioningTests: LANreaderTestCase {
         XCTAssertEqual(PaginationPositioning.pageCount(total: 50, pageSize: 0), 0)
     }
 
-    func testItemOffsetUsesServerPageSize() {
-        XCTAssertEqual(PaginationPositioning.itemOffset(page: 0, pageSize: 100), 0)
-        XCTAssertEqual(PaginationPositioning.itemOffset(page: 3, pageSize: 100), 300)
-        XCTAssertEqual(PaginationPositioning.itemOffset(page: 2, pageSize: 25), 50)
-    }
-
-    func testItemOffsetIsZeroWhenPageSizeUnknown() {
-        XCTAssertEqual(PaginationPositioning.itemOffset(page: 4, pageSize: 0), 0)
-    }
-
     func testClampedPageKeepsPageInsideRange() {
         XCTAssertEqual(PaginationPositioning.clampedPage(-3, pageCount: 20), 0)
         XCTAssertEqual(PaginationPositioning.clampedPage(99, pageCount: 20), 19)

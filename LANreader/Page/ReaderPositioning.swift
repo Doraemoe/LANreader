@@ -53,32 +53,18 @@ enum ReaderPositioning {
         return progress == archivePageCount
     }
 
+    /// The page index saved progress points at. Spreads are paired around it separately, when the
+    /// reader decides its layout.
     static func initialPageIndex(
         progress: Int,
         pageCount: Int,
         fromStart: Bool,
-        restartFinishedArchive: Bool = false,
-        readDirection: ReadDirection,
-        doublePageLayout: Bool,
-        spreadOffset: Int = 0
+        restartFinishedArchive: Bool = false
     ) -> Int {
         guard pageCount > 0 else { return 0 }
         let restart = fromStart || restartFinishedArchive
         let storedIndex = restart ? 0 : max(progress - 1, 0)
-        let clampedIndex = clampedPageIndex(storedIndex, pageCount: pageCount)
-        guard usesTrailingSpreadProgress(
-            readDirection: readDirection,
-            doublePageLayout: doublePageLayout
-        ) else {
-            return clampedIndex
-        }
-        return canonicalPageIndex(
-            forVisibleIndex: clampedIndex,
-            pageCount: pageCount,
-            readDirection: readDirection,
-            doublePageLayout: doublePageLayout,
-            spreadOffset: spreadOffset
-        )
+        return clampedPageIndex(storedIndex, pageCount: pageCount)
     }
 
     static func clampedPageIndex(_ index: Int, pageCount: Int) -> Int {
