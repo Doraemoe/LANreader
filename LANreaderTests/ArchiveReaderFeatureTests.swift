@@ -4,6 +4,7 @@ import GRDB
 import OHHTTPStubs
 import OHHTTPStubsSwift
 import os
+import UIKit.UIGestureRecognizerSubclass
 @testable import LANreader
 
 // swiftlint:disable type_body_length file_length
@@ -91,11 +92,11 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         XCTAssertNil(UIPageCell.fitWidthAspectRatio(for: CGSize(width: 0, height: 1_500)))
     }
 
-    func testStampPositionParsesNormalizedCoordinates() {
-        XCTAssertEqual(
-            ArchiveStampPosition(rawValue: " 12.5,100 "),
-            ArchiveStampPosition(rawValue: "12.5,100")
-        )
+    func testStampPositionParsesNormalizedCoordinates() throws {
+        let position = try XCTUnwrap(ArchiveStampPosition(rawValue: " 12.5,100 "))
+        XCTAssertEqual(position.horizontalPercentage, 12.5)
+        XCTAssertEqual(position.verticalPercentage, 100)
+        XCTAssertNotNil(ArchiveStampPosition(rawValue: "0,0"))
         XCTAssertNil(ArchiveStampPosition(rawValue: "-1,50"))
         XCTAssertNil(ArchiveStampPosition(rawValue: "50,101"))
         XCTAssertNil(ArchiveStampPosition(rawValue: "not-a-position"))
@@ -315,7 +316,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testPageLoadsStampsUsingSourceArchiveAndPage() async throws {
-        try await configureVerifiedClient()
+        try await configureTestServer()
         let stamp = ArchiveStamp(id: "stamp", position: "12,34", content: "Comment")
         stubArchiveStamps(archiveId: "source", page: 4)
         let store = TestStore(
@@ -343,7 +344,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testPageRetriesStampsAfterTransientFailure() async throws {
-        try await configureVerifiedClient()
+        try await configureTestServer()
         stubArchiveStampsFailure(archiveId: "archive", page: 1, statusCode: 500)
         let store = TestStore(
             initialState: PageFeature.State(
@@ -379,7 +380,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testPageDoesNotRetryUnavailableStampsEndpoint() async throws {
-        try await configureVerifiedClient()
+        try await configureTestServer()
         stubArchiveStampsFailure(archiveId: "archive", page: 1, statusCode: 404)
         let store = TestStore(
             initialState: PageFeature.State(
@@ -405,11 +406,12 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testCreateStampUsesSourcePageAndShowsRefreshedStamps() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let position = ArchiveStampPosition(rawValue: "25,30")!
         let stamp = ArchiveStamp(id: "created-stamp", position: position.rawValue, content: "New comment")
-        stubAddArchiveStamp(archiveId: "source", page: 4, content: "New comment", position: position.rawValue)
+        // The exact value the server receives, rather than the app's own formatter.
+        stubAddArchiveStamp(archiveId: "source", page: 4, content: "New comment", position: "25.0,30.0")
         stubArchiveStamps(archiveId: "source", page: 4, stamps: [stamp])
 
         var initialState = makeState(archiveId: "TANK_test")
@@ -460,7 +462,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testAddChapterUsesCurrentSourcePageAndUpdatesTankoubonChapters() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_test"
         let existingChapter = ArchiveChapter(name: "Earlier", page: 2)
@@ -512,7 +514,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testEditChapterUsesOriginalSourcePageAndUpdatesTitle() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_test"
         let chapter = ArchiveChapter(name: "Original", page: 8)
@@ -562,7 +564,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testEditChapterFailureRestoresDraft() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let chapter = ArchiveChapter(name: "Original", page: 4)
         stubAddArchiveChapter(archiveId: "archive", page: 4, title: "Updated", success: 0)
@@ -606,7 +608,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testDeleteChapterUsesOriginalSourcePageAndRemovesChapter() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_test"
         let chapter = ArchiveChapter(name: "Delete me", page: 8)
@@ -652,7 +654,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testDeleteFirstPageTankoubonChapterRestoresAutomaticChapter() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_test"
         let manualChapter = ArchiveChapter(name: "Manual", page: 3)
@@ -703,7 +705,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testDeleteChapterFailureRestoresEdit() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let chapter = ArchiveChapter(name: "Keep me", page: 4)
         stubDeleteArchiveChapter(archiveId: "archive", page: 4, success: 0)
@@ -790,7 +792,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testEditStampUpdatesExistingStampText() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let stamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Original text")
         stubUpdateArchiveStamp(stampId: "stamp", content: "Updated text")
@@ -845,7 +847,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testDeleteStampRemovesExistingStamp() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let stamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Delete me")
         stubDeleteArchiveStamp(stampId: "stamp")
@@ -880,7 +882,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testCreateStampFailureRestoresDraft() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let position = ArchiveStampPosition(rawValue: "25,30")!
         stubAddArchiveStamp(
@@ -923,7 +925,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testEditStampFailureRestoresDraft() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let stamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Original text")
         stubUpdateArchiveStamp(stampId: "stamp", content: "Keep edit", success: 0)
@@ -962,7 +964,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testDeleteStampFailureRestoresEditor() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let stamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Keep stamp")
         stubDeleteArchiveStamp(stampId: "stamp", success: 0)
@@ -1103,6 +1105,10 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testUIPageLongPressRequestsStampAtRenderedImagePosition() async throws {
         configureReaderDefaults()
+        let imageURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("stamp-wide-\(UUID().uuidString).png")
+        try makeReaderPageData(size: CGSize(width: 1_000, height: 500)).write(to: imageURL)
+        defer { try? FileManager.default.removeItem(at: imageURL) }
 
         var initialState = makeState(progress: 1)
         var page = PageFeature.State(
@@ -1112,6 +1118,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             pageMode: .normal
         )
         page.imageLoaded = true
+        page.storedImageURL = imageURL
         initialState.pages = [page]
 
         let store = Store(initialState: initialState) {
@@ -1129,14 +1136,17 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         controller.collectionView.layoutIfNeeded()
 
         let cell = try XCTUnwrap(controller.collectionView.visibleCells.first as? UIPageCell)
-        cell.requestStampCreation(at: CGPoint(x: cell.bounds.midX, y: cell.bounds.midY))
+        // A 2:1 image fills the 320pt width and is 160pt tall, centred at y 160–320. A press at (80, 200)
+        // is a quarter of the way across and down the image, not of the whole cell.
+        XCTAssertEqual(disabledLongPressCount(in: cell), 0)
+        cell.requestStampCreation(at: CGPoint(x: 80, y: 200))
 
         XCTAssertEqual(
             store.stampCreationTarget,
             StampCreationTarget(
                 sourceArchiveId: "archive",
                 sourcePageNumber: 1,
-                position: ArchiveStampPosition(rawValue: "50,50")!
+                position: ArchiveStampPosition(rawValue: "25,25")!
             )
         )
     }
@@ -1171,6 +1181,8 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         controller.collectionView.layoutIfNeeded()
 
         let cell = try XCTUnwrap(controller.collectionView.visibleCells.first as? UIPageCell)
+        // The cell turns its own stamp long-press off; the supported-server test expects none disabled.
+        XCTAssertEqual(disabledLongPressCount(in: cell), 1)
         cell.requestStampCreation(at: CGPoint(x: cell.bounds.midX, y: cell.bounds.midY))
 
         XCTAssertNil(store.stampCreationTarget)
@@ -1212,7 +1224,14 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         )
         XCTAssertTrue(cell.hitTest(expandedHitPoint, with: nil) === marker)
 
-        cell.requestStampEditing(for: stamp)
+        // Run the marker's own long-press handler, which looks the stamp up from the marker.
+        let longPress = try XCTUnwrap(
+            marker.gestureRecognizers?.compactMap { $0 as? UILongPressGestureRecognizer }.first
+        )
+        longPress.state = .began
+        let overlay = try XCTUnwrap(marker.superview)
+        _ = overlay.perform(NSSelectorFromString("handleStampLongPress:"), with: longPress)
+        await Task.yield()
 
         XCTAssertEqual(
             store.stampEditingTarget,
@@ -1228,7 +1247,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testUIPageCollectionShowsLoadsAndClearsStampComments() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
         stubArchiveStamps(archiveId: "archive", page: 1)
 
         var initialState = makeState(progress: 1)
@@ -1324,18 +1343,24 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     }
 
     func testSliderPreviewLayoutTracksReaderSize() {
+        // A phone in portrait gets the standard bubble.
         XCTAssertEqual(
             ReaderPageLayout.sliderPreviewBubbleLayout(readerSize: CGSize(width: 390, height: 844)),
             ReaderPageLayout.SliderPreviewBubbleLayout(width: 176, imageHeight: 248, rowHeight: 300)
         )
-        XCTAssertEqual(
-            ReaderPageLayout.sliderPreviewBubbleLayout(readerSize: CGSize(width: 834, height: 1_194)),
-            ReaderPageLayout.SliderPreviewBubbleLayout(width: 267, imageHeight: 377, rowHeight: 429)
-        )
-        XCTAssertEqual(
-            ReaderPageLayout.sliderPreviewBubbleLayout(readerSize: CGSize(width: 844, height: 390)),
-            ReaderPageLayout.SliderPreviewBubbleLayout(width: 138, imageHeight: 195, rowHeight: 247)
-        )
+        // On any screen the bubble fits beside the side margins, takes at most half the height and
+        // keeps the page shape.
+        let sizes = [
+            CGSize(width: 320, height: 568), CGSize(width: 844, height: 390), CGSize(width: 382, height: 644),
+            CGSize(width: 834, height: 1_194), CGSize(width: 1_366, height: 1_024), CGSize(width: 590, height: 790)
+        ]
+        for size in sizes {
+            let layout = ReaderPageLayout.sliderPreviewBubbleLayout(readerSize: size)
+            XCTAssertLessThanOrEqual(layout.width, size.width - 48, "\(size)")
+            XCTAssertLessThanOrEqual(layout.imageHeight, size.height / 2 + 1, "\(size)")
+            XCTAssertEqual(layout.imageHeight / layout.width, 248 / 176, accuracy: 0.02, "\(size)")
+            XCTAssertEqual(layout.rowHeight, layout.imageHeight + 52, "\(size)")
+        }
     }
 
     func testReaderPositioningFinishedMath() {
@@ -1946,10 +1971,46 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         }
     }
 
+    /// Older servers are still supported: they extract through `POST /extract`, and the reader hides
+    /// stamps and chapter editing instead of offering features the server can't handle.
+    @MainActor
+    func testOldServerExtractsWithLegacyEndpointAndHidesStampsAndChapterEditing() async throws {
+        configureReaderDefaults()
+        try await configureReadyThumbnailQueue()
+        try await configureTestServer(version: TestServer.legacyVersion)
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/archive/extract")
+                && isMethodPOST()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { @Sendable _ in
+            HTTPStubsResponse(
+                jsonObject: ["pages": [
+                    "./api/archives/archive/page?path=1.jpg",
+                    "./api/archives/archive/page?path=2.jpg"
+                ]],
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+        let database = try makeInMemoryDatabase()
+        let store = makeTestStore(initialState: makeState(progress: 1)) {
+            $0.appDatabase = database
+        }
+        store.exhaustivity = .off
+
+        await store.send(.extractArchive)
+        await store.receive(.stampsSupportResolved(false))
+        await store.receive(.chapterMutationSupportResolved(false))
+        await store.receive(\.finishExtracting)
+
+        XCTAssertEqual(store.state.pages.map(\.pageNumber), [1, 2])
+        XCTAssertFalse(store.state.canUseStamps)
+        XCTAssertFalse(store.state.canAddChapter)
+    }
+
     @MainActor
     func testExtractTankoubonExtractsUnderlyingArchivesAndAggregatesManualAndDefaultChapters() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_1783084742"
         let sourceArchives = makeTankSourceArchives(secondPageCount: 2)
@@ -1968,8 +2029,8 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         }
 
         await store.send(.extractArchive) { $0.extracting = true }
-        await store.receive(.stampsSupportResolved(false)) { $0.stampsSupported = false }
-        await store.receive(.chapterMutationSupportResolved(false)) { $0.chapterMutationsSupported = false }
+        await store.receive(.stampsSupportResolved(true)) { $0.stampsSupported = true }
+        await store.receive(.chapterMutationSupportResolved(true)) { $0.chapterMutationsSupported = true }
         await store.receive(
             .finishExtracting(
                 extractedPages,
@@ -2006,7 +2067,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testPrepareTankSliderPreviewThumbnailsQueuesAllUnderlyingArchives() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_1783084742"
         let sourceArchives = makeTankSourceArchives()
@@ -2027,7 +2088,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testSetThumbnailUsesArchiveEndpointForNormalArchive() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let archiveId = "archive"
         let thumbnailData = Data([0xFF, 0xD8, 0xFF, 0xDB])
@@ -2062,7 +2123,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testSetThumbnailUsesTankoubonEndpointForTankArchive() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_1783084742"
         let sourceArchives = makeTankSourceArchives()
@@ -2166,7 +2227,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testRapidPageTurnsSendNewFlagBeforeProgressDebounce() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let clock = TestClock()
         let flagSent = expectation(description: "new flag request sent")
@@ -2180,6 +2241,10 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         }
         let progressUpdated = expectation(description: "latest progress updated")
         stubArchiveProgressUpdate(archiveId: "archive", progress: 3, expectation: progressUpdated)
+        stub(condition: isHost("localhost") && isPath("/api/archives/archive/progress/2")) { @Sendable _ in
+            XCTFail("Progress for a page turned past within the debounce must not be sent")
+            return HTTPStubsResponse(data: Data(), statusCode: 500, headers: nil)
+        }
 
         var initialState = makeState(isNew: true)
         initialState.pages = makePageStates(count: 4)
@@ -2212,7 +2277,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testVisiblePageChangedUsesArchiveProgressEndpointForNormalArchive() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let clock = TestClock()
         let progressUpdated = expectation(description: "archive progress updated")
@@ -2242,7 +2307,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testVisiblePageChangedUsesGlobalTankProgressEndpointForTankArchive() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_1783084742"
         let sourceArchives = makeTankSourceArchives(secondPageCount: 2)
@@ -2775,6 +2840,8 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             ]
         }
         await store.finish()
+        // Checked directly too: the expected state above is built with the same conversion it tests.
+        XCTAssertEqual(store.state.archives.first?.archive.toc, chapters)
     }
 
     @MainActor
@@ -2966,7 +3033,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testFailedReloadOfSplitHalfRestoresSibling() async throws {
-        try await configureVerifiedClient()
+        try await configureTestServer()
         configureReaderDefaults(splitWideImage: true)
         let archiveId = "reload-split-failure"
         stubReaderPageFailure(path: "/1")
@@ -2985,7 +3052,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testReloadingSplitHalfThatIsNoLongerWideCollapsesToOnePage() async throws {
-        try await configureVerifiedClient()
+        try await configureTestServer()
         configureReaderDefaults(splitWideImage: true)
         let archiveId = "reload-split-narrow"
         let folder = try XCTUnwrap(LANraragiService.downloadPath)
@@ -3010,7 +3077,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         file: StaticString = #filePath,
         line: UInt = #line
     ) async throws {
-        try await configureVerifiedClient()
+        try await configureTestServer()
         configureReaderDefaults(splitWideImage: true, splitPiorityLeft: priorityLeft)
         let archiveId = "reload-split-\(priorityLeft ? "left" : "right")"
         let folder = try XCTUnwrap(LANraragiService.downloadPath)
@@ -3418,7 +3485,9 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         configureReaderDefaults()
         var initialState = makeState(progress: 2)
         initialState.pages = makeDisplayedPageStates(count: 4)
-        initialState.scrollRequest = ScrollRequest(targetPageIndex: 1, source: .slider, animated: false)
+        // As when an archive opens: the restored page is already current and waits to be scrolled to.
+        initialState.currentPageIndex = 1
+        initialState.scrollRequest = ScrollRequest(targetPageIndex: 1, source: .initialRestore, animated: false)
 
         let store = Store(initialState: initialState) {
             ArchiveReaderFeature()
@@ -3427,12 +3496,16 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         }
         let controller = UIPageCollectionController(store: store)
 
-        controller.loadViewIfNeeded()
+        // Setting the frame loads the view at its real size, so the request is consumed at that size.
+        controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 480)
+        controller.view.layoutIfNeeded()
         await Task.yield()
         await Task.yield()
         await waitForScrollRequestToFinish(store)
 
         XCTAssertNil(store.scrollRequest)
+        XCTAssertEqual(controller.collectionView.contentOffset.x, 320, accuracy: 1)
+        XCTAssertEqual(store.currentPageIndex, 1)
     }
 
     @MainActor
@@ -3534,17 +3607,20 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testUIPageCollectionPreloadsNextPageInVerticalReader() async throws {
         configureReaderDefaults(readDirection: .upDown)
+        // Pages are 448pt tall at this width, so in a 440pt viewport page 3 is not on screen and only
+        // the preload can load it.
         let (store, controller) = try makeInitialRestoreReader(
             archiveId: "vertical-preload",
             pageCount: 4,
             targetPageIndex: 1,
-            readDirection: .upDown
+            readDirection: .upDown,
+            viewSize: CGSize(width: 320, height: 440)
         )
         await waitForScrollRequestToFinish(store)
         await waitForPageToLoad(store, pageId: "3-normal")
 
+        XCTAssertFalse(controller.collectionView.indexPathsForVisibleItems.contains(IndexPath(item: 2, section: 0)))
         XCTAssertTrue(store.pages[id: "3-normal"]?.imageLoaded == true)
-        _ = controller
     }
 
     @MainActor
@@ -4179,30 +4255,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
     func testResetStateClearsTransientReaderState() {
         configureReaderDefaults()
-        var state = makeState(
-            archiveId: "one",
-            progress: 2,
-            allArchives: [
-                makeArchive(id: "one", progress: 2),
-                makeArchive(id: "two", progress: 4)
-            ]
-        )
-        state.pages = makePageStates(count: 3, archiveId: "one")
-        state.currentPageIndex = 2
-        state.spreadPairingOffset = 1
-        state.fromStart = true
-        state.scrollRequest = ScrollRequest(targetPageIndex: 2, source: .slider, animated: false)
-        state.inCache = true
-        state.errorMessage = "error"
-        state.successMessage = "success"
-        state.sliderDraftIndex = 1
-        state.sliderDragging = true
-        state.sliderPreviewVisible = true
-        state.sliderPreviewPageIndex = 1
-        state.sliderPreviewImageURL = URL(fileURLWithPath: "/tmp/preview.jpg")
-        state.sliderPreviewLoading = true
-        state.sliderThumbnailJobsById = [42: "archive"]
-        state.sliderReadyThumbnailPages = Set([1, 2])
+        var state = makeDirtyReaderState()
 
         ArchiveReaderFeature().resetState(state: &state)
 
@@ -4222,6 +4275,19 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         XCTAssertFalse(state.sliderPreviewLoading)
         XCTAssertTrue(state.sliderThumbnailJobsById.isEmpty)
         XCTAssertTrue(state.sliderReadyThumbnailPages.isEmpty)
+        XCTAssertNil(state.spreadAnchorPageIndex)
+        XCTAssertFalse(state.collectionScrolling)
+        XCTAssertTrue(state.pendingSplitResolutions.isEmpty)
+        XCTAssertEqual(state.estimatedPageAspectRatio, ReaderPageLayout.defaultAspectRatio)
+        XCTAssertNil(state.stampCreationTarget)
+        XCTAssertEqual(state.stampComment, "")
+        XCTAssertNil(state.stampEditingTarget)
+        XCTAssertEqual(state.stampEditText, "")
+        XCTAssertFalse(state.stampRequestInFlight)
+        XCTAssertNil(state.chapterCreationTarget)
+        XCTAssertNil(state.chapterEditingTarget)
+        XCTAssertEqual(state.chapterTitle, "")
+        XCTAssertFalse(state.chapterRequestInFlight)
     }
 
     @MainActor
@@ -4370,7 +4436,8 @@ private func makeInitialRestoreReader(
     pageCount: Int,
     targetPageIndex: Int,
     readDirection: ReadDirection = .leftRight,
-    doublePageLayout: Bool = false
+    doublePageLayout: Bool = false,
+    viewSize: CGSize = CGSize(width: 320, height: 480)
 ) throws -> (StoreOf<ArchiveReaderFeature>, UIPageCollectionController) {
     var initialState = makeState(
         archiveId: archiveId,
@@ -4406,7 +4473,7 @@ private func makeInitialRestoreReader(
     let controller = UIPageCollectionController(store: store)
     controller.loadViewIfNeeded()
     controller.collectionView.isPrefetchingEnabled = false
-    controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 480)
+    controller.view.frame = CGRect(origin: .zero, size: viewSize)
     controller.view.layoutIfNeeded()
     return (store, controller)
 }
@@ -4502,42 +4569,10 @@ private func configureReaderDefaults(
     UserDefaults.standard.set(restartFinished, forKey: SettingsKey.restartFinished)
 }
 
-private func configureVerifiedClient() async throws {
-    let url = "https://localhost"
-    let apiKey = "apiKey"
-    UserDefaults.standard.set(url, forKey: SettingsKey.lanraragiUrl)
-    UserDefaults.standard.set(apiKey, forKey: SettingsKey.lanraragiApiKey)
-
-    stub(condition: isHost("localhost")
-            && isPath("/api/info")
-            && isMethodGET()
-            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-        HTTPStubsResponse(
-            data: Data("""
-            {
-              "archives_per_page": 100,
-              "debug_mode": false,
-              "has_password": true,
-              "motd": "",
-              "name": "LANraragi",
-              "nofun_mode": false,
-              "server_tracks_progress": true,
-              "version": "0.9.30",
-              "version_name": "Law (Earthlings On Fire)"
-            }
-            """.utf8),
-            statusCode: 200,
-            headers: ["Content-Type": "application/json"]
-        )
-    }
-
-    _ = try await LANraragiService.shared.verifyClient(url: url, apiKey: apiKey)
-}
-
 private func configureReadyThumbnailQueue(
     archiveId: String = "archive"
 ) async throws {
-    try await configureVerifiedClient()
+    try await configureTestServer()
 
     stubReadyThumbnailQueue(archiveId: archiveId)
 }
@@ -4596,7 +4631,7 @@ private func stubReadyThumbnailQueue(
 private func configureFinishedThumbnailPolling(
     jobId: Int
 ) async throws {
-    try await configureVerifiedClient()
+    try await configureTestServer()
 
     stub(condition: isHost("localhost")
             && isPath("/api/minion/\(jobId)")
@@ -4616,9 +4651,10 @@ private func configureFinishedThumbnailPolling(
     }
 }
 
-private func stubArchiveThumbnailUpdate(archiveId: String, page _: Int) {
+private func stubArchiveThumbnailUpdate(archiveId: String, page: Int) {
     stub(condition: isHost("localhost")
             && isPath("/api/archives/\(archiveId)/thumbnail")
+            && containsQueryParams(["page": "\(page)"])
             && isMethodPUT()
             && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
         HTTPStubsResponse(data: Data("OK".utf8), statusCode: 200, headers: nil)
@@ -5015,8 +5051,8 @@ private func stubExtractArchive(archiveId: String, pages: [String]) {
         .joined(separator: ",")
 
     stub(condition: isHost("localhost")
-            && isPath("/api/archives/\(archiveId)/extract")
-            && isMethodPOST()) { _ in
+            && isPath("/api/archives/\(archiveId)/files")
+            && isMethodGET()) { _ in
         HTTPStubsResponse(
             data: Data("{\"pages\":[\(pageBody)]}".utf8),
             statusCode: 200,
@@ -5176,6 +5212,66 @@ private func stubDeleteArchiveStamp(stampId: String, success: Int = 1) {
             headers: ["Content-Type": "application/json"]
         )
     }
+}
+
+private func allGestureRecognizers(in view: UIView) -> [UIGestureRecognizer] {
+    (view.gestureRecognizers ?? []) + view.subviews.flatMap(allGestureRecognizers(in:))
+}
+
+/// Counts disabled plain long-press recognizers, which is how a page cell turns stamp creation off.
+@MainActor
+private func disabledLongPressCount(in cell: UIView) -> Int {
+    allGestureRecognizers(in: cell)
+        .filter { type(of: $0) == UILongPressGestureRecognizer.self && !$0.isEnabled }
+        .count
+}
+
+/// A reader state with every transient field set, for checking that switching archives clears it.
+private func makeDirtyReaderState() -> ArchiveReaderFeature.State {
+    var state = makeState(
+        archiveId: "one",
+        progress: 2,
+        allArchives: [
+            makeArchive(id: "one", progress: 2),
+            makeArchive(id: "two", progress: 4)
+        ]
+    )
+    state.pages = makePageStates(count: 3, archiveId: "one")
+    state.currentPageIndex = 2
+    state.spreadPairingOffset = 1
+    state.fromStart = true
+    state.scrollRequest = ScrollRequest(targetPageIndex: 2, source: .slider, animated: false)
+    state.inCache = true
+    state.errorMessage = "error"
+    state.successMessage = "success"
+    state.sliderDraftIndex = 1
+    state.sliderDragging = true
+    state.sliderPreviewVisible = true
+    state.sliderPreviewPageIndex = 1
+    state.sliderPreviewImageURL = URL(fileURLWithPath: "/tmp/preview.jpg")
+    state.sliderPreviewLoading = true
+    state.sliderThumbnailJobsById = [42: "archive"]
+    state.sliderReadyThumbnailPages = Set([1, 2])
+    state.spreadAnchorPageIndex = 2
+    state.collectionScrolling = true
+    state.pendingSplitResolutions = ["1": true]
+    state.estimatedPageAspectRatio = 2
+    let target = ChapterMutationTarget(
+        readerArchiveId: "one", readerPageNumber: 3, sourceArchiveId: "one", sourcePageNumber: 3
+    )
+    state.stampCreationTarget = StampCreationTarget(
+        sourceArchiveId: "one", sourcePageNumber: 3,
+        position: ArchiveStampPosition(horizontalPercentage: 10, verticalPercentage: 20)
+    )
+    state.stampComment = "draft"
+    state.stampEditingTarget = StampEditingTarget(stampId: "stamp", sourceArchiveId: "one", sourcePageNumber: 3)
+    state.stampEditText = "edit"
+    state.stampRequestInFlight = true
+    state.chapterCreationTarget = target
+    state.chapterEditingTarget = target
+    state.chapterTitle = "Chapter"
+    state.chapterRequestInFlight = true
+    return state
 }
 
 /// Pages that already show an image, for UIKit tests: a page still in `.loading` downloads its image

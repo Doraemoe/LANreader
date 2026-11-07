@@ -289,7 +289,7 @@ final class SearchFeatureTests: LANreaderTestCase {
         defer {
             HTTPStubs.removeAllStubs()
         }
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         let requested = expectation(description: "Search request started")
         stub(condition: isHost("localhost") && isPath("/api/search")) { @Sendable _ in
             requested.fulfill()
@@ -372,15 +372,15 @@ final class SearchFeatureTests: LANreaderTestCase {
     @MainActor
     func testSearchTabShowsRecentSearchesAndRunsTappedSearch() async throws {
         UserDefaults.standard.set("https://localhost", forKey: SettingsKey.lanraragiUrl)
-        defer {
-            UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiUrl)
-            HTTPStubs.removeAllStubs()
-        }
         stub(condition: isPath("/api/search")) { @Sendable _ in
             HTTPStubsResponse(
                 data: Data(#"{"data":[],"recordsFiltered":0,"recordsTotal":0}"#.utf8),
                 statusCode: 200, headers: ["Content-Type": "application/json"]
             )
+        }
+        // The first load of the day also refreshes the tag list used for suggestions.
+        stub(condition: isPath("/api/database/stats")) { @Sendable _ in
+            HTTPStubsResponse(data: Data("[]".utf8), statusCode: 200, headers: ["Content-Type": "application/json"])
         }
         let database = try AppDatabase(DatabaseQueue())
         try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
@@ -414,6 +414,11 @@ final class SearchFeatureTests: LANreaderTestCase {
         XCTAssertEqual(store.keyword, "artist:a$")
         XCTAssertEqual(store.archiveList.filter.filter, "artist:a$")
         XCTAssertTrue(recent.view.isHidden)
+        // Let the tapped search finish while its stub is still installed.
+        for _ in 0..<500 where store.archiveList.loading {
+            try? await Task<Never, Never>.sleep(for: .milliseconds(10))
+        }
+        XCTAssertFalse(store.archiveList.loading)
     }
 
     @MainActor

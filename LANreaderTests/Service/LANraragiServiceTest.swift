@@ -2,6 +2,7 @@
 // Created on 7/10/20.
 //
 
+import Alamofire
 import XCTest
 import OHHTTPStubs
 import OHHTTPStubsSwift
@@ -30,33 +31,49 @@ class LANraragiServiceTest: LANreaderTestCase {
     }
 
     func testGetServerInfo() async throws {
+        // Verification signs the request with the key being entered, not the one already saved.
         stub(condition: isHost("localhost")
                 && isPath("/api/info")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+                && hasHeaderNamed("Authorization", value: "Bearer bmV3S2V5")) { _ in
             HTTPStubsResponse(
                     fileAtPath: OHPathForFile("ServerInfoResponse.json", type(of: self))!,
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let actual = try await service.verifyClient(url: url, apiKey: apiKey)
+        let actual = try await service.verifyClient(url: url, apiKey: "newKey")
         XCTAssertEqual(actual.archivesPerPage, 100)
         XCTAssertEqual(actual.debugMode, false)
         XCTAssertEqual(actual.hasPassword, true)
     }
 
     func testGetServerInfoUnauthorized() async throws {
-        stub(condition: isHost("localhost")
+        try await configureVerifiedClient()
+        stub(condition: isHost("other.example")
                 && isPath("/api/info")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+                && hasHeaderNamed("Authorization", value: "Bearer d3JvbmdLZXk=")) { _ in
             HTTPStubsResponse(
                     fileAtPath: OHPathForFile("UnauthorizedResponse.json", type(of: self))!,
                     statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
-        let actual = try? await service.verifyClient(url: url, apiKey: apiKey)
-        XCTAssertNil(actual)
+        do {
+            _ = try await service.verifyClient(url: "https://other.example", apiKey: "wrongKey")
+            XCTFail("Expected an unauthorized server to fail verification")
+        } catch {
+            XCTAssertEqual((error as? AFError)?.responseCode, 401)
+        }
+
+        // A failed verification keeps using the server and key that already work.
+        stub(condition: isHost("localhost")
+                && isPath("/api/categories")
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(data: Data("[]".utf8), statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+        let categories = try await service.retrieveCategories().value
+        XCTAssertTrue(categories.isEmpty)
     }
 
     func testStampSupportStartsWithServerVersionZeroNineEighty() async {
@@ -505,7 +522,10 @@ class LANraragiServiceTest: LANreaderTestCase {
 
         stub(condition: isHost("localhost")
                 && isPath("/api/search")
-                && containsQueryParams(["category": "SET_12345678"])
+                && hasExactQuery([
+                    "category": "SET_12345678", "filter": "artist:test", "start": "100",
+                    "sortby": "date_added", "order": "desc", "groupby_tanks": "true"
+                ])
                 && isMethodGET()
                 && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(
@@ -513,7 +533,10 @@ class LANraragiServiceTest: LANreaderTestCase {
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let actual = try await service.searchArchive(category: "SET_12345678").value
+        let actual = try await service.searchArchive(
+            category: "SET_12345678", filter: "artist:test", start: "100",
+            sortby: "date_added", order: "desc", groupByTanks: true
+        ).value
         XCTAssertNotNil(actual)
         XCTAssertEqual(actual.data.count, 1)
         XCTAssertEqual(actual.draw, 0)
@@ -601,7 +624,10 @@ class LANraragiServiceTest: LANreaderTestCase {
           "progress": 3
         }
         """.utf8)
-        stub(condition: isHost("localhost") && isPath("/api/tankoubons/\(tankId)")) { _ in
+        stub(condition: isHost("localhost")
+                && isPath("/api/tankoubons/\(tankId)")
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(data: tankBody, statusCode: 200, headers: nil)
         }
 
@@ -691,12 +717,16 @@ class LANraragiServiceTest: LANreaderTestCase {
 
         stub(condition: isHost("localhost")
                 && isPath("/api/tankoubons/\(tankId)/full")
-                && containsQueryParams(["page": "-1"])) { _ in
+                && containsQueryParams(["page": "-1"])
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(data: fullBody, statusCode: 200, headers: nil)
         }
         stub(condition: isHost("localhost")
                 && isPath("/api/tankoubons/\(tankId)/thumbnail")
-                && containsQueryParams(["no_fallback": "true"])) { _ in
+                && containsQueryParams(["no_fallback": "true"])
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(data: imageData, statusCode: 200, headers: ["Content-Type": "image/jpeg"])
         }
 
@@ -716,12 +746,17 @@ class LANraragiServiceTest: LANreaderTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/tankoubons/\(tankId)")
                 && isMethodPUT()
-                && hasHeaderNamed("Content-Type", value: "application/json")) { _ in
+                && hasHeaderNamed("Content-Type", value: "application/json")
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")
+                && hasJSONBody([
+                    "metadata": ["name": "Tank", "summary": "Summary", "tags": "artist:test", "append": false]
+                ])) { _ in
             HTTPStubsResponse(data: successBody, statusCode: 200, headers: nil)
         }
         stub(condition: isHost("localhost")
                 && isPath("/api/tankoubons/\(tankId)")
-                && isMethodDELETE()) { _ in
+                && isMethodDELETE()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(data: successBody, statusCode: 200, headers: nil)
         }
 
@@ -745,11 +780,15 @@ class LANraragiServiceTest: LANreaderTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/tankoubons/\(tankId)/thumbnail")
                 && containsQueryParams(["page": "4"])
-                && isMethodPUT()) { _ in
+                && isMethodPUT()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             let body = Data("{ \"operation\": \"update_tankoubon_thumbnail\", \"success\": 1 }".utf8)
             return HTTPStubsResponse(data: body, statusCode: 200, headers: nil)
         }
-        stub(condition: isHost("localhost") && isPath("/api/tankoubons/\(tankId)/progress/5")) { _ in
+        stub(condition: isHost("localhost")
+                && isPath("/api/tankoubons/\(tankId)/progress/5")
+                && isMethodPUT()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             let body = Data("""
             { "id": "\(tankId)", "operation": "update_tank_progress",
               "page": 5, "lastreadtime": 123943543, "success": 1 }
@@ -814,8 +853,8 @@ class LANraragiServiceTest: LANreaderTestCase {
         try await configureVerifiedClient()
 
         stub(condition: isHost("localhost")
-                && isPath("/api/archives/1/extract")
-                && isMethodPOST()
+                && isPath("/api/archives/1/files")
+                && isMethodGET()
                 && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(
                     fileAtPath: OHPathForFile("ArchiveExtractResponse.json", type(of: self))!, statusCode: 200,
@@ -828,12 +867,28 @@ class LANraragiServiceTest: LANreaderTestCase {
         XCTAssertEqual(actual.pages[0], "./api/archives/abc123/page?path=def456/001.jpg")
     }
 
-    func testExtractArchiveUnauthorized() async throws {
-        try await configureVerifiedClient()
+    func testExtractArchiveUsesLegacyEndpointOnOldServers() async throws {
+        try await configureTestServer(version: TestServer.legacyVersion)
 
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/1/extract")
                 && isMethodPOST()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    fileAtPath: OHPathForFile("ArchiveExtractResponse.json", type(of: self))!, statusCode: 200,
+                    headers: ["Content-Type": "application/json"])
+        }
+
+        let actual = try await service.extractArchive(id: "1").value
+        XCTAssertEqual(actual.pages, ["./api/archives/abc123/page?path=def456/001.jpg"])
+    }
+
+    func testExtractArchiveUnauthorized() async throws {
+        try await configureVerifiedClient()
+
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/1/files")
+                && isMethodGET()
                 && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(
                     fileAtPath: OHPathForFile("UnauthorizedResponse.json", type(of: self))!,
@@ -1068,5 +1123,28 @@ class LANraragiServiceTest: LANreaderTestCase {
         _ = try await service.verifyClient(url: url, apiKey: apiKey)
     }
 
+}
+
+/// Matches only when the query has exactly these items, so a missing or extra parameter fails.
+private func hasExactQuery(_ expected: [String: String]) -> HTTPStubsTestBlock {
+    { request in
+        guard let url = request.url,
+              let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems else {
+            return expected.isEmpty
+        }
+        let actual = Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { first, _ in first })
+        return items.count == expected.count && actual == expected
+    }
+}
+
+/// Matches only when the JSON body equals `expected`, ignoring key order.
+private func hasJSONBody(_ expected: [String: Any]) -> HTTPStubsTestBlock {
+    { request in
+        guard let body = request.ohhttpStubs_httpBody,
+              let actual = try? JSONSerialization.jsonObject(with: body) as? NSDictionary else {
+            return false
+        }
+        return actual.isEqual(to: expected)
+    }
 }
 // swiftlint:enable type_body_length file_length
