@@ -435,6 +435,40 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         }
     }
 
+    /// The stamp was saved on the server, so it must still show even when reloading the page's
+    /// stamps right after fails.
+    @MainActor
+    func testCreatedStampStillShowsWhenRefreshingStampsFails() async throws {
+        configureReaderDefaults()
+        try await configureTestServer()
+        let position = ArchiveStampPosition(rawValue: "25,30")!
+        let stamp = ArchiveStamp(id: "created-stamp", position: position.rawValue, content: "New comment")
+        stubAddArchiveStamp(archiveId: "archive", page: 1, content: "New comment", position: "25.0,30.0")
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/archive/stamps/1")
+                && isMethodGET()) { @Sendable _ in
+            HTTPStubsResponse(data: Data(), statusCode: 500, headers: nil)
+        }
+        var initialState = makeState(archiveId: "archive")
+        var page = PageFeature.State(archiveId: "archive", pageId: "page", pageNumber: 1, pageMode: .normal)
+        page.imageLoaded = true
+        initialState.pages = [page]
+        let store = makeTestStore(initialState: initialState)
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.stampCreationRequested(pageId: page.id, position: position))
+        await store.send(.stampCommentChanged("New comment"))
+        await store.send(.confirmStampCreation)
+        await store.receive(\.stampCreated) {
+            $0.stampRequestInFlight = false
+            $0.pages[id: page.id]?.stamps = [stamp]
+        }
+        // It also asks the page to load its stamps again later.
+        await store.receive(\.page[id: page.id].loadStamps)
+        XCTAssertEqual(store.state.pages[id: page.id]?.stamps, [stamp])
+        XCTAssertTrue(store.state.errorMessage.isEmpty)
+    }
+
     @MainActor
     func testAddChapterUsesCurrentSourcePageAndUpdatesTankoubonChapters() async throws {
         configureReaderDefaults()
@@ -485,6 +519,40 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             $0.allArchives[id: tankId]?.withLock { $0.toc = chapters }
             $0.currentTankoubonDetails?.toc = chapters
         }
+    }
+
+    /// A chapter the server refused is not lost: the add sheet comes back with what was typed.
+    @MainActor
+    func testFailedChapterAddRestoresTheDraft() async throws {
+        configureReaderDefaults()
+        try await configureTestServer()
+        stubAddArchiveChapter(archiveId: "archive", page: 3, title: "New chapter", success: 0)
+        var initialState = makeState(archiveId: "archive", allArchives: [makeArchive(id: "archive", toc: [])])
+        initialState.pages = makePageStates(count: 4)
+        initialState.currentPageIndex = 2
+        let target = ChapterMutationTarget(
+            readerArchiveId: "archive", readerPageNumber: 3, sourceArchiveId: "archive", sourcePageNumber: 3
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.chapterCreationRequested) {
+            $0.chapterCreationTarget = target
+        }
+        await store.send(.binding(.set(\.chapterTitle, "New chapter"))) {
+            $0.chapterTitle = "New chapter"
+        }
+        await store.send(.confirmChapterMutation) {
+            $0.chapterCreationTarget = nil
+            $0.chapterTitle = ""
+            $0.chapterRequestInFlight = true
+        }
+        await store.receive(.chapterSaveFailed(target: target, title: "New chapter", isEditing: false)) {
+            $0.chapterRequestInFlight = false
+            $0.chapterCreationTarget = target
+            $0.chapterTitle = "New chapter"
+            $0.errorMessage = String(localized: "archive.reader.chapter.add.failed")
+        }
+        XCTAssertEqual(store.state.chapters, [])
     }
 
     @MainActor
@@ -1792,6 +1860,104 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         }
     }
 
+    /// Caching a Tankoubon from the reader must save its flattened chapter list, or the chapter
+    /// menu is missing when the cached copy is read offline.
+    @MainActor
+    func testCachingTankoubonFromReaderSavesItsChaptersForOfflineReading() async throws {
+        configureReaderDefaults()
+        try await configureTestServer()
+        let tankId = "TANK_1783084742"
+        let sourceArchives = makeTankSourceArchives(secondPageCount: 2)
+        let chapterFixture = makeTankoubonChapterFixture(tankId: tankId)
+        stubTankoubonReader(tankId: tankId, sourceArchives: sourceArchives, sourceTOCs: chapterFixture.sourceTOCs)
+        let service = try await makeStubbedPageDownloadService(
+            for: self, archiveIds: [tankId] + sourceArchives.map(\.id)
+        )
+        let database = try makeInMemoryDatabase()
+        let store = makeTestStore(initialState: makeState(archiveId: tankId, progress: 2)) {
+            $0.appDatabase = database
+            $0.lanraragiService = service
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.extractArchive)
+        await store.receive(\.finishExtracting)
+        XCTAssertEqual(store.state.chapters, chapterFixture.expectedChapters)
+
+        await store.send(.downloadPages)
+        await store.receive(.finishDownloadPages)
+
+        XCTAssertEqual(try database.readCache(tankId)?.toc, chapterFixture.expectedChapters)
+        await store.skipInFlightEffects(strict: false)
+    }
+
+    /// A Tankoubon page's preview is the source archive's own page thumbnail. While the server is
+    /// still generating it, the reader retries a few times and then stops showing a spinner.
+    @MainActor
+    func testTankoubonSliderPreviewUsesSourcePageAndStopsAfterRetries() async throws {
+        configureReaderDefaults()
+        try await configureTestServer()
+        let requests = OSAllocatedUnfairLock(initialState: [String]())
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/source/thumbnail")
+                && isMethodGET()) { @Sendable request in
+            let page = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?
+                .queryItems?.first { $0.name == "page" }?.value
+            requests.withLock { $0.append(page ?? "") }
+            return HTTPStubsResponse(data: Data(), statusCode: 202, headers: nil)
+        }
+        var state = makeState(archiveId: "TANK_preview")
+        state.pages = [PageFeature.State(
+            archiveId: "TANK_preview", pageId: "page", pageNumber: 8,
+            sourceArchiveId: "source", sourcePageNumber: 4
+        )]
+        state.sliderPreviewVisible = true
+        state.sliderPreviewPageIndex = 0
+        state.sliderReadyThumbnailPages = [8]
+        let store = makeTestStore(initialState: state) {
+            $0.continuousClock = ImmediateClock()
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.loadSliderPreview(0)) {
+            $0.sliderPreviewLoading = true
+        }
+        await store.receive(.sliderPreviewUnavailable(0)) {
+            $0.sliderPreviewLoading = false
+            $0.sliderPreviewImageURL = nil
+        }
+        XCTAssertEqual(requests.withLock { $0 }, Array(repeating: "4", count: 6))
+    }
+
+    /// If checking a thumbnail job fails, the preview must stop waiting for it instead of spinning
+    /// forever.
+    @MainActor
+    func testFailedThumbnailJobStopsTheSliderPreviewSpinner() async throws {
+        configureReaderDefaults()
+        try await configureTestServer()
+        stub(condition: isHost("localhost") && isPath("/api/minion/42") && isMethodGET()) { @Sendable _ in
+            HTTPStubsResponse(data: Data(), statusCode: 500, headers: nil)
+        }
+        var state = makeState()
+        state.pages = makePageStates(count: 3)
+        state.sliderThumbnailJobsById = [42: "archive"]
+        state.sliderPreviewVisible = true
+        state.sliderPreviewPageIndex = 1
+        state.sliderPreviewLoading = true
+        let store = makeTestStore(initialState: state) {
+            $0.continuousClock = ImmediateClock()
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.pollSliderPreviewThumbnailJob(42, archiveId: "archive"))
+        await store.receive(\.sliderPreviewThumbnailPollingFailed) {
+            $0.sliderThumbnailJobsById = [:]
+        }
+        await store.receive(.loadSliderPreview(1)) {
+            $0.sliderPreviewLoading = false
+        }
+    }
+
     @MainActor
     func testSetThumbnailUsesArchiveEndpointForNormalArchive() async throws {
         configureReaderDefaults()
@@ -2248,6 +2414,69 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             )
         }
         await store.receive(.primePageAspectRatios)
+    }
+
+    @MainActor
+    func testPullingToTheNextArchiveExtractsItAndRestoresItsProgress() async throws {
+        configureReaderDefaults()
+        try await configureReadyThumbnailQueue(archiveId: "next")
+        stubExtractArchive(archiveId: "next", pages: (1...3).map { "./api/archives/next/page?path=\($0).jpg" })
+        let database = try makeInMemoryDatabase()
+        var state = makeState(
+            archiveId: "current", progress: 4,
+            allArchives: [makeArchive(id: "current", progress: 4), makeArchive(id: "next", progress: 3, pageCount: 3)]
+        )
+        state.pages = makePageStates(count: 4, archiveId: "current")
+        state.currentPageIndex = 3
+        state.chapterTitle = "Draft for the previous archive"
+        let store = makeTestStore(initialState: state) {
+            $0.appDatabase = database
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.loadNextArchive) {
+            $0.currentArchiveId = "next"
+            $0.pages = []
+            $0.chapterTitle = ""
+        }
+        await store.receive(.extractArchive)
+        await store.receive(\.finishExtracting)
+
+        XCTAssertEqual(store.state.pages.map(\.pageNumber), [1, 2, 3])
+        XCTAssertEqual(store.state.currentPageIndex, 2)
+    }
+
+    @MainActor
+    func testPullingToThePreviousCachedArchiveOpensItOffline() async throws {
+        configureReaderDefaults()
+        let previousId = "cachedPreviousArchive"
+        let cacheFolder = LANraragiService.cachePath!.appendingPathComponent(previousId, conformingTo: .folder)
+        try? FileManager.default.removeItem(at: cacheFolder)
+        try FileManager.default.createDirectory(at: cacheFolder, withIntermediateDirectories: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: cacheFolder)
+        }
+        for page in 1...3 {
+            FileManager.default.createFile(atPath: cacheFolder.appendingPathComponent("\(page)").path, contents: Data())
+        }
+        var state = makeState(
+            archiveId: "current", progress: 1, cached: true,
+            allArchives: [makeArchive(id: previousId, progress: 2), makeArchive(id: "current", progress: 1)]
+        )
+        state.pages = makePageStates(count: 4, archiveId: "current")
+        let store = makeTestStore(initialState: state)
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        // No stubs are installed, so any request to the server fails the test.
+        await store.send(.loadPreviousArchive) {
+            $0.currentArchiveId = previousId
+            $0.pages = []
+        }
+        await store.receive(.loadCached)
+
+        XCTAssertEqual(store.state.pages.map(\.pageNumber), [1, 2, 3])
+        XCTAssertTrue(store.state.pages.allSatisfy(\.cached))
+        XCTAssertEqual(store.state.currentPageIndex, 1)
     }
 
     @MainActor

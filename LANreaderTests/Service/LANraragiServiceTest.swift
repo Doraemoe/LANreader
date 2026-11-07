@@ -47,6 +47,31 @@ class LANraragiServiceTest: LANreaderTestCase {
         XCTAssertEqual(actual.hasPassword, true)
     }
 
+    func testVerifyingAnotherServerSendsLaterRequestsThereWithItsKey() async throws {
+        try await configureVerifiedClient()
+        stub(condition: isHost("other.example")
+                && isPath("/api/info")
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer bmV3S2V5")) { _ in
+            HTTPStubsResponse(
+                    fileAtPath: OHPathForFile("ServerInfoResponse.json", type(of: self))!,
+                    statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+        stub(condition: isHost("other.example")
+                && isPath("/api/categories")
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer bmV3S2V5")) { _ in
+            HTTPStubsResponse(data: Data("[]".utf8), statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+
+        _ = try await service.verifyClient(url: "https://other.example", apiKey: "newKey")
+        let categories = try await service.retrieveCategories().value
+
+        XCTAssertTrue(categories.isEmpty)
+        // The service is shared, so point it back at the test server for later tests.
+        try await configureVerifiedClient()
+    }
+
     func testGetServerInfoUnauthorized() async throws {
         try await configureVerifiedClient()
         stub(condition: isHost("other.example")
