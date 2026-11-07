@@ -814,8 +814,8 @@ class LANraragiServiceTest: LANreaderTestCase {
         try await configureVerifiedClient()
 
         stub(condition: isHost("localhost")
-                && isPath("/api/archives/1/extract")
-                && isMethodPOST()
+                && isPath("/api/archives/1/files")
+                && isMethodGET()
                 && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(
                     fileAtPath: OHPathForFile("ArchiveExtractResponse.json", type(of: self))!, statusCode: 200,
@@ -828,12 +828,28 @@ class LANraragiServiceTest: LANreaderTestCase {
         XCTAssertEqual(actual.pages[0], "./api/archives/abc123/page?path=def456/001.jpg")
     }
 
-    func testExtractArchiveUnauthorized() async throws {
-        try await configureVerifiedClient()
+    func testExtractArchiveUsesLegacyEndpointOnOldServers() async throws {
+        try await configureTestServer(version: TestServer.legacyVersion)
 
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/1/extract")
                 && isMethodPOST()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(
+                    fileAtPath: OHPathForFile("ArchiveExtractResponse.json", type(of: self))!, statusCode: 200,
+                    headers: ["Content-Type": "application/json"])
+        }
+
+        let actual = try await service.extractArchive(id: "1").value
+        XCTAssertEqual(actual.pages, ["./api/archives/abc123/page?path=def456/001.jpg"])
+    }
+
+    func testExtractArchiveUnauthorized() async throws {
+        try await configureVerifiedClient()
+
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/1/files")
+                && isMethodGET()
                 && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(
                     fileAtPath: OHPathForFile("UnauthorizedResponse.json", type(of: self))!,

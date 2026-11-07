@@ -315,7 +315,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testPageLoadsStampsUsingSourceArchiveAndPage() async throws {
-        try await configureVerifiedClient()
+        try await configureTestServer()
         let stamp = ArchiveStamp(id: "stamp", position: "12,34", content: "Comment")
         stubArchiveStamps(archiveId: "source", page: 4)
         let store = TestStore(
@@ -343,7 +343,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testPageRetriesStampsAfterTransientFailure() async throws {
-        try await configureVerifiedClient()
+        try await configureTestServer()
         stubArchiveStampsFailure(archiveId: "archive", page: 1, statusCode: 500)
         let store = TestStore(
             initialState: PageFeature.State(
@@ -379,7 +379,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testPageDoesNotRetryUnavailableStampsEndpoint() async throws {
-        try await configureVerifiedClient()
+        try await configureTestServer()
         stubArchiveStampsFailure(archiveId: "archive", page: 1, statusCode: 404)
         let store = TestStore(
             initialState: PageFeature.State(
@@ -405,7 +405,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testCreateStampUsesSourcePageAndShowsRefreshedStamps() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let position = ArchiveStampPosition(rawValue: "25,30")!
         let stamp = ArchiveStamp(id: "created-stamp", position: position.rawValue, content: "New comment")
@@ -460,7 +460,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testAddChapterUsesCurrentSourcePageAndUpdatesTankoubonChapters() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_test"
         let existingChapter = ArchiveChapter(name: "Earlier", page: 2)
@@ -512,7 +512,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testEditChapterUsesOriginalSourcePageAndUpdatesTitle() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_test"
         let chapter = ArchiveChapter(name: "Original", page: 8)
@@ -562,7 +562,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testEditChapterFailureRestoresDraft() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let chapter = ArchiveChapter(name: "Original", page: 4)
         stubAddArchiveChapter(archiveId: "archive", page: 4, title: "Updated", success: 0)
@@ -606,7 +606,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testDeleteChapterUsesOriginalSourcePageAndRemovesChapter() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_test"
         let chapter = ArchiveChapter(name: "Delete me", page: 8)
@@ -652,7 +652,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testDeleteFirstPageTankoubonChapterRestoresAutomaticChapter() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_test"
         let manualChapter = ArchiveChapter(name: "Manual", page: 3)
@@ -703,7 +703,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testDeleteChapterFailureRestoresEdit() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let chapter = ArchiveChapter(name: "Keep me", page: 4)
         stubDeleteArchiveChapter(archiveId: "archive", page: 4, success: 0)
@@ -790,7 +790,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testEditStampUpdatesExistingStampText() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let stamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Original text")
         stubUpdateArchiveStamp(stampId: "stamp", content: "Updated text")
@@ -845,7 +845,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testDeleteStampRemovesExistingStamp() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let stamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Delete me")
         stubDeleteArchiveStamp(stampId: "stamp")
@@ -880,7 +880,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testCreateStampFailureRestoresDraft() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let position = ArchiveStampPosition(rawValue: "25,30")!
         stubAddArchiveStamp(
@@ -923,7 +923,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testEditStampFailureRestoresDraft() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let stamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Original text")
         stubUpdateArchiveStamp(stampId: "stamp", content: "Keep edit", success: 0)
@@ -962,7 +962,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testDeleteStampFailureRestoresEditor() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let stamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Keep stamp")
         stubDeleteArchiveStamp(stampId: "stamp", success: 0)
@@ -1228,7 +1228,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testUIPageCollectionShowsLoadsAndClearsStampComments() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
         stubArchiveStamps(archiveId: "archive", page: 1)
 
         var initialState = makeState(progress: 1)
@@ -1946,10 +1946,46 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         }
     }
 
+    /// Older servers are still supported: they extract through `POST /extract`, and the reader hides
+    /// stamps and chapter editing instead of offering features the server can't handle.
+    @MainActor
+    func testOldServerExtractsWithLegacyEndpointAndHidesStampsAndChapterEditing() async throws {
+        configureReaderDefaults()
+        try await configureReadyThumbnailQueue()
+        try await configureTestServer(version: TestServer.legacyVersion)
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/archive/extract")
+                && isMethodPOST()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { @Sendable _ in
+            HTTPStubsResponse(
+                jsonObject: ["pages": [
+                    "./api/archives/archive/page?path=1.jpg",
+                    "./api/archives/archive/page?path=2.jpg"
+                ]],
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+        let database = try makeInMemoryDatabase()
+        let store = makeTestStore(initialState: makeState(progress: 1)) {
+            $0.appDatabase = database
+        }
+        store.exhaustivity = .off
+
+        await store.send(.extractArchive)
+        await store.receive(.stampsSupportResolved(false))
+        await store.receive(.chapterMutationSupportResolved(false))
+        await store.receive(\.finishExtracting)
+
+        XCTAssertEqual(store.state.pages.map(\.pageNumber), [1, 2])
+        XCTAssertFalse(store.state.canUseStamps)
+        XCTAssertFalse(store.state.canAddChapter)
+    }
+
     @MainActor
     func testExtractTankoubonExtractsUnderlyingArchivesAndAggregatesManualAndDefaultChapters() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_1783084742"
         let sourceArchives = makeTankSourceArchives(secondPageCount: 2)
@@ -1968,8 +2004,8 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         }
 
         await store.send(.extractArchive) { $0.extracting = true }
-        await store.receive(.stampsSupportResolved(false)) { $0.stampsSupported = false }
-        await store.receive(.chapterMutationSupportResolved(false)) { $0.chapterMutationsSupported = false }
+        await store.receive(.stampsSupportResolved(true)) { $0.stampsSupported = true }
+        await store.receive(.chapterMutationSupportResolved(true)) { $0.chapterMutationsSupported = true }
         await store.receive(
             .finishExtracting(
                 extractedPages,
@@ -2006,7 +2042,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testPrepareTankSliderPreviewThumbnailsQueuesAllUnderlyingArchives() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_1783084742"
         let sourceArchives = makeTankSourceArchives()
@@ -2027,7 +2063,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testSetThumbnailUsesArchiveEndpointForNormalArchive() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let archiveId = "archive"
         let thumbnailData = Data([0xFF, 0xD8, 0xFF, 0xDB])
@@ -2062,7 +2098,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testSetThumbnailUsesTankoubonEndpointForTankArchive() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_1783084742"
         let sourceArchives = makeTankSourceArchives()
@@ -2166,7 +2202,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testRapidPageTurnsSendNewFlagBeforeProgressDebounce() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let clock = TestClock()
         let flagSent = expectation(description: "new flag request sent")
@@ -2212,7 +2248,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testVisiblePageChangedUsesArchiveProgressEndpointForNormalArchive() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let clock = TestClock()
         let progressUpdated = expectation(description: "archive progress updated")
@@ -2242,7 +2278,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testVisiblePageChangedUsesGlobalTankProgressEndpointForTankArchive() async throws {
         configureReaderDefaults()
-        try await configureVerifiedClient()
+        try await configureTestServer()
 
         let tankId = "TANK_1783084742"
         let sourceArchives = makeTankSourceArchives(secondPageCount: 2)
@@ -2966,7 +3002,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testFailedReloadOfSplitHalfRestoresSibling() async throws {
-        try await configureVerifiedClient()
+        try await configureTestServer()
         configureReaderDefaults(splitWideImage: true)
         let archiveId = "reload-split-failure"
         stubReaderPageFailure(path: "/1")
@@ -2985,7 +3021,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testReloadingSplitHalfThatIsNoLongerWideCollapsesToOnePage() async throws {
-        try await configureVerifiedClient()
+        try await configureTestServer()
         configureReaderDefaults(splitWideImage: true)
         let archiveId = "reload-split-narrow"
         let folder = try XCTUnwrap(LANraragiService.downloadPath)
@@ -3010,7 +3046,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         file: StaticString = #filePath,
         line: UInt = #line
     ) async throws {
-        try await configureVerifiedClient()
+        try await configureTestServer()
         configureReaderDefaults(splitWideImage: true, splitPiorityLeft: priorityLeft)
         let archiveId = "reload-split-\(priorityLeft ? "left" : "right")"
         let folder = try XCTUnwrap(LANraragiService.downloadPath)
@@ -4502,42 +4538,10 @@ private func configureReaderDefaults(
     UserDefaults.standard.set(restartFinished, forKey: SettingsKey.restartFinished)
 }
 
-private func configureVerifiedClient() async throws {
-    let url = "https://localhost"
-    let apiKey = "apiKey"
-    UserDefaults.standard.set(url, forKey: SettingsKey.lanraragiUrl)
-    UserDefaults.standard.set(apiKey, forKey: SettingsKey.lanraragiApiKey)
-
-    stub(condition: isHost("localhost")
-            && isPath("/api/info")
-            && isMethodGET()
-            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-        HTTPStubsResponse(
-            data: Data("""
-            {
-              "archives_per_page": 100,
-              "debug_mode": false,
-              "has_password": true,
-              "motd": "",
-              "name": "LANraragi",
-              "nofun_mode": false,
-              "server_tracks_progress": true,
-              "version": "0.9.30",
-              "version_name": "Law (Earthlings On Fire)"
-            }
-            """.utf8),
-            statusCode: 200,
-            headers: ["Content-Type": "application/json"]
-        )
-    }
-
-    _ = try await LANraragiService.shared.verifyClient(url: url, apiKey: apiKey)
-}
-
 private func configureReadyThumbnailQueue(
     archiveId: String = "archive"
 ) async throws {
-    try await configureVerifiedClient()
+    try await configureTestServer()
 
     stubReadyThumbnailQueue(archiveId: archiveId)
 }
@@ -4596,7 +4600,7 @@ private func stubReadyThumbnailQueue(
 private func configureFinishedThumbnailPolling(
     jobId: Int
 ) async throws {
-    try await configureVerifiedClient()
+    try await configureTestServer()
 
     stub(condition: isHost("localhost")
             && isPath("/api/minion/\(jobId)")
@@ -5015,8 +5019,8 @@ private func stubExtractArchive(archiveId: String, pages: [String]) {
         .joined(separator: ",")
 
     stub(condition: isHost("localhost")
-            && isPath("/api/archives/\(archiveId)/extract")
-            && isMethodPOST()) { _ in
+            && isPath("/api/archives/\(archiveId)/files")
+            && isMethodGET()) { _ in
         HTTPStubsResponse(
             data: Data("{\"pages\":[\(pageBody)]}".utf8),
             statusCode: 200,

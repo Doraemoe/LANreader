@@ -289,7 +289,7 @@ final class SearchFeatureTests: LANreaderTestCase {
         defer {
             HTTPStubs.removeAllStubs()
         }
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         let requested = expectation(description: "Search request started")
         stub(condition: isHost("localhost") && isPath("/api/search")) { @Sendable _ in
             requested.fulfill()
