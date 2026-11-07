@@ -56,6 +56,23 @@ final class DeepLinkTests: LANreaderTestCase {
         )
     }
 
+    /// The Save URL extension builds these links, so every URL it can be handed must come back
+    /// unchanged when the app parses the link.
+    func testSaveURLExtensionLinksQueueTheSameURLInTheApp() throws {
+        let sharedURLs = [
+            "https://example.com/g/1",
+            "http://example.com/g/1",
+            "https://example.com/g/1?page=2&sort=asc#comments",
+            "https://example.com/search?q=a%26b%20c&tag=artist:x",
+            "https://user:pass@example.com:8443/a+b/c?d=e%2Bf",
+            "https://example.com/%E3%83%91%E3%82%B9?name=%E5%80%A4"
+        ]
+        for sharedURL in sharedURLs {
+            let url = try url(sharedURL)
+            XCTAssertEqual(DeepLink(url: url.lanReaderAppDeepLink), .download(url), sharedURL)
+        }
+    }
+
     @MainActor
     func testReadLinkOpensArchiveFromServer() async throws {
         try await configureTestServer()
