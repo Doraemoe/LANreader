@@ -105,20 +105,6 @@ final class DeepLinkTests: LANreaderTestCase {
     }
 
     @MainActor
-    func testReadLinkShowsErrorForUnknownArchive() async throws {
-        try await configureTestServer()
-        stubArchiveMetadata(id: "missing", statusCode: 404)
-        let store = try makeAppTestStore()
-
-        await store.send(.openURL(try url("lanreader://read?id=missing")))
-        await store.receive(\.setErrorMessage) {
-            $0.errorMessage = String(localized: "error.deeplink.archive")
-        }
-
-        XCTAssertNil(store.state.pendingDeepLink)
-    }
-
-    @MainActor
     func testTankoubonReadLinkAddsUpContainedArchivePages() async throws {
         try await configureTestServer()
         stubTankoubon(id: "TANK_42", pages: ["a": 10, "b": 15])

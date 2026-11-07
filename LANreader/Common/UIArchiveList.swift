@@ -87,7 +87,6 @@ import Logging
         case createTankoubonSucceeded
         case createTankoubonFailed(String)
         case setFilter(SearchFilter)
-        case resetArchives
         case reloadFromFirstPage
         case load
         case populateArchives([ArchiveItem], Int, Bool)
@@ -154,9 +153,6 @@ import Logging
                 }
                 state.filter = filter
                 return .none
-            case .resetArchives:
-                resetArchives(state: &state)
-                return .none
             case .reloadFromFirstPage:
                 resetArchives(state: &state)
                 guard state.canLoadArchives else {
@@ -173,8 +169,8 @@ import Logging
                     return .none
                 }
                 // A reload keeps the page the user is on, so pull-to-refresh reloads what is on
-                // screen. Every path that means "start over" sends `resetArchives` first, which
-                // is what puts the pager back on the first page.
+                // screen. Every path that means "start over" sends `reloadFromFirstPage` instead,
+                // which is what puts the pager back on the first page.
                 let page = state.paginationActive
                     ? PaginationPositioning.clampedPage(state.currentPage, pageCount: state.pageCount)
                     : 0

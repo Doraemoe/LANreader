@@ -1730,9 +1730,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
             progress: progress,
             pageCount: state.pages.count,
             fromStart: state.fromStart,
-            restartFinishedArchive: restartFinishedArchive,
-            readDirection: state.resolvedReadDirection,
-            doublePageLayout: false
+            restartFinishedArchive: restartFinishedArchive
         )
         let enabled = resolvedDoublePageLayout(state: state)
         state.doublePageLayout = false

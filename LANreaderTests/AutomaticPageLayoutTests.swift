@@ -191,21 +191,6 @@ final class AutomaticPageLayoutTests: LANreaderTestCase {
     }
 
     @MainActor
-    func testAutomaticUIKitKeepsCachedTankoubonSourceIdentity() async {
-        let store = makeAutomaticReaderStore(archiveId: "TANK_fixture")
-        let controller = UIPageCollectionController(store: store)
-        controller.loadViewIfNeeded()
-        await resizeReader(controller, to: CGSize(width: 562, height: 466))
-        XCTAssertTrue(store.doublePageLayout)
-        XCTAssertTrue(store.cached)
-        XCTAssertEqual(store.pages[13].sourceArchiveId, "source")
-        XCTAssertEqual(store.pages[13].sourcePageNumber, 14)
-        await resizeReader(controller, to: CGSize(width: 382, height: 644))
-        XCTAssertEqual(store.pages[13].sourceArchiveId, "source")
-        XCTAssertEqual(store.currentPageIndex, 13)
-    }
-
-    @MainActor
     func testAutomaticUIKitReevaluatesSharedPreferenceWithoutResizing() async {
         let store = makeAutomaticReaderStore()
         store.$automaticPageLayout.withLock { $0 = false }

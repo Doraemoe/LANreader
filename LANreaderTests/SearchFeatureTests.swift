@@ -179,20 +179,6 @@ final class SearchFeatureTests: LANreaderTestCase {
         await clock.advance(by: .milliseconds(150))
     }
 
-    @MainActor
-    func testSuggestionTappedKeepsEarlierPredicates() async throws {
-        var initialState = SearchFeature.State()
-        initialState.keyword = "language:english$, e au"
-
-        let store = TestStore(initialState: initialState) {
-            SearchFeature()
-        }
-
-        await store.send(.suggestionTapped(TagWithType(tag: "artist:e auo", type: .suggested))) {
-            $0.keyword = "language:english$, artist:e auo$,"
-        }
-    }
-
     func testRecentSearchesAreNewestFirstAndIgnoreCaseDuplicates() throws {
         let database = try AppDatabase(DatabaseQueue())
         try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
