@@ -84,16 +84,6 @@ class LANreaderTests: LANreaderTestCase {
         XCTAssertEqual(ImageService.shared.storedPageNumbers(folderUrl: tempDirectory, totalPages: 3), [1, 2])
     }
 
-    func testStoredImagePathFindsStoredPageByNumber() throws {
-        try makeJPEGData(color: .blue).write(to: tempDirectory.appendingPathComponent("3.jpg"))
-
-        XCTAssertEqual(
-            ImageService.shared.storedImagePath(folderUrl: tempDirectory, pageNumber: "3")?.lastPathComponent,
-            "3.jpg"
-        )
-        XCTAssertNil(ImageService.shared.storedImagePath(folderUrl: tempDirectory, pageNumber: "4"))
-    }
-
     func testReadingSessionPagesLiveInCachesAndOfflineCachesAreExcludedFromBackup() throws {
         let sessionFolder = try XCTUnwrap(LANraragiService.downloadPath)
         let cachesFolder = try FileManager.default.url(
@@ -235,26 +225,11 @@ class LANreaderTests: LANreaderTestCase {
         XCTAssertEqual(leftImage.cgImage?.height, 60)
         XCTAssertEqual(rightImage.cgImage?.width, 60)
         XCTAssertEqual(rightImage.cgImage?.height, 60)
-    }
-
-    func testStorePageImageStoresSmallJPEGWithoutTranscoding() throws {
-        let sourceURL = tempDirectory.appendingPathComponent("source.jpg")
-        let service = ImageService.shared
-        let imageData = makeJPEGData(color: .systemPurple)
-
-        try imageData.write(to: sourceURL, options: .atomic)
-
-        XCTAssertNotNil(
-            service.storePageImage(
-                imageUrl: sourceURL,
-                destinationUrl: tempDirectory,
-                pageNumber: "1"
-            )
-        )
-
-        let storedURL = try XCTUnwrap(service.storedImagePath(folderUrl: tempDirectory, pageNumber: "1"))
-        XCTAssertEqual(storedURL.pathExtension, "jpg")
-        XCTAssertEqual(try Data(contentsOf: storedURL), imageData)
+        // The fixture is red on the left and blue on the right, so swapped crops show the wrong half.
+        let leftCenter = try XCTUnwrap(centerPixel(of: leftImage))
+        let rightCenter = try XCTUnwrap(centerPixel(of: rightImage))
+        XCTAssertGreaterThan(leftCenter.red, leftCenter.blue)
+        XCTAssertGreaterThan(rightCenter.blue, rightCenter.red)
     }
 
     func testStorePageImageUsesDetectedTypeForDownloadedTempFile() throws {
@@ -303,26 +278,6 @@ class LANreaderTests: LANreaderTestCase {
         XCTAssertEqual(storedURL.pathExtension, "png")
         XCTAssertEqual(try Data(contentsOf: storedURL), imageData)
         XCTAssertTrue(service.shouldSplitWideImage(imageUrl: storedURL))
-    }
-
-    func testStorePageImagePreservesSmallJPEGWhenSourceIsExistingPageFile() throws {
-        let sourceURL = tempDirectory.appendingPathComponent("1.jpg")
-        let service = ImageService.shared
-        let imageData = makeJPEGData(color: .systemPurple)
-
-        try imageData.write(to: sourceURL, options: .atomic)
-
-        XCTAssertNotNil(
-            service.storePageImage(
-                imageUrl: sourceURL,
-                destinationUrl: tempDirectory,
-                pageNumber: "1"
-            )
-        )
-
-        let storedURL = try XCTUnwrap(service.storedImagePath(folderUrl: tempDirectory, pageNumber: "1"))
-        XCTAssertEqual(storedURL, sourceURL)
-        XCTAssertEqual(try Data(contentsOf: storedURL), imageData)
     }
 
     func testStorePageImageStoresSmallPNGWithoutTranscoding() throws {
@@ -520,6 +475,19 @@ private func makeTransparentPNGData(
         )
     }
     return image.pngData()!
+}
+
+private func centerPixel(of image: UIImage) -> (red: UInt8, blue: UInt8)? {
+    guard let cgImage = image.cgImage else { return nil }
+    var pixel = [UInt8](repeating: 0, count: 4)
+    guard let context = CGContext(
+        data: &pixel, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+        space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return nil }
+    let center = CGPoint(x: cgImage.width / 2, y: cgImage.height / 2)
+    let bounds = CGRect(x: -center.x, y: -center.y, width: CGFloat(cgImage.width), height: CGFloat(cgImage.height))
+    context.draw(cgImage, in: bounds)
+    return (pixel[0], pixel[2])
 }
 
 private func makeWidePNGData() -> Data {

@@ -12,7 +12,7 @@ final class TagRefreshFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testRefreshReplacesSuggestionsAndMarksSuccessAfterCommit() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         let database = try makeTagRefreshDatabase()
         let store = makeTagRefreshStore(database: database)
         let lastRefresh = store.state.$lastTagRefresh
@@ -33,7 +33,7 @@ final class TagRefreshFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testFailedInsertRollsBackSuggestionsAndAllowsNextLoadToRetry() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubTagRefresh()
         let writer = try DatabaseQueue()
         let database = try makeTagRefreshDatabase(writer: writer)
@@ -66,7 +66,7 @@ final class TagRefreshFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testRequestFailureKeepsSuggestionsAndTimestamp() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubTagRefresh(statusCode: 500)
         let database = try makeTagRefreshDatabase()
         let store = makeTagRefreshStore(database: database)
@@ -81,7 +81,7 @@ final class TagRefreshFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testRecentRefreshDoesNotRequestStats() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubTagRefresh()
         stub(condition: isPath("/api/database/stats")) { @Sendable _ in
             XCTFail("A recent tag refresh must not request stats")

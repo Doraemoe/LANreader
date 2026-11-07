@@ -1,20 +1,30 @@
 import XCTest
 import Alamofire
 import ComposableArchitecture
+import OHHTTPStubs
+import OHHTTPStubsSwift
 @testable import LANreader
 
 @MainActor
 final class LANraragiConfigFeatureTests: LANreaderTestCase {
 
     func testInsecureConnectionAlertExplainsTheFailureAndEndsVerifying() async {
+        stub(condition: isHost("100.64.0.1") && isPath("/api/info")) { @Sendable _ in
+            HTTPStubsResponse(error: URLError(.appTransportSecurityRequiresSecureConnection))
+        }
         var state = LANraragiConfigFeature.State()
-        state.isVerifying = true
+        state.formUrl = "http://100.64.0.1:3000"
+        state.formKey = "apiKey"
 
         let store = TestStore(initialState: state) {
             LANraragiConfigFeature()
         }
+        store.timeout = .seconds(5)
 
-        await store.send(.showInsecureConnectionAlert) {
+        await store.send(.verifyServer) {
+            $0.isVerifying = true
+        }
+        await store.receive(.showInsecureConnectionAlert) {
             $0.isVerifying = false
             $0.alert = AlertState {
                 TextState("lanraragi.config.error.insecure.title")

@@ -174,32 +174,20 @@ final class AutomaticPageLayoutTests: LANreaderTestCase {
 
     @MainActor
     func testAutomaticRemembersSizeBeforePagesArrive() async {
-        let store = makeAutomaticReaderStore(archiveId: "TANK_fixture", pageCount: 0)
+        let store = makeAutomaticReaderStore(archiveId: "TANK_fixture", pageCount: 0, savedProgress: 14)
         store.send(.readerSizeChanged(CGSize(width: 562, height: 466)))
         XCTAssertFalse(store.doublePageLayout)
         store.send(.finishExtracting((1...25).map {
             ReaderExtractedPage(archiveId: "source", path: "/fixture/\($0).jpg", archivePageNumber: $0)
         }, nil))
-        store.send(.readerSizeChanged(store.readerSize))
-        await Task.yield()
+        // Spreads are decided from the remembered size as the pages arrive, before the restore.
         XCTAssertTrue(store.doublePageLayout)
-        XCTAssertEqual(store.pages[13].sourceArchiveId, "source")
-        XCTAssertEqual(store.pages[13].sourcePageNumber, 14)
-    }
-
-    @MainActor
-    func testAutomaticUIKitKeepsCachedTankoubonSourceIdentity() async {
-        let store = makeAutomaticReaderStore(archiveId: "TANK_fixture")
-        let controller = UIPageCollectionController(store: store)
-        controller.loadViewIfNeeded()
-        await resizeReader(controller, to: CGSize(width: 562, height: 466))
-        XCTAssertTrue(store.doublePageLayout)
-        XCTAssertTrue(store.cached)
-        XCTAssertEqual(store.pages[13].sourceArchiveId, "source")
-        XCTAssertEqual(store.pages[13].sourcePageNumber, 14)
-        await resizeReader(controller, to: CGSize(width: 382, height: 644))
-        XCTAssertEqual(store.pages[13].sourceArchiveId, "source")
         XCTAssertEqual(store.currentPageIndex, 13)
+        for _ in 0..<5 where store.scrollRequest == nil { await Task.yield() }
+        XCTAssertEqual(store.scrollRequest?.source, .initialRestore)
+        XCTAssertEqual(store.scrollRequest?.targetPageIndex, 13)
+        XCTAssertEqual(store.pages[13].sourceArchiveId, "source")
+        XCTAssertEqual(store.pages[13].sourcePageNumber, 14)
     }
 
     @MainActor
@@ -277,9 +265,17 @@ private func makeAutomaticReaderStore(
     direction: ReadDirection = .leftRight,
     split: Bool = false,
     archiveId: String = "automatic-layout-fixture",
-    pageCount: Int = 25
+    pageCount: Int = 25,
+    savedProgress: Int? = nil
 ) -> StoreOf<ArchiveReaderFeature> {
-    var state = ArchiveReaderFeature.State(currentArchiveId: archiveId, allArchives: [], cached: true)
+    // An archive in the list is what lets `finishExtracting` restore saved progress.
+    let archives = savedProgress.map { progress in
+        [Shared(value: ArchiveItem(
+            id: archiveId, name: "Fixture", extension: "zip", tags: "", isNew: false,
+            progress: progress, pagecount: 25, dateAdded: nil
+        ))]
+    } ?? []
+    var state = ArchiveReaderFeature.State(currentArchiveId: archiveId, allArchives: archives, cached: true)
     state.$readDirection = SharedReader(value: direction.rawValue)
     state.$splitImage = SharedReader(value: split)
     state.$manualDoublePageLayout = Shared(value: false)

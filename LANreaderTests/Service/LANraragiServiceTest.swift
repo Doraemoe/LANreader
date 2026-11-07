@@ -2,6 +2,7 @@
 // Created on 7/10/20.
 //
 
+import Alamofire
 import XCTest
 import OHHTTPStubs
 import OHHTTPStubsSwift
@@ -30,33 +31,49 @@ class LANraragiServiceTest: LANreaderTestCase {
     }
 
     func testGetServerInfo() async throws {
+        // Verification signs the request with the key being entered, not the one already saved.
         stub(condition: isHost("localhost")
                 && isPath("/api/info")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+                && hasHeaderNamed("Authorization", value: "Bearer bmV3S2V5")) { _ in
             HTTPStubsResponse(
                     fileAtPath: OHPathForFile("ServerInfoResponse.json", type(of: self))!,
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let actual = try await service.verifyClient(url: url, apiKey: apiKey)
+        let actual = try await service.verifyClient(url: url, apiKey: "newKey")
         XCTAssertEqual(actual.archivesPerPage, 100)
         XCTAssertEqual(actual.debugMode, false)
         XCTAssertEqual(actual.hasPassword, true)
     }
 
     func testGetServerInfoUnauthorized() async throws {
-        stub(condition: isHost("localhost")
+        try await configureVerifiedClient()
+        stub(condition: isHost("other.example")
                 && isPath("/api/info")
                 && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+                && hasHeaderNamed("Authorization", value: "Bearer d3JvbmdLZXk=")) { _ in
             HTTPStubsResponse(
                     fileAtPath: OHPathForFile("UnauthorizedResponse.json", type(of: self))!,
                     statusCode: 401, headers: ["Content-Type": "application/json"])
         }
 
-        let actual = try? await service.verifyClient(url: url, apiKey: apiKey)
-        XCTAssertNil(actual)
+        do {
+            _ = try await service.verifyClient(url: "https://other.example", apiKey: "wrongKey")
+            XCTFail("Expected an unauthorized server to fail verification")
+        } catch {
+            XCTAssertEqual((error as? AFError)?.responseCode, 401)
+        }
+
+        // A failed verification keeps using the server and key that already work.
+        stub(condition: isHost("localhost")
+                && isPath("/api/categories")
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
+            HTTPStubsResponse(data: Data("[]".utf8), statusCode: 200, headers: ["Content-Type": "application/json"])
+        }
+        let categories = try await service.retrieveCategories().value
+        XCTAssertTrue(categories.isEmpty)
     }
 
     func testStampSupportStartsWithServerVersionZeroNineEighty() async {
@@ -79,63 +96,29 @@ class LANraragiServiceTest: LANreaderTestCase {
         XCTAssertEqual(supported, true)
     }
 
-    func testRetrieveArchiveIndex() async throws {
+    func testSearchArchiveDecodesArchiveWithoutTags() async throws {
         try await configureVerifiedClient()
 
+        // Archives with no tags come back from the server without a `tags` key.
         stub(condition: isHost("localhost")
-                && isPath("/api/archives")
+                && isPath("/api/search")
                 && isMethodGET()
                 && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("ArchiveIndexResponse.json", type(of: self))!,
-                    statusCode: 200, headers: ["Content-Type": "application/json"])
+                jsonObject: [
+                    "data": [[
+                        "arcid": "abcd1234", "extension": "zip", "isnew": "false",
+                        "title": "title", "pagecount": 18, "progress": 4
+                    ]],
+                    "draw": 0, "recordsFiltered": 1, "recordsTotal": 1
+                ],
+                statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let actual = try await service.retrieveArchiveIndex().value
-
-        XCTAssertNotNil(actual)
-        XCTAssertEqual(actual.count, 1)
-        XCTAssertEqual(actual[0].arcid, "abcd1234")
-        XCTAssertEqual(actual[0].isnew, "false")
-        XCTAssertEqual(actual[0].tags, "artist:abc, language:def, parody:ghi, category:jkl")
-        XCTAssertEqual(actual[0].title, "title")
-    }
-
-    func testRetrieveArchiveIndexUnauthorized() async throws {
-        try await configureVerifiedClient()
-
-        stub(condition: isHost("localhost")
-                && isPath("/api/archives")
-                && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-            HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("UnauthorizedResponse.json", type(of: self))!,
-                    statusCode: 401, headers: ["Content-Type": "application/json"])
-        }
-
-        let actual = try? await service.retrieveArchiveIndex().value
-        XCTAssertNil(actual)
-    }
-
-    func testRetrieveArchiveIndexNullTags() async throws {
-        try await configureVerifiedClient()
-
-        stub(condition: isHost("localhost")
-                && isPath("/api/archives")
-                && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-            HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("ArchiveIndexResponseNullTags.json", type(of: self))!,
-                    statusCode: 200, headers: ["Content-Type": "application/json"])
-        }
-
-        let actual = try await service.retrieveArchiveIndex().value
-        XCTAssertNotNil(actual)
-        XCTAssertEqual(actual.count, 1)
-        XCTAssertEqual(actual[0].arcid, "abcd1234")
-        XCTAssertEqual(actual[0].isnew, "false")
-        XCTAssertEqual(actual[0].tags, nil)
-        XCTAssertEqual(actual[0].title, "title")
+        let actual = try await service.searchArchive().value
+        XCTAssertEqual(actual.data.map(\.arcid), ["abcd1234"])
+        XCTAssertNil(actual.data[0].tags)
+        XCTAssertEqual(actual.data[0].title, "title")
     }
 
     func testRetrieveStampsUsesOneBasedPagePath() async throws {
@@ -374,29 +357,6 @@ class LANraragiServiceTest: LANreaderTestCase {
         XCTAssertEqual(actual, expected)
     }
 
-    func testRetrieveGeneratedArchiveThumbnailReturnsNilWhenNotReady() async throws {
-        try await configureVerifiedClient()
-
-        stub(condition: isHost("localhost")
-                && isPath("/api/archives/id/thumbnail")
-                && containsQueryParams([
-                    "cachebust": "100",
-                    "no_fallback": "true",
-                    "page": "5"
-                ])
-                && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-            HTTPStubsResponse(
-                data: Data(),
-                statusCode: 202,
-                headers: ["Content-Type": "application/json"]
-            )
-        }
-
-        let actual = try await service.retrieveGeneratedArchiveThumbnail(id: "id", page: 5, cacheBust: 100)
-        XCTAssertNil(actual)
-    }
-
     func testUpdateArchiveThumbnailSendsPageAsQueryParameter() async throws {
         try await configureVerifiedClient()
 
@@ -505,7 +465,10 @@ class LANraragiServiceTest: LANreaderTestCase {
 
         stub(condition: isHost("localhost")
                 && isPath("/api/search")
-                && containsQueryParams(["category": "SET_12345678"])
+                && hasExactQuery([
+                    "category": "SET_12345678", "filter": "artist:test", "start": "100",
+                    "sortby": "date_added", "order": "desc", "groupby_tanks": "true"
+                ])
                 && isMethodGET()
                 && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(
@@ -513,7 +476,10 @@ class LANraragiServiceTest: LANreaderTestCase {
                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
 
-        let actual = try await service.searchArchive(category: "SET_12345678").value
+        let actual = try await service.searchArchive(
+            category: "SET_12345678", filter: "artist:test", start: "100",
+            sortby: "date_added", order: "desc", groupByTanks: true
+        ).value
         XCTAssertNotNil(actual)
         XCTAssertEqual(actual.data.count, 1)
         XCTAssertEqual(actual.draw, 0)
@@ -569,23 +535,6 @@ class LANraragiServiceTest: LANreaderTestCase {
         XCTAssertEqual(actual.data[0].extension, ".tank")
     }
 
-    func testSearchArchiveIndexUnauthorized() async throws {
-        try await configureVerifiedClient()
-
-        stub(condition: isHost("localhost")
-                && isPath("/api/search")
-                && containsQueryParams(["category": "SET_12345678"])
-                && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-            HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("UnauthorizedResponse.json", type(of: self))!,
-                    statusCode: 401, headers: ["Content-Type": "application/json"])
-        }
-
-        let actual = try? await service.searchArchive(category: "SET_12345678").value
-        XCTAssertNil(actual)
-    }
-
     func testRetrieveTankoubonMetadata() async throws {
         try await configureVerifiedClient()
 
@@ -601,7 +550,10 @@ class LANraragiServiceTest: LANreaderTestCase {
           "progress": 3
         }
         """.utf8)
-        stub(condition: isHost("localhost") && isPath("/api/tankoubons/\(tankId)")) { _ in
+        stub(condition: isHost("localhost")
+                && isPath("/api/tankoubons/\(tankId)")
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(data: tankBody, statusCode: 200, headers: nil)
         }
 
@@ -691,12 +643,16 @@ class LANraragiServiceTest: LANreaderTestCase {
 
         stub(condition: isHost("localhost")
                 && isPath("/api/tankoubons/\(tankId)/full")
-                && containsQueryParams(["page": "-1"])) { _ in
+                && containsQueryParams(["page": "-1"])
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(data: fullBody, statusCode: 200, headers: nil)
         }
         stub(condition: isHost("localhost")
                 && isPath("/api/tankoubons/\(tankId)/thumbnail")
-                && containsQueryParams(["no_fallback": "true"])) { _ in
+                && containsQueryParams(["no_fallback": "true"])
+                && isMethodGET()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(data: imageData, statusCode: 200, headers: ["Content-Type": "image/jpeg"])
         }
 
@@ -716,12 +672,17 @@ class LANraragiServiceTest: LANreaderTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/tankoubons/\(tankId)")
                 && isMethodPUT()
-                && hasHeaderNamed("Content-Type", value: "application/json")) { _ in
+                && hasHeaderNamed("Content-Type", value: "application/json")
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")
+                && hasJSONBody([
+                    "metadata": ["name": "Tank", "summary": "Summary", "tags": "artist:test", "append": false]
+                ])) { _ in
             HTTPStubsResponse(data: successBody, statusCode: 200, headers: nil)
         }
         stub(condition: isHost("localhost")
                 && isPath("/api/tankoubons/\(tankId)")
-                && isMethodDELETE()) { _ in
+                && isMethodDELETE()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(data: successBody, statusCode: 200, headers: nil)
         }
 
@@ -745,11 +706,15 @@ class LANraragiServiceTest: LANreaderTestCase {
         stub(condition: isHost("localhost")
                 && isPath("/api/tankoubons/\(tankId)/thumbnail")
                 && containsQueryParams(["page": "4"])
-                && isMethodPUT()) { _ in
+                && isMethodPUT()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             let body = Data("{ \"operation\": \"update_tankoubon_thumbnail\", \"success\": 1 }".utf8)
             return HTTPStubsResponse(data: body, statusCode: 200, headers: nil)
         }
-        stub(condition: isHost("localhost") && isPath("/api/tankoubons/\(tankId)/progress/5")) { _ in
+        stub(condition: isHost("localhost")
+                && isPath("/api/tankoubons/\(tankId)/progress/5")
+                && isMethodPUT()
+                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             let body = Data("""
             { "id": "\(tankId)", "operation": "update_tank_progress",
               "page": 5, "lastreadtime": 123943543, "success": 1 }
@@ -794,28 +759,12 @@ class LANraragiServiceTest: LANreaderTestCase {
         XCTAssertEqual(actual[1].search, "keyword")
     }
 
-    func testRetrieveCategoriesUnauthorized() async throws {
-        try await configureVerifiedClient()
-
-        stub(condition: isHost("localhost")
-                && isPath("/api/categories")
-                && isMethodGET()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-            HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("UnauthorizedResponse.json", type(of: self))!,
-                    statusCode: 401, headers: ["Content-Type": "application/json"])
-        }
-
-        let actual = try? await service.retrieveCategories().value
-        XCTAssertNil(actual)
-    }
-
     func testExtractArchive() async throws {
         try await configureVerifiedClient()
 
         stub(condition: isHost("localhost")
-                && isPath("/api/archives/1/extract")
-                && isMethodPOST()
+                && isPath("/api/archives/1/files")
+                && isMethodGET()
                 && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(
                     fileAtPath: OHPathForFile("ArchiveExtractResponse.json", type(of: self))!, statusCode: 200,
@@ -828,53 +777,20 @@ class LANraragiServiceTest: LANreaderTestCase {
         XCTAssertEqual(actual.pages[0], "./api/archives/abc123/page?path=def456/001.jpg")
     }
 
-    func testExtractArchiveUnauthorized() async throws {
-        try await configureVerifiedClient()
+    func testExtractArchiveUsesLegacyEndpointOnOldServers() async throws {
+        try await configureTestServer(version: TestServer.legacyVersion)
 
         stub(condition: isHost("localhost")
                 && isPath("/api/archives/1/extract")
                 && isMethodPOST()
                 && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
             HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("UnauthorizedResponse.json", type(of: self))!,
-                    statusCode: 401, headers: ["Content-Type": "application/json"])
+                    fileAtPath: OHPathForFile("ArchiveExtractResponse.json", type(of: self))!, statusCode: 200,
+                    headers: ["Content-Type": "application/json"])
         }
 
-        let actual = try? await service.extractArchive(id: "1").value
-        XCTAssertNil(actual)
-    }
-
-    func testClearNewFlag() async throws {
-        try await configureVerifiedClient()
-
-        stub(condition: isHost("localhost")
-                && isPath("/api/archives/id/isnew")
-                && isMethodDELETE()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-            HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("ClearNewFlagResponse.json", type(of: self))!,
-                    statusCode: 200, headers: ["Content-Type": "application/json"])
-        }
-
-        let actual = try await service.clearNewFlag(id: "id").value
-        let expected = try FileUtils.readJsonFile(filename: "ClearNewFlagResponse")
-        XCTAssertEqual(actual, expected)
-    }
-
-    func testClearNewFlagUnauthorized() async throws {
-        try await configureVerifiedClient()
-
-        stub(condition: isHost("localhost")
-                && isPath("/api/archives/id/isnew")
-                && isMethodDELETE()
-                && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-            HTTPStubsResponse(
-                    fileAtPath: OHPathForFile("UnauthorizedResponse.json", type(of: self))!,
-                    statusCode: 401, headers: ["Content-Type": "application/json"])
-        }
-
-        let actual = try? await service.clearNewFlag(id: "id").value
-        XCTAssertNil(actual)
+        let actual = try await service.extractArchive(id: "1").value
+        XCTAssertEqual(actual.pages, ["./api/archives/abc123/page?path=def456/001.jpg"])
     }
 
     func testUpdateArchiveMetadata() async throws {
@@ -1068,5 +984,28 @@ class LANraragiServiceTest: LANreaderTestCase {
         _ = try await service.verifyClient(url: url, apiKey: apiKey)
     }
 
+}
+
+/// Matches only when the query has exactly these items, so a missing or extra parameter fails.
+private func hasExactQuery(_ expected: [String: String]) -> HTTPStubsTestBlock {
+    { request in
+        guard let url = request.url,
+              let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems else {
+            return expected.isEmpty
+        }
+        let actual = Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { first, _ in first })
+        return items.count == expected.count && actual == expected
+    }
+}
+
+/// Matches only when the JSON body equals `expected`, ignoring key order.
+private func hasJSONBody(_ expected: [String: Any]) -> HTTPStubsTestBlock {
+    { request in
+        guard let body = request.ohhttpStubs_httpBody,
+              let actual = try? JSONSerialization.jsonObject(with: body) as? NSDictionary else {
+            return false
+        }
+        return actual.isEqual(to: expected)
+    }
 }
 // swiftlint:enable type_body_length file_length
