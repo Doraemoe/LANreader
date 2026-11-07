@@ -58,7 +58,7 @@ final class DeepLinkTests: LANreaderTestCase {
 
     @MainActor
     func testReadLinkOpensArchiveFromServer() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubArchiveMetadata(id: "abc123", statusCode: 200)
         let store = try makeAppTestStore()
 
@@ -75,7 +75,7 @@ final class DeepLinkTests: LANreaderTestCase {
 
     @MainActor
     func testPreferCachedReadLinkOpensCachedArchiveWithoutServer() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubArchiveMetadata(id: "abc123", statusCode: 200)
         let database = try savedCache(id: "abc123")
         let store = try makeAppTestStore(database: database)
@@ -89,7 +89,7 @@ final class DeepLinkTests: LANreaderTestCase {
 
     @MainActor
     func testReadLinkIgnoresCacheWithoutPreferCached() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubArchiveMetadata(id: "abc123", statusCode: 500)
         let store = try makeAppTestStore(database: savedCache(id: "abc123"))
 
@@ -103,7 +103,7 @@ final class DeepLinkTests: LANreaderTestCase {
 
     @MainActor
     func testReadLinkShowsErrorForUnknownArchive() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubArchiveMetadata(id: "missing", statusCode: 404)
         let store = try makeAppTestStore()
 
@@ -117,7 +117,7 @@ final class DeepLinkTests: LANreaderTestCase {
 
     @MainActor
     func testTankoubonReadLinkAddsUpContainedArchivePages() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stubTankoubon(id: "TANK_42", pages: ["a": 10, "b": 15])
         let store = try makeAppTestStore()
 
@@ -151,7 +151,7 @@ final class DeepLinkTests: LANreaderTestCase {
 
     @MainActor
     func testHttpDownloadLinkQueuesUrlUnchangedAndSavesJob() async throws {
-        try await configureArchiveListTestClient()
+        try await configureTestServer()
         stub(condition: isHost("localhost")
                 && isPath("/api/download_url")
                 && isMethodPOST()

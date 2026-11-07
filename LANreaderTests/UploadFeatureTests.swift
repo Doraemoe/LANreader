@@ -207,32 +207,7 @@ final class UploadFeatureTests: LANreaderTestCase {
     }
 
     private static func configuredService() async throws -> LANraragiService {
-        let body = Data("""
-        {
-          "archives_per_page": 100,
-          "debug_mode": false,
-          "has_password": true,
-          "motd": "Welcome",
-          "name": "LANraragi",
-          "nofun_mode": false,
-          "server_tracks_progress": true,
-          "version": "0.9.30",
-          "version_name": "Law"
-        }
-        """.utf8)
-        stub(condition: isHost("localhost")
-                && isPath("/api/info")
-                && isMethodGET()) { _ in
-            HTTPStubsResponse(
-                data: body,
-                statusCode: 200,
-                headers: ["Content-Type": "application/json"]
-            )
-        }
-
-        let service = LANraragiService.shared
-        _ = try await service.verifyClient(url: "https://localhost", apiKey: "apiKey")
-        return service
+        try await configureTestServer()
     }
 
     private static func stubJobStatus(id: Int, state: String, success: Int?) {
