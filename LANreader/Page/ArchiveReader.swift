@@ -1570,8 +1570,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         return self.showSliderPreview(pageIndex: clampedIndex, state: &state)
     }
 
-    /// Shows the page's preview if it is on disk. Otherwise the bubble keeps the last image, dimmed, and
-    /// the page is fetched ahead of the background queue.
+    /// Shows the page's preview if it is on disk. Otherwise the bubble shows a spinner and the page is
+    /// fetched ahead of the background queue.
     private func showSliderPreview(pageIndex: Int, state: inout State) -> Effect<Action> {
         let page = state.pages[pageIndex]
         let fileURL = Self.sliderPreviewFileURL(archiveId: state.currentArchiveId, pageNumber: page.pageNumber)
@@ -1579,9 +1579,10 @@ public struct ChapterMutationTarget: Equatable, Sendable {
             state.sliderPreviewStatus[page.pageNumber] = .stored
         }
 
-        switch state.sliderPreviewStatus[page.pageNumber] {
+        let status = state.sliderPreviewStatus[page.pageNumber]
+        state.sliderPreviewImageURL = status == .stored ? fileURL : nil
+        switch status {
         case .stored:
-            state.sliderPreviewImageURL = fileURL
             state.sliderPreviewLoading = false
             return .none
         case .fetching:
@@ -1591,9 +1592,6 @@ public struct ChapterMutationTarget: Equatable, Sendable {
             guard state.cached || state.sliderReadyThumbnailPages.contains(page.pageNumber) else {
                 // The server has not generated this page's thumbnail yet.
                 state.sliderPreviewLoading = !state.sliderThumbnailJobsById.isEmpty
-                if !state.sliderPreviewLoading {
-                    state.sliderPreviewImageURL = nil
-                }
                 return .none
             }
             state.sliderPreviewLoading = true
@@ -2565,7 +2563,6 @@ struct SliderPreviewTrackGeometry {
 
 private struct SliderPreviewBubble: View {
     let imageURL: URL?
-    /// The page under the slider has no preview yet, so any image shown belongs to an earlier page.
     let loading: Bool
     let imageHeight: CGFloat
 
@@ -2586,7 +2583,6 @@ private struct SliderPreviewBubble: View {
                 Image(uiImage: previewImage)
                     .resizable()
                     .scaledToFit()
-                    .opacity(loading ? 0.4 : 1)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Color(.secondarySystemBackground))
             } else if loading {

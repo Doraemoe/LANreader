@@ -3869,10 +3869,10 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         }
     }
 
-    /// Moving onto a page whose preview is still downloading keeps the last image, dimmed, and moves that
-    /// page ahead of the background downloads.
+    /// Moving onto a page whose preview is still downloading shows a spinner instead of the last page's
+    /// image, and moves that page ahead of the background downloads.
     @MainActor
-    func testSliderKeepsTheLastImageUntilTheNextPreviewArrives() async throws {
+    func testSliderShowsASpinnerUntilTheNextPreviewArrives() async throws {
         configureReaderDefaults()
         try await configureTestServer()
         stubSliderPreviewThumbnails()
@@ -3894,6 +3894,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         await store.send(.sliderDragChanged(2)) {
             $0.sliderDraftIndex = 2
             $0.sliderPreviewPageIndex = 2
+            $0.sliderPreviewImageURL = nil
             $0.sliderPreviewLoading = true
             $0.sliderPreviewStatus = [2: .stored, 3: .fetching]
         }
