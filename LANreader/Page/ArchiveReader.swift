@@ -120,6 +120,20 @@ public struct SliderPreviewThumbnailQueueResult: Equatable, Sendable {
     }
 }
 
+/// Where a page's slider preview stands.
+public enum SliderPreviewStatus: Equatable, Sendable {
+    case fetching
+    case stored
+    case failed
+}
+
+public enum SliderPreviewFetchResult: Equatable, Sendable {
+    case stored
+    case failed
+    /// Low Data Mode blocked a background download.
+    case networkConstrained
+}
+
 public struct StampCreationTarget: Equatable, Sendable {
     let sourceArchiveId: String
     let sourcePageNumber: Int
@@ -192,6 +206,11 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         var sliderPreviewLoading = false
         var sliderThumbnailJobsById: [Int: String] = [:]
         var sliderReadyThumbnailPages: Set<Int> = []
+        /// Keyed by reader page number. A page with no entry has not been tried yet.
+        var sliderPreviewStatus: [Int: SliderPreviewStatus] = [:]
+        /// Set once Low Data Mode blocks a background preview download. After that, only the page
+        /// under the slider is fetched.
+        var sliderPreviewPrefetchStopped = false
         /// Median aspect ratio of the pages measured so far, used to size pages that have not been
         /// measured yet. Pages within an archive are near-uniform, so this converges almost immediately.
         var estimatedPageAspectRatio: Double = ReaderPageLayout.defaultAspectRatio
@@ -354,10 +373,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         case sliderDragStarted
         case sliderDragChanged(Int)
         case sliderDragEnded
-        case loadSliderPreview(Int)
-        case sliderPreviewLoaded(Int, URL)
-        case sliderPreviewUnavailable(Int)
-        case sliderPreviewFailed(Int)
+        case sliderPreviewFetched(pageNumber: Int, SliderPreviewFetchResult)
         case cleanupSliderPreviewResources
         case setThumbnail
         case finishThumbnailLoading
@@ -387,7 +403,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         case autoPage
         case sliderPreviewThumbnailQueue
         case sliderPreviewThumbnailPolling
-        case sliderPreviewLoad
+        case sliderPreviewFetch
         case primePageAspectRatios
         case stampCreation
         case stampMutation
@@ -437,7 +453,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                    state.extracting = false
                    return .merge(
                        .send(.requestJump(state.currentPageIndex, source: .initialRestore)),
-                       .send(.primePageAspectRatios)
+                       .send(.primePageAspectRatios),
+                       self.fillSliderPreviewQueue(state: &state)
                    )
                } else {
                    self.resetSliderPreviewArchiveState(state: &state)
@@ -551,10 +568,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                 }
                 state.lastAutoPageIndex = nil
                 self.resetSliderPreviewDisplayState(state: &state)
-                return .merge(
-                    .cancel(id: CancelId.autoPage),
-                    .cancel(id: CancelId.sliderPreviewLoad)
-                )
+                return .cancel(id: CancelId.autoPage)
             case let .pageLayoutModeChanged(mode):
                 guard state.canToggleDoublePageLayout else { return .none }
                 mode.save(automatic: state.$automaticPageLayout, double: state.$manualDoublePageLayout)
@@ -1032,11 +1046,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                         )
                     }
                 }
-
-                if let previewPageIndex = state.sliderPreviewPageIndex {
-                    effect = .merge(effect, .send(.loadSliderPreview(previewPageIndex)))
-                }
-                return effect
+                return .merge(effect, self.advanceSliderPreviews(state: &state))
             case let .pollSliderPreviewThumbnailJob(jobId, archiveId):
                 return .run { send in
                     while true {
@@ -1068,16 +1078,10 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                 } else if status.state == "failed" {
                     state.sliderThumbnailJobsById[jobId] = nil
                 }
-                if let previewPageIndex = state.sliderPreviewPageIndex {
-                    return .send(.loadSliderPreview(previewPageIndex))
-                }
-                return .none
+                return self.advanceSliderPreviews(state: &state)
             case let .sliderPreviewThumbnailPollingFailed(jobId, _):
                 state.sliderThumbnailJobsById[jobId] = nil
-                if let previewPageIndex = state.sliderPreviewPageIndex {
-                    return .send(.loadSliderPreview(previewPageIndex))
-                }
-                return .none
+                return self.advanceSliderPreviews(state: &state)
             case .sliderDragStarted:
                 state.sliderDragging = true
                 let previewIndex = ReaderPositioning.clampedPageIndex(
@@ -1099,122 +1103,42 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                 state.sliderDragging = false
                 guard !state.pages.isEmpty else {
                     self.resetSliderPreviewDisplayState(state: &state)
-                    return .cancel(id: CancelId.sliderPreviewLoad)
+                    return .none
                 }
                 let targetIndex = ReaderPositioning.clampedPageIndex(
                     state.sliderDraftIndex ?? state.currentPageIndex,
                     pageCount: state.pages.count
                 )
                 self.resetSliderPreviewDisplayState(state: &state)
-                return .merge(
-                    .cancel(id: CancelId.sliderPreviewLoad),
-                    .send(.requestJump(targetIndex, source: .slider))
-                )
-            case let .loadSliderPreview(pageIndex):
-                guard !state.pages.isEmpty else { return .none }
-                let clampedIndex = ReaderPositioning.clampedPageIndex(pageIndex, pageCount: state.pages.count)
-                guard state.sliderPreviewVisible, state.sliderPreviewPageIndex == clampedIndex else { return .none }
-
-                let page = state.pages[clampedIndex]
-                if self.restoreExistingSliderPreviewIfAvailable(state: &state, pageIndex: clampedIndex) {
-                    return .none
+                return .send(.requestJump(targetIndex, source: .slider))
+            case let .sliderPreviewFetched(pageNumber, result):
+                guard state.sliderPreviewStatus[pageNumber] == .fetching else { return .none }
+                switch result {
+                case .stored:
+                    state.sliderPreviewStatus[pageNumber] = .stored
+                case .failed:
+                    state.sliderPreviewStatus[pageNumber] = .failed
+                case .networkConstrained:
+                    state.sliderPreviewStatus[pageNumber] = nil
+                    state.sliderPreviewPrefetchStopped = true
                 }
-
-                guard state.cached || state.sliderReadyThumbnailPages.contains(page.pageNumber) else {
-                    state.sliderPreviewImageURL = nil
-                    state.sliderPreviewLoading = !state.sliderThumbnailJobsById.isEmpty
-                    return .none
+                if result != .networkConstrained,
+                   state.sliderPreviewVisible,
+                   let previewIndex = state.sliderPreviewPageIndex,
+                   state.pages.indices.contains(previewIndex),
+                   state.pages[previewIndex].pageNumber == pageNumber {
+                    state.sliderPreviewImageURL = result == .stored
+                        ? Self.sliderPreviewFileURL(archiveId: state.currentArchiveId, pageNumber: pageNumber)
+                        : nil
+                    state.sliderPreviewLoading = false
                 }
-
-                state.sliderPreviewImageURL = nil
-                state.sliderPreviewLoading = true
-
-                if state.cached {
-                    return .run { [archiveId = state.currentArchiveId, pageNumber = page.pageNumber] send in
-                        guard let cacheFolder = LANraragiService.cachePath?.appendingPathComponent(archiveId),
-                              let sourceURL = imageService.storedImagePath(
-                                  folderUrl: cacheFolder,
-                                  pageNumber: "\(pageNumber)"
-                              ) else {
-                            throw ArchiveReaderError.previewSourceUnavailable
-                        }
-
-                        let previewFileURL = Self.sliderPreviewFileURL(
-                            archiveId: archiveId,
-                            pageNumber: pageNumber
-                        )
-                        guard imageService.generatePreviewImage(
-                            sourceUrl: sourceURL,
-                            destinationUrl: previewFileURL
-                        ) else {
-                            throw ArchiveReaderError.previewGenerationFailed
-                        }
-                        await send(.sliderPreviewLoaded(clampedIndex, previewFileURL))
-                    } catch: { [archiveId = state.currentArchiveId] error, send in
-                        logger.warning("failed to generate cached slider preview. id=\(archiveId) \(error)")
-                        await send(.sliderPreviewFailed(clampedIndex))
-                    }
-                    .cancellable(id: CancelId.sliderPreviewLoad, cancelInFlight: true)
-                }
-
-                let archiveId = state.currentArchiveId
-                let pageNumber = page.pageNumber
-                let sourceArchiveId = page.sourceArchiveId
-                let sourcePageNumber = page.sourcePageNumber
-
-                return .run { send in
-                    for attempt in 0..<6 {
-                        let thumbnailData = try await service.retrieveGeneratedArchiveThumbnail(
-                            id: sourceArchiveId,
-                            page: sourcePageNumber,
-                            cacheBust: Self.sliderPreviewCacheBust(pageNumber: sourcePageNumber, attempt: attempt)
-                        )
-                        if let thumbnailData {
-                            let previewFileURL = Self.sliderPreviewFileURL(
-                                archiveId: archiveId,
-                                pageNumber: pageNumber
-                            )
-                            if imageService.storePreviewImage(
-                                imageData: thumbnailData,
-                                destinationUrl: previewFileURL
-                            ) {
-                                await send(.sliderPreviewLoaded(clampedIndex, previewFileURL))
-                                return
-                            }
-                        }
-                        try await clock.sleep(for: .milliseconds(300))
-                    }
-                    await send(.sliderPreviewUnavailable(clampedIndex))
-                } catch: { [archiveId = state.currentArchiveId] error, send in
-                    logger.warning("failed to fetch slider preview thumbnail. id=\(archiveId) \(error)")
-                    await send(.sliderPreviewFailed(clampedIndex))
-                }
-                .cancellable(id: CancelId.sliderPreviewLoad, cancelInFlight: true)
-            case let .sliderPreviewLoaded(pageIndex, url):
-                guard state.sliderPreviewPageIndex == pageIndex else { return .none }
-                state.sliderPreviewImageURL = url
-                state.sliderPreviewLoading = false
-                return .none
-            case let .sliderPreviewUnavailable(pageIndex):
-                guard state.sliderPreviewPageIndex == pageIndex else { return .none }
-                if !self.restoreExistingSliderPreviewIfAvailable(state: &state, pageIndex: pageIndex) {
-                    state.sliderPreviewLoading = !state.sliderThumbnailJobsById.isEmpty
-                    state.sliderPreviewImageURL = nil
-                }
-                return .none
-            case let .sliderPreviewFailed(pageIndex):
-                guard state.sliderPreviewPageIndex == pageIndex else { return .none }
-                if !self.restoreExistingSliderPreviewIfAvailable(state: &state, pageIndex: pageIndex) {
-                    state.sliderPreviewImageURL = nil
-                }
-                state.sliderPreviewLoading = false
-                return .none
+                return self.advanceSliderPreviews(state: &state)
             case .cleanupSliderPreviewResources:
                 self.resetSliderPreviewArchiveState(state: &state)
                 return .merge(
                     .cancel(id: CancelId.sliderPreviewThumbnailQueue),
                     .cancel(id: CancelId.sliderPreviewThumbnailPolling),
-                    .cancel(id: CancelId.sliderPreviewLoad)
+                    .cancel(id: CancelId.sliderPreviewFetch)
                 )
             case let .navigate(direction, source):
                 guard let targetIndex = ReaderPositioning.adjacentPageIndex(
@@ -1637,13 +1561,166 @@ public struct ChapterMutationTarget: Equatable, Sendable {
             return .none
         }
 
+        // The drag gesture reports every finger movement, so most calls land on the page already shown.
+        let pageChanged = state.sliderPreviewPageIndex != clampedIndex
         state.sliderDraftIndex = clampedIndex
         state.sliderPreviewVisible = true
         state.sliderPreviewPageIndex = clampedIndex
-        if self.restoreExistingSliderPreviewIfAvailable(state: &state, pageIndex: clampedIndex) {
-            return .none
+        guard pageChanged else { return .none }
+        return self.showSliderPreview(pageIndex: clampedIndex, state: &state)
+    }
+
+    /// Shows the page's preview if it is on disk. Otherwise the bubble shows a spinner and the page is
+    /// fetched ahead of the background queue.
+    private func showSliderPreview(pageIndex: Int, state: inout State) -> Effect<Action> {
+        let page = state.pages[pageIndex]
+        let fileURL = Self.sliderPreviewFileURL(archiveId: state.currentArchiveId, pageNumber: page.pageNumber)
+        if state.sliderPreviewStatus[page.pageNumber] == nil, Self.fileExists(fileURL) {
+            state.sliderPreviewStatus[page.pageNumber] = .stored
         }
-        return .send(.loadSliderPreview(clampedIndex))
+
+        let status = state.sliderPreviewStatus[page.pageNumber]
+        state.sliderPreviewImageURL = status == .stored ? fileURL : nil
+        switch status {
+        case .stored:
+            state.sliderPreviewLoading = false
+            return .none
+        case .fetching:
+            state.sliderPreviewLoading = true
+            return .none
+        case .failed, nil:
+            guard state.cached || state.sliderReadyThumbnailPages.contains(page.pageNumber) else {
+                // The server has not generated this page's thumbnail yet.
+                state.sliderPreviewLoading = !state.sliderThumbnailJobsById.isEmpty
+                return .none
+            }
+            state.sliderPreviewLoading = true
+            return self.fetchSliderPreview(page, background: false, state: &state)
+        }
+    }
+
+    /// Runs after more thumbnails become available or a fetch ends: fetches the page under the slider if
+    /// it was waiting, then keeps the background queue full.
+    private func advanceSliderPreviews(state: inout State) -> Effect<Action> {
+        var waitingPreview: Effect<Action> = .none
+        if state.sliderPreviewVisible,
+           let previewIndex = state.sliderPreviewPageIndex,
+           state.pages.indices.contains(previewIndex),
+           state.sliderPreviewStatus[state.pages[previewIndex].pageNumber] == nil {
+            waitingPreview = self.showSliderPreview(pageIndex: previewIndex, state: &state)
+        }
+        return .merge(waitingPreview, self.fillSliderPreviewQueue(state: &state))
+    }
+
+    /// Keeps a few background preview fetches running, starting from the pages nearest the one being read
+    /// or previewed.
+    private func fillSliderPreviewQueue(state: inout State) -> Effect<Action> {
+        guard !state.sliderPreviewPrefetchStopped, !state.pages.isEmpty else { return .none }
+        let limit = state.cached ? Self.previewGenerationLimit : Self.previewDownloadLimit
+        var running = state.sliderPreviewStatus.values.count { $0 == .fetching }
+        guard running < limit else { return .none }
+
+        let anchor = ReaderPositioning.clampedPageIndex(
+            (state.sliderPreviewVisible ? state.sliderPreviewPageIndex : nil) ?? state.currentPageIndex,
+            pageCount: state.pages.count
+        )
+        var effects: [Effect<Action>] = []
+        for index in Self.pageIndicesNearestFirst(from: anchor, count: state.pages.count) {
+            guard running < limit else { break }
+            let page = state.pages[index]
+            guard state.sliderPreviewStatus[page.pageNumber] == nil,
+                  state.cached || state.sliderReadyThumbnailPages.contains(page.pageNumber) else {
+                continue
+            }
+            effects.append(self.fetchSliderPreview(page, background: true, state: &state))
+            running += 1
+        }
+        return .merge(effects)
+    }
+
+    /// Page indices ordered by distance from `anchor`, with the later page first on a tie.
+    static func pageIndicesNearestFirst(from anchor: Int, count: Int) -> [Int] {
+        (0..<count).sorted { lhs, rhs in
+            let lhsDistance = abs(lhs - anchor)
+            let rhsDistance = abs(rhs - anchor)
+            return lhsDistance == rhsDistance ? lhs > rhs : lhsDistance < rhsDistance
+        }
+    }
+
+    private func fetchSliderPreview(
+        _ page: PageFeature.State,
+        background: Bool,
+        state: inout State
+    ) -> Effect<Action> {
+        state.sliderPreviewStatus[page.pageNumber] = .fetching
+        let fileURL = Self.sliderPreviewFileURL(archiveId: state.currentArchiveId, pageNumber: page.pageNumber)
+        let priority: TaskPriority = background ? .utility : .userInitiated
+        let effect = state.cached
+            ? self.makeCachedSliderPreview(
+                archiveId: state.currentArchiveId, pageNumber: page.pageNumber, fileURL: fileURL, priority: priority
+            )
+            : self.downloadSliderPreview(page, fileURL: fileURL, background: background, priority: priority)
+        return effect.cancellable(id: CancelId.sliderPreviewFetch)
+    }
+
+    private func makeCachedSliderPreview(
+        archiveId: String,
+        pageNumber: Int,
+        fileURL: URL,
+        priority: TaskPriority
+    ) -> Effect<Action> {
+        .run(priority: priority) { send in
+            var stored = Self.fileExists(fileURL)
+            if !stored,
+               let cacheFolder = LANraragiService.cachePath?.appendingPathComponent(archiveId),
+               let sourceURL = imageService.storedImagePath(folderUrl: cacheFolder, pageNumber: "\(pageNumber)") {
+                stored = imageService.generatePreviewImage(
+                    sourceUrl: sourceURL,
+                    destinationUrl: fileURL,
+                    maxPixelSize: Self.cachedPreviewMaxPixelSize
+                )
+            }
+            if !stored {
+                logger.warning("failed to generate cached slider preview. id=\(archiveId) page=\(pageNumber)")
+            }
+            await send(.sliderPreviewFetched(pageNumber: pageNumber, stored ? .stored : .failed))
+        }
+    }
+
+    private func downloadSliderPreview(
+        _ page: PageFeature.State,
+        fileURL: URL,
+        background: Bool,
+        priority: TaskPriority
+    ) -> Effect<Action> {
+        let pageNumber = page.pageNumber
+        let sourceArchiveId = page.sourceArchiveId
+        let sourcePageNumber = page.sourcePageNumber
+        return .run(priority: priority) { send in
+            if Self.fileExists(fileURL) {
+                await send(.sliderPreviewFetched(pageNumber: pageNumber, .stored))
+                return
+            }
+            let thumbnailData = try await service.retrieveGeneratedArchiveThumbnail(
+                id: sourceArchiveId,
+                page: sourcePageNumber,
+                cacheBust: Self.sliderPreviewCacheBust(pageNumber: sourcePageNumber),
+                background: background
+            )
+            let stored = thumbnailData.map {
+                imageService.storePreviewImage(imageData: $0, destinationUrl: fileURL)
+            } ?? false
+            await send(.sliderPreviewFetched(pageNumber: pageNumber, stored ? .stored : .failed))
+        } catch: { error, send in
+            if LANraragiService.isBlockedByLowDataMode(error) {
+                await send(.sliderPreviewFetched(pageNumber: pageNumber, .networkConstrained))
+                return
+            }
+            logger.warning(
+                "failed to fetch slider preview thumbnail. id=\(sourceArchiveId) page=\(sourcePageNumber) \(error)"
+            )
+            await send(.sliderPreviewFetched(pageNumber: pageNumber, .failed))
+        }
     }
 
     private func resetSliderPreviewDisplayState(state: inout State) {
@@ -1665,7 +1742,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         return .merge(
             .cancel(id: CancelId.sliderPreviewThumbnailQueue),
             .cancel(id: CancelId.sliderPreviewThumbnailPolling),
-            .cancel(id: CancelId.sliderPreviewLoad),
+            .cancel(id: CancelId.sliderPreviewFetch),
             .cancel(id: CancelId.stampCreation),
             .cancel(id: CancelId.stampMutation),
             .cancel(id: CancelId.chapterCreation),
@@ -1677,31 +1754,24 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         resetSliderPreviewDisplayState(state: &state)
         state.sliderThumbnailJobsById = [:]
         state.sliderReadyThumbnailPages = []
+        state.sliderPreviewStatus = [:]
+        state.sliderPreviewPrefetchStopped = false
     }
 
-    private func restoreExistingSliderPreviewIfAvailable(
-        state: inout State,
-        pageIndex: Int
-    ) -> Bool {
-        guard state.pages.indices.contains(pageIndex) else {
-            return false
-        }
-        let existingPreviewURL = Self.sliderPreviewFileURL(
-            archiveId: state.currentArchiveId,
-            pageNumber: state.pages[pageIndex].pageNumber
-        )
-        guard FileManager.default.fileExists(atPath: existingPreviewURL.path(percentEncoded: false)) else {
-            return false
-        }
-        state.sliderPreviewImageURL = existingPreviewURL
-        state.sliderPreviewLoading = false
-        return true
+    /// Server thumbnails are at most 500 pixels wide; cached pages get previews of about the same size.
+    private static let cachedPreviewMaxPixelSize: CGFloat = 720
+    /// Leaves the rest of the server's connections to the page images being read.
+    private static let previewDownloadLimit = 3
+    private static let previewGenerationLimit = 2
+
+    private static func fileExists(_ url: URL) -> Bool {
+        FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
     }
 
     private static func sliderPreviewRootDirectory() -> URL {
         FileManager.default.temporaryDirectory
             .appendingPathComponent("LANreader", isDirectory: true)
-            .appendingPathComponent("reader-preview", isDirectory: true)
+            .appendingPathComponent("slider-previews", isDirectory: true)
     }
 
     private static func sliderPreviewDirectory(archiveId: String) -> URL {
@@ -1713,8 +1783,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
             .appendingPathComponent("\(pageNumber).jpg", isDirectory: false)
     }
 
-    private static func sliderPreviewCacheBust(pageNumber: Int, attempt: Int) -> Int {
-        Int(Date().timeIntervalSince1970 * 1000) + pageNumber + attempt
+    private static func sliderPreviewCacheBust(pageNumber: Int) -> Int {
+        Int(Date().timeIntervalSince1970 * 1000) + pageNumber
     }
 
     private func resolvedDoublePageLayout(state: State) -> Bool {
@@ -1815,17 +1885,11 @@ public struct ChapterMutationTarget: Equatable, Sendable {
 
 private enum ArchiveReaderError: LocalizedError {
     case thumbnailUnavailableAfterUpdate
-    case previewSourceUnavailable
-    case previewGenerationFailed
 
     var errorDescription: String? {
         switch self {
         case .thumbnailUnavailableAfterUpdate:
             return "Thumbnail is not ready yet. Please try again in a moment."
-        case .previewSourceUnavailable:
-            return "Preview source image is unavailable."
-        case .previewGenerationFailed:
-            return "Preview image generation failed."
         }
     }
 }

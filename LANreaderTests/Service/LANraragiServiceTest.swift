@@ -4,6 +4,7 @@
 
 import Alamofire
 import XCTest
+import os
 import OHHTTPStubs
 import OHHTTPStubsSwift
 import SwiftUI
@@ -380,6 +381,49 @@ class LANraragiServiceTest: LANreaderTestCase {
 
         let actual = try await service.retrieveGeneratedArchiveThumbnail(id: "id", page: 5, cacheBust: 99)
         XCTAssertEqual(actual, expected)
+    }
+
+    /// A download cancelled partway keeps its 200 status and part of the image. Returning those bytes
+    /// saved slider previews that showed only the top of the page.
+    func testCancelledThumbnailDownloadThrowsInsteadOfReturningPartOfTheImage() async throws {
+        try await configureVerifiedClient()
+        let imageData = Data(repeating: 0xAB, count: 200_000)
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/id/thumbnail")
+                && isMethodGET()) { _ in
+            // Headers arrive at once; the body takes three seconds.
+            HTTPStubsResponse(data: imageData, statusCode: 200, headers: ["Content-Type": "image/jpeg"])
+                .requestTime(0, responseTime: 3)
+        }
+        let service = try XCTUnwrap(service)
+
+        let download = Task {
+            try await service.retrieveGeneratedArchiveThumbnail(id: "id", page: 5, cacheBust: 99)
+        }
+        try await Task.sleep(for: .milliseconds(500))
+        download.cancel()
+
+        do {
+            let data = try await download.value
+            XCTFail("Expected the cancelled download to throw, got \(data?.count ?? 0) of \(imageData.count) bytes")
+        } catch {}
+    }
+
+    /// Background preview downloads must not use the network in Low Data Mode.
+    func testBackgroundThumbnailDownloadIsNotAllowedInLowDataMode() async throws {
+        try await configureVerifiedClient()
+        let requests = OSAllocatedUnfairLock(initialState: [Bool]())
+        stub(condition: isHost("localhost")
+                && isPath("/api/archives/id/thumbnail")
+                && isMethodGET()) { request in
+            requests.withLock { $0.append(request.allowsConstrainedNetworkAccess) }
+            return HTTPStubsResponse(data: Data([0xFF]), statusCode: 200, headers: ["Content-Type": "image/jpeg"])
+        }
+
+        _ = try await service.retrieveGeneratedArchiveThumbnail(id: "id", page: 5, cacheBust: 99)
+        _ = try await service.retrieveGeneratedArchiveThumbnail(id: "id", page: 5, cacheBust: 99, background: true)
+
+        XCTAssertEqual(requests.withLock { $0 }, [true, false])
     }
 
     func testUpdateArchiveThumbnailSendsPageAsQueryParameter() async throws {
