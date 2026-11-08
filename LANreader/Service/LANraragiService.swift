@@ -145,19 +145,29 @@ actor LANraragiService {
         try await fetchArchiveThumbnail(id: id, page: page)
     }
 
+    /// Downloads a page thumbnail the server has generated. A background download runs at low
+    /// priority and is not sent in Low Data Mode, where it throws a `.constrained` network error.
     func retrieveGeneratedArchiveThumbnail(
         id: String,
         page: Int,
-        cacheBust: Int
+        cacheBust: Int,
+        background: Bool = false
     ) async throws -> Data? {
-        try await fetchArchiveThumbnail(id: id, page: page, cacheBust: cacheBust, disableResponseCache: true)
+        try await fetchArchiveThumbnail(
+            id: id,
+            page: page,
+            cacheBust: cacheBust,
+            disableResponseCache: true,
+            background: background
+        )
     }
 
     private func fetchArchiveThumbnail(
         id: String,
         page: Int,
         cacheBust: Int? = nil,
-        disableResponseCache: Bool = false
+        disableResponseCache: Bool = false,
+        background: Bool = false
     ) async throws -> Data? {
         let query = [
             "no_fallback": "true",
@@ -168,8 +178,15 @@ actor LANraragiService {
         return try await fetchThumbnail(
             path: "/api/archives/\(id)/thumbnail",
             query: query,
-            disableResponseCache: disableResponseCache
+            disableResponseCache: disableResponseCache,
+            background: background
         )
+    }
+
+    /// Whether a request failed because Low Data Mode blocked it.
+    static func isBlockedByLowDataMode(_ error: any Error) -> Bool {
+        let urlError = (error as? AFError)?.underlyingError as? URLError ?? error as? URLError
+        return urlError?.networkUnavailableReason == .constrained
     }
 
     func retrieveTankoubonThumbnail(id: String) async throws -> Data? {
@@ -180,12 +197,20 @@ actor LANraragiService {
     private func fetchThumbnail(
         path: String,
         query: [String: String],
-        disableResponseCache: Bool = false
+        disableResponseCache: Bool = false,
+        background: Bool = false
     ) async throws -> Data? {
         var components = URLComponents(string: "\(url)\(path)")!
         components.queryItems = query.map { URLQueryItem(name: $0.key, value: $0.value) }
 
-        let request = session.request(components.url!)
+        let request = session.request(components.url!, requestModifier: { urlRequest in
+            if background {
+                urlRequest.allowsConstrainedNetworkAccess = false
+            }
+        })
+        if background {
+            request.onURLSessionTaskCreation(on: .global(qos: .utility)) { $0.priority = URLSessionTask.lowPriority }
+        }
         let response: DataResponse<Data, AFError>
 
         if disableResponseCache {
@@ -201,10 +226,9 @@ actor LANraragiService {
 
         switch statusCode {
         case 200:
-            guard let data = response.data else {
-                throw AFError.responseSerializationFailed(reason: .inputDataNilOrZeroLength)
-            }
-            return data
+            // A download that was cancelled or cut off keeps its 200 status and the bytes received so
+            // far, so the result's error is what tells it apart from a complete image.
+            return try response.result.get()
         case 202:
             return nil
         default:
