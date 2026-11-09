@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: macos-26
+    runs-on: xcode-27
 
     steps:
       - name: Checkout release source
@@ -97,7 +97,7 @@ jobs:
 
       - name: Select Xcode version
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.6.app
+          sudo xcode-select -s /Applications/Xcode_27.2.app
           xcodebuild -version
 
       - name: Resolve app versions

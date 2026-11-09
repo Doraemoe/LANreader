@@ -16,13 +16,13 @@ concurrency:
 
 jobs:
   verify:
-    runs-on: macOS-26
+    runs-on: xcode-27
     timeout-minutes: 45
 
     # Preserve the matrix-generated check name required by master branch protection.
     strategy:
       matrix:
-        destination: ['platform=iOS Simulator,OS=26.5,name=iPad Pro 11-inch (M5)']
+        destination: ['platform=iOS Simulator,OS=27.2,name=iPad Pro 11-inch (M5)']
 
     env:
       LANREADER_DESTINATION: ${{ matrix.destination }}
@@ -33,20 +33,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Select Xcode 26.6
+      - name: Select Xcode 27.2
         run: |
-          sudo xcode-select -switch /Applications/Xcode_26.6.app
+          sudo xcode-select -switch /Applications/Xcode_27.2.app
           xcodebuild -version
 
       - name: Install verification tools
         run: |
-          packages=()
-          command -v actionlint >/dev/null 2>&1 || packages+=(actionlint)
-          command -v swiftlint >/dev/null 2>&1 || packages+=(swiftlint)
-          if (( ${#packages[@]} )); then
-            brew install "${packages[@]}"
-          fi
-          actionlint -version
+          command -v swiftlint >/dev/null 2>&1 || brew install swiftlint
           swiftlint version
 
       - name: Resolve comparison base
