@@ -40,13 +40,7 @@ jobs:
 
       - name: Install verification tools
         run: |
-          packages=()
-          command -v actionlint >/dev/null 2>&1 || packages+=(actionlint)
-          command -v swiftlint >/dev/null 2>&1 || packages+=(swiftlint)
-          if (( ${#packages[@]} )); then
-            brew install "${packages[@]}"
-          fi
-          actionlint -version
+          command -v swiftlint >/dev/null 2>&1 || brew install swiftlint
           swiftlint version
 
       - name: Resolve comparison base
