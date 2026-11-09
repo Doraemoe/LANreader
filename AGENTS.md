@@ -132,7 +132,8 @@ Use this file as the source of truth for Codex-style work in this repository.
 
 When asked to create a pull request:
 
-- Always increment `CURRENT_PROJECT_VERSION` by exactly 1, even when the user does not explicitly request a build-number bump. Keep all LANreader and Action target build settings in sync.
-- Before creating the PR, read the current `MARKETING_VERSION`, tell the user its value, and ask whether it should be bumped. If the user already specified the marketing-version change, do not ask again.
+- When the PR changes the shipped app (`LANreader/`, `Action/`, project build settings, or dependencies), increment `CURRENT_PROJECT_VERSION` by exactly 1, even when the user does not explicitly request a build-number bump. Keep all LANreader and Action target build settings in sync.
+- Do not bump `CURRENT_PROJECT_VERSION` or ask about `MARKETING_VERSION` for changes that do not affect the app itself, such as CI, scripts, tests, or documentation.
+- For app changes, before creating the PR, read the current `MARKETING_VERSION`, tell the user its value, and ask whether it should be bumped. If the user already specified the marketing-version change, do not ask again.
 - If a marketing-version bump is requested, update all LANreader and Action target build settings together.
 - Verify the resolved values across every build configuration in `LANreader.xcodeproj/project.pbxproj`; do not update only the main app target or only one configuration.
