@@ -2,7 +2,7 @@ import ComposableArchitecture
 import SwiftUI
 import StoreKit
 
-@Reducer public struct SupportFeature {
+@Reducer public struct SupportFeature: Sendable {
     @ObservableState
     public struct State: Equatable {
         var loading = false

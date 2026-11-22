@@ -20,6 +20,11 @@ import Logging
 
         var isVerifying = false
         var errorMessage = ""
+
+        public init() {
+            self.formUrl = self.url
+            self.formKey = self.apiKey
+        }
     }
 
     public enum Action: Equatable, BindableAction {
@@ -30,7 +35,6 @@ import Logging
         case showInsecureConnectionAlert
         case alert(PresentationAction<Alert>)
 
-        case setFormValue
         case setServerProgress(Bool)
         case setLanraragiUrl(String)
         case setLanraragiApiKey(String)
@@ -99,10 +103,6 @@ import Logging
                 return .none
             case .binding:
                 return .none
-            case .setFormValue:
-                state.formUrl = state.url
-                state.formKey = state.apiKey
-                return .none
             case let .setServerProgress(isServerProgress):
                 state.$serverProgress.withLock {
                     $0 = isServerProgress
@@ -155,9 +155,6 @@ struct LANraragiConfigView: View {
                 })
                 .disabled(store.isVerifying)
             }
-        }
-        .onAppear {
-            store.send(.setFormValue)
         }
         .onSubmit {
             if focused == .url {

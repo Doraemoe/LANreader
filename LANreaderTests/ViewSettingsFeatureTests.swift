@@ -103,13 +103,17 @@ final class SettingsFeatureTests: LANreaderTestCase {
         XCTAssertEqual(nav.viewControllers.count, 1)
         XCTAssertTrue(nav.topViewController is UISettingsViewController)
 
-        store.send(.serverConfigTapped)
+        withUITransaction(\.uiKit.disablesAnimations, true) {
+            _ = store.send(.serverConfigTapped)
+        }
         await waitUntil { nav.viewControllers.count == 2 }
         XCTAssertEqual(nav.viewControllers.count, 2)
         XCTAssertTrue(nav.topViewController is UILANraragiConfigViewController)
 
         let id = try XCTUnwrap(store.path.ids.first)
-        store.send(.path(.element(id: id, action: .serverConfig(.saveComplate))))
+        withUITransaction(\.uiKit.disablesAnimations, true) {
+            _ = store.send(.path(.element(id: id, action: .serverConfig(.saveComplate))))
+        }
         await waitUntil { nav.viewControllers.count == 1 }
         XCTAssertEqual(nav.viewControllers.count, 1)
         XCTAssertTrue(nav.topViewController is UISettingsViewController)
