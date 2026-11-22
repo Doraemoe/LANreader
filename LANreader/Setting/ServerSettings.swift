@@ -1,16 +1,11 @@
 import SwiftUI
-import ComposableArchitecture
 
 struct ServerSettings: View {
-    @Environment(NavigationHelper.self) private var navigation
+    let onConfigTap: () -> Void
+    let onUploadTap: () -> Void
 
     var body: some View {
-        Button {
-            let store = Store(initialState: LANraragiConfigFeature.State()) {
-                LANraragiConfigFeature()
-            }
-            navigation.push(UILANraragiConfigViewController(store: store, navigation: navigation))
-        } label: {
+        Button(action: onConfigTap) {
             HStack {
                 Text("settings.host.config")
                 Spacer()
@@ -22,12 +17,7 @@ struct ServerSettings: View {
         .foregroundStyle(.primary)
         .padding()
 
-        Button {
-            let store = Store(initialState: UploadFeature.State()) {
-                UploadFeature()
-            }
-            navigation.push(UIUploadViewController(store: store))
-        } label: {
+        Button(action: onUploadTap) {
             HStack {
                 Text("settings.host.upload")
                 Spacer()

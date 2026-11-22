@@ -2,15 +2,15 @@ import ComposableArchitecture
 import SwiftUI
 import StoreKit
 
-@Reducer struct SupportFeature {
+@Reducer public struct SupportFeature {
     @ObservableState
-    struct State: Equatable {
+    public struct State: Equatable {
         var loading = false
         var selectedSupportType: SupportType = .yearly
         var purchaseSuccess = false
     }
 
-    enum Action: Equatable, BindableAction {
+    public enum Action: Equatable, BindableAction {
         case binding(BindingAction<State>)
 
         case startPurchase
@@ -23,7 +23,7 @@ import StoreKit
 
     @Dependency(\.openURL) var openURL
 
-    var body: some ReducerOf<Self> {
+    public var body: some ReducerOf<Self> {
         BindingReducer()
 
         Reduce { state, action in

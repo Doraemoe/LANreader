@@ -19,7 +19,6 @@ import Logging
         var formKey = ""
 
         var isVerifying = false
-        var successVerifed = false
         var errorMessage = ""
     }
 
@@ -89,7 +88,6 @@ import Logging
                 return .none
             case .saveComplate:
                 state.isVerifying = false
-                state.successVerifed = true
                 return .run { _ in
                     if isPresented {
                         await self.dismiss()
@@ -136,8 +134,6 @@ struct LANraragiConfigView: View {
 
     @Bindable var store: StoreOf<LANraragiConfigFeature>
 
-    var navigation: NavigationHelper?
-
     var body: some View {
         Form {
             Section(footer: Text("lanraragi.config.url.explain")) {
@@ -181,22 +177,15 @@ struct LANraragiConfigView: View {
                 store.send(.setErrorMessage(""))
             }
         }
-        .onChange(of: store.successVerifed) { _, newValue in
-            if newValue == true {
-                navigation?.pop()
-            }
-        }
         .alert($store.scope(\.$alert, action: \.alert))
     }
 }
 
 class UILANraragiConfigViewController: UIViewController {
     private let store: StoreOf<LANraragiConfigFeature>
-    private let navigation: NavigationHelper
 
-    init(store: StoreOf<LANraragiConfigFeature>, navigation: NavigationHelper) {
+    init(store: StoreOf<LANraragiConfigFeature>) {
         self.store = store
-        self.navigation = navigation
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -208,7 +197,7 @@ class UILANraragiConfigViewController: UIViewController {
         super.viewDidLoad()
 
         let hostingController = UIHostingController(
-            rootView: LANraragiConfigView(store: store, navigation: navigation)
+            rootView: LANraragiConfigView(store: store)
         )
 
         add(hostingController)

@@ -1,17 +1,12 @@
-import ComposableArchitecture
 import SwiftUI
 
 struct SupportSettings: View {
-    @Environment(NavigationHelper.self) private var navigation
+    let onSupportTap: () -> Void
+    let onLogTap: () -> Void
     @Environment(\.openURL) private var openURL
 
     var body: some View {
-        Button {
-            let store = Store(initialState: SupportFeature.State()) {
-                SupportFeature()
-            }
-            navigation.push(UISupportViewController(store: store))
-        } label: {
+        Button(action: onSupportTap) {
             HStack {
                 Text("settings.support.title")
                 Spacer()
@@ -54,12 +49,7 @@ struct SupportSettings: View {
         }
         .foregroundStyle(.primary)
         .padding()
-        Button {
-            let store = Store(initialState: LogFeature.State()) {
-                LogFeature()
-            }
-            navigation.push(UILogViewController(store: store))
-        } label: {
+        Button(action: onLogTap) {
             HStack {
                 Text("settings.debug.log")
                 Spacer()
