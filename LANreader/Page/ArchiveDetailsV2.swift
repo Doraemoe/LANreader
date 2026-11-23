@@ -33,6 +33,16 @@ import GRDBQuery
             self._archive = archive
             self.cached = cached
             self.tankoubonMetadata = tankoubonMetadata
+            self.title = tankoubonMetadata?.name ?? archive.wrappedValue.name
+            self.editableTags = tankoubonMetadata?.tags ?? archive.wrappedValue.tags
+            self.readOnlyTags = tankoubonMetadata?.includedArchiveTags ?? ""
+        }
+
+        var needsLocalFieldsRefresh: Bool {
+            guard editMode != .active else { return false }
+            return title != (tankoubonMetadata?.name ?? archive.name)
+                || editableTags != (tankoubonMetadata?.tags ?? archive.tags)
+                || readOnlyTags != (tankoubonMetadata?.includedArchiveTags ?? "")
         }
 
         var isTankoubon: Bool {
@@ -69,6 +79,7 @@ import GRDBQuery
 
         case deleteButtonTapped
         case deleteSuccess
+        case tagTapped(String)
     }
 
     @Dependency(\.lanraragiService) var service
@@ -104,6 +115,7 @@ import GRDBQuery
                     await send(.setErrorMessage(error.localizedDescription))
                 }
             case .loadLocalFields:
+                guard state.editMode != .active else { return .none }
                 state.title = state.tankoubonMetadata?.name ?? state.archive.name
                 state.editableTags = state.tankoubonMetadata?.tags ?? state.archive.tags
                 state.readOnlyTags = state.tankoubonMetadata?.includedArchiveTags ?? ""
@@ -243,6 +255,8 @@ import GRDBQuery
                     }
                 }
                 return .none
+            case .tagTapped:
+                return .none
             case .binding:
                 return .none
             }
@@ -256,13 +270,13 @@ struct ArchiveDetailsV2: View {
     @Environment(\.openURL) var openURL
 
     @Bindable var store: StoreOf<ArchiveDetailsFeature>
-    let onDelete: () -> Void
-    let onTagNavigation: (StoreOf<SearchFeature>) -> Void
+    let onDelete: (() -> Void)?
+    let onTagNavigation: ((StoreOf<SearchFeature>) -> Void)?
 
     init(
         store: StoreOf<ArchiveDetailsFeature>,
-        onDelete: @escaping () -> Void,
-        onTagNavigation: @escaping (StoreOf<SearchFeature>) -> Void
+        onDelete: (() -> Void)? = nil,
+        onTagNavigation: ((StoreOf<SearchFeature>) -> Void)? = nil
     ) {
         self.store = store
         self.onDelete = onDelete
@@ -293,7 +307,9 @@ struct ArchiveDetailsV2: View {
         }
         .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
         .onAppear {
-            store.send(.loadLocalFields)
+            if store.needsLocalFieldsRefresh {
+                store.send(.loadLocalFields)
+            }
         }
         .toolbar {
             store.cached ? nil :
@@ -374,7 +390,7 @@ struct ArchiveDetailsV2: View {
         }
         .onChange(of: store.deleteSucceeded) {
             if store.deleteSucceeded {
-                onDelete()
+                onDelete?()
             }
         }
     }
@@ -685,16 +701,20 @@ struct ArchiveDetailsV2: View {
 
     private func navigateToTag(_ tag: String) {
         let normalizedTag = String(tag.trimmingCharacters(in: .whitespacesAndNewlines))
-        let searchStore = Store(initialState: SearchFeature.State.init(
-            keyword: normalizedTag,
-            archiveList: ArchiveListFeature.State(
-                filter: SearchFilter(category: nil, filter: normalizedTag),
-                loadOnAppear: true,
-                currentTab: .search
-            )
-        )) {
-            SearchFeature()
+        if let onTagNavigation {
+            let searchStore = Store(initialState: SearchFeature.State.init(
+                keyword: normalizedTag,
+                archiveList: ArchiveListFeature.State(
+                    filter: SearchFilter(category: nil, filter: normalizedTag),
+                    loadOnAppear: true,
+                    currentTab: .search
+                )
+            )) {
+                SearchFeature()
+            }
+            onTagNavigation(searchStore)
+        } else {
+            store.send(.tagTapped(normalizedTag))
         }
-        onTagNavigation(searchStore)
     }
 }

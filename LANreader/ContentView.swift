@@ -47,7 +47,7 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
 
         var library = LibraryFeature.State()
         var category = CategoryFeature.State()
-        var search = SearchFeature.State()
+        var search = SearchTabFeature.State()
         var settings = SettingsFeature.State()
     }
 
@@ -58,7 +58,7 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
 
         case library(LibraryFeature.Action)
         case category(CategoryFeature.Action)
-        case search(SearchFeature.Action)
+        case search(SearchTabFeature.Action)
         case settings(SettingsFeature.Action)
 
         case showLogin
@@ -84,7 +84,7 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
             CategoryFeature()
         }
         Scope(\.search, action: \.search) {
-            SearchFeature()
+            SearchTabFeature()
         }
         Scope(\.settings, action: \.settings) {
             SettingsFeature()
@@ -105,8 +105,9 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
                 case let .read(archiveId, preferCached):
                     return loadDeepLinkArchive(id: archiveId, preferCached: preferCached)
                 case let .search(query):
+                    state.search.path.removeAll()
                     state.pendingDeepLink = .search(query: query)
-                    return .send(.search(.recentSearchTapped(query)))
+                    return .send(.search(.root(.recentSearchTapped(query))))
                 case let .download(downloadURL):
                     return .send(.queueUrlDownload(downloadURL))
                 case nil:

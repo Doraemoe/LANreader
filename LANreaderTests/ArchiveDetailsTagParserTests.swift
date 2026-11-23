@@ -1,6 +1,7 @@
 import XCTest
 import ComposableArchitecture
 import GRDB
+import SwiftUI
 @testable import LANreader
 
 final class ArchiveDetailsTagParserTests: LANreaderTestCase {
@@ -60,20 +61,55 @@ final class ArchiveDetailsTagParserTests: LANreaderTestCase {
             tags: "artist:tank",
             includedArchiveTags: "artist:first,series:one"
         )
+        let state = ArchiveDetailsFeature.State(
+            archive: archive,
+            tankoubonMetadata: metadata
+        )
+        XCTAssertEqual(state.title, "Tank title")
+        XCTAssertEqual(state.editableTags, "artist:tank")
+        XCTAssertEqual(state.readOnlyTags, "artist:first,series:one")
+
+        let store = TestStore(initialState: state) {
+            ArchiveDetailsFeature()
+        }
+        await store.send(.loadLocalFields)
+    }
+
+    @MainActor
+    func testArchiveDetailsLoadLocalFieldsRefreshesWhenInactiveAndSkipsActiveEdit() async {
+        let archive = Shared(value: makeDetailsArchive(
+            id: "arc1",
+            name: "Original",
+            tags: "artist:old"
+        ))
         let store = TestStore(
-            initialState: ArchiveDetailsFeature.State(
-                archive: archive,
-                tankoubonMetadata: metadata
-            )
+            initialState: ArchiveDetailsFeature.State(archive: archive)
         ) {
             ArchiveDetailsFeature()
         }
 
-        await store.send(.loadLocalFields) {
-            $0.title = "Tank title"
-            $0.editableTags = "artist:tank"
-            $0.readOnlyTags = "artist:first,series:one"
+        archive.withLock {
+            $0.name = "Updated"
+            $0.tags = "artist:new"
         }
+        XCTAssertTrue(store.state.needsLocalFieldsRefresh)
+
+        await store.send(.binding(.set(\.editMode, .active))) {
+            $0.editMode = .active
+        }
+        await store.send(.binding(.set(\.title, "Draft"))) {
+            $0.title = "Draft"
+        }
+        await store.send(.loadLocalFields)
+
+        await store.send(.binding(.set(\.editMode, .inactive))) {
+            $0.editMode = .inactive
+        }
+        await store.send(.loadLocalFields) {
+            $0.title = "Updated"
+            $0.editableTags = "artist:new"
+        }
+        XCTAssertFalse(store.state.needsLocalFieldsRefresh)
     }
 
     @MainActor

@@ -386,6 +386,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         case removeCacheSuccess
         case loadPreviousArchive
         case loadNextArchive
+        case openDetailsTapped
 
         public enum Alert: Equatable, Sendable {
             case confirmDelete
@@ -1355,6 +1356,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                 return switchArchive(offset: -1, state: &state)
             case .loadNextArchive:
                 return switchArchive(offset: 1, state: &state)
+            case .openDetailsTapped:
+                return .none
             }
         }
         .forEach(\.pages, action: \.page) {

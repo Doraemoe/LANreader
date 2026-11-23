@@ -4,6 +4,7 @@ import ComposableArchitecture
 
 class UIArchiveReaderController: UIViewController {
     private let store: StoreOf<ArchiveReaderFeature>
+    private let usesStackNavigation: Bool
     private var hostingController: UIHostingController<ArchiveReader>!
     private var detailsButton: UIBarButtonItem?
 
@@ -13,9 +14,11 @@ class UIArchiveReaderController: UIViewController {
 
     init(
         store: StoreOf<ArchiveReaderFeature>,
-        navigationHelper: NavigationHelper? = nil
+        navigationHelper: NavigationHelper? = nil,
+        usesStackNavigation: Bool = false
     ) {
         self.store = store
+        self.usesStackNavigation = usesStackNavigation
         self.hostingController = UIHostingController(rootView: ArchiveReader(
             store: store, navigationHelper: navigationHelper
         ))
@@ -41,6 +44,10 @@ class UIArchiveReaderController: UIViewController {
         let detailsAction = UIAction(image: UIImage(systemName: "info.circle")) { [weak self] _ in
             guard let self else { return }
             guard store.canOpenDetails else { return }
+            if usesStackNavigation {
+                store.send(.openDetailsTapped)
+                return
+            }
             guard let currentArchive = store.allArchives[id: store.currentArchiveId] else { return }
             let detailsStore = Store(
                 initialState: ArchiveDetailsFeature.State.init(
@@ -130,6 +137,7 @@ class UIArchiveReaderController: UIViewController {
         movingFromParent: Bool? = nil,
         beingDismissed: Bool? = nil
     ) {
+        guard !usesStackNavigation else { return }
         let shouldCleanup = (movingFromParent ?? isMovingFromParent)
             || (beingDismissed ?? isBeingDismissed)
         guard shouldCleanup else { return }
