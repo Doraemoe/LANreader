@@ -48,6 +48,7 @@ final class ArchiveListBatchTests: LANreaderTestCase {
         }
         await store.receive(\.reloadFromFirstPage)
         await store.receive(\.populateArchives)
+        await store.finish()
     }
 
     /// The Tankoubon exists on the server once it's created, so a failure to fill it must say that

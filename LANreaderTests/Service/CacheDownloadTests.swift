@@ -8,15 +8,10 @@ import os
 @testable import LANreader
 
 final class CacheDownloadTests: LANreaderTestCase {
-    override func setUp() {
+    override func setUp() async throws {
+        try await super.setUp()
         UserDefaults.standard.set("https://localhost", forKey: SettingsKey.lanraragiUrl)
         UserDefaults.standard.set("apiKey", forKey: SettingsKey.lanraragiApiKey)
-    }
-
-    override func tearDown() {
-        UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiUrl)
-        UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiApiKey)
-        HTTPStubs.removeAllStubs()
     }
 
     @MainActor
@@ -72,8 +67,7 @@ final class CacheDownloadTests: LANreaderTestCase {
         let task = await store.send(.retryCache(id))
         await store.receive(.retryCacheFinished(id))
         try await waitForCacheDownloads(service, archiveId: id)
-        await clock.advance(by: .seconds(2))
-        await store.receive(.removeItemFromDownloading(id))
+        await receiveCompletionAfterDownloads(store, clock: clock, archiveId: id)
         await task.finish()
         XCTAssertEqual(requests.withLock { $0 }, [
             "GET /api/info", "GET /api/archives/\(id)/files", "GET /cold-retry/2"
@@ -99,7 +93,7 @@ final class CacheDownloadTests: LANreaderTestCase {
         stub(condition: isHost("localhost") && pathStartsWith("/cache-feature/")) { @Sendable request in
             requests.withLock { $0.append(request.url!.path) }
             let response = HTTPStubsResponse(data: good, statusCode: 200, headers: ["Content-Type": "image/jpeg"])
-            response.requestTime = 0.2
+            response.requestTime = 0.5
             return response
         }
         let database = try AppDatabase(DatabaseQueue())
@@ -121,8 +115,9 @@ final class CacheDownloadTests: LANreaderTestCase {
         await store.send(.retryCache(id))
         await store.receive(.retryCacheFinished(id)) { $0.retryingDownloads.remove(id) }
         try await waitForCacheDownloads(service, archiveId: id)
-        await clock.advance(by: .seconds(2))
-        await store.receive(.removeItemFromDownloading(id)) { $0.downloading.removeValue(forKey: id) }
+        await receiveCompletionAfterDownloads(store, clock: clock, archiveId: id) {
+            $0.downloading.removeValue(forKey: id)
+        }
         await task.finish()
         XCTAssertEqual(requests.withLock { $0 }, ["/cache-feature/2"])
         XCTAssertEqual(try Data(contentsOf: folder.appendingPathComponent("1.jpg")), good)
@@ -214,21 +209,12 @@ final class CacheDownloadTests: LANreaderTestCase {
         cell.configure(with: store, fitPageWidth: false, showsStamps: false,
                        onCreateStamp: { _ in }, onEditStamp: { _ in })
         await store.send(.load(true)).finish()
-        await Task.yield()
-        await Task.yield()
         XCTAssertTrue(store.imageLoaded)
         XCTAssertEqual(store.pageMode, .normal)
         XCTAssertTrue(store.errorMessage.isEmpty)
         let stored = try XCTUnwrap(ImageService.shared.storedImagePath(folderUrl: folder, pageNumber: "1"))
         XCTAssertEqual(try Data(contentsOf: stored), good)
-        var views = cell.contentView.subviews
-        var renderedImage: UIImage?
-        while let view = views.popLast() {
-            views.append(contentsOf: view.subviews)
-            if let imageView = view as? UIImageView, !imageView.isHidden, let image = imageView.image {
-                renderedImage = image
-            }
-        }
+        let renderedImage = await waitForRenderedImage(in: cell)
         let expectedImage = try XCTUnwrap(UIImage(data: good)?.cgImage)
         XCTAssertEqual(renderedImage?.isSymbolImage, false)
         XCTAssertEqual(renderedImage?.cgImage?.width, expectedImage.width)
@@ -400,7 +386,7 @@ final class CacheDownloadTests: LANreaderTestCase {
             requests.withLock { $0.append(page) }
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Page-Number"), String(page))
             let response = HTTPStubsResponse(data: good, statusCode: 200, headers: ["Content-Type": "image/jpeg"])
-            response.requestTime = 0.2
+            response.requestTime = 0.5
             return response
         }
         let pages = (1...2).map {
@@ -439,7 +425,7 @@ final class CacheDownloadTests: LANreaderTestCase {
         let id = "cacheFeatureRemove-" + UUID().uuidString
         let folder = LANraragiService.cachePath!.appendingPathComponent(id)
         defer { try? FileManager.default.removeItem(at: folder) }
-        stubSlowCachePages(pathPrefix: "/cache-feature-remove/")
+        stubSlowCachePages(pathPrefix: "/cache-feature-remove/", requestTime: 1.5)
         let database = try AppDatabase(DatabaseQueue())
         var cache = cacheTestRecord(id: id)
         try database.saveCache(&cache)
@@ -498,12 +484,48 @@ private func cacheTestImageData() -> Data {
     }.jpegData(compressionQuality: 0.9)!
 }
 
-private func stubSlowCachePages(pathPrefix: String) {
+private func stubSlowCachePages(pathPrefix: String, requestTime: TimeInterval = 0.3) {
     let data = cacheTestImageData()
     stub(condition: isHost("localhost") && pathStartsWith(pathPrefix)) { @Sendable _ in
         let response = HTTPStubsResponse(data: data, statusCode: 200, headers: ["Content-Type": "image/jpeg"])
-        response.requestTime = 0.3
+        response.requestTime = requestTime
         return response
+    }
+}
+
+@MainActor
+private func receiveCompletionAfterDownloads(
+    _ store: TestStoreOf<CacheFeature>,
+    clock: TestClock<Duration>,
+    archiveId: String,
+    assert: ((inout CacheFeature.State) -> Void)? = nil
+) async {
+    let ticker = Task {
+        while !Task.isCancelled {
+            await clock.advance(by: .seconds(2))
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+    }
+    await store.receive(.removeItemFromDownloading(archiveId), assert: assert)
+    ticker.cancel()
+    await ticker.value
+}
+
+@MainActor
+private func waitForRenderedImage(in cell: UIPageCell) async -> UIImage? {
+    let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+    while true {
+        if let scrollView = cell.contentView.subviews.first(where: { $0 is UIScrollView }) {
+            var views = scrollView.subviews
+            while let view = views.popLast() {
+                views.append(contentsOf: view.subviews)
+                if let imageView = view as? UIImageView, !imageView.isHidden, let image = imageView.image {
+                    return image
+                }
+            }
+        }
+        guard ContinuousClock.now < deadline else { return nil }
+        try? await Task.sleep(for: .milliseconds(10))
     }
 }
 

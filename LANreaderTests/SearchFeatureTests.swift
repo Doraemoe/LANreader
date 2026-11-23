@@ -272,9 +272,6 @@ final class SearchFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testSearchClearedCancelsPendingResults() async throws {
-        defer {
-            HTTPStubs.removeAllStubs()
-        }
         try await configureTestServer()
         let requested = expectation(description: "Search request started")
         stub(condition: isHost("localhost") && isPath("/api/search")) { @Sendable _ in
@@ -372,11 +369,14 @@ final class SearchFeatureTests: LANreaderTestCase {
         try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
         var popularTag = TagItem(tag: "female:b", count: 10)
         try database.saveTag(tagItem: &popularTag)
+        let initialState = SearchFeature.State()
+        initialState.archiveList.$lastTagRefresh.withLock { $0 = 0 }
+        defer { initialState.archiveList.$lastTagRefresh.withLock { $0 = 0 } }
         let store = withDependencies {
             $0.appDatabase = database
             $0.date.now = Date(timeIntervalSince1970: 10)
         } operation: {
-            Store(initialState: SearchFeature.State()) { SearchFeature() }
+            Store(initialState: initialState) { SearchFeature() }
         }
         let controller = UISearchViewV2Controller(store: store)
         let navigation = UINavigationController(rootViewController: controller)
@@ -400,11 +400,12 @@ final class SearchFeatureTests: LANreaderTestCase {
         XCTAssertEqual(store.keyword, "artist:a$")
         XCTAssertEqual(store.archiveList.filter.filter, "artist:a$")
         XCTAssertTrue(recent.view.isHidden)
-        // Let the tapped search finish while its stub is still installed.
-        for _ in 0..<500 where store.archiveList.loading {
+        // Wait for both the search and tag-refresh requests to finish while their stubs are installed.
+        for _ in 0..<500 where store.archiveList.loading || store.archiveList.lastTagRefresh == 0 {
             try? await Task<Never, Never>.sleep(for: .milliseconds(10))
         }
         XCTAssertFalse(store.archiveList.loading)
+        XCTAssertGreaterThan(store.archiveList.lastTagRefresh, 0)
     }
 
     @MainActor
@@ -645,6 +646,9 @@ final class SearchTabNavigationTests: LANreaderTestCase {
     func testSearchNavigationControllerPushesAndPopsWithStore() async throws {
         let database = try AppDatabase(DatabaseQueue())
         let archive = makeSearchTestArchive(id: "arc1", name: "First", tags: "artist:e auo")
+        let thumbnailData = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1)).pngData { _ in }
+        var thumbnail = ArchiveThumbnail(id: archive.id, thumbnail: thumbnailData, lastUpdate: Date())
+        try database.saveArchiveThumbnail(&thumbnail)
         let sharedArchive = Shared(value: archive)
 
         var initialState = SearchTabFeature.State()

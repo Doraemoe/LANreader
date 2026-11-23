@@ -243,6 +243,9 @@ final class UploadFeatureTests: LANreaderTestCase {
         await store.receive(\.queueDownloadFinished) {
             $0.isQueueing = false
         }
+        // Let the initial status requests finish so polling is parked on the test clock before cancelling.
+        await store.receive(\.jobStatusUpdated)
+        await store.receive(\.jobStatusUpdated)
 
         XCTAssertEqual(Set(store.state.jobDetails.keys), [11, 13])
         XCTAssertEqual(Set(try database.readAllDownloadJobs().map(\.id)), [11, 13])
@@ -277,6 +280,7 @@ final class UploadFeatureTests: LANreaderTestCase {
         await store.receive(\.retryDownloadFinished) {
             $0.retryingJobIDs = []
         }
+        await store.receive(\.jobStatusUpdated)
 
         XCTAssertNil(store.state.jobDetails[7])
         XCTAssertNotNil(store.state.jobDetails[8])

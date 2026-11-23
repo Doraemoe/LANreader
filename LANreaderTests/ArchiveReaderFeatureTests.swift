@@ -223,6 +223,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         await store.receive(.stampsSupportResolved(nil))
         await store.receive(.chapterMutationSupportResolved(nil))
         await store.receive(\.finishExtracting)
+        await finishSliderPreviewPrefetch(store)
 
         XCTAssertEqual(infoRequests.withLock { $0 }, 0)
         XCTAssertEqual(store.state.pages.count, 1)
@@ -346,7 +347,6 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             $0.stampsLoading = false
         }
 
-        HTTPStubs.removeAllStubs()
         stubArchiveStamps(archiveId: "archive", page: 1)
         await store.send(.loadStamps) {
             $0.stampsLoading = true
@@ -471,6 +471,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         }
         // It also asks the page to load its stamps again later.
         await store.receive(\.page[id: page.id].loadStamps)
+        await store.finish()
         XCTAssertEqual(store.state.pages[id: page.id]?.stamps, [stamp])
         XCTAssertTrue(store.state.errorMessage.isEmpty)
     }
@@ -1819,6 +1820,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         await store.receive(.stampsSupportResolved(false))
         await store.receive(.chapterMutationSupportResolved(false))
         await store.receive(\.finishExtracting)
+        await finishSliderPreviewPrefetch(store)
 
         XCTAssertEqual(store.state.pages.map(\.pageNumber), [1, 2])
         XCTAssertFalse(store.state.canUseStamps)
@@ -1905,9 +1907,9 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
         await store.send(.downloadPages)
         await store.receive(.finishDownloadPages)
+        await finishSliderPreviewPrefetch(store)
 
         XCTAssertEqual(try database.readCache(tankId)?.toc, chapterFixture.expectedChapters)
-        await store.skipInFlightEffects(strict: false)
     }
 
     /// A Tankoubon page's preview is its source archive's own page thumbnail.
@@ -1965,6 +1967,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             $0.sliderThumbnailJobsById = [:]
             $0.sliderPreviewLoading = false
         }
+        await store.finish()
     }
 
     @MainActor
@@ -2452,6 +2455,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         }
         await store.receive(.extractArchive)
         await store.receive(\.finishExtracting)
+        await finishSliderPreviewPrefetch(store)
 
         XCTAssertEqual(store.state.pages.map(\.pageNumber), [1, 2, 3])
         XCTAssertEqual(store.state.currentPageIndex, 2)
@@ -2484,6 +2488,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             $0.pages = []
         }
         await store.receive(.loadCached)
+        await finishSliderPreviewPrefetch(store)
 
         XCTAssertEqual(store.state.pages.map(\.pageNumber), [1, 2, 3])
         XCTAssertTrue(store.state.pages.allSatisfy(\.cached))
@@ -2909,6 +2914,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             $0.pages[id: fixture.leadingId]?.imageLoaded = false
         }
         await store.receive(\.page[id: fixture.trailingId].setError)
+        await store.finish()
 
         XCTAssertEqual(store.state.pages.map(\.id), [fixture.leadingId, fixture.trailingId])
         XCTAssertEqual(store.state.pages[id: fixture.leadingId]?.imageLoaded, true)
@@ -2929,6 +2935,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
         await store.send(.page(.element(id: fixture.trailingId, action: .load(true))))
         await store.receive(\.page[id: fixture.trailingId].storedImageResolved)
+        await store.finish()
 
         XCTAssertEqual(store.state.pages.map(\.id), [fixture.leadingId])
         XCTAssertEqual(store.state.pages.map(\.pageMode), [.normal])
@@ -2960,6 +2967,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             $0.pages[id: fixture.leadingId]?.imageLoaded = false
         }
         await store.receive(\.page[id: fixture.trailingId].storedImageResolved)
+        await store.finish()
 
         XCTAssertEqual(
             store.state.pages.map(\.id),
@@ -2997,6 +3005,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             $0.storedImageURL = nil
         }
         await store.receive(\.setError)
+        await store.finish()
         XCTAssertNil(store.state.storedImageURL)
     }
 
