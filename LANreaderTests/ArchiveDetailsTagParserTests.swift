@@ -1,6 +1,7 @@
 import XCTest
 import ComposableArchitecture
 import GRDB
+import SwiftUI
 @testable import LANreader
 
 final class ArchiveDetailsTagParserTests: LANreaderTestCase {
@@ -72,6 +73,43 @@ final class ArchiveDetailsTagParserTests: LANreaderTestCase {
             ArchiveDetailsFeature()
         }
         await store.send(.loadLocalFields)
+    }
+
+    @MainActor
+    func testArchiveDetailsLoadLocalFieldsRefreshesWhenInactiveAndSkipsActiveEdit() async {
+        let archive = Shared(value: makeDetailsArchive(
+            id: "arc1",
+            name: "Original",
+            tags: "artist:old"
+        ))
+        let store = TestStore(
+            initialState: ArchiveDetailsFeature.State(archive: archive)
+        ) {
+            ArchiveDetailsFeature()
+        }
+
+        archive.withLock {
+            $0.name = "Updated"
+            $0.tags = "artist:new"
+        }
+        XCTAssertTrue(store.state.needsLocalFieldsRefresh)
+
+        await store.send(.binding(.set(\.editMode, .active))) {
+            $0.editMode = .active
+        }
+        await store.send(.binding(.set(\.title, "Draft"))) {
+            $0.title = "Draft"
+        }
+        await store.send(.loadLocalFields)
+
+        await store.send(.binding(.set(\.editMode, .inactive))) {
+            $0.editMode = .inactive
+        }
+        await store.send(.loadLocalFields) {
+            $0.title = "Updated"
+            $0.editableTags = "artist:new"
+        }
+        XCTAssertFalse(store.state.needsLocalFieldsRefresh)
     }
 
     @MainActor
