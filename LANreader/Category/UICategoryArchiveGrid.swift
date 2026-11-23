@@ -41,8 +41,7 @@ class UICategoryArchiveGridController: UIViewController {
         navigationItem.largeTitleDisplayMode = .never
 
         let archiveListView = UIArchiveListViewController(
-            store: store.scope(\.archiveList, action: \.archiveList),
-            usesStackNavigation: true
+            store: store.scope(\.archiveList, action: \.archiveList)
         )
         add(archiveListView)
         NSLayoutConstraint.activate([

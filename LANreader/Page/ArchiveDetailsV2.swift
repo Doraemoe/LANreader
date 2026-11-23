@@ -270,17 +270,9 @@ struct ArchiveDetailsV2: View {
     @Environment(\.openURL) var openURL
 
     @Bindable var store: StoreOf<ArchiveDetailsFeature>
-    let onDelete: (() -> Void)?
-    let onTagNavigation: ((StoreOf<SearchFeature>) -> Void)?
 
-    init(
-        store: StoreOf<ArchiveDetailsFeature>,
-        onDelete: (() -> Void)? = nil,
-        onTagNavigation: ((StoreOf<SearchFeature>) -> Void)? = nil
-    ) {
+    init(store: StoreOf<ArchiveDetailsFeature>) {
         self.store = store
-        self.onDelete = onDelete
-        self.onTagNavigation = onTagNavigation
         self._thumbnailObj = Query(ThumbnailRequest(id: store.archive.id))
     }
 
@@ -386,11 +378,6 @@ struct ArchiveDetailsV2: View {
                     style: .danger
                 )
                 store.send(.setErrorMessage(""))
-            }
-        }
-        .onChange(of: store.deleteSucceeded) {
-            if store.deleteSucceeded {
-                onDelete?()
             }
         }
     }
@@ -701,20 +688,6 @@ struct ArchiveDetailsV2: View {
 
     private func navigateToTag(_ tag: String) {
         let normalizedTag = String(tag.trimmingCharacters(in: .whitespacesAndNewlines))
-        if let onTagNavigation {
-            let searchStore = Store(initialState: SearchFeature.State.init(
-                keyword: normalizedTag,
-                archiveList: ArchiveListFeature.State(
-                    filter: SearchFilter(category: nil, filter: normalizedTag),
-                    loadOnAppear: true,
-                    currentTab: .search
-                )
-            )) {
-                SearchFeature()
-            }
-            onTagNavigation(searchStore)
-        } else {
-            store.send(.tagTapped(normalizedTag))
-        }
+        store.send(.tagTapped(normalizedTag))
     }
 }

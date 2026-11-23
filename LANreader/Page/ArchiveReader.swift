@@ -1899,7 +1899,6 @@ private enum ArchiveReaderError: LocalizedError {
 
 struct ArchiveReader: View {
     @Bindable var store: StoreOf<ArchiveReaderFeature>
-    let navigationHelper: NavigationHelper?
 
     var body: some View {
         let flip = store.readDirection == ReadDirection.rightLeft.rawValue
@@ -2053,11 +2052,6 @@ struct ArchiveReader: View {
                     style: .success
                 )
                 store.send(.setSuccess(""))
-            }
-        }
-        .onChange(of: store.removeCacheSuccess) {
-            if store.removeCacheSuccess {
-                navigationHelper?.pop()
             }
         }
     }

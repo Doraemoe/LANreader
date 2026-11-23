@@ -190,33 +190,89 @@ final class DeepLinkTests: LANreaderTestCase {
     @MainActor
     func testTabBarOpensReaderOnLibraryTabAndSearchOnSearchTab() async throws {
         let database = try AppDatabase(DatabaseQueue())
-        let store = withDependencies {
+        try await withDependencies {
             $0.appDatabase = database
             $0.date.now = Date(timeIntervalSince1970: 1)
         } operation: {
-            Store(initialState: AppFeature.State()) { AppFeature() }
+            let store = Store(initialState: AppFeature.State()) { AppFeature() }
+            defer { store.state.$archiveItems.withLock { $0 = [] } }
+            let tabs = UITabViewController(store: store)
+            tabs.loadViewIfNeeded()
+            let libraryNav = try XCTUnwrap(tabs.viewControllers?.first as? UINavigationController)
+            libraryNav.loadViewIfNeeded()
+            libraryNav.topViewController?.loadViewIfNeeded()
+            tabs.selectedIndex = 3
+
+            let archive = ArchiveItem(
+                id: "abc123", name: "Linked archive", extension: "zip", tags: "",
+                isNew: false, progress: 7, pagecount: 20, dateAdded: nil
+            )
+            withUITransaction(\.uiKit.disablesAnimations, true) {
+                store.send(.deepLinkArchiveLoaded(archive, cached: false))
+            }
+            await waitUntil {
+                store.pendingDeepLink == nil && libraryNav.topViewController is UIArchiveReaderController
+            }
+
+            XCTAssertEqual(tabs.selectedIndex, 0)
+            XCTAssertTrue(libraryNav.topViewController is UIArchiveReaderController)
+            XCTAssertEqual(store.library.path.count, 1)
+            XCTAssertNil(store.pendingDeepLink)
+
+            store.send(.openURL(try url("lanreader://search?query=artist%3Ae%20auo")))
+            await waitUntil { store.pendingDeepLink == nil }
+
+            XCTAssertEqual(tabs.selectedIndex, 2)
+            XCTAssertNil(store.pendingDeepLink)
         }
-        let tabs = UITabViewController(store: store)
-        tabs.loadViewIfNeeded()
-        tabs.selectedIndex = 3
+    }
 
-        let archive = ArchiveItem(
-            id: "abc123", name: "Linked archive", extension: "zip", tags: "",
-            isNew: false, progress: 7, pagecount: 20, dateAdded: nil
-        )
-        store.send(.deepLinkArchiveLoaded(archive, cached: false))
-        await waitUntil { store.pendingDeepLink == nil }
+    @MainActor
+    func testReaderDeepLinkWaitsForLockScreenAndReplacesExistingLibraryPath() async throws {
+        let database = try AppDatabase(DatabaseQueue())
+        try await withDependencies {
+            $0.appDatabase = database
+            $0.date.now = Date(timeIntervalSince1970: 1)
+        } operation: {
+            var initialState = AppFeature.State()
+            initialState.destination = .lockScreen(LockScreenFeature.State(lockState: .normal))
+            initialState.library.path.append(.cache(CacheFeature.State()))
+            let store = Store(initialState: initialState) { AppFeature() }
+            defer { store.state.$archiveItems.withLock { $0 = [] } }
+            let tabs = UITabViewController(store: store)
+            tabs.loadViewIfNeeded()
+            let libraryNav = try XCTUnwrap(tabs.viewControllers?.first as? UINavigationController)
+            libraryNav.loadViewIfNeeded()
+            libraryNav.topViewController?.loadViewIfNeeded()
+            tabs.selectedIndex = 2
 
-        XCTAssertEqual(tabs.selectedIndex, 0)
-        let libraryNav = try XCTUnwrap(tabs.viewControllers?.first as? UINavigationController)
-        XCTAssertTrue(libraryNav.topViewController is UIArchiveReaderController)
-        XCTAssertNil(store.pendingDeepLink)
+            let archive = ArchiveItem(
+                id: "abc123", name: "Linked archive", extension: "zip", tags: "",
+                isNew: false, progress: 7, pagecount: 20, dateAdded: nil
+            )
+            store.send(.deepLinkArchiveLoaded(archive, cached: false))
+            await Task.yield()
 
-        store.send(.openURL(try url("lanreader://search?query=artist%3Ae%20auo")))
-        await waitUntil { store.pendingDeepLink == nil }
+            XCTAssertEqual(store.pendingDeepLink, .reader(archive, cached: false))
+            XCTAssertEqual(tabs.selectedIndex, 2)
+            if case .cache = store.library.path.first {
+                // Expected to keep existing path untouched until unlocked.
+            } else {
+                XCTFail("Expected cache screen to stay on stack while locked")
+            }
 
-        XCTAssertEqual(tabs.selectedIndex, 2)
-        XCTAssertNil(store.pendingDeepLink)
+            withUITransaction(\.uiKit.disablesAnimations, true) {
+                store.send(.destination(.dismiss))
+            }
+            await waitUntil {
+                store.pendingDeepLink == nil && libraryNav.topViewController is UIArchiveReaderController
+            }
+
+            XCTAssertEqual(tabs.selectedIndex, 0)
+            XCTAssertEqual(libraryNav.viewControllers.count, 2)
+            XCTAssertTrue(libraryNav.topViewController is UIArchiveReaderController)
+            XCTAssertEqual(store.library.path.count, 1)
+        }
     }
 }
 

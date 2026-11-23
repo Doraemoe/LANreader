@@ -1,25 +1,11 @@
 import ComposableArchitecture
-import Observation
 import SwiftUI
 import UIKit
-
-@MainActor
-@Observable
-final class NavigationHelper {
-    weak var navigationController: UINavigationController?
-
-    func push(_ viewController: UIViewController) {
-        navigationController?.pushViewController(viewController, animated: true)
-    }
-
-    func pop() {
-        navigationController?.popViewController(animated: true)
-    }
-}
 
 @Reducer
 public enum ArchiveFlowPath {
     case categoryArchives(CategoryArchiveListFeature)
+    case cache(CacheFeature)
     case reader(ArchiveReaderFeature)
     case details(ArchiveDetailsFeature)
     case search(SearchFeature)
@@ -34,35 +20,19 @@ func reduceArchiveFlowPath(
     switch action {
     case let .element(id: id, action: .categoryArchives(.archiveList(.openReader(archiveId, fromStart)))):
         guard case let .categoryArchives(categoryState) = path[id: id] else { return }
-        appendReader(
-            archiveId: archiveId,
-            fromStart: fromStart,
-            archiveList: categoryState.archiveList,
-            to: &path
-        )
+        appendReader(archiveId: archiveId, fromStart: fromStart, archiveList: categoryState.archiveList, to: &path)
+    case let .element(id: id, action: .cache(.openReader(archiveId, fromStart))):
+        guard case let .cache(cacheState) = path[id: id] else { return }
+        appendCachedReader(archiveId: archiveId, fromStart: fromStart, cacheState: cacheState, to: &path)
     case let .element(id: id, action: .search(.archiveList(.openReader(archiveId, fromStart)))):
         guard case let .search(searchState) = path[id: id] else { return }
-        appendReader(
-            archiveId: archiveId,
-            fromStart: fromStart,
-            archiveList: searchState.archiveList,
-            to: &path
-        )
+        appendReader(archiveId: archiveId, fromStart: fromStart, archiveList: searchState.archiveList, to: &path)
     case let .element(id: id, action: .reader(.openDetailsTapped)):
-        guard case let .reader(readerState) = path[id: id],
-              readerState.canOpenDetails,
-              let currentArchive = readerState.allArchives[id: readerState.currentArchiveId] else {
-            return
-        }
-        path.append(
-            .details(
-                ArchiveDetailsFeature.State(
-                    archive: currentArchive,
-                    cached: readerState.cached,
-                    tankoubonMetadata: readerState.currentTankoubonDetails
-                )
-            )
-        )
+        guard case let .reader(readerState) = path[id: id] else { return }
+        appendDetails(from: readerState, to: &path)
+    case let .element(id: readerID, action: .reader(.removeCacheSuccess)):
+        guard case let .reader(readerState) = path[id: readerID], readerState.cached else { return }
+        path.pop(from: readerID)
     case let .element(id: _, action: .details(.tagTapped(tag))):
         path.append(.search(makeTagSearchState(for: tag)))
     case let .element(id: detailsID, action: .details(.deleteSuccess)):
@@ -72,7 +42,7 @@ func reduceArchiveFlowPath(
     }
 }
 
-private func appendReader(
+func appendReader(
     archiveId: String,
     fromStart: Bool,
     archiveList: ArchiveListFeature.State,
@@ -85,6 +55,46 @@ private func appendReader(
                 currentArchiveId: archiveId,
                 allArchives: allArchives,
                 fromStart: fromStart
+            )
+        )
+    )
+}
+
+private func appendCachedReader(
+    archiveId: String,
+    fromStart: Bool,
+    cacheState: CacheFeature.State,
+    to path: inout StackState<ArchiveFlowPath.State>
+) {
+    let allArchives = cacheState.archives
+        .filter { cacheState.downloading[$0.id] == nil }
+        .map(\.$archive)
+    path.append(
+        .reader(
+            ArchiveReaderFeature.State(
+                currentArchiveId: archiveId,
+                allArchives: allArchives,
+                fromStart: fromStart,
+                cached: true
+            )
+        )
+    )
+}
+
+private func appendDetails(
+    from readerState: ArchiveReaderFeature.State,
+    to path: inout StackState<ArchiveFlowPath.State>
+) {
+    guard readerState.canOpenDetails,
+          let currentArchive = readerState.allArchives[id: readerState.currentArchiveId] else {
+        return
+    }
+    path.append(
+        .details(
+            ArchiveDetailsFeature.State(
+                archive: currentArchive,
+                cached: readerState.cached,
+                tankoubonMetadata: readerState.currentTankoubonDetails
             )
         )
     )
@@ -122,11 +132,13 @@ func makeArchiveFlowDestination(_ store: StoreOf<ArchiveFlowPath>) -> UIViewCont
     switch store.case {
     case let .categoryArchives(categoryStore):
         UICategoryArchiveGridController(store: categoryStore)
+    case let .cache(cacheStore):
+        UICacheViewController(store: cacheStore)
     case let .reader(readerStore):
-        UIArchiveReaderController(store: readerStore, usesStackNavigation: true)
+        UIArchiveReaderController(store: readerStore)
     case let .details(detailsStore):
         UIHostingController(rootView: ArchiveDetailsV2(store: detailsStore))
     case let .search(searchStore):
-        UISearchViewV2Controller(store: searchStore, usesStackNavigation: true)
+        UISearchViewV2Controller(store: searchStore)
     }
 }

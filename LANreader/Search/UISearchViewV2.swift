@@ -151,15 +151,11 @@ import UIKit
         Reduce { state, action in
             switch action {
             case let .root(.archiveList(.openReader(archiveId, fromStart))):
-                let allArchives = state.root.archiveList.archivesToDisplay.map(\.$archive)
-                state.path.append(
-                    .reader(
-                        ArchiveReaderFeature.State(
-                            currentArchiveId: archiveId,
-                            allArchives: allArchives,
-                            fromStart: fromStart
-                        )
-                    )
+                appendReader(
+                    archiveId: archiveId,
+                    fromStart: fromStart,
+                    archiveList: state.root.archiveList,
+                    to: &state.path
                 )
                 return .none
             case let .path(pathAction):
@@ -179,8 +175,7 @@ func makeSearchNavigationController(
 ) -> (navigationController: NavigationStackController, rootViewController: UISearchViewV2Controller) {
     @UIBindable var store = store
     let rootViewController = UISearchViewV2Controller(
-        store: store.scope(\.root, action: \.root),
-        usesStackNavigation: true
+        store: store.scope(\.root, action: \.root)
     )
     let navigationController = NavigationStackController(
         path: $store.scope(\.path, action: \.path),
@@ -192,7 +187,6 @@ func makeSearchNavigationController(
 
 class UISearchViewV2Controller: UIViewController {
     private let store: StoreOf<SearchFeature>
-    private let usesStackNavigation: Bool
 
     // MARK: - UI
     private lazy var searchController: UISearchController = {
@@ -249,8 +243,7 @@ class UISearchViewV2Controller: UIViewController {
     // Archive list child (same as original UISearchView)
     private lazy var archiveListViewController: UIArchiveListViewController = {
         UIArchiveListViewController(
-            store: store.scope(\.archiveList, action: \.archiveList),
-            usesStackNavigation: usesStackNavigation
+            store: store.scope(\.archiveList, action: \.archiveList)
         )
     }()
 
@@ -267,9 +260,8 @@ class UISearchViewV2Controller: UIViewController {
     private var isBrowsingSuggestions = false
 
     // MARK: - Init
-    init(store: StoreOf<SearchFeature>, usesStackNavigation: Bool = false) {
+    init(store: StoreOf<SearchFeature>) {
         self.store = store
-        self.usesStackNavigation = usesStackNavigation
         super.init(nibName: nil, bundle: nil)
     }
 

@@ -65,6 +65,7 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
         case showLockScreen
         case openURL(URL)
         case deepLinkArchiveLoaded(ArchiveItem, cached: Bool)
+        case openDeepLinkReader(ArchiveItem, cached: Bool)
         case deepLinkHandled
         case queueUrlDownload(URL)
         case setErrorMessage(String)
@@ -119,6 +120,18 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
                     state.$archiveItems.withLock { _ = $0.updateOrAppend(archive) }
                 }
                 state.pendingDeepLink = .reader(archive, cached: cached)
+                return .none
+            case let .openDeepLinkReader(archive, cached):
+                let sharedArchive = cached ? nil : Shared(state.$archiveItems[id: archive.id])
+                state.library.path = StackState([
+                    .reader(
+                        ArchiveReaderFeature.State(
+                            currentArchiveId: archive.id,
+                            allArchives: [sharedArchive ?? Shared(value: archive)],
+                            cached: cached
+                        )
+                    )
+                ])
                 return .none
             case .deepLinkHandled:
                 state.pendingDeepLink = nil
