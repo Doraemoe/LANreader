@@ -69,20 +69,14 @@ class UITabViewController: UITabBarController {
             tag: 2
         )
 
-        let settingsNav = UINavigationController()
-        let settingsNavHelper = NavigationHelper()
-        settingsNavHelper.navigationController = settingsNav
-        let settingsView = UISettingsViewController(
-            store: store.scope(\.settings, action: \.settings),
-            navigationHelper: settingsNavHelper
+        let settingsNav = makeSettingsNavigationController(
+            store: store.scope(\.settings, action: \.settings)
         )
-        settingsNav.viewControllers = [settingsView]
         settingsNav.tabBarItem = UITabBarItem(
             title: String(localized: "settings"),
             image: UIImage(systemName: "gearshape"),
             tag: 3
         )
-        settingsView.navigationItem.title = String(localized: "settings")
 
         self.viewControllers = [libraryNav, categoryNav, searchNav, settingsNav]
         self.libraryNav = libraryNav

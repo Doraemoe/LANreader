@@ -3,16 +3,33 @@ import ComposableArchitecture
 import SwiftUI
 
 @Reducer public struct SettingsFeature {
+    @Reducer
+    public enum Path {
+        case serverConfig(LANraragiConfigFeature)
+        case upload(UploadFeature)
+        case translation(TranslationConfigFeature)
+        case support(SupportFeature)
+        case log(LogFeature)
+    }
+
     @ObservableState
     public struct State: Equatable {
+        var path = StackState<Path.State>()
         var read = ReadSettingsFeature.State()
         var view = ViewSettingsFeature.State()
         var database = DatabaseSettingsFeature.State()
     }
     public enum Action {
+        case path(StackActionOf<Path>)
         case read(ReadSettingsFeature.Action)
         case view(ViewSettingsFeature.Action)
         case database(DatabaseSettingsFeature.Action)
+
+        case serverConfigTapped
+        case uploadTapped
+        case translationTapped
+        case supportTapped
+        case logTapped
     }
 
     public var body: some ReducerOf<Self> {
@@ -27,8 +44,33 @@ import SwiftUI
         Scope(\.database, action: \.database) {
             DatabaseSettingsFeature()
         }
+
+        Reduce { state, action in
+            switch action {
+            case .serverConfigTapped:
+                state.path.append(.serverConfig(LANraragiConfigFeature.State()))
+                return .none
+            case .uploadTapped:
+                state.path.append(.upload(UploadFeature.State()))
+                return .none
+            case .translationTapped:
+                state.path.append(.translation(TranslationConfigFeature.State()))
+                return .none
+            case .supportTapped:
+                state.path.append(.support(SupportFeature.State()))
+                return .none
+            case .logTapped:
+                state.path.append(.log(LogFeature.State()))
+                return .none
+            case .path, .read, .view, .database:
+                return .none
+            }
+        }
+        .forEach(\.path, action: \.path)
     }
 }
+
+extension SettingsFeature.Path.State: Equatable {}
 
 struct SettingsView: View {
     @Bindable var store: StoreOf<SettingsFeature>
@@ -41,7 +83,10 @@ struct SettingsView: View {
                 ReadSettings(store: self.store.scope(\.read, action: \.read))
             }
             Section(header: Text("settings.host")) {
-                ServerSettings()
+                ServerSettings(
+                    onConfigTap: { store.send(.serverConfigTapped) },
+                    onUploadTap: { store.send(.uploadTapped) }
+                )
             }
             Section(header: Text("settings.view")) {
                 ViewSettings(store: self.store.scope(\.view, action: \.view))
@@ -49,13 +94,18 @@ struct SettingsView: View {
             Section(
                 header: Text("settings.advanced"),
             ) {
-                AdvancedSettings()
+                AdvancedSettings(
+                    onTranslationTap: { store.send(.translationTapped) }
+                )
             }
             Section(header: Text("settings.database")) {
                 DatabaseSettings(store: self.store.scope(\.database, action: \.database))
             }
             Section(header: Text("settings.support")) {
-                SupportSettings()
+                SupportSettings(
+                    onSupportTap: { store.send(.supportTapped) },
+                    onLogTap: { store.send(.logTapped) }
+                )
             }
         }
     }
@@ -63,11 +113,9 @@ struct SettingsView: View {
 
 class UISettingsViewController: UIViewController {
     private let store: StoreOf<SettingsFeature>
-    private let navigationHelper: NavigationHelper
 
-    init(store: StoreOf<SettingsFeature>, navigationHelper: NavigationHelper) {
+    init(store: StoreOf<SettingsFeature>) {
         self.store = store
-        self.navigationHelper = navigationHelper
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -80,7 +128,6 @@ class UISettingsViewController: UIViewController {
 
         let hostingController = UIHostingController(
             rootView: SettingsView(store: store)
-                .environment(navigationHelper)
         )
 
         add(hostingController)
@@ -100,4 +147,31 @@ class UISettingsViewController: UIViewController {
             tabBarController?.tabBar.isHidden = false
         }
     }
+}
+
+@MainActor
+func makeSettingsNavigationController(store: StoreOf<SettingsFeature>) -> NavigationStackController {
+    @UIBindable var store = store
+    return NavigationStackController(
+        path: $store.scope(\.path, action: \.path),
+        root: {
+            let settingsView = UISettingsViewController(store: store)
+            settingsView.navigationItem.title = String(localized: "settings")
+            return settingsView
+        },
+        destination: { store in
+            switch store.case {
+            case let .serverConfig(store):
+                UILANraragiConfigViewController(store: store)
+            case let .upload(store):
+                UIUploadViewController(store: store)
+            case let .translation(store):
+                UITranslationConfigController(store: store)
+            case let .support(store):
+                UISupportViewController(store: store)
+            case let .log(store):
+                UILogViewController(store: store)
+            }
+        }
+    )
 }

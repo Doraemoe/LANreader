@@ -19,8 +19,12 @@ import Logging
         var formKey = ""
 
         var isVerifying = false
-        var successVerifed = false
         var errorMessage = ""
+
+        public init() {
+            self.formUrl = self.url
+            self.formKey = self.apiKey
+        }
     }
 
     public enum Action: Equatable, BindableAction {
@@ -31,7 +35,6 @@ import Logging
         case showInsecureConnectionAlert
         case alert(PresentationAction<Alert>)
 
-        case setFormValue
         case setServerProgress(Bool)
         case setLanraragiUrl(String)
         case setLanraragiApiKey(String)
@@ -89,7 +92,6 @@ import Logging
                 return .none
             case .saveComplate:
                 state.isVerifying = false
-                state.successVerifed = true
                 return .run { _ in
                     if isPresented {
                         await self.dismiss()
@@ -100,10 +102,6 @@ import Logging
                 state.isVerifying = false
                 return .none
             case .binding:
-                return .none
-            case .setFormValue:
-                state.formUrl = state.url
-                state.formKey = state.apiKey
                 return .none
             case let .setServerProgress(isServerProgress):
                 state.$serverProgress.withLock {
@@ -136,8 +134,6 @@ struct LANraragiConfigView: View {
 
     @Bindable var store: StoreOf<LANraragiConfigFeature>
 
-    var navigation: NavigationHelper?
-
     var body: some View {
         Form {
             Section(footer: Text("lanraragi.config.url.explain")) {
@@ -160,9 +156,6 @@ struct LANraragiConfigView: View {
                 .disabled(store.isVerifying)
             }
         }
-        .onAppear {
-            store.send(.setFormValue)
-        }
         .onSubmit {
             if focused == .url {
                 focused = .apiKey
@@ -181,22 +174,15 @@ struct LANraragiConfigView: View {
                 store.send(.setErrorMessage(""))
             }
         }
-        .onChange(of: store.successVerifed) { _, newValue in
-            if newValue == true {
-                navigation?.pop()
-            }
-        }
         .alert($store.scope(\.$alert, action: \.alert))
     }
 }
 
 class UILANraragiConfigViewController: UIViewController {
     private let store: StoreOf<LANraragiConfigFeature>
-    private let navigation: NavigationHelper
 
-    init(store: StoreOf<LANraragiConfigFeature>, navigation: NavigationHelper) {
+    init(store: StoreOf<LANraragiConfigFeature>) {
         self.store = store
-        self.navigation = navigation
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -208,7 +194,7 @@ class UILANraragiConfigViewController: UIViewController {
         super.viewDidLoad()
 
         let hostingController = UIHostingController(
-            rootView: LANraragiConfigView(store: store, navigation: navigation)
+            rootView: LANraragiConfigView(store: store)
         )
 
         add(hostingController)

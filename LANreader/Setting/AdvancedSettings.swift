@@ -1,16 +1,10 @@
 import SwiftUI
-import ComposableArchitecture
 
 struct AdvancedSettings: View {
-    @Environment(NavigationHelper.self) private var navigation
+    let onTranslationTap: () -> Void
 
     var body: some View {
-        Button {
-            let store = Store(initialState: TranslationConfigFeature.State()) {
-                TranslationConfigFeature()
-            }
-            navigation.push(UITranslationConfigController(store: store))
-        } label: {
+        Button(action: onTranslationTap) {
             HStack {
                 Text("settings.advanced.translation")
                 Spacer()
