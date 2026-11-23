@@ -127,9 +127,15 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
         // Entering selection mode loads categories for the batch menu when none are loaded yet.
         try await configureTestServer()
         stub(condition: isHost("localhost") && isPath("/api/categories") && isMethodGET()) { @Sendable _ in
-            HTTPStubsResponse(data: Data("[]".utf8), statusCode: 200, headers: ["Content-Type": "application/json"])
+            HTTPStubsResponse(
+                jsonObject: [[
+                    "id": "SET_selection", "name": "Selection", "archives": [], "search": "", "pinned": "0"
+                ]],
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
         }
-        let database = try AppDatabase(DatabaseQueue())
+        let database = try makeThumbnailDatabase(archiveIds: ["archive-0"])
         try await withDependencies {
             $0.appDatabase = database
         } operation: {
@@ -137,6 +143,8 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
             state.archiveList = makeSelectionState(count: 1)
             state.archiveList.currentTab = .search
             state.archiveList.filter = SearchFilter(category: nil, filter: "artist:test")
+            state.archiveList.$categoryItems.withLock { $0 = [] }
+            defer { state.archiveList.$categoryItems.withLock { $0 = [] } }
             state.archiveList.$paginateArchiveList = Shared(value: false)
             state.archiveList.$searchSort = Shared(value: SearchSort.dateAdded.rawValue)
             state.archiveList.loading = true
@@ -151,7 +159,7 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
 
             let select = try XCTUnwrap(controller.navigationItem.rightBarButtonItem?.menu?.children.last as? UIAction)
             select.performWithSender(nil, target: nil)
-            await Task.yield()
+            await waitForLibraryNav { !store.archiveList.categoryItems.isEmpty }
 
             XCTAssertEqual(store.archiveList.selectMode, .active)
             XCTAssertFalse(store.archiveList.loading)
@@ -192,7 +200,7 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
 
     @MainActor
     func testSearchSelectionRestoresTabBarAndSearchInput() async throws {
-        let database = try AppDatabase(DatabaseQueue())
+        let database = try makeThumbnailDatabase(archiveIds: ["archive-0"])
         try await withDependencies {
             $0.appDatabase = database
         } operation: {
@@ -258,23 +266,28 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
 
     @MainActor
     func testLibraryToolbarUsesPageColorsInLightAndDarkAppearance() async throws {
-        var state = LibraryFeature.State()
-        state.archiveList = makeSelectionState(count: 1)
-        let store = Store(initialState: state) { LibraryFeature() }
-        let controller = UILibraryListViewController(store: store)
-        let navigation = UINavigationController(rootViewController: controller)
-        navigation.loadViewIfNeeded()
-        controller.loadViewIfNeeded()
-        store.send(.archiveList(.toggleSelectionMode))
-        await Task.yield()
-        for style in [UIUserInterfaceStyle.light, .dark] {
-            controller.overrideUserInterfaceStyle = style
+        let database = try makeThumbnailDatabase(archiveIds: ["archive-0"])
+        try await withDependencies {
+            $0.appDatabase = database
+        } operation: {
+            var state = LibraryFeature.State()
+            state.archiveList = makeSelectionState(count: 1)
+            let store = Store(initialState: state) { LibraryFeature() }
+            let controller = UILibraryListViewController(store: store)
+            let navigation = UINavigationController(rootViewController: controller)
+            navigation.loadViewIfNeeded()
+            controller.loadViewIfNeeded()
+            store.send(.archiveList(.toggleSelectionMode))
             await Task.yield()
-            let expected = UIColor.label.resolvedColor(with: UITraitCollection(userInterfaceStyle: style))
-            let count = try XCTUnwrap(controller.toolbarItems?.first)
-            let download = try XCTUnwrap(controller.toolbarItems?[4])
-            XCTAssertEqual(count.tintColor, expected)
-            XCTAssertEqual(download.tintColor, expected)
+            for style in [UIUserInterfaceStyle.light, .dark] {
+                controller.overrideUserInterfaceStyle = style
+                await Task.yield()
+                let expected = UIColor.label.resolvedColor(with: UITraitCollection(userInterfaceStyle: style))
+                let count = try XCTUnwrap(controller.toolbarItems?.first)
+                let download = try XCTUnwrap(controller.toolbarItems?[4])
+                XCTAssertEqual(count.tintColor, expected)
+                XCTAssertEqual(download.tintColor, expected)
+            }
         }
     }
 
@@ -282,7 +295,7 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
     // swiftlint:disable:next function_body_length
     func testLibrarySelectionControlsToolbarAndInterceptsReaderNavigation() async throws {
         // Archive cells read thumbnails from the database as they're created during layout.
-        let database = try AppDatabase(DatabaseQueue())
+        let database = try makeThumbnailDatabase(archiveIds: ["archive-0", "archive-1"])
         try await withDependencies {
             $0.appDatabase = database
         } operation: {
@@ -448,14 +461,22 @@ private func makeSelectionState(count: Int) -> ArchiveListFeature.State {
 }
 
 @MainActor
+private func makeThumbnailDatabase(archiveIds: [String]) throws -> AppDatabase {
+    let database = try AppDatabase(DatabaseQueue())
+    let thumbnailData = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1)).pngData { _ in }
+    for id in archiveIds {
+        var thumbnail = ArchiveThumbnail(id: id, thumbnail: thumbnailData, lastUpdate: Date())
+        try database.saveArchiveThumbnail(&thumbnail)
+    }
+    return database
+}
+
+@MainActor
 // swiftlint:disable:next function_body_length
 private func checkSharedSelection(
     controller: UIViewController, store: StoreOf<ArchiveListFeature>, pushed: Bool
 ) async throws {
-    let database = try AppDatabase(DatabaseQueue())
-    let thumbnailData = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1)).pngData { _ in }
-    var thumbnail = ArchiveThumbnail(id: "archive-0", thumbnail: thumbnailData, lastUpdate: Date())
-    try database.saveArchiveThumbnail(&thumbnail)
+    let database = try makeThumbnailDatabase(archiveIds: ["archive-0"])
     try await withDependencies {
         $0.appDatabase = database
     } operation: {

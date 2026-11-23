@@ -9,15 +9,10 @@ import os
 @testable import LANreader
 
 final class CategoryFeatureTests: LANreaderTestCase {
-    override func setUp() {
+    override func setUp() async throws {
+        try await super.setUp()
         UserDefaults.standard.set("https://localhost", forKey: SettingsKey.lanraragiUrl)
         UserDefaults.standard.set("apiKey", forKey: SettingsKey.lanraragiApiKey)
-    }
-
-    override func tearDown() {
-        UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiUrl)
-        UserDefaults.standard.removeObject(forKey: SettingsKey.lanraragiApiKey)
-        HTTPStubs.removeAllStubs()
     }
 
     @MainActor

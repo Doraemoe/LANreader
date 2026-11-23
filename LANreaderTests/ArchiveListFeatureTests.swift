@@ -109,6 +109,7 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
         await store.send(.search(.cancelSearch))
 
         await store.receive(\.library.populateArchives)
+        await store.finish()
     }
 
     @MainActor
@@ -565,6 +566,14 @@ func makeStubbedPageDownloadService(
     test.addTeardownBlock {
         for id in archiveIds {
             await service.removeCachedPages(archiveId: id)
+        }
+        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+        while ContinuousClock.now < deadline {
+            let active = await service.activeCacheDownloadIDs()
+            if archiveIds.allSatisfy({ !active.contains($0) }) {
+                break
+            }
+            try? await Task.sleep(for: .milliseconds(10))
         }
     }
     return service
