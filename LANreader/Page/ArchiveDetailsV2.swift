@@ -38,29 +38,11 @@ import GRDBQuery
             self.readOnlyTags = tankoubonMetadata?.includedArchiveTags ?? ""
         }
 
-        var expectedTitle: String {
-            tankoubonMetadata?.name ?? archive.name
-        }
-
-        var expectedEditableTags: String {
-            tankoubonMetadata?.tags ?? archive.tags
-        }
-
-        var expectedReadOnlyTags: String {
-            tankoubonMetadata?.includedArchiveTags ?? ""
-        }
-
         var needsLocalFieldsRefresh: Bool {
-            title != expectedTitle
-                || editableTags != expectedEditableTags
-                || readOnlyTags != expectedReadOnlyTags
-        }
-
-        mutating func refreshLocalFieldsIfInactive() {
-            guard editMode != .active else { return }
-            title = expectedTitle
-            editableTags = expectedEditableTags
-            readOnlyTags = expectedReadOnlyTags
+            guard editMode != .active else { return false }
+            return title != (tankoubonMetadata?.name ?? archive.name)
+                || editableTags != (tankoubonMetadata?.tags ?? archive.tags)
+                || readOnlyTags != (tankoubonMetadata?.includedArchiveTags ?? "")
         }
 
         var isTankoubon: Bool {
@@ -133,7 +115,10 @@ import GRDBQuery
                     await send(.setErrorMessage(error.localizedDescription))
                 }
             case .loadLocalFields:
-                state.refreshLocalFieldsIfInactive()
+                guard state.editMode != .active else { return .none }
+                state.title = state.tankoubonMetadata?.name ?? state.archive.name
+                state.editableTags = state.tankoubonMetadata?.tags ?? state.archive.tags
+                state.readOnlyTags = state.tankoubonMetadata?.includedArchiveTags ?? ""
                 return .none
             case .deleteButtonTapped:
                 state.showAlert = true
@@ -322,7 +307,7 @@ struct ArchiveDetailsV2: View {
         }
         .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
         .onAppear {
-            if store.editMode != .active && store.needsLocalFieldsRefresh {
+            if store.needsLocalFieldsRefresh {
                 store.send(.loadLocalFields)
             }
         }

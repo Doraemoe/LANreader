@@ -62,8 +62,6 @@ func reduceArchiveFlowPath(
         path.append(.search(makeTagSearchState(for: tag)))
     case let .element(id: detailsID, action: .details(.deleteSuccess)):
         popArchiveDetails(id: detailsID, from: &path)
-    case let .popFrom(id: poppedID):
-        refreshRevealedArchiveDetails(beforePopping: poppedID, in: &path)
     default:
         break
     }
@@ -90,38 +88,10 @@ private func popArchiveDetails(
         let previousID = path.ids[path.ids.index(before: detailsIndex)]
         if case .reader = path[id: previousID] {
             path.pop(from: previousID)
-            refreshTopArchiveDetails(in: &path)
             return
         }
     }
     path.pop(from: detailsID)
-    refreshTopArchiveDetails(in: &path)
-}
-
-private func refreshRevealedArchiveDetails(
-    beforePopping poppedID: StackElementID,
-    in path: inout StackState<ArchiveFlowPath.State>
-) {
-    guard let poppedIndex = path.ids.firstIndex(of: poppedID),
-          poppedIndex > path.ids.startIndex else {
-        return
-    }
-    let revealedID = path.ids[path.ids.index(before: poppedIndex)]
-    refreshArchiveDetails(id: revealedID, in: &path)
-}
-
-private func refreshTopArchiveDetails(in path: inout StackState<ArchiveFlowPath.State>) {
-    guard let topID = path.ids.last else { return }
-    refreshArchiveDetails(id: topID, in: &path)
-}
-
-private func refreshArchiveDetails(
-    id: StackElementID,
-    in path: inout StackState<ArchiveFlowPath.State>
-) {
-    guard case var .details(detailsState) = path[id: id] else { return }
-    detailsState.refreshLocalFieldsIfInactive()
-    path[id: id] = .details(detailsState)
 }
 
 @MainActor

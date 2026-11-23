@@ -627,6 +627,12 @@ final class SearchTabNavigationTests: LANreaderTestCase {
         await store.receive(\.path[id: nestedDetailsID].details.setSuccessMessage, timeout: .seconds(5))
 
         await store.send(.path(.popFrom(id: tagSearchID)))
+        guard case let .details(staleDetails) = store.state.path[id: detailsID] else {
+            return XCTFail("Expected original details state")
+        }
+        XCTAssertTrue(staleDetails.needsLocalFieldsRefresh)
+
+        await store.send(.path(.element(id: detailsID, action: .details(.loadLocalFields))))
         guard case let .details(refreshedDetails) = store.state.path[id: detailsID] else {
             return XCTFail("Expected original details state")
         }
