@@ -59,32 +59,39 @@ func reduceArchiveFlowPath(
             )
         )
     case let .element(id: _, action: .details(.tagTapped(tag))):
-        let normalizedTag = String(tag.trimmingCharacters(in: .whitespacesAndNewlines))
-        path.append(
-            .search(
-                SearchFeature.State(
-                    keyword: normalizedTag,
-                    archiveList: ArchiveListFeature.State(
-                        filter: SearchFilter(category: nil, filter: normalizedTag),
-                        loadOnAppear: true,
-                        currentTab: .search
-                    )
-                )
-            )
-        )
+        path.append(.search(makeTagSearchState(for: tag)))
     case let .element(id: detailsID, action: .details(.deleteSuccess)):
-        guard let detailsIndex = path.ids.firstIndex(of: detailsID) else { return }
-        if detailsIndex > path.ids.startIndex {
-            let previousID = path.ids[path.ids.index(before: detailsIndex)]
-            if case .reader = path[id: previousID] {
-                path.pop(from: previousID)
-                return
-            }
-        }
-        path.pop(from: detailsID)
+        popArchiveDetails(id: detailsID, from: &path)
     default:
         break
     }
+}
+
+private func makeTagSearchState(for tag: String) -> SearchFeature.State {
+    let normalizedTag = String(tag.trimmingCharacters(in: .whitespacesAndNewlines))
+    return SearchFeature.State(
+        keyword: normalizedTag,
+        archiveList: ArchiveListFeature.State(
+            filter: SearchFilter(category: nil, filter: normalizedTag),
+            loadOnAppear: true,
+            currentTab: .search
+        )
+    )
+}
+
+private func popArchiveDetails(
+    id detailsID: StackElementID,
+    from path: inout StackState<ArchiveFlowPath.State>
+) {
+    guard let detailsIndex = path.ids.firstIndex(of: detailsID) else { return }
+    if detailsIndex > path.ids.startIndex {
+        let previousID = path.ids[path.ids.index(before: detailsIndex)]
+        if case .reader = path[id: previousID] {
+            path.pop(from: previousID)
+            return
+        }
+    }
+    path.pop(from: detailsID)
 }
 
 @MainActor

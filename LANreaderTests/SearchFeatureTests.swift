@@ -495,21 +495,9 @@ private func makeInMemoryDatabase(tags: [(String, Int)]) throws -> AppDatabase {
 
 final class SearchTabNavigationTests: LANreaderTestCase {
     @MainActor
-    func testSearchTabNavigationFlowPushesReaderDetailsTagSearchAndPopsOnDelete() async throws {
-        let database = try AppDatabase(DatabaseQueue())
+    func testSearchTabNavigationFlowPushesReaderDetailsAndTagSearch() async throws {
         let firstArchive = makeSearchTestArchive(id: "arc1", name: "First", tags: "artist:e auo")
-        let secondArchive = makeSearchTestArchive(id: "arc2", name: "Second", tags: "artist:e auo")
-        let sharedFirst = Shared(value: firstArchive)
-
-        var initialState = SearchTabFeature.State()
-        initialState.root.archiveList.archivesToDisplay = [GridFeature.State(archive: sharedFirst)]
-
-        let store = TestStore(initialState: initialState) {
-            SearchTabFeature()
-        } withDependencies: {
-            $0.appDatabase = database
-        }
-        store.exhaustivity = .off
+        let store = try makeSearchTabTestStore(initialArchives: [firstArchive])
 
         await store.send(.root(.archiveList(.openReader(archiveId: firstArchive.id, fromStart: true))))
         let readerID = try XCTUnwrap(store.state.path.ids.last)
@@ -537,6 +525,26 @@ final class SearchTabNavigationTests: LANreaderTestCase {
         XCTAssertEqual(tagSearchState.keyword, "artist:e auo")
         XCTAssertEqual(tagSearchState.archiveList.filter, SearchFilter(category: nil, filter: "artist:e auo"))
         XCTAssertTrue(tagSearchState.archiveList.loadOnAppear)
+
+        await store.send(.path(.popFrom(id: tagSearchID)))
+        XCTAssertEqual(Array(store.state.path.ids), [readerID, detailsID])
+
+        await store.send(.path(.element(id: detailsID, action: .details(.deleteSuccess))))
+        XCTAssertTrue(store.state.path.isEmpty)
+    }
+
+    @MainActor
+    func testSearchTabNestedDeletePopsOnlyInnerReaderAndDetails() async throws {
+        let firstArchive = makeSearchTestArchive(id: "arc1", name: "First", tags: "artist:e auo")
+        let secondArchive = makeSearchTestArchive(id: "arc2", name: "Second", tags: "artist:e auo")
+        let store = try makeSearchTabTestStore(initialArchives: [firstArchive])
+
+        await store.send(.root(.archiveList(.openReader(archiveId: firstArchive.id, fromStart: true))))
+        let readerID = try XCTUnwrap(store.state.path.ids.last)
+        await store.send(.path(.element(id: readerID, action: .reader(.openDetailsTapped))))
+        let detailsID = try XCTUnwrap(store.state.path.ids.last)
+        await store.send(.path(.element(id: detailsID, action: .details(.tagTapped("artist:e auo")))))
+        let tagSearchID = try XCTUnwrap(store.state.path.ids.last)
 
         await store.send(
             .path(
@@ -571,12 +579,6 @@ final class SearchTabNavigationTests: LANreaderTestCase {
         // landing back on the pushed tag search without disturbing earlier stack entries.
         await store.send(.path(.element(id: nestedDetailsID, action: .details(.deleteSuccess))))
         XCTAssertEqual(Array(store.state.path.ids), [readerID, detailsID, tagSearchID])
-
-        await store.send(.path(.popFrom(id: tagSearchID)))
-        XCTAssertEqual(Array(store.state.path.ids), [readerID, detailsID])
-
-        await store.send(.path(.element(id: detailsID, action: .details(.deleteSuccess))))
-        XCTAssertTrue(store.state.path.isEmpty)
     }
 
     @MainActor
@@ -588,43 +590,60 @@ final class SearchTabNavigationTests: LANreaderTestCase {
         var initialState = SearchTabFeature.State()
         initialState.root.archiveList.archivesToDisplay = [GridFeature.State(archive: sharedArchive)]
 
-        let store = withDependencies {
+        try await withDependencies {
             $0.appDatabase = database
         } operation: {
-            Store(initialState: initialState) {
+            let store = Store(initialState: initialState) {
                 SearchTabFeature()
             }
-        }
-        let (nav, root) = makeSearchNavigationController(store: store)
-        nav.loadViewIfNeeded()
+            let (nav, root) = makeSearchNavigationController(store: store)
+            nav.loadViewIfNeeded()
+            root.loadViewIfNeeded()
 
-        XCTAssertEqual(nav.viewControllers.count, 1)
-        XCTAssertTrue(nav.topViewController === root)
+            XCTAssertEqual(nav.viewControllers.count, 1)
+            XCTAssertTrue(nav.topViewController === root)
 
-        withUITransaction(\.uiKit.disablesAnimations, true) {
-            _ = store.send(.root(.archiveList(.openReader(archiveId: archive.id, fromStart: false))))
-        }
-        await waitUntil { nav.viewControllers.count == 2 }
-        XCTAssertEqual(nav.viewControllers.count, 2)
-        XCTAssertTrue(nav.topViewController is UIArchiveReaderController)
+            withUITransaction(\.uiKit.disablesAnimations, true) {
+                _ = store.send(.root(.archiveList(.openReader(archiveId: archive.id, fromStart: false))))
+            }
+            await waitUntil { nav.viewControllers.count == 2 }
+            XCTAssertEqual(nav.viewControllers.count, 2)
+            XCTAssertTrue(nav.topViewController is UIArchiveReaderController)
 
-        let readerID = try XCTUnwrap(store.path.ids.last)
-        withUITransaction(\.uiKit.disablesAnimations, true) {
-            _ = store.send(.path(.element(id: readerID, action: .reader(.openDetailsTapped))))
-        }
-        await waitUntil { nav.viewControllers.count == 3 }
-        XCTAssertEqual(nav.viewControllers.count, 3)
-        XCTAssertTrue(nav.topViewController is UIHostingController<ArchiveDetailsV2>)
+            let readerID = try XCTUnwrap(store.path.ids.last)
+            withUITransaction(\.uiKit.disablesAnimations, true) {
+                _ = store.send(.path(.element(id: readerID, action: .reader(.openDetailsTapped))))
+            }
+            await waitUntil { nav.viewControllers.count == 3 }
+            XCTAssertEqual(nav.viewControllers.count, 3)
+            XCTAssertTrue(nav.topViewController is UIHostingController<ArchiveDetailsV2>)
 
-        let detailsID = try XCTUnwrap(store.path.ids.last)
-        withUITransaction(\.uiKit.disablesAnimations, true) {
-            _ = store.send(.path(.element(id: detailsID, action: .details(.deleteSuccess))))
+            let detailsID = try XCTUnwrap(store.path.ids.last)
+            withUITransaction(\.uiKit.disablesAnimations, true) {
+                _ = store.send(.path(.element(id: detailsID, action: .details(.deleteSuccess))))
+            }
+            await waitUntil { nav.viewControllers.count == 1 }
+            XCTAssertEqual(nav.viewControllers.count, 1)
+            XCTAssertTrue(nav.topViewController === root)
+            XCTAssertTrue(store.path.isEmpty)
         }
-        await waitUntil { nav.viewControllers.count == 1 }
-        XCTAssertEqual(nav.viewControllers.count, 1)
-        XCTAssertTrue(nav.topViewController === root)
-        XCTAssertTrue(store.path.isEmpty)
     }
+}
+
+@MainActor
+private func makeSearchTabTestStore(initialArchives: [ArchiveItem]) throws -> TestStoreOf<SearchTabFeature> {
+    let database = try AppDatabase(DatabaseQueue())
+    var initialState = SearchTabFeature.State()
+    initialState.root.archiveList.archivesToDisplay = IdentifiedArray(
+        uniqueElements: initialArchives.map { GridFeature.State(archive: Shared(value: $0)) }
+    )
+    let store = TestStore(initialState: initialState) {
+        SearchTabFeature()
+    } withDependencies: {
+        $0.appDatabase = database
+    }
+    store.exhaustivity = .off
+    return store
 }
 
 private func makeSearchTestArchive(id: String, name: String, tags: String) -> ArchiveItem {
