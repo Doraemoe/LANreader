@@ -189,7 +189,6 @@ final class ArchiveDetailsTagParserTests: LANreaderTestCase {
         }
         await store.receive(.deleteSuccess) {
             $0.loading = false
-            $0.deleteSucceeded = true
         }
 
         XCTAssertNil(try database.readCache(id))

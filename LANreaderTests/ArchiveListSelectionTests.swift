@@ -577,7 +577,7 @@ final class LibraryTabNavigationTests: LANreaderTestCase {
     }
 
     @MainActor
-    func testOnlineReaderStaysOpenWhenCacheIsRemoved() async throws {
+    func testOnlineReaderStaysOpenAndUpdatesInCacheFlagOnCacheChanges() async throws {
         let archive = makeLibraryTestArchive(id: "libArc1", name: "First", tags: "")
         let store = try makeLibraryTabTestStore()
         defer { clearLibrarySharedArchives() }
@@ -589,9 +589,22 @@ final class LibraryTabNavigationTests: LANreaderTestCase {
             return XCTFail("Expected pushed online reader state")
         }
         XCTAssertFalse(readerState.cached)
+        XCTAssertFalse(readerState.inCache)
+
+        await store.send(.path(.element(id: readerID, action: .reader(.finishDownloadPages))))
+        if case let .reader(cachedReader) = store.state.path[id: readerID] {
+            XCTAssertTrue(cachedReader.inCache)
+        } else {
+            XCTFail("Expected online reader to remain open after caching")
+        }
 
         await store.send(.path(.element(id: readerID, action: .reader(.removeCacheSuccess))))
         XCTAssertEqual(Array(store.state.path.ids), [readerID])
+        if case let .reader(uncachedReader) = store.state.path[id: readerID] {
+            XCTAssertFalse(uncachedReader.inCache)
+        } else {
+            XCTFail("Expected online reader to remain open after cache removal")
+        }
     }
 
     @MainActor

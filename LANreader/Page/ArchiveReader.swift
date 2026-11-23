@@ -196,7 +196,6 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         var lastAutoPageIndex: Int?
         var cached = false
         var inCache = false
-        var removeCacheSuccess = false
         var currentTankoubonDetails: TankoubonDetailsMetadata?
         var sliderDraftIndex: Int?
         var sliderDragging = false
@@ -374,7 +373,6 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         case sliderDragChanged(Int)
         case sliderDragEnded
         case sliderPreviewFetched(pageNumber: Int, SliderPreviewFetchResult)
-        case cleanupSliderPreviewResources
         case setThumbnail
         case finishThumbnailLoading
         case setError(String)
@@ -1134,13 +1132,6 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                     state.sliderPreviewLoading = false
                 }
                 return self.advanceSliderPreviews(state: &state)
-            case .cleanupSliderPreviewResources:
-                self.resetSliderPreviewArchiveState(state: &state)
-                return .merge(
-                    .cancel(id: CancelId.sliderPreviewThumbnailQueue),
-                    .cancel(id: CancelId.sliderPreviewThumbnailPolling),
-                    .cancel(id: CancelId.sliderPreviewFetch)
-                )
             case let .navigate(direction, source):
                 guard let targetIndex = ReaderPositioning.adjacentPageIndex(
                     from: state.currentPageIndex,
@@ -1317,6 +1308,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                     await send(.setError(error.localizedDescription))
                 }
             case .finishDownloadPages:
+                state.inCache = true
                 let successMessage = String(localized: "archive.cache.added")
                 state.successMessage = successMessage
                 return .none
@@ -1333,7 +1325,6 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                 }
                 return .none
             case .alert(.presented(.confirmDelete)):
-                state.removeCacheSuccess = false
                 return .run { [id = state.currentArchiveId] send in
                     let deleted = try database.deleteCache(id)
                     if deleted != true {
@@ -1348,7 +1339,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                     await send(.setError(error.localizedDescription))
                 }
             case .removeCacheSuccess:
-                state.removeCacheSuccess = true
+                state.inCache = false
                 return .none
             case .alert:
                 return .none
