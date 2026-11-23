@@ -2,6 +2,18 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 
+@MainActor
+func makeCategoryNavigationController(
+    store: StoreOf<CategoryFeature>
+) -> NavigationStackController {
+    @UIBindable var store = store
+    return NavigationStackController(
+        path: $store.scope(\.path, action: \.path),
+        root: { UICategoryListViewController(store: store) },
+        destination: makeArchiveFlowDestination
+    )
+}
+
 class UICategoryListViewController: UIViewController {
     private let store: StoreOf<CategoryFeature>
     private var hostingController: UIHostingController<CategoryListV2>!
@@ -16,13 +28,7 @@ class UICategoryListViewController: UIViewController {
     }
 
     private func setupLayout() {
-        self.hostingController = UIHostingController(rootView: CategoryListV2(store: store, onTapCategory: {store in
-            let categoryController = UICategoryArchiveGridController(store: store)
-            self.navigationController?.pushViewController(
-                categoryController,
-                animated: true
-            )
-        }))
+        self.hostingController = UIHostingController(rootView: CategoryListV2(store: store))
         hostingController.view.backgroundColor = .clear
         add(hostingController)
         NSLayoutConstraint.activate([
