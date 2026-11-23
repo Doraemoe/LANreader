@@ -31,6 +31,7 @@ func reduceArchiveFlowPath(
         guard case let .reader(readerState) = path[id: id] else { return }
         appendDetails(from: readerState, to: &path)
     case let .element(id: readerID, action: .reader(.removeCacheSuccess)):
+        guard case let .reader(readerState) = path[id: readerID], readerState.cached else { return }
         path.pop(from: readerID)
     case let .element(id: _, action: .details(.tagTapped(tag))):
         path.append(.search(makeTagSearchState(for: tag)))
