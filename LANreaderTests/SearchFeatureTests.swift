@@ -492,3 +492,157 @@ private func makeInMemoryDatabase(tags: [(String, Int)]) throws -> AppDatabase {
     }
     return database
 }
+
+final class SearchTabNavigationTests: LANreaderTestCase {
+    @MainActor
+    func testSearchTabNavigationFlowPushesReaderDetailsTagSearchAndPopsOnDelete() async throws {
+        let database = try AppDatabase(DatabaseQueue())
+        let firstArchive = makeSearchTestArchive(id: "arc1", name: "First", tags: "artist:e auo")
+        let secondArchive = makeSearchTestArchive(id: "arc2", name: "Second", tags: "artist:e auo")
+        let sharedFirst = Shared(value: firstArchive)
+
+        var initialState = SearchTabFeature.State()
+        initialState.root.archiveList.archivesToDisplay = [GridFeature.State(archive: sharedFirst)]
+
+        let store = TestStore(initialState: initialState) {
+            SearchTabFeature()
+        } withDependencies: {
+            $0.appDatabase = database
+        }
+        store.exhaustivity = .off
+
+        await store.send(.root(.archiveList(.openReader(archiveId: firstArchive.id, fromStart: true))))
+        let readerID = try XCTUnwrap(store.state.path.ids.last)
+        guard case let .reader(readerState) = store.state.path[id: readerID] else {
+            return XCTFail("Expected pushed reader state")
+        }
+        XCTAssertEqual(readerState.currentArchiveId, firstArchive.id)
+        XCTAssertTrue(readerState.fromStart)
+        XCTAssertEqual(readerState.allArchives.ids, [firstArchive.id])
+
+        await store.send(.path(.element(id: readerID, action: .reader(.openDetailsTapped))))
+        let detailsID = try XCTUnwrap(store.state.path.ids.last)
+        guard case let .details(detailsState) = store.state.path[id: detailsID] else {
+            return XCTFail("Expected pushed details state")
+        }
+        XCTAssertEqual(detailsState.archive.id, firstArchive.id)
+        XCTAssertEqual(detailsState.title, "First")
+        XCTAssertEqual(detailsState.editableTags, "artist:e auo")
+
+        await store.send(.path(.element(id: detailsID, action: .details(.tagTapped(" artist:e auo ")))))
+        let tagSearchID = try XCTUnwrap(store.state.path.ids.last)
+        guard case let .search(tagSearchState) = store.state.path[id: tagSearchID] else {
+            return XCTFail("Expected pushed tag search state")
+        }
+        XCTAssertEqual(tagSearchState.keyword, "artist:e auo")
+        XCTAssertEqual(tagSearchState.archiveList.filter, SearchFilter(category: nil, filter: "artist:e auo"))
+        XCTAssertTrue(tagSearchState.archiveList.loadOnAppear)
+
+        await store.send(
+            .path(
+                .element(
+                    id: tagSearchID,
+                    action: .search(.archiveList(.populateArchives([secondArchive], 1, false)))
+                )
+            )
+        )
+        await store.send(
+            .path(
+                .element(
+                    id: tagSearchID,
+                    action: .search(.archiveList(.openReader(archiveId: secondArchive.id, fromStart: false)))
+                )
+            )
+        )
+        let nestedReaderID = try XCTUnwrap(store.state.path.ids.last)
+        guard case let .reader(nestedReaderState) = store.state.path[id: nestedReaderID] else {
+            return XCTFail("Expected nested pushed reader state")
+        }
+        XCTAssertEqual(nestedReaderState.currentArchiveId, secondArchive.id)
+        XCTAssertFalse(nestedReaderState.fromStart)
+
+        await store.send(.path(.element(id: nestedReaderID, action: .reader(.openDetailsTapped))))
+        let nestedDetailsID = try XCTUnwrap(store.state.path.ids.last)
+        guard case .details = store.state.path[id: nestedDetailsID] else {
+            return XCTFail("Expected nested pushed details state")
+        }
+
+        // Deleting from the nested details pops both the nested details and nested reader,
+        // landing back on the pushed tag search without disturbing earlier stack entries.
+        await store.send(.path(.element(id: nestedDetailsID, action: .details(.deleteSuccess))))
+        XCTAssertEqual(Array(store.state.path.ids), [readerID, detailsID, tagSearchID])
+
+        await store.send(.path(.popFrom(id: tagSearchID)))
+        XCTAssertEqual(Array(store.state.path.ids), [readerID, detailsID])
+
+        await store.send(.path(.element(id: detailsID, action: .details(.deleteSuccess))))
+        XCTAssertTrue(store.state.path.isEmpty)
+    }
+
+    @MainActor
+    func testSearchNavigationControllerPushesAndPopsWithStore() async throws {
+        let database = try AppDatabase(DatabaseQueue())
+        let archive = makeSearchTestArchive(id: "arc1", name: "First", tags: "artist:e auo")
+        let sharedArchive = Shared(value: archive)
+
+        var initialState = SearchTabFeature.State()
+        initialState.root.archiveList.archivesToDisplay = [GridFeature.State(archive: sharedArchive)]
+
+        let store = withDependencies {
+            $0.appDatabase = database
+        } operation: {
+            Store(initialState: initialState) {
+                SearchTabFeature()
+            }
+        }
+        let (nav, root) = makeSearchNavigationController(store: store)
+        nav.loadViewIfNeeded()
+
+        XCTAssertEqual(nav.viewControllers.count, 1)
+        XCTAssertTrue(nav.topViewController === root)
+
+        withUITransaction(\.uiKit.disablesAnimations, true) {
+            _ = store.send(.root(.archiveList(.openReader(archiveId: archive.id, fromStart: false))))
+        }
+        await waitUntil { nav.viewControllers.count == 2 }
+        XCTAssertEqual(nav.viewControllers.count, 2)
+        XCTAssertTrue(nav.topViewController is UIArchiveReaderController)
+
+        let readerID = try XCTUnwrap(store.path.ids.last)
+        withUITransaction(\.uiKit.disablesAnimations, true) {
+            _ = store.send(.path(.element(id: readerID, action: .reader(.openDetailsTapped))))
+        }
+        await waitUntil { nav.viewControllers.count == 3 }
+        XCTAssertEqual(nav.viewControllers.count, 3)
+        XCTAssertTrue(nav.topViewController is UIHostingController<ArchiveDetailsV2>)
+
+        let detailsID = try XCTUnwrap(store.path.ids.last)
+        withUITransaction(\.uiKit.disablesAnimations, true) {
+            _ = store.send(.path(.element(id: detailsID, action: .details(.deleteSuccess))))
+        }
+        await waitUntil { nav.viewControllers.count == 1 }
+        XCTAssertEqual(nav.viewControllers.count, 1)
+        XCTAssertTrue(nav.topViewController === root)
+        XCTAssertTrue(store.path.isEmpty)
+    }
+}
+
+private func makeSearchTestArchive(id: String, name: String, tags: String) -> ArchiveItem {
+    ArchiveItem(
+        id: id,
+        name: name,
+        extension: "zip",
+        tags: tags,
+        isNew: false,
+        progress: 0,
+        pagecount: 10,
+        dateAdded: nil
+    )
+}
+
+@MainActor
+private func waitUntil(_ condition: () -> Bool) async {
+    for _ in 0..<100 where !condition() {
+        try? await Task.sleep(for: .milliseconds(10))
+    }
+}

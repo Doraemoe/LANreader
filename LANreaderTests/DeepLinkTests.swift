@@ -141,18 +141,24 @@ final class DeepLinkTests: LANreaderTestCase {
 
     @MainActor
     func testSearchLinkRunsSearchAndRecordsHistory() async throws {
-        let store = try makeAppTestStore()
+        var initialState = AppFeature.State()
+        initialState.search.path.append(
+            .search(SearchFeature.State(keyword: "old"))
+        )
+        let store = try makeAppTestStore(initialState: initialState)
 
         await store.send(.openURL(try url("lanreader://search?query=artist%3Ae%20auo"))) {
+            $0.search.path.removeAll()
             $0.pendingDeepLink = .search(query: "artist:e auo")
         }
-        await store.receive(\.search.recentSearchTapped)
-        await store.receive(\.search.searchSubmit)
-        await store.receive(\.search.loadRecentSearches)
+        await store.receive(\.search.root.recentSearchTapped)
+        await store.receive(\.search.root.searchSubmit)
+        await store.receive(\.search.root.loadRecentSearches)
 
-        XCTAssertEqual(store.state.search.keyword, "artist:e auo")
-        XCTAssertEqual(store.state.search.archiveList.filter.filter, "artist:e auo")
-        XCTAssertEqual(store.state.search.recentSearches, ["artist:e auo"])
+        XCTAssertEqual(store.state.search.root.keyword, "artist:e auo")
+        XCTAssertEqual(store.state.search.root.archiveList.filter.filter, "artist:e auo")
+        XCTAssertEqual(store.state.search.root.recentSearches, ["artist:e auo"])
+        XCTAssertTrue(store.state.search.path.isEmpty)
     }
 
     @MainActor
@@ -236,9 +242,12 @@ private func url(_ string: String) throws -> URL {
 }
 
 @MainActor
-private func makeAppTestStore(database: AppDatabase? = nil) throws -> TestStoreOf<AppFeature> {
+private func makeAppTestStore(
+    initialState: AppFeature.State = AppFeature.State(),
+    database: AppDatabase? = nil
+) throws -> TestStoreOf<AppFeature> {
     let database = try database ?? AppDatabase(DatabaseQueue())
-    let store = TestStore(initialState: AppFeature.State()) {
+    let store = TestStore(initialState: initialState) {
         AppFeature()
     } withDependencies: {
         $0.appDatabase = database

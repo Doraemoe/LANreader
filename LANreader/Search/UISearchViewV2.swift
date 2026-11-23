@@ -131,8 +131,68 @@ import UIKit
     }
 }
 
+@Reducer public struct SearchTabFeature: Sendable {
+    @ObservableState
+    public struct State: Equatable {
+        var root = SearchFeature.State()
+        var path = StackState<ArchiveFlowPath.State>()
+    }
+
+    public enum Action {
+        case root(SearchFeature.Action)
+        case path(StackActionOf<ArchiveFlowPath>)
+    }
+
+    public var body: some ReducerOf<Self> {
+        Scope(\.root, action: \.root) {
+            SearchFeature()
+        }
+
+        Reduce { state, action in
+            switch action {
+            case let .root(.archiveList(.openReader(archiveId, fromStart))):
+                let allArchives = state.root.archiveList.archivesToDisplay.map(\.$archive)
+                state.path.append(
+                    .reader(
+                        ArchiveReaderFeature.State(
+                            currentArchiveId: archiveId,
+                            allArchives: allArchives,
+                            fromStart: fromStart
+                        )
+                    )
+                )
+                return .none
+            case let .path(pathAction):
+                reduceArchiveFlowPath(path: &state.path, action: pathAction)
+                return .none
+            case .root:
+                return .none
+            }
+        }
+        .forEach(\.path, action: \.path)
+    }
+}
+
+@MainActor
+func makeSearchNavigationController(
+    store: StoreOf<SearchTabFeature>
+) -> (navigationController: NavigationStackController, rootViewController: UISearchViewV2Controller) {
+    @UIBindable var store = store
+    let rootViewController = UISearchViewV2Controller(
+        store: store.scope(\.root, action: \.root),
+        usesStackNavigation: true
+    )
+    let navigationController = NavigationStackController(
+        path: $store.scope(\.path, action: \.path),
+        root: { rootViewController },
+        destination: makeArchiveFlowDestination
+    )
+    return (navigationController, rootViewController)
+}
+
 class UISearchViewV2Controller: UIViewController {
     private let store: StoreOf<SearchFeature>
+    private let usesStackNavigation: Bool
 
     // MARK: - UI
     private lazy var searchController: UISearchController = {
@@ -189,7 +249,8 @@ class UISearchViewV2Controller: UIViewController {
     // Archive list child (same as original UISearchView)
     private lazy var archiveListViewController: UIArchiveListViewController = {
         UIArchiveListViewController(
-            store: store.scope(\.archiveList, action: \.archiveList)
+            store: store.scope(\.archiveList, action: \.archiveList),
+            usesStackNavigation: usesStackNavigation
         )
     }()
 
@@ -206,8 +267,9 @@ class UISearchViewV2Controller: UIViewController {
     private var isBrowsingSuggestions = false
 
     // MARK: - Init
-    init(store: StoreOf<SearchFeature>) {
+    init(store: StoreOf<SearchFeature>, usesStackNavigation: Bool = false) {
         self.store = store
+        self.usesStackNavigation = usesStackNavigation
         super.init(nibName: nil, bundle: nil)
     }
 

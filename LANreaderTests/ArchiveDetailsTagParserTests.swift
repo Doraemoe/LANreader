@@ -60,20 +60,18 @@ final class ArchiveDetailsTagParserTests: LANreaderTestCase {
             tags: "artist:tank",
             includedArchiveTags: "artist:first,series:one"
         )
-        let store = TestStore(
-            initialState: ArchiveDetailsFeature.State(
-                archive: archive,
-                tankoubonMetadata: metadata
-            )
-        ) {
+        let state = ArchiveDetailsFeature.State(
+            archive: archive,
+            tankoubonMetadata: metadata
+        )
+        XCTAssertEqual(state.title, "Tank title")
+        XCTAssertEqual(state.editableTags, "artist:tank")
+        XCTAssertEqual(state.readOnlyTags, "artist:first,series:one")
+
+        let store = TestStore(initialState: state) {
             ArchiveDetailsFeature()
         }
-
-        await store.send(.loadLocalFields) {
-            $0.title = "Tank title"
-            $0.editableTags = "artist:tank"
-            $0.readOnlyTags = "artist:first,series:one"
-        }
+        await store.send(.loadLocalFields)
     }
 
     @MainActor

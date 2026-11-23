@@ -114,6 +114,7 @@ import Logging
         case deleteFinished(Set<String>, Bool)
         case confirmRemoveFromCategory
         case removeFromCategoryFinished(String, Set<String>, Bool)
+        case openReader(archiveId: String, fromStart: Bool)
     }
 
     @Dependency(\.lanraragiService) var service
@@ -577,6 +578,8 @@ import Logging
                 state.batchActionInProgress = false
                 state.errorMessage = message
                 return .none
+            case .openReader:
+                return .none
             }
         }
         .forEach(\.archivesToDisplay, action: \.grid) {
@@ -810,6 +813,7 @@ extension ArchiveListFeature.State {
 // swiftlint:disable:next type_body_length
 class UIArchiveListViewController: UIViewController {
     let store: StoreOf<ArchiveListFeature>
+    private let usesStackNavigation: Bool
     @Dependency(\.appDatabase) private var database
 
     private struct SelectionToolbarState: Equatable {
@@ -846,8 +850,9 @@ class UIArchiveListViewController: UIViewController {
         return UIContentUnavailableView(configuration: configuration)
     }()
 
-    init(store: StoreOf<ArchiveListFeature>) {
+    init(store: StoreOf<ArchiveListFeature>, usesStackNavigation: Bool = false) {
         self.store = store
+        self.usesStackNavigation = usesStackNavigation
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -1592,6 +1597,10 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
     }
 
     private func openReader(for itemStore: StoreOf<GridFeature>, fromStart: Bool = false) {
+        if usesStackNavigation {
+            store.send(.openReader(archiveId: itemStore.archive.id, fromStart: fromStart))
+            return
+        }
         let allArchives = dataSource.snapshot().itemIdentifiers(inSection: .main).map { $0.$archive }
         let readerStore = Store(
             initialState: ArchiveReaderFeature.State.init(

@@ -62,8 +62,9 @@ class UITabViewController: UITabBarController {
             tag: 1
         )
 
-        let searchView = UISearchViewV2Controller(store: store.scope(\.search, action: \.search))
-        let searchNav = UINavigationController(rootViewController: searchView)
+        let (searchNav, searchView) = makeSearchNavigationController(
+            store: store.scope(\.search, action: \.search)
+        )
         searchNav.tabBarItem = UITabBarItem(
             tabBarSystemItem: .search,
             tag: 2
@@ -115,7 +116,6 @@ class UITabViewController: UITabBarController {
         case let .search(query):
             guard let searchNav else { return }
             selectedViewController = searchNav
-            searchNav.popToRootViewController(animated: false)
             searchView?.showSearch(keyword: query)
         }
     }
