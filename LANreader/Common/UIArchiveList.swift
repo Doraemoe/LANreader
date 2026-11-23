@@ -813,7 +813,6 @@ extension ArchiveListFeature.State {
 // swiftlint:disable:next type_body_length
 class UIArchiveListViewController: UIViewController {
     let store: StoreOf<ArchiveListFeature>
-    private let usesStackNavigation: Bool
     @Dependency(\.appDatabase) private var database
 
     private struct SelectionToolbarState: Equatable {
@@ -850,9 +849,8 @@ class UIArchiveListViewController: UIViewController {
         return UIContentUnavailableView(configuration: configuration)
     }()
 
-    init(store: StoreOf<ArchiveListFeature>, usesStackNavigation: Bool = false) {
+    init(store: StoreOf<ArchiveListFeature>) {
         self.store = store
-        self.usesStackNavigation = usesStackNavigation
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -1597,23 +1595,7 @@ extension UIArchiveListViewController: UICollectionViewDelegate {
     }
 
     private func openReader(for itemStore: StoreOf<GridFeature>, fromStart: Bool = false) {
-        if usesStackNavigation {
-            store.send(.openReader(archiveId: itemStore.archive.id, fromStart: fromStart))
-            return
-        }
-        let allArchives = dataSource.snapshot().itemIdentifiers(inSection: .main).map { $0.$archive }
-        let readerStore = Store(
-            initialState: ArchiveReaderFeature.State.init(
-                currentArchiveId: itemStore.archive.id,
-                allArchives: allArchives,
-                fromStart: fromStart
-            )
-        ) {
-            ArchiveReaderFeature()
-        }
-        let readerController = UIArchiveReaderController(store: readerStore)
-        navigationController?.pushViewController(
-            readerController, animated: true)
+        store.send(.openReader(archiveId: itemStore.archive.id, fromStart: fromStart))
     }
 }
 

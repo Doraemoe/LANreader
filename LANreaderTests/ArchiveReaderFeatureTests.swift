@@ -3560,40 +3560,46 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     }
 
     @MainActor
-    func testUIArchiveReaderControllerKeepsSliderPreviewWhileCoveredAndCleansItWhenDismissed() async {
+    func testReaderStackKeepsSliderPreviewWhileCoveredAndCleansOnCleanupAction() async throws {
         configureReaderDefaults()
-        var initialState = makeState(progress: 2)
-        initialState.pages = makeDisplayedPageStates(count: 4)
-        initialState.sliderPreviewVisible = true
-        initialState.sliderPreviewPageIndex = 1
-        initialState.sliderPreviewImageURL = URL(fileURLWithPath: "/tmp/preview.jpg")
-        initialState.sliderPreviewLoading = true
-        initialState.sliderThumbnailJobsById = [42: "archive"]
-        initialState.sliderReadyThumbnailPages = Set([1, 2])
-        initialState.sliderPreviewStatus = [1: .stored, 2: .fetching]
+        var readerState = makeState(progress: 2)
+        readerState.pages = makeDisplayedPageStates(count: 4)
+        readerState.sliderPreviewVisible = true
+        readerState.sliderPreviewPageIndex = 1
+        readerState.sliderPreviewImageURL = URL(fileURLWithPath: "/tmp/preview.jpg")
+        readerState.sliderPreviewLoading = true
+        readerState.sliderThumbnailJobsById = [42: "archive"]
+        readerState.sliderReadyThumbnailPages = Set([1, 2])
+        readerState.sliderPreviewStatus = [1: .stored, 2: .fetching]
 
-        let store = Store(initialState: initialState) {
-            ArchiveReaderFeature()
+        var libraryState = LibraryFeature.State()
+        libraryState.path.append(.reader(readerState))
+        let store = TestStore(initialState: libraryState) { LibraryFeature() }
+        store.exhaustivity = .off
+
+        let readerID = try XCTUnwrap(store.state.path.ids.first)
+        // Covering the reader with details keeps its preview state intact on the stack.
+        await store.send(.path(.element(id: readerID, action: .reader(.openDetailsTapped))))
+        guard case let .reader(coveredReader) = store.state.path[id: readerID] else {
+            return XCTFail("Expected reader to remain in stack beneath details")
         }
-        let controller = UIArchiveReaderController(store: store)
+        XCTAssertTrue(coveredReader.sliderPreviewVisible)
+        XCTAssertEqual(coveredReader.sliderThumbnailJobsById, [42: "archive"])
 
-        controller.loadViewIfNeeded()
-        // Covered by another screen, such as a sheet: the preview is still there when it comes back.
-        controller.cleanupSliderPreviewResourcesIfNeeded(movingFromParent: false, beingDismissed: false)
-        await Task.yield()
-        XCTAssertTrue(store.sliderPreviewVisible)
-        XCTAssertEqual(store.sliderThumbnailJobsById, [42: "archive"])
+        await store.send(.path(.element(id: readerID, action: .reader(.cleanupSliderPreviewResources))))
+        guard case let .reader(cleanedReader) = store.state.path[id: readerID] else {
+            return XCTFail("Expected reader state")
+        }
+        XCTAssertFalse(cleanedReader.sliderPreviewVisible)
+        XCTAssertNil(cleanedReader.sliderPreviewPageIndex)
+        XCTAssertNil(cleanedReader.sliderPreviewImageURL)
+        XCTAssertFalse(cleanedReader.sliderPreviewLoading)
+        XCTAssertTrue(cleanedReader.sliderThumbnailJobsById.isEmpty)
+        XCTAssertTrue(cleanedReader.sliderReadyThumbnailPages.isEmpty)
+        XCTAssertTrue(cleanedReader.sliderPreviewStatus.isEmpty)
 
-        controller.cleanupSliderPreviewResourcesIfNeeded(movingFromParent: true)
-        await Task.yield()
-
-        XCTAssertFalse(store.sliderPreviewVisible)
-        XCTAssertNil(store.sliderPreviewPageIndex)
-        XCTAssertNil(store.sliderPreviewImageURL)
-        XCTAssertFalse(store.sliderPreviewLoading)
-        XCTAssertTrue(store.sliderThumbnailJobsById.isEmpty)
-        XCTAssertTrue(store.sliderReadyThumbnailPages.isEmpty)
-        XCTAssertTrue(store.sliderPreviewStatus.isEmpty)
+        await store.send(.path(.popFrom(id: readerID)))
+        XCTAssertTrue(store.state.path.isEmpty)
     }
 
     @MainActor

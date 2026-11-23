@@ -2,33 +2,68 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 
-@Reducer public struct LibraryFeature {
+@Reducer public struct LibraryFeature: Sendable {
     @ObservableState
     public struct State: Equatable {
+        var path = StackState<ArchiveFlowPath.State>()
         var archiveList = ArchiveListFeature.State(
             filter: SearchFilter(category: nil, filter: nil),
             currentTab: .library
         )
     }
 
-    public enum Action: Equatable {
+    public enum Action {
+        case path(StackActionOf<ArchiveFlowPath>)
         case archiveList(ArchiveListFeature.Action)
+        case cacheButtonTapped
     }
 
     public var body: some ReducerOf<Self> {
         Scope(\.archiveList, action: \.archiveList) {
             ArchiveListFeature()
         }
+
+        Reduce { state, action in
+            switch action {
+            case .cacheButtonTapped:
+                state.path.append(.cache(CacheFeature.State()))
+                return .none
+            case let .archiveList(.openReader(archiveId, fromStart)):
+                appendReader(
+                    archiveId: archiveId,
+                    fromStart: fromStart,
+                    archiveList: state.archiveList,
+                    to: &state.path
+                )
+                return .none
+            case let .path(pathAction):
+                reduceArchiveFlowPath(path: &state.path, action: pathAction)
+                return .none
+            case .archiveList:
+                return .none
+            }
+        }
+        .forEach(\.path, action: \.path)
     }
+}
+
+@MainActor
+func makeLibraryNavigationController(
+    store: StoreOf<LibraryFeature>
+) -> NavigationStackController {
+    @UIBindable var store = store
+    return NavigationStackController(
+        path: $store.scope(\.path, action: \.path),
+        root: { UILibraryListViewController(store: store) },
+        destination: makeArchiveFlowDestination
+    )
 }
 
 class UILibraryListViewController: UIViewController {
     let store: StoreOf<LibraryFeature>
-    let navigationHelper: NavigationHelper
 
-    init(store: StoreOf<LibraryFeature>, navigationHelper: NavigationHelper) {
+    init(store: StoreOf<LibraryFeature>) {
         self.store = store
-        self.navigationHelper = navigationHelper
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -67,11 +102,6 @@ class UILibraryListViewController: UIViewController {
     }
 
     @objc private func tapCachedButton() {
-        let cacheStore = Store(initialState: CacheFeature.State.init()) {
-            CacheFeature()
-        }
-        let cacheController = UICacheViewController(store: cacheStore, navigationHelper: navigationHelper)
-        navigationController?.pushViewController(cacheController, animated: true)
-
+        store.send(.cacheButtonTapped)
     }
 }

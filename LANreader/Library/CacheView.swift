@@ -27,6 +27,7 @@ import ComposableArchitecture
         case toggleSelection(String)
         case removeSelected
         case setErrorMessage(String)
+        case openReader(archiveId: String, fromStart: Bool)
     }
 
     private enum CancelID: Hashable, Sendable {
@@ -197,8 +198,6 @@ import ComposableArchitecture
 }
 
 struct CacheView: View {
-    @Environment(NavigationHelper.self) private var navigation
-
     let store: StoreOf<CacheFeature>
 
     let columns = [
@@ -217,9 +216,6 @@ struct CacheView: View {
                 }
             }
             .padding(.horizontal)
-        }
-        .task {
-            await store.send(.load).finish()
         }
         .onChange(of: store.errorMessage) {
             if !store.errorMessage.isEmpty {
@@ -253,21 +249,7 @@ struct CacheView: View {
     }
 
     private func openReader(gridStore: StoreOf<GridFeature>, fromStart: Bool = false) {
-        let allArchives = store.archives.filter { store.downloading[$0.id] == nil }.map { $0.$archive }
-        let readerStore = Store(
-            initialState: ArchiveReaderFeature.State.init(
-                currentArchiveId: gridStore.archive.id,
-                allArchives: allArchives,
-                fromStart: fromStart,
-                cached: true
-            )
-        ) {
-            ArchiveReaderFeature()
-        }
-        let readerController = UIArchiveReaderController(
-            store: readerStore, navigationHelper: navigation
-        )
-        navigation.push(readerController)
+        store.send(.openReader(archiveId: gridStore.archive.id, fromStart: fromStart))
     }
 
     private func grid(

@@ -4,11 +4,9 @@ import UIKit
 
 class UICacheViewController: UIViewController, UICollectionViewDelegate {
     private let store: StoreOf<CacheFeature>
-    private let navigationHelper: NavigationHelper
 
-    init(store: StoreOf<CacheFeature>, navigationHelper: NavigationHelper) {
+    init(store: StoreOf<CacheFeature>) {
         self.store = store
-        self.navigationHelper = navigationHelper
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -43,7 +41,6 @@ class UICacheViewController: UIViewController, UICollectionViewDelegate {
 
         let hostingController = UIHostingController(
             rootView: CacheView(store: store)
-                .environment(navigationHelper)
         )
         add(hostingController)
         NSLayoutConstraint.activate([
@@ -56,6 +53,7 @@ class UICacheViewController: UIViewController, UICollectionViewDelegate {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        store.send(.load)
         navigationController?.setNavigationBarHidden(false, animated: animated)
         navigationController?.setToolbarHidden(!store.isSelecting, animated: false)
         if #available(iOS 18.0, *) {

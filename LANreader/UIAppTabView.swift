@@ -40,14 +40,9 @@ class UITabViewController: UITabBarController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let libraryNav = UINavigationController()
-        let libraryNavHelper = NavigationHelper()
-        libraryNavHelper.navigationController = libraryNav
-        let libraryView = UILibraryListViewController(
-            store: store.scope(\.library, action: \.library),
-            navigationHelper: libraryNavHelper
+        let libraryNav = makeLibraryNavigationController(
+            store: store.scope(\.library, action: \.library)
         )
-        libraryNav.viewControllers = [libraryView]
         libraryNav.tabBarItem = UITabBarItem(
             title: String(localized: "library"),
             image: UIImage(systemName: "books.vertical"),
@@ -101,19 +96,8 @@ class UITabViewController: UITabBarController {
         switch route {
         case let .reader(archive, cached):
             guard let libraryNav else { return }
-            let sharedArchive = cached ? nil : Shared(store.$archiveItems[id: archive.id])
-            let readerStore = Store(
-                initialState: ArchiveReaderFeature.State(
-                    currentArchiveId: archive.id,
-                    allArchives: [sharedArchive ?? Shared(value: archive)],
-                    cached: cached
-                )
-            ) {
-                ArchiveReaderFeature()
-            }
             selectedViewController = libraryNav
-            libraryNav.popToRootViewController(animated: false)
-            libraryNav.pushViewController(UIArchiveReaderController(store: readerStore), animated: true)
+            store.send(.openDeepLinkReader(archive, cached: cached))
         case let .search(query):
             guard let searchNav else { return }
             selectedViewController = searchNav

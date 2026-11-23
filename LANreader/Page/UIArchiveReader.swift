@@ -4,7 +4,6 @@ import ComposableArchitecture
 
 class UIArchiveReaderController: UIViewController {
     private let store: StoreOf<ArchiveReaderFeature>
-    private let usesStackNavigation: Bool
     private var hostingController: UIHostingController<ArchiveReader>!
     private var detailsButton: UIBarButtonItem?
 
@@ -12,16 +11,9 @@ class UIArchiveReaderController: UIViewController {
         store.controlUiHidden
     }
 
-    init(
-        store: StoreOf<ArchiveReaderFeature>,
-        navigationHelper: NavigationHelper? = nil,
-        usesStackNavigation: Bool = false
-    ) {
+    init(store: StoreOf<ArchiveReaderFeature>) {
         self.store = store
-        self.usesStackNavigation = usesStackNavigation
-        self.hostingController = UIHostingController(rootView: ArchiveReader(
-            store: store, navigationHelper: navigationHelper
-        ))
+        self.hostingController = UIHostingController(rootView: ArchiveReader(store: store))
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -44,33 +36,7 @@ class UIArchiveReaderController: UIViewController {
         let detailsAction = UIAction(image: UIImage(systemName: "info.circle")) { [weak self] _ in
             guard let self else { return }
             guard store.canOpenDetails else { return }
-            if usesStackNavigation {
-                store.send(.openDetailsTapped)
-                return
-            }
-            guard let currentArchive = store.allArchives[id: store.currentArchiveId] else { return }
-            let detailsStore = Store(
-                initialState: ArchiveDetailsFeature.State.init(
-                    archive: currentArchive,
-                    cached: store.cached,
-                    tankoubonMetadata: store.currentTankoubonDetails
-                )
-            ) {
-                ArchiveDetailsFeature()
-            }
-
-            navigationController?.pushViewController(
-                UIHostingController(rootView: ArchiveDetailsV2(store: detailsStore, onDelete: {
-                    if let viewControllers = self.navigationController?.viewControllers, viewControllers.count > 2 {
-                        let destination = viewControllers[viewControllers.count - 3]
-                        self.navigationController?.popToViewController(destination, animated: true)
-                    }
-                }, onTagNavigation: { store in
-                    self.navigationController?
-                        .pushViewController(UISearchViewV2Controller(store: store), animated: true)
-                })),
-                animated: true
-            )
+            store.send(.openDetailsTapped)
         }
         let detailsButton = UIBarButtonItem(primaryAction: detailsAction)
         detailsButton.isEnabled = store.canOpenDetails
@@ -126,21 +92,5 @@ class UIArchiveReaderController: UIViewController {
         } else {
             tabBarController?.tabBar.isHidden = true
         }
-    }
-
-    override func viewDidDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
-        cleanupSliderPreviewResourcesIfNeeded()
-    }
-
-    func cleanupSliderPreviewResourcesIfNeeded(
-        movingFromParent: Bool? = nil,
-        beingDismissed: Bool? = nil
-    ) {
-        guard !usesStackNavigation else { return }
-        let shouldCleanup = (movingFromParent ?? isMovingFromParent)
-            || (beingDismissed ?? isBeingDismissed)
-        guard shouldCleanup else { return }
-        store.send(.cleanupSliderPreviewResources)
     }
 }

@@ -3,6 +3,7 @@ import ComposableArchitecture
 import GRDB
 import OHHTTPStubs
 import OHHTTPStubsSwift
+import SwiftUI
 import UIKit
 @testable import LANreader
 
@@ -61,7 +62,7 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
         let store = Store(initialState: LibraryFeature.State()) {
             LibraryFeature()
         }
-        let grid = UILibraryListViewController(store: store, navigationHelper: NavigationHelper())
+        let grid = UILibraryListViewController(store: store)
         let navigation = NavigationControllerSpy(rootViewController: grid)
         navigation.loadViewIfNeeded()
         grid.loadViewIfNeeded()
@@ -260,7 +261,7 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
         var state = LibraryFeature.State()
         state.archiveList = makeSelectionState(count: 1)
         let store = Store(initialState: state) { LibraryFeature() }
-        let controller = UILibraryListViewController(store: store, navigationHelper: NavigationHelper())
+        let controller = UILibraryListViewController(store: store)
         let navigation = UINavigationController(rootViewController: controller)
         navigation.loadViewIfNeeded()
         controller.loadViewIfNeeded()
@@ -296,7 +297,7 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
             defer { libraryState.archiveList.$categoryItems.withLock { $0 = [] } }
             let libraryStore = Store(initialState: libraryState) { LibraryFeature() }
             let store = libraryStore.scope(\.archiveList, action: \.archiveList)
-            let parent = UILibraryListViewController(store: libraryStore, navigationHelper: NavigationHelper())
+            let parent = UILibraryListViewController(store: libraryStore)
             let navigation = UINavigationController(rootViewController: parent)
             let tabs = UITabBarController()
             tabs.viewControllers = [navigation]
@@ -400,7 +401,7 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
         let store = Store(initialState: CacheFeature.State()) { CacheFeature() } withDependencies: {
             $0.appDatabase = database
         }
-        let controller = UICacheViewController(store: store, navigationHelper: NavigationHelper())
+        let controller = UICacheViewController(store: store)
         let navigation = UINavigationController(rootViewController: controller)
         navigation.loadViewIfNeeded()
         controller.loadViewIfNeeded()
@@ -511,5 +512,193 @@ private func checkSharedSelection(
         if #available(iOS 18.0, *) { XCTAssertEqual(tabs.isTabBarHidden, pushed) }
         XCTAssertFalse(controller.navigationItem.hidesBackButton)
         XCTAssertEqual(navigation.viewControllers.count, pushed ? 2 : 1)
+    }
+}
+
+final class LibraryTabNavigationTests: LANreaderTestCase {
+    @MainActor
+    func testLibraryNavigationFlowPushesReaderDetailsTagSearchAndPopsOnDelete() async throws {
+        let archive = makeLibraryTestArchive(id: "libArc1", name: "First", tags: "artist:e auo")
+        let store = try makeLibraryTabTestStore()
+        defer { clearLibrarySharedArchives() }
+
+        await store.send(.archiveList(.populateArchives([archive], 1, false)))
+        await store.send(.archiveList(.openReader(archiveId: archive.id, fromStart: true)))
+        let readerID = try XCTUnwrap(store.state.path.ids.last)
+        guard case let .reader(readerState) = store.state.path[id: readerID] else {
+            return XCTFail("Expected pushed reader state")
+        }
+        XCTAssertEqual(readerState.currentArchiveId, archive.id)
+        XCTAssertTrue(readerState.fromStart)
+        XCTAssertFalse(readerState.cached)
+        XCTAssertEqual(readerState.allArchives.ids, [archive.id])
+
+        await store.send(.path(.element(id: readerID, action: .reader(.openDetailsTapped))))
+        let detailsID = try XCTUnwrap(store.state.path.ids.last)
+        guard case let .details(detailsState) = store.state.path[id: detailsID] else {
+            return XCTFail("Expected pushed details state")
+        }
+        XCTAssertEqual(detailsState.archive.id, archive.id)
+        XCTAssertEqual(detailsState.title, "First")
+
+        await store.send(.path(.element(id: detailsID, action: .details(.tagTapped(" artist:e auo ")))))
+        let tagSearchID = try XCTUnwrap(store.state.path.ids.last)
+        guard case let .search(tagSearchState) = store.state.path[id: tagSearchID] else {
+            return XCTFail("Expected pushed tag search state")
+        }
+        XCTAssertEqual(tagSearchState.keyword, "artist:e auo")
+
+        await store.send(.path(.popFrom(id: tagSearchID)))
+        XCTAssertEqual(Array(store.state.path.ids), [readerID, detailsID])
+
+        await store.send(.path(.element(id: detailsID, action: .details(.deleteSuccess))))
+        XCTAssertTrue(store.state.path.isEmpty)
+    }
+
+    @MainActor
+    func testLibraryCacheFlowExcludesDownloadingAndPopsOnCacheRemoval() async throws {
+        let readyArchive = makeLibraryTestArchive(id: "cachedReady", name: "Ready", tags: "")
+        let downloadingArchive = makeLibraryTestArchive(id: "cachedBusy", name: "Busy", tags: "")
+        let database = try makeArchiveListTestDatabase()
+        var readyCache = makeArchiveCacheRecord(id: readyArchive.id, title: readyArchive.name, cached: true)
+        var busyCache = makeArchiveCacheRecord(id: downloadingArchive.id, title: downloadingArchive.name, cached: false)
+        try database.saveCache(&readyCache)
+        try database.saveCache(&busyCache)
+
+        let store = try makeLibraryTabTestStore(database: database)
+        await store.send(.cacheButtonTapped)
+        let cacheID = try XCTUnwrap(store.state.path.ids.last)
+        await store.send(.path(.element(id: cacheID, action: .cache(.load))))
+        await store.send(.path(.element(
+            id: cacheID,
+            action: .cache(.openReader(archiveId: readyArchive.id, fromStart: true))
+        )))
+        let readerID = try XCTUnwrap(store.state.path.ids.last)
+        guard case let .reader(readerState) = store.state.path[id: readerID] else {
+            return XCTFail("Expected pushed cached reader state")
+        }
+        XCTAssertTrue(readerState.cached)
+        XCTAssertTrue(readerState.fromStart)
+        XCTAssertEqual(readerState.allArchives.ids, [readyArchive.id])
+
+        // Removing cache from inside the reader pops back to CacheView.
+        await store.send(.path(.element(id: readerID, action: .reader(.removeCacheSuccess))))
+        XCTAssertEqual(Array(store.state.path.ids), [cacheID])
+
+        // Removing cache from cached details pops both details and reader back to CacheView.
+        await store.send(.path(.element(
+            id: cacheID,
+            action: .cache(.openReader(archiveId: readyArchive.id, fromStart: false))
+        )))
+        let secondReaderID = try XCTUnwrap(store.state.path.ids.last)
+        await store.send(.path(.element(id: secondReaderID, action: .reader(.openDetailsTapped))))
+        let detailsID = try XCTUnwrap(store.state.path.ids.last)
+        await store.send(.path(.element(id: detailsID, action: .details(.deleteSuccess))))
+        XCTAssertEqual(Array(store.state.path.ids), [cacheID])
+    }
+
+    @MainActor
+    func testLibraryNavigationControllerPushesCacheReaderDetailsAndPopsWithStore() async throws {
+        let database = try makeArchiveListTestDatabase()
+        let archive = makeLibraryTestArchive(id: "cachedReady", name: "Ready", tags: "")
+        var cacheRecord = makeArchiveCacheRecord(id: archive.id, title: archive.name, cached: true)
+        try database.saveCache(&cacheRecord)
+
+        try await withDependencies {
+            $0.appDatabase = database
+        } operation: {
+            let store = Store(initialState: LibraryFeature.State()) { LibraryFeature() }
+            let nav = makeLibraryNavigationController(store: store)
+            nav.loadViewIfNeeded()
+            nav.topViewController?.loadViewIfNeeded()
+            XCTAssertEqual(nav.viewControllers.count, 1)
+            XCTAssertTrue(nav.topViewController is UILibraryListViewController)
+
+            sendLibraryAction(store, .cacheButtonTapped)
+            await waitForLibraryNav { nav.viewControllers.count == 2 }
+            XCTAssertTrue(nav.topViewController is UICacheViewController)
+
+            let cacheID = try XCTUnwrap(store.path.ids.last)
+            _ = store.send(.path(.element(id: cacheID, action: .cache(.load))))
+            sendLibraryAction(store, .path(.element(
+                id: cacheID,
+                action: .cache(.openReader(archiveId: archive.id, fromStart: false))
+            )))
+            await waitForLibraryNav { nav.viewControllers.count == 3 }
+            XCTAssertTrue(nav.topViewController is UIArchiveReaderController)
+
+            let readerID = try XCTUnwrap(store.path.ids.last)
+            sendLibraryAction(store, .path(.element(id: readerID, action: .reader(.openDetailsTapped))))
+            await waitForLibraryNav { nav.viewControllers.count == 4 }
+            XCTAssertTrue(nav.topViewController is UIHostingController<ArchiveDetailsV2>)
+
+            let detailsID = try XCTUnwrap(store.path.ids.last)
+            sendLibraryAction(store, .path(.element(id: detailsID, action: .details(.deleteSuccess))))
+            await waitForLibraryNav { nav.viewControllers.count == 2 }
+            XCTAssertTrue(nav.topViewController is UICacheViewController)
+            XCTAssertEqual(Array(store.path.ids), [cacheID])
+        }
+    }
+}
+
+@MainActor
+private func sendLibraryAction(
+    _ store: StoreOf<LibraryFeature>,
+    _ action: LibraryFeature.Action
+) {
+    withUITransaction(\.uiKit.disablesAnimations, true) {
+        _ = store.send(action)
+    }
+}
+
+@MainActor
+private func makeLibraryTabTestStore(
+    database: AppDatabase? = nil
+) throws -> TestStoreOf<LibraryFeature> {
+    let database = try database ?? makeArchiveListTestDatabase()
+    let store = TestStore(initialState: LibraryFeature.State()) {
+        LibraryFeature()
+    } withDependencies: {
+        $0.appDatabase = database
+    }
+    store.exhaustivity = .off
+    return store
+}
+
+private func clearLibrarySharedArchives() {
+    @Shared(.archive) var archiveItems: IdentifiedArrayOf<ArchiveItem> = []
+    $archiveItems.withLock { $0 = [] }
+}
+
+private func makeLibraryTestArchive(id: String, name: String, tags: String) -> ArchiveItem {
+    ArchiveItem(
+        id: id,
+        name: name,
+        extension: "zip",
+        tags: tags,
+        isNew: false,
+        progress: 0,
+        pagecount: 10,
+        dateAdded: nil
+    )
+}
+
+private func makeArchiveCacheRecord(id: String, title: String, cached: Bool) -> ArchiveCache {
+    ArchiveCache(
+        id: id,
+        title: title,
+        tags: "",
+        thumbnail: nil,
+        cached: cached,
+        totalPages: 10,
+        toc: nil,
+        lastUpdate: Date(timeIntervalSince1970: 1)
+    )
+}
+
+@MainActor
+private func waitForLibraryNav(_ condition: () -> Bool) async {
+    for _ in 0..<100 where !condition() {
+        try? await Task.sleep(for: .milliseconds(10))
     }
 }
