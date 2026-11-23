@@ -148,8 +148,13 @@ final class DeepLinkTests: LANreaderTestCase {
         let store = try makeAppTestStore(initialState: initialState)
 
         await store.send(.openURL(try url("lanreader://search?query=artist%3Ae%20auo"))) {
-            $0.search.path.removeAll()
             $0.pendingDeepLink = .search(query: "artist:e auo")
+        }
+        XCTAssertEqual(store.state.search.path.count, 1)
+        XCTAssertTrue(store.state.search.root.recentSearches.isEmpty)
+
+        await store.send(.openDeepLinkSearch("artist:e auo")) {
+            $0.search.path.removeAll()
         }
         await store.receive(\.search.root.recentSearchTapped)
         await store.receive(\.search.root.searchSubmit)
@@ -189,13 +194,20 @@ final class DeepLinkTests: LANreaderTestCase {
 
     @MainActor
     func testTabBarOpensReaderOnLibraryTabAndSearchOnSearchTab() async throws {
-        let database = try AppDatabase(DatabaseQueue())
+        try await configureTestServer()
+        stubSearchResult(query: "artist:e auo", archiveId: "searchHit")
+        let database = try makeDeepLinkThumbnailDatabase(archiveIds: ["searchHit"])
         try await withDependencies {
             $0.appDatabase = database
             $0.date.now = Date(timeIntervalSince1970: 1)
         } operation: {
-            let store = Store(initialState: AppFeature.State()) { AppFeature() }
-            defer { store.state.$archiveItems.withLock { $0 = [] } }
+            let initialState = AppFeature.State()
+            initialState.search.root.archiveList.$lastTagRefresh.withLock { $0 = Date().timeIntervalSince1970 }
+            let store = Store(initialState: initialState) { AppFeature() }
+            defer {
+                store.state.$archiveItems.withLock { $0 = [] }
+                store.state.search.root.archiveList.$lastTagRefresh.withLock { $0 = 0 }
+            }
             let tabs = UITabViewController(store: store)
             tabs.loadViewIfNeeded()
             let libraryNav = try XCTUnwrap(tabs.viewControllers?.first as? UINavigationController)
@@ -220,10 +232,60 @@ final class DeepLinkTests: LANreaderTestCase {
             XCTAssertNil(store.pendingDeepLink)
 
             store.send(.openURL(try url("lanreader://search?query=artist%3Ae%20auo")))
-            await waitUntil { store.pendingDeepLink == nil }
+            await waitUntil {
+                store.pendingDeepLink == nil
+                    && !store.search.root.archiveList.loading
+                    && store.search.root.archiveList.archivesToDisplay.ids == ["searchHit"]
+            }
 
             XCTAssertEqual(tabs.selectedIndex, 2)
             XCTAssertNil(store.pendingDeepLink)
+            XCTAssertEqual(store.search.root.archiveList.archivesToDisplay.ids, ["searchHit"])
+        }
+    }
+
+    @MainActor
+    func testSearchDeepLinkWaitsForLockScreenAndLoadsOnColdStart() async throws {
+        try await configureTestServer()
+        stubSearchResult(query: "artist:cold", archiveId: "coldHit")
+        let database = try makeDeepLinkThumbnailDatabase(archiveIds: ["coldHit"])
+        try await withDependencies {
+            $0.appDatabase = database
+            $0.date.now = Date(timeIntervalSince1970: 1)
+        } operation: {
+            var initialState = AppFeature.State()
+            initialState.destination = .lockScreen(LockScreenFeature.State(lockState: .normal))
+            initialState.search.path.append(.search(SearchFeature.State(keyword: "old")))
+            initialState.search.root.archiveList.$lastTagRefresh.withLock { $0 = Date().timeIntervalSince1970 }
+            let store = Store(initialState: initialState) { AppFeature() }
+            defer {
+                store.state.$archiveItems.withLock { $0 = [] }
+                store.state.search.root.archiveList.$lastTagRefresh.withLock { $0 = 0 }
+            }
+            let tabs = UITabViewController(store: store)
+            tabs.loadViewIfNeeded()
+
+            store.send(.openURL(try url("lanreader://search?query=artist%3Acold")))
+            await Task.yield()
+
+            XCTAssertEqual(store.pendingDeepLink, .search(query: "artist:cold"))
+            XCTAssertEqual(tabs.selectedIndex, 0)
+            XCTAssertEqual(store.search.path.count, 1)
+            XCTAssertEqual(try database.recentSearches(), [])
+            XCTAssertTrue(store.search.root.archiveList.archivesToDisplay.isEmpty)
+
+            store.send(.destination(.dismiss))
+            await waitUntil {
+                store.pendingDeepLink == nil
+                    && !store.search.root.archiveList.loading
+                    && store.search.root.archiveList.archivesToDisplay.ids == ["coldHit"]
+            }
+
+            XCTAssertEqual(tabs.selectedIndex, 2)
+            XCTAssertTrue(store.search.path.isEmpty)
+            XCTAssertEqual(store.search.root.keyword, "artist:cold")
+            XCTAssertEqual(try database.recentSearches(), ["artist:cold"])
+            XCTAssertEqual(store.search.root.archiveList.archivesToDisplay.ids, ["coldHit"])
         }
     }
 
@@ -343,4 +405,31 @@ private func stubArchiveMetadata(id: String, statusCode: Int32) {
             "title": "Linked archive", "pagecount": 20, "progress": 7
         ], statusCode: 200, headers: ["Content-Type": "application/json"])
     }
+}
+
+private func stubSearchResult(query: String, archiveId: String) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/search")
+            && isMethodGET()
+            && containsQueryParams(["filter": query])) { @Sendable _ in
+        HTTPStubsResponse(jsonObject: [
+            "data": [[
+                "arcid": archiveId, "extension": "zip", "isnew": "false", "tags": query,
+                "title": "Matched archive", "pagecount": 10, "progress": 0
+            ]],
+            "recordsFiltered": 1,
+            "recordsTotal": 1
+        ], statusCode: 200, headers: ["Content-Type": "application/json"])
+    }
+}
+
+@MainActor
+private func makeDeepLinkThumbnailDatabase(archiveIds: [String]) throws -> AppDatabase {
+    let database = try AppDatabase(DatabaseQueue())
+    let thumbnailData = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1)).pngData { _ in }
+    for id in archiveIds {
+        var thumbnail = ArchiveThumbnail(id: id, thumbnail: thumbnailData, lastUpdate: Date())
+        try database.saveArchiveThumbnail(&thumbnail)
+    }
+    return database
 }

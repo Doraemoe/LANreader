@@ -3569,8 +3569,17 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     }
 
     @MainActor
-    func testReaderStackKeepsSliderPreviewWhileCoveredAndCleansOnCleanupAction() async throws {
+    func testReaderStackKeepsSliderPreviewWhileCoveredAndCancelsEffectsOnPop() async throws {
         configureReaderDefaults()
+        try await configureTestServer()
+        let clock = TestClock()
+        stub(condition: isHost("localhost") && isPath("/api/minion/42") && isMethodGET()) { @Sendable _ in
+            HTTPStubsResponse(
+                jsonObject: ["state": "active"],
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
         var readerState = makeState(progress: 2)
         readerState.pages = makeDisplayedPageStates(count: 4)
         readerState.sliderPreviewVisible = true
@@ -3583,10 +3592,20 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
         var libraryState = LibraryFeature.State()
         libraryState.path.append(.reader(readerState))
-        let store = TestStore(initialState: libraryState) { LibraryFeature() }
+        let store = TestStore(initialState: libraryState) {
+            LibraryFeature()
+        } withDependencies: {
+            $0.continuousClock = clock
+        }
+        store.timeout = .seconds(5)
         store.exhaustivity = .off
 
         let readerID = try XCTUnwrap(store.state.path.ids.first)
+        await store.send(.path(.element(
+            id: readerID,
+            action: .reader(.pollSliderPreviewThumbnailJob(42, archiveId: "archive"))
+        )))
+
         // Covering the reader with details keeps its preview state intact on the stack.
         await store.send(.path(.element(id: readerID, action: .reader(.openDetailsTapped))))
         guard case let .reader(coveredReader) = store.state.path[id: readerID] else {
@@ -3595,19 +3614,9 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         XCTAssertTrue(coveredReader.sliderPreviewVisible)
         XCTAssertEqual(coveredReader.sliderThumbnailJobsById, [42: "archive"])
 
-        await store.send(.path(.element(id: readerID, action: .reader(.cleanupSliderPreviewResources))))
-        guard case let .reader(cleanedReader) = store.state.path[id: readerID] else {
-            return XCTFail("Expected reader state")
-        }
-        XCTAssertFalse(cleanedReader.sliderPreviewVisible)
-        XCTAssertNil(cleanedReader.sliderPreviewPageIndex)
-        XCTAssertNil(cleanedReader.sliderPreviewImageURL)
-        XCTAssertFalse(cleanedReader.sliderPreviewLoading)
-        XCTAssertTrue(cleanedReader.sliderThumbnailJobsById.isEmpty)
-        XCTAssertTrue(cleanedReader.sliderReadyThumbnailPages.isEmpty)
-        XCTAssertTrue(cleanedReader.sliderPreviewStatus.isEmpty)
-
+        // Popping the reader from the stack cancels its in-flight polling effect automatically.
         await store.send(.path(.popFrom(id: readerID)))
+        await store.finish()
         XCTAssertTrue(store.state.path.isEmpty)
     }
 

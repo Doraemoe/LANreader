@@ -23,7 +23,6 @@ import GRDBQuery
         var loading = false
         let cached: Bool
         var showAlert: Bool = false
-        var deleteSucceeded = false
 
         init(
             archive: Shared<ArchiveItem>,
@@ -125,7 +124,6 @@ import GRDBQuery
                 return .none
             case .confirmDelete:
                 state.loading = true
-                state.deleteSucceeded = false
                 if state.cached {
                     return .run { [id = state.archive.id] send in
                         let deleted = try database.deleteCache(id)
@@ -248,7 +246,6 @@ import GRDBQuery
                 return .none
             case .deleteSuccess:
                 state.loading = false
-                state.deleteSucceeded = true
                 if !state.cached {
                     state.$archiveItems.withLock {
                         _ = $0.remove(id: state.archive.id)

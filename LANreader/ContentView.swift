@@ -66,6 +66,7 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
         case openURL(URL)
         case deepLinkArchiveLoaded(ArchiveItem, cached: Bool)
         case openDeepLinkReader(ArchiveItem, cached: Bool)
+        case openDeepLinkSearch(String)
         case deepLinkHandled
         case queueUrlDownload(URL)
         case setErrorMessage(String)
@@ -106,9 +107,8 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
                 case let .read(archiveId, preferCached):
                     return loadDeepLinkArchive(id: archiveId, preferCached: preferCached)
                 case let .search(query):
-                    state.search.path.removeAll()
                     state.pendingDeepLink = .search(query: query)
-                    return .send(.search(.root(.recentSearchTapped(query))))
+                    return .none
                 case let .download(downloadURL):
                     return .send(.queueUrlDownload(downloadURL))
                 case nil:
@@ -133,6 +133,16 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
                     )
                 ])
                 return .none
+            case let .openDeepLinkSearch(query):
+                let sameFilter = state.search.root.archiveList.filter.filter == query
+                state.search.path.removeAll()
+                if sameFilter {
+                    return .merge(
+                        .send(.search(.root(.recentSearchTapped(query)))),
+                        .send(.search(.root(.archiveList(.reloadFromFirstPage))))
+                    )
+                }
+                return .send(.search(.root(.recentSearchTapped(query))))
             case .deepLinkHandled:
                 state.pendingDeepLink = nil
                 return .none

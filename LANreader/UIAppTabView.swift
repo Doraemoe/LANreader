@@ -100,8 +100,9 @@ class UITabViewController: UITabBarController {
             store.send(.openDeepLinkReader(archive, cached: cached))
         case let .search(query):
             guard let searchNav else { return }
-            selectedViewController = searchNav
             searchView?.showSearch(keyword: query)
+            store.send(.openDeepLinkSearch(query))
+            selectedViewController = searchNav
         }
     }
 }
