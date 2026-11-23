@@ -2,7 +2,7 @@ import ComposableArchitecture
 import SwiftUI
 import UIKit
 
-@Reducer public struct CategoryArchiveListFeature {
+@Reducer public struct CategoryArchiveListFeature: Sendable {
     @ObservableState
     public struct State: Equatable {
         var id: String
@@ -41,7 +41,8 @@ class UICategoryArchiveGridController: UIViewController {
         navigationItem.largeTitleDisplayMode = .never
 
         let archiveListView = UIArchiveListViewController(
-            store: store.scope(\.archiveList, action: \.archiveList)
+            store: store.scope(\.archiveList, action: \.archiveList),
+            usesStackNavigation: true
         )
         add(archiveListView)
         NSLayoutConstraint.activate([

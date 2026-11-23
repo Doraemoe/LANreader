@@ -10,14 +10,17 @@ import SwiftUI
         @SharedReader(.appStorage(SettingsKey.lanraragiUrl)) var lanraragiUrl = ""
         @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
 
+        var path = StackState<ArchiveFlowPath.State>()
         var showLoading = false
         var errorMessage = ""
     }
 
     public enum Action {
+        case path(StackActionOf<ArchiveFlowPath>)
         case loadCategory(Bool)
         case populateCategory([CategoryItem])
         case setErrorMessage(String)
+        case categoryTapped(CategoryItem)
     }
 
     @Dependency(\.lanraragiService) var service
@@ -48,14 +51,31 @@ import SwiftUI
                     state.showLoading = false
                 }
                 return .none
+            case let .categoryTapped(item):
+                state.path.append(
+                    .categoryArchives(
+                        CategoryArchiveListFeature.State(
+                            id: item.id,
+                            name: item.name,
+                            archiveList: ArchiveListFeature.State(
+                                filter: SearchFilter(category: item.id, filter: nil),
+                                currentTab: .category
+                            )
+                        )
+                    )
+                )
+                return .none
+            case let .path(pathAction):
+                reduceArchiveFlowPath(path: &state.path, action: pathAction)
+                return .none
             }
         }
+        .forEach(\.path, action: \.path)
     }
 }
 
 struct CategoryListV2: View {
     let store: StoreOf<CategoryFeature>
-    let onTapCategory: (StoreOf<CategoryArchiveListFeature>) -> Void
     @State private var searchText = ""
 
     var body: some View {
@@ -181,7 +201,7 @@ struct CategoryListV2: View {
 
     private func categoryButton(item: CategoryItem) -> some View {
         Button {
-            onTapCategory(makeCategoryStore(for: item))
+            store.send(.categoryTapped(item))
         } label: {
             CategoryRowView(item: item)
         }
@@ -189,21 +209,6 @@ struct CategoryListV2: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: categoryAccessibilityLabel(for: item)))
         .accessibilityHint(Text("details"))
-    }
-
-    private func makeCategoryStore(for item: CategoryItem) -> StoreOf<CategoryArchiveListFeature> {
-        Store(
-            initialState: CategoryArchiveListFeature.State(
-                id: item.id,
-                name: item.name,
-                archiveList: ArchiveListFeature.State(
-                    filter: SearchFilter(category: item.id, filter: nil),
-                    currentTab: .category
-                )
-            )
-        ) {
-            CategoryArchiveListFeature()
-        }
     }
 
     private func categoryAccessibilityLabel(for item: CategoryItem) -> String {

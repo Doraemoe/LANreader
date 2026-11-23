@@ -54,8 +54,9 @@ class UITabViewController: UITabBarController {
             tag: 0
         )
 
-        let categoryView = UICategoryListViewController(store: store.scope(\.category, action: \.category))
-        let categoryNav = UINavigationController(rootViewController: categoryView)
+        let categoryNav = makeCategoryNavigationController(
+            store: store.scope(\.category, action: \.category)
+        )
         categoryNav.tabBarItem = UITabBarItem(
             title: String(localized: "category"),
             image: UIImage(systemName: "folder"),

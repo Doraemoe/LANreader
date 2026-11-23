@@ -19,6 +19,7 @@ final class NavigationHelper {
 
 @Reducer
 public enum ArchiveFlowPath {
+    case categoryArchives(CategoryArchiveListFeature)
     case reader(ArchiveReaderFeature)
     case details(ArchiveDetailsFeature)
     case search(SearchFeature)
@@ -31,17 +32,21 @@ func reduceArchiveFlowPath(
     action: StackActionOf<ArchiveFlowPath>
 ) {
     switch action {
+    case let .element(id: id, action: .categoryArchives(.archiveList(.openReader(archiveId, fromStart)))):
+        guard case let .categoryArchives(categoryState) = path[id: id] else { return }
+        appendReader(
+            archiveId: archiveId,
+            fromStart: fromStart,
+            archiveList: categoryState.archiveList,
+            to: &path
+        )
     case let .element(id: id, action: .search(.archiveList(.openReader(archiveId, fromStart)))):
         guard case let .search(searchState) = path[id: id] else { return }
-        let allArchives = searchState.archiveList.archivesToDisplay.map(\.$archive)
-        path.append(
-            .reader(
-                ArchiveReaderFeature.State(
-                    currentArchiveId: archiveId,
-                    allArchives: allArchives,
-                    fromStart: fromStart
-                )
-            )
+        appendReader(
+            archiveId: archiveId,
+            fromStart: fromStart,
+            archiveList: searchState.archiveList,
+            to: &path
         )
     case let .element(id: id, action: .reader(.openDetailsTapped)):
         guard case let .reader(readerState) = path[id: id],
@@ -65,6 +70,24 @@ func reduceArchiveFlowPath(
     default:
         break
     }
+}
+
+private func appendReader(
+    archiveId: String,
+    fromStart: Bool,
+    archiveList: ArchiveListFeature.State,
+    to path: inout StackState<ArchiveFlowPath.State>
+) {
+    let allArchives = archiveList.archivesToDisplay.map(\.$archive)
+    path.append(
+        .reader(
+            ArchiveReaderFeature.State(
+                currentArchiveId: archiveId,
+                allArchives: allArchives,
+                fromStart: fromStart
+            )
+        )
+    )
 }
 
 private func makeTagSearchState(for tag: String) -> SearchFeature.State {
@@ -97,6 +120,8 @@ private func popArchiveDetails(
 @MainActor
 func makeArchiveFlowDestination(_ store: StoreOf<ArchiveFlowPath>) -> UIViewController {
     switch store.case {
+    case let .categoryArchives(categoryStore):
+        UICategoryArchiveGridController(store: categoryStore)
     case let .reader(readerStore):
         UIArchiveReaderController(store: readerStore, usesStackNavigation: true)
     case let .details(detailsStore):
