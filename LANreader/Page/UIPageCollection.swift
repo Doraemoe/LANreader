@@ -67,6 +67,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     )
     private var lastReportedProgressBucket: Int = -1 // for throttled updates
     private var pullThresholdCrossedHapticsFired = false
+    private var wasInNavigationStack = false
 
     init(store: StoreOf<ArchiveReaderFeature>) {
         self.store = store
@@ -493,15 +494,23 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         let height = view.window.map {
             $0.bounds.height - $0.safeAreaInsets.top - $0.safeAreaInsets.bottom
         } ?? view.bounds.height
-        let isDetachedFromNavigationStack = if let navigationController, let parent {
-            !navigationController.viewControllers.contains { $0 === parent }
-        } else {
-            false
-        }
         if !isDetachedFromNavigationStack {
             store.send(.readerSizeChanged(CGSize(width: availableItemWidth(), height: height)))
         }
         consumePendingScrollRequestIfPossible()
+    }
+
+    private var isDetachedFromNavigationStack: Bool {
+        guard let navigationController else { return wasInNavigationStack }
+        wasInNavigationStack = true
+        var current: UIViewController? = self
+        while let controller = current {
+            if navigationController.viewControllers.contains(where: { $0 === controller }) {
+                return false
+            }
+            current = controller.parent
+        }
+        return true
     }
 
     // Vertical mode reports the lowest visible page, so keep the top page and how far it was read instead.
