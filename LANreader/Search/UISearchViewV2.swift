@@ -145,6 +145,7 @@ import UIKit
     public enum Action {
         case root(SearchFeature.Action)
         case path(StackActionOf<ArchiveFlowPath>)
+        case openDeepLinkSearch(String)
     }
 
     public var body: some ReducerOf<Self> {
@@ -154,6 +155,9 @@ import UIKit
 
         Reduce { state, action in
             switch action {
+            case let .openDeepLinkSearch(query):
+                state.path.removeAll()
+                return .send(.root(.recentSearchTapped(query)))
             case let .root(.archiveList(.openReader(archiveId, fromStart))):
                 appendReader(
                     archiveId: archiveId,

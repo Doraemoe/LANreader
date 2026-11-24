@@ -74,20 +74,51 @@ final class DeepLinkTests: LANreaderTestCase {
     }
 
     @MainActor
+    func testAppStateInitializesDestinationForPasscodeAndMissingServer() {
+        let suite = "DeepLinkTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        if case .login = makeAppState(defaults: defaults).destination {
+            // Expected login screen when no server is configured.
+        } else {
+            XCTFail("Expected login destination when server URL is missing")
+        }
+
+        defaults.set("123456", forKey: SettingsKey.passcode)
+        if case .lockScreen = makeAppState(defaults: defaults).destination {
+            // Expected lock screen to take precedence on cold start.
+        } else {
+            XCTFail("Expected lock screen destination when passcode is set")
+        }
+
+        defaults.set(TestServer.url, forKey: SettingsKey.lanraragiUrl)
+        defaults.removeObject(forKey: SettingsKey.passcode)
+        XCTAssertNil(makeAppState(defaults: defaults).destination)
+    }
+
+    @MainActor
     func testReadLinkOpensArchiveFromServer() async throws {
         try await configureTestServer()
         stubArchiveMetadata(id: "abc123", statusCode: 200)
-        let store = try makeAppTestStore()
+        let store = try makeAppTestStore(initialState: makeAppState(selectedTab: .settings))
 
         await store.send(.openURL(try url("lanreader://read?id=abc123")))
         await store.receive(\.deepLinkArchiveLoaded)
+        await store.receive(\.library.openDeepLinkReader)
 
         let expected = ArchiveItem(
             id: "abc123", name: "Linked archive", extension: "zip", tags: "artist:e auo",
             isNew: false, progress: 7, pagecount: 20, dateAdded: nil
         )
-        XCTAssertEqual(store.state.pendingDeepLink, .reader(expected, cached: false))
+        XCTAssertEqual(store.state.selectedTab, .library)
+        XCTAssertNil(store.state.pendingDeepLink)
         XCTAssertEqual(store.state.archiveItems[id: "abc123"], expected)
+        guard case let .reader(readerState) = store.state.library.path.first else {
+            return XCTFail("Expected reader on library path")
+        }
+        XCTAssertEqual(readerState.currentArchiveId, "abc123")
+        XCTAssertFalse(readerState.cached)
     }
 
     @MainActor
@@ -102,9 +133,16 @@ final class DeepLinkTests: LANreaderTestCase {
 
         await store.send(.openURL(try url("lanreader://read?id=abc123&preferCached=true")))
         await store.receive(\.deepLinkArchiveLoaded)
+        await store.receive(\.library.openDeepLinkReader)
 
         let cache = try XCTUnwrap(database.readCache("abc123"))
-        XCTAssertEqual(store.state.pendingDeepLink, .reader(cache.toArchiveItem(), cached: true))
+        XCTAssertEqual(store.state.selectedTab, .library)
+        XCTAssertNil(store.state.pendingDeepLink)
+        guard case let .reader(readerState) = store.state.library.path.first else {
+            return XCTFail("Expected cached reader on library path")
+        }
+        XCTAssertEqual(readerState.currentArchiveId, cache.id)
+        XCTAssertTrue(readerState.cached)
     }
 
     @MainActor
@@ -119,6 +157,7 @@ final class DeepLinkTests: LANreaderTestCase {
         }
 
         XCTAssertNil(store.state.pendingDeepLink)
+        XCTAssertTrue(store.state.library.path.isEmpty)
     }
 
     @MainActor
@@ -129,11 +168,13 @@ final class DeepLinkTests: LANreaderTestCase {
 
         await store.send(.openURL(try url("lanreader://read?id=TANK_42")))
         await store.receive(\.deepLinkArchiveLoaded)
+        await store.receive(\.library.openDeepLinkReader)
 
-        guard case let .reader(archive, cached) = store.state.pendingDeepLink else {
-            return XCTFail("Expected a reader route")
+        guard case let .reader(readerState) = store.state.library.path.first,
+              let archive = readerState.allArchives[id: "TANK_42"]?.wrappedValue else {
+            return XCTFail("Expected a reader route on library path")
         }
-        XCTAssertFalse(cached)
+        XCTAssertFalse(readerState.cached)
         XCTAssertEqual(archive.name, "Linked tankoubon")
         XCTAssertEqual(archive.pagecount, 25)
         XCTAssertEqual(archive.progress, 3)
@@ -143,7 +184,7 @@ final class DeepLinkTests: LANreaderTestCase {
     func testSearchLinkRunsSearchAndRecordsHistory() async throws {
         try await configureTestServer()
         stubSearchResult(query: "artist:e auo", archiveId: "searchHit")
-        var initialState = AppFeature.State()
+        var initialState = makeAppState(selectedTab: .library)
         initialState.search.path.append(
             .search(SearchFeature.State(keyword: "old"))
         )
@@ -153,12 +194,10 @@ final class DeepLinkTests: LANreaderTestCase {
         defer { store.state.$archiveItems.withLock { $0 = [] } }
 
         await store.send(.openURL(try url("lanreader://search?query=artist%3Ae%20auo"))) {
-            $0.pendingDeepLink = .search(query: "artist:e auo")
+            $0.selectedTab = .search
+            $0.pendingDeepLink = nil
         }
-        XCTAssertEqual(store.state.search.path.count, 1)
-        XCTAssertTrue(store.state.search.root.recentSearches.isEmpty)
-
-        await store.send(.openDeepLinkSearch("artist:e auo")) {
+        await store.receive(\.search.openDeepLinkSearch) {
             $0.search.path.removeAll()
         }
         await store.receive(\.search.root.recentSearchTapped)
@@ -172,6 +211,51 @@ final class DeepLinkTests: LANreaderTestCase {
         XCTAssertEqual(store.state.search.root.archiveList.archivesToDisplay.ids, ["searchHit"])
         XCTAssertEqual(store.state.search.root.recentSearches, ["artist:e auo"])
         XCTAssertTrue(store.state.search.path.isEmpty)
+    }
+
+    @MainActor
+    func testDeepLinksCancelInFlightEffectsOnReplacedNavigationStacks() async throws {
+        try await configureTestServer()
+        stubSearchResult(query: "artist:next", archiveId: "nextHit")
+        var initialState = makeAppState()
+        initialState.library.path.append(.search(SearchFeature.State()))
+        initialState.search.path.append(.search(SearchFeature.State()))
+        initialState.search.root.archiveList.$lastTagRefresh = Shared(value: Date().timeIntervalSince1970)
+        let librarySearchID = try XCTUnwrap(initialState.library.path.ids.first)
+        let searchStackID = try XCTUnwrap(initialState.search.path.ids.first)
+
+        let database = try AppDatabase(DatabaseQueue())
+        let store = TestStore(initialState: initialState) {
+            AppFeature()
+        } withDependencies: {
+            $0.appDatabase = database
+            $0.continuousClock = TestClock()
+            $0.date.now = Date(timeIntervalSince1970: 1)
+            $0.defaultAppStorage = .standard
+        }
+        store.exhaustivity = .off
+        store.timeout = .seconds(5)
+        defer { store.state.search.root.archiveList.$lastTagRefresh.withLock { $0 = 0 } }
+
+        await store.send(.library(.path(.element(
+            id: librarySearchID, action: .search(.generateSuggestion("artist:pending"))
+        ))))
+        await store.send(.search(.path(.element(
+            id: searchStackID, action: .search(.generateSuggestion("artist:pending"))
+        ))))
+
+        let archive = ArchiveItem(
+            id: "arc1", name: "Linked", extension: "zip", tags: "",
+            isNew: false, progress: 0, pagecount: 10, dateAdded: nil
+        )
+        await store.send(.deepLinkArchiveLoaded(archive, cached: true))
+        await store.receive(\.library.openDeepLinkReader)
+        await store.send(.openURL(try url("lanreader://search?query=artist%3Anext")))
+        await store.receive(\.search.openDeepLinkSearch)
+        await store.receive(\.search.root.archiveList.populateArchives)
+
+        // Both suspended TestClock suggestion effects must be cancelled by StackReducer.
+        await store.finish(timeout: .seconds(2))
     }
 
     @MainActor
@@ -203,11 +287,13 @@ final class DeepLinkTests: LANreaderTestCase {
     @MainActor
     func testTabBarOpensReaderOnLibraryTabAndSearchOnSearchTab() async throws {
         try await configureTestServer()
+        stubEmptyArchiveFiles(id: "abc123")
         stubSearchResult(query: "artist:e auo", archiveId: "searchHit")
         let database = try makeDeepLinkThumbnailDatabase(archiveIds: ["searchHit"])
         try await withDependencies {
             $0.appDatabase = database
             $0.date.now = Date(timeIntervalSince1970: 1)
+            $0.defaultAppStorage = .standard
         } operation: {
             let initialState = AppFeature.State()
             initialState.search.root.archiveList.$lastTagRefresh.withLock { $0 = Date().timeIntervalSince1970 }
@@ -222,6 +308,8 @@ final class DeepLinkTests: LANreaderTestCase {
             libraryNav.loadViewIfNeeded()
             libraryNav.topViewController?.loadViewIfNeeded()
             tabs.selectedIndex = 3
+            tabs.tabBarController(tabs, didSelect: try XCTUnwrap(tabs.viewControllers?[3]))
+            XCTAssertEqual(store.selectedTab, .settings)
 
             let archive = ArchiveItem(
                 id: "abc123", name: "Linked archive", extension: "zip", tags: "",
@@ -234,6 +322,7 @@ final class DeepLinkTests: LANreaderTestCase {
                 store.pendingDeepLink == nil && libraryNav.topViewController is UIArchiveReaderController
             }
 
+            XCTAssertEqual(store.selectedTab, .library)
             XCTAssertEqual(tabs.selectedIndex, 0)
             XCTAssertTrue(libraryNav.topViewController is UIArchiveReaderController)
             XCTAssertEqual(store.library.path.count, 1)
@@ -246,6 +335,7 @@ final class DeepLinkTests: LANreaderTestCase {
                     && store.search.root.archiveList.archivesToDisplay.ids == ["searchHit"]
             }
 
+            XCTAssertEqual(store.selectedTab, .search)
             XCTAssertEqual(tabs.selectedIndex, 2)
             XCTAssertNil(store.pendingDeepLink)
             XCTAssertEqual(store.search.root.archiveList.archivesToDisplay.ids, ["searchHit"])
@@ -255,20 +345,26 @@ final class DeepLinkTests: LANreaderTestCase {
     @MainActor
     func testSearchDeepLinkWaitsForLockScreenAndLoadsOnColdStart() async throws {
         try await configureTestServer()
+        UserDefaults.standard.set("123456", forKey: SettingsKey.passcode)
         stubSearchResult(query: "artist:cold", archiveId: "coldHit")
         let database = try makeDeepLinkThumbnailDatabase(archiveIds: ["coldHit"])
         try await withDependencies {
             $0.appDatabase = database
             $0.date.now = Date(timeIntervalSince1970: 1)
+            $0.defaultAppStorage = .standard
         } operation: {
             var initialState = AppFeature.State()
-            initialState.destination = .lockScreen(LockScreenFeature.State(lockState: .normal))
             initialState.search.path.append(.search(SearchFeature.State(keyword: "old")))
             initialState.search.root.archiveList.$lastTagRefresh.withLock { $0 = Date().timeIntervalSince1970 }
             let store = Store(initialState: initialState) { AppFeature() }
             defer {
                 store.state.$archiveItems.withLock { $0 = [] }
                 store.state.search.root.archiveList.$lastTagRefresh.withLock { $0 = 0 }
+            }
+            if case .lockScreen = store.destination {
+                // Expected lock screen initialized before view appear.
+            } else {
+                XCTFail("Expected lock screen destination on cold start")
             }
             let tabs = UITabViewController(store: store)
             tabs.loadViewIfNeeded()
@@ -277,6 +373,7 @@ final class DeepLinkTests: LANreaderTestCase {
             await Task.yield()
 
             XCTAssertEqual(store.pendingDeepLink, .search(query: "artist:cold"))
+            XCTAssertEqual(store.selectedTab, .library)
             XCTAssertEqual(tabs.selectedIndex, 0)
             XCTAssertEqual(store.search.path.count, 1)
             XCTAssertEqual(try database.recentSearches(), [])
@@ -289,41 +386,42 @@ final class DeepLinkTests: LANreaderTestCase {
                     && store.search.root.archiveList.archivesToDisplay.ids == ["coldHit"]
             }
 
+            XCTAssertEqual(store.selectedTab, .search)
             XCTAssertEqual(tabs.selectedIndex, 2)
             XCTAssertTrue(store.search.path.isEmpty)
             XCTAssertEqual(store.search.root.keyword, "artist:cold")
             XCTAssertEqual(try database.recentSearches(), ["artist:cold"])
             XCTAssertEqual(store.search.root.archiveList.archivesToDisplay.ids, ["coldHit"])
-
-            let searchNav = try XCTUnwrap(tabs.viewControllers?[2] as? UINavigationController)
-            let searchController = try XCTUnwrap(searchNav.topViewController as? UISearchViewV2Controller)
-            searchController.loadViewIfNeeded()
-            let searchBar = try XCTUnwrap(
-                searchController.navigationItem.searchController?.searchBar
-                    ?? searchController.view.subviews.compactMap { $0 as? UISearchBar }.first
-            )
-            XCTAssertEqual(searchBar.text, "artist:cold")
+            XCTAssertEqual(try searchTabSearchBar(in: tabs).text, "artist:cold")
         }
     }
 
     @MainActor
     func testReaderDeepLinkWaitsForLockScreenAndReplacesExistingLibraryPath() async throws {
+        try await configureTestServer()
+        UserDefaults.standard.set("123456", forKey: SettingsKey.passcode)
+        stubEmptyArchiveFiles(id: "abc123")
         let database = try AppDatabase(DatabaseQueue())
         try await withDependencies {
             $0.appDatabase = database
             $0.date.now = Date(timeIntervalSince1970: 1)
+            $0.defaultAppStorage = .standard
         } operation: {
-            var initialState = AppFeature.State()
-            initialState.destination = .lockScreen(LockScreenFeature.State(lockState: .normal))
+            var initialState = AppFeature.State(selectedTab: .search)
             initialState.library.path.append(.cache(CacheFeature.State()))
             let store = Store(initialState: initialState) { AppFeature() }
             defer { store.state.$archiveItems.withLock { $0 = [] } }
+            if case .lockScreen = store.destination {
+                // Expected lock screen initialized before view appear.
+            } else {
+                XCTFail("Expected lock screen destination on cold start")
+            }
             let tabs = UITabViewController(store: store)
             tabs.loadViewIfNeeded()
             let libraryNav = try XCTUnwrap(tabs.viewControllers?.first as? UINavigationController)
             libraryNav.loadViewIfNeeded()
             libraryNav.topViewController?.loadViewIfNeeded()
-            tabs.selectedIndex = 2
+            XCTAssertEqual(tabs.selectedIndex, 2)
 
             let archive = ArchiveItem(
                 id: "abc123", name: "Linked archive", extension: "zip", tags: "",
@@ -333,6 +431,7 @@ final class DeepLinkTests: LANreaderTestCase {
             await Task.yield()
 
             XCTAssertEqual(store.pendingDeepLink, .reader(archive, cached: false))
+            XCTAssertEqual(store.selectedTab, .search)
             XCTAssertEqual(tabs.selectedIndex, 2)
             if case .cache = store.library.path.first {
                 // Expected to keep existing path untouched until unlocked.
@@ -347,6 +446,7 @@ final class DeepLinkTests: LANreaderTestCase {
                 store.pendingDeepLink == nil && libraryNav.topViewController is UIArchiveReaderController
             }
 
+            XCTAssertEqual(store.selectedTab, .library)
             XCTAssertEqual(tabs.selectedIndex, 0)
             XCTAssertEqual(libraryNav.viewControllers.count, 2)
             XCTAssertTrue(libraryNav.topViewController is UIArchiveReaderController)
@@ -399,6 +499,17 @@ final class DeepLinkTests: LANreaderTestCase {
 }
 
 @MainActor
+private func searchTabSearchBar(in tabs: UITabViewController) throws -> UISearchBar {
+    let searchNav = try XCTUnwrap(tabs.viewControllers?[TabName.search.tabIndex] as? UINavigationController)
+    let searchController = try XCTUnwrap(searchNav.topViewController as? UISearchViewV2Controller)
+    searchController.loadViewIfNeeded()
+    return try XCTUnwrap(
+        searchController.navigationItem.searchController?.searchBar
+            ?? searchController.view.firstSubview(of: UISearchBar.self)
+    )
+}
+
+@MainActor
 private func waitUntil(_ condition: () -> Bool) async {
     for _ in 0..<100 where !condition() {
         try? await Task.sleep(for: .milliseconds(10))
@@ -420,16 +531,30 @@ private func url(_ string: String) throws -> URL {
 }
 
 @MainActor
+private func makeAppState(
+    selectedTab: TabName = .library,
+    destination: AppFeature.Destination.State? = nil,
+    defaults: UserDefaults = .standard
+) -> AppFeature.State {
+    withDependencies {
+        $0.defaultAppStorage = defaults
+    } operation: {
+        AppFeature.State(selectedTab: selectedTab, destination: destination)
+    }
+}
+
+@MainActor
 private func makeAppTestStore(
-    initialState: AppFeature.State = AppFeature.State(),
+    initialState: AppFeature.State? = nil,
     database: AppDatabase? = nil
 ) throws -> TestStoreOf<AppFeature> {
     let database = try database ?? AppDatabase(DatabaseQueue())
-    let store = TestStore(initialState: initialState) {
+    let store = TestStore(initialState: initialState ?? makeAppState()) {
         AppFeature()
     } withDependencies: {
         $0.appDatabase = database
         $0.date.now = Date(timeIntervalSince1970: 1)
+        $0.defaultAppStorage = .standard
     }
     store.exhaustivity = .off
     store.timeout = .seconds(5)
@@ -464,6 +589,12 @@ private func stubArchiveMetadata(id: String, statusCode: Int32) {
             "arcid": id, "extension": "zip", "isnew": "false", "tags": "artist:e auo",
             "title": "Linked archive", "pagecount": 20, "progress": 7
         ], statusCode: 200, headers: ["Content-Type": "application/json"])
+    }
+}
+
+private func stubEmptyArchiveFiles(id: String) {
+    stub(condition: isHost("localhost") && isPath("/api/archives/\(id)/files") && isMethodGET()) { @Sendable _ in
+        HTTPStubsResponse(jsonObject: ["pages": []], statusCode: 200, headers: ["Content-Type": "application/json"])
     }
 }
 

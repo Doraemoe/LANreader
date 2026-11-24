@@ -16,6 +16,7 @@ import UIKit
         case path(StackActionOf<ArchiveFlowPath>)
         case archiveList(ArchiveListFeature.Action)
         case cacheButtonTapped
+        case openDeepLinkReader(ArchiveItem, cached: Bool)
     }
 
     public var body: some ReducerOf<Self> {
@@ -27,6 +28,19 @@ import UIKit
             switch action {
             case .cacheButtonTapped:
                 state.path.append(.cache(CacheFeature.State()))
+                return .none
+            case let .openDeepLinkReader(archive, cached):
+                let sharedArchive = cached ? nil : Shared(state.archiveList.$archiveItems[id: archive.id])
+                state.path.removeAll()
+                state.path.append(
+                    .reader(
+                        ArchiveReaderFeature.State(
+                            currentArchiveId: archive.id,
+                            allArchives: [sharedArchive ?? Shared(value: archive)],
+                            cached: cached
+                        )
+                    )
+                )
                 return .none
             case let .archiveList(.openReader(archiveId, fromStart)):
                 appendReader(
