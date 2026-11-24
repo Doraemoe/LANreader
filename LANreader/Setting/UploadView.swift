@@ -235,7 +235,6 @@ struct UploadView: View {
         .task {
             await store.send(.checkJobStatus).finish()
         }
-        .toolbar(.hidden, for: .tabBar)
     }
 
     private var uploadPanel: some View {
@@ -506,45 +505,6 @@ struct UploadView: View {
             case .pending:
                 return .orange
             }
-        }
-    }
-}
-
-class UIUploadViewController: UIViewController {
-    private let store: StoreOf<UploadFeature>
-
-    init(store: StoreOf<UploadFeature>) {
-        self.store = store
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        title = String(localized: "settings.host.upload")
-
-        let hostingController = UIHostingController(
-            rootView: UploadView(store: store)
-        )
-
-        add(hostingController)
-        NSLayoutConstraint.activate([
-            hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
-            hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            hostingController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor)
-        ])
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        if #available(iOS 18.0, *) {
-            tabBarController?.setTabBarHidden(true, animated: false)
-        } else {
-            tabBarController?.tabBar.isHidden = true
         }
     }
 }

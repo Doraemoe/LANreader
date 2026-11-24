@@ -347,6 +347,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             _ = store.readDirection
             _ = store.splitImage
             _ = store.pages.count
+            lastReportedReaderSize = nil
             view.setNeedsLayout()
         }
     }
@@ -456,6 +457,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
     // MARK: - Rotation / Size Change Handling
     private var lastLayoutWidth: CGFloat?
+    private var lastReportedReaderSize: CGSize?
     private var resizeRestoreTarget: ResizeRestoreTarget?
 
     private struct ResizeRestoreTarget {
@@ -494,8 +496,10 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         let height = view.window.map {
             $0.bounds.height - $0.safeAreaInsets.top - $0.safeAreaInsets.bottom
         } ?? view.bounds.height
-        if !isDetachedFromNavigationStack {
-            store.send(.readerSizeChanged(CGSize(width: availableItemWidth(), height: height)))
+        let readerSize = CGSize(width: availableItemWidth(), height: height)
+        if !isDetachedFromNavigationStack, lastReportedReaderSize != readerSize {
+            lastReportedReaderSize = readerSize
+            store.send(.readerSizeChanged(readerSize))
         }
         consumePendingScrollRequestIfPossible()
     }

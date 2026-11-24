@@ -101,14 +101,15 @@ final class SettingsFeatureTests: LANreaderTestCase {
         nav.loadViewIfNeeded()
 
         XCTAssertEqual(nav.viewControllers.count, 1)
-        XCTAssertTrue(nav.topViewController is UISettingsViewController)
+        XCTAssertTrue(nav.topViewController is SettingsHostingController<SettingsView>)
+        XCTAssertEqual(nav.topViewController?.navigationItem.title, String(localized: "settings"))
 
         withUITransaction(\.uiKit.disablesAnimations, true) {
             _ = store.send(.serverConfigTapped)
         }
         await waitUntil { nav.viewControllers.count == 2 }
         XCTAssertEqual(nav.viewControllers.count, 2)
-        XCTAssertTrue(nav.topViewController is UILANraragiConfigViewController)
+        XCTAssertTrue(nav.topViewController is SettingsHostingController<LANraragiConfigView>)
 
         let id = try XCTUnwrap(store.path.ids.first)
         withUITransaction(\.uiKit.disablesAnimations, true) {
@@ -116,8 +117,15 @@ final class SettingsFeatureTests: LANreaderTestCase {
         }
         await waitUntil { nav.viewControllers.count == 1 }
         XCTAssertEqual(nav.viewControllers.count, 1)
-        XCTAssertTrue(nav.topViewController is UISettingsViewController)
+        XCTAssertTrue(nav.topViewController is SettingsHostingController<SettingsView>)
         XCTAssertTrue(store.path.isEmpty)
+
+        withUITransaction(\.uiKit.disablesAnimations, true) {
+            _ = store.send(.supportTapped)
+        }
+        await waitUntil { nav.viewControllers.count == 2 }
+        XCTAssertTrue(nav.topViewController is SettingsHostingController<SupportView>)
+        XCTAssertEqual(nav.topViewController?.navigationItem.title, String(localized: "settings.support"))
     }
 }
 

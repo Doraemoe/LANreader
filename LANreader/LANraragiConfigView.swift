@@ -43,7 +43,6 @@ import Logging
     }
 
     @Dependency(\.lanraragiService) var lanraragiService
-    @Dependency(\.isPresented) var isPresented
     @Dependency(\.dismiss) var dismiss
 
     // App Transport Security rejects plain HTTP to anything it does not consider local, which
@@ -93,9 +92,7 @@ import Logging
             case .saveComplate:
                 state.isVerifying = false
                 return .run { _ in
-                    if isPresented {
-                        await self.dismiss()
-                    }
+                    await self.dismiss()
                 }
             case let .setErrorMessage(errorMessage):
                 state.errorMessage = errorMessage
@@ -163,7 +160,6 @@ struct LANraragiConfigView: View {
                 store.send(.verifyServer)
             }
         }
-        .toolbar(.hidden, for: .tabBar)
         .onChange(of: store.errorMessage) {
             if !store.errorMessage.isEmpty {
                 showNotificationBanner(
@@ -175,43 +171,5 @@ struct LANraragiConfigView: View {
             }
         }
         .alert($store.scope(\.$alert, action: \.alert))
-    }
-}
-
-class UILANraragiConfigViewController: UIViewController {
-    private let store: StoreOf<LANraragiConfigFeature>
-
-    init(store: StoreOf<LANraragiConfigFeature>) {
-        self.store = store
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        let hostingController = UIHostingController(
-            rootView: LANraragiConfigView(store: store)
-        )
-
-        add(hostingController)
-        NSLayoutConstraint.activate([
-            hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
-            hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            hostingController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor)
-        ])
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        if #available(iOS 18.0, *) {
-            tabBarController?.setTabBarHidden(true, animated: false)
-        } else {
-            tabBarController?.tabBar.isHidden = true
-        }
     }
 }
