@@ -81,7 +81,7 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
     @MainActor
     func testSearchCancellationIsIsolatedPerArchiveList() async throws {
         // In the app the library and the search tab are two lists under one store. Cancelling one
-        // list's search, as typing a new query does, must not cancel the other list's load.
+        // list's search, as clearing a query does, must not cancel the other list's load.
         try await configureTestServer()
         stub(condition: isHost("localhost") && isPath("/api/search") && isMethodGET()) { @Sendable _ in
             let response = HTTPStubsResponse(
@@ -95,8 +95,11 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
             filter: SearchFilter(category: nil, filter: nil), loadOnAppear: false, currentTab: .library
         )
         library.$lastTagRefresh.withLock { $0 = Date().timeIntervalSince1970 }
-        let search = ArchiveListFeature.State(
-            filter: SearchFilter(category: nil, filter: "artist:test"), loadOnAppear: false, currentTab: .search
+        let search = SearchFeature.State(
+            keyword: "artist:test",
+            archiveList: ArchiveListFeature.State(
+                filter: SearchFilter(category: nil, filter: "artist:test"), loadOnAppear: false, currentTab: .search
+            )
         )
         let store = TestStore(initialState: TwoArchiveLists.State(library: library, search: search)) {
             TwoArchiveLists()
@@ -105,11 +108,14 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(.library(.load))
-        await store.send(.search(.load))
-        await store.send(.search(.cancelSearch))
+        await store.send(.search(.archiveList(.load)))
+        await store.send(.search(.searchCleared))
 
+        await store.receive(\.search.archiveList.reloadFromFirstPage)
         await store.receive(\.library.populateArchives)
         await store.finish()
+        XCTAssertFalse(store.state.search.archiveList.loading)
+        XCTAssertFalse(store.state.library.loading)
     }
 
     @MainActor
@@ -534,17 +540,17 @@ struct TwoArchiveLists {
     @ObservableState
     struct State: Equatable {
         var library: ArchiveListFeature.State
-        var search: ArchiveListFeature.State
+        var search: SearchFeature.State
     }
 
     enum Action {
         case library(ArchiveListFeature.Action)
-        case search(ArchiveListFeature.Action)
+        case search(SearchFeature.Action)
     }
 
     var body: some ReducerOf<Self> {
         Scope(state: \.library, action: \.library) { ArchiveListFeature() }
-        Scope(state: \.search, action: \.search) { ArchiveListFeature() }
+        Scope(state: \.search, action: \.search) { SearchFeature() }
     }
 }
 

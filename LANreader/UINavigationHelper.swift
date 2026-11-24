@@ -141,37 +141,19 @@ private func makeTagSearchState(for tag: String) -> SearchFeature.State {
     )
 }
 
-private func popArchiveDetails(
-    id detailsID: StackElementID,
-    from path: inout StackState<ArchiveFlowPath.State>
-) {
-    guard let detailsIndex = path.ids.firstIndex(of: detailsID) else { return }
-    if detailsIndex > path.ids.startIndex {
-        let previousID = path.ids[path.ids.index(before: detailsIndex)]
-        if case .reader = path[id: previousID] {
-            path.pop(from: previousID)
-            return
-        }
-    }
-    path.pop(from: detailsID)
-}
-
 private func handleDetailsDeleted(
     id detailsID: StackElementID,
     in path: inout StackState<ArchiveFlowPath.State>
 ) {
-    let deletedTarget = path[id: detailsID].flatMap { element -> (id: String, cached: Bool)? in
-        guard case let .details(detailsState) = element else { return nil }
-        return (detailsState.archive.id, detailsState.cached)
-    }
-    popArchiveDetails(id: detailsID, from: &path)
-    if let deletedTarget {
-        cleanDeletedArchiveFromStack(
-            archiveId: deletedTarget.id,
-            cachedOnly: deletedTarget.cached,
-            in: &path
-        )
-    }
+    guard case let .details(detailsState) = path[id: detailsID] else { return }
+    let archiveId = detailsState.archive.id
+    let cachedOnly = detailsState.cached
+    path.pop(from: detailsID)
+    cleanDeletedArchiveFromStack(
+        archiveId: archiveId,
+        cachedOnly: cachedOnly,
+        in: &path
+    )
 }
 
 private func syncTankoubonMetadata(

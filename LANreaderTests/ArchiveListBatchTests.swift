@@ -303,15 +303,39 @@ final class ArchiveListBatchTests: LANreaderTestCase {
     }
 
     @MainActor
-    func testChangingFilterClearsSelection() async {
-        var state = makePaginatedArchiveListState()
-        state.selected = ["archive-0"]
-        let store = TestStore(initialState: state) { ArchiveListFeature() }
-        let filter = SearchFilter(category: nil, filter: "new query")
-        await store.send(.setFilter(filter)) {
-            $0.filter = filter
-            $0.selected = []
+    func testSubmittingNewSearchClearsSelection() async throws {
+        try await configureTestServer()
+        stub(condition: isHost("localhost") && isPath("/api/search") && isMethodGET()) { @Sendable _ in
+            HTTPStubsResponse(
+                data: Data(#"{"data":[],"recordsFiltered":0,"recordsTotal":0}"#.utf8),
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
         }
+        let database = try AppDatabase(DatabaseQueue())
+        var state = SearchFeature.State()
+        state.archiveList.selected = ["archive-0"]
+        state.archiveList.preserveSelectionOnNextPopulate = true
+        state.archiveList.$lastTagRefresh.withLock { $0 = Date().timeIntervalSince1970 }
+        let store = TestStore(initialState: state) {
+            SearchFeature()
+        } withDependencies: {
+            $0.appDatabase = database
+            $0.date.now = Date(timeIntervalSince1970: 1)
+        }
+        store.timeout = .seconds(5)
+        store.exhaustivity = .off
+        defer { store.state.archiveList.$lastTagRefresh.withLock { $0 = 0 } }
+
+        await store.send(.searchSubmit("new query")) {
+            $0.archiveList.filter = SearchFilter(category: nil, filter: "new query")
+            $0.archiveList.selected = []
+        }
+        await store.receive(\.archiveList.reloadFromFirstPage) {
+            $0.archiveList.preserveSelectionOnNextPopulate = false
+        }
+        await store.receive(\.archiveList.populateArchives)
+        await store.finish()
     }
 
     @MainActor
