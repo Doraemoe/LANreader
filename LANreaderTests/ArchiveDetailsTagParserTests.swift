@@ -321,7 +321,9 @@ final class ArchiveFlowConsistencyTests: LANreaderTestCase {
 
     @MainActor
     func testNestedDeleteOfSameArchiveRemovesEarlierStaleEntriesInNavigationController() async throws {
+        try await configureTestServer()
         let archive = makeDetailsArchive(id: "dupArc", name: "Duplicate", tags: "artist:dup")
+        stubFlowBackgroundRequests(archive: archive)
         let database = try makeFlowThumbnailDatabase(archiveIds: [archive.id])
         defer { clearFlowSharedArchives() }
 
@@ -521,5 +523,42 @@ private func sendFlowActionWithoutAnimation(
 private func waitForFlowNavigation(_ condition: () -> Bool) async {
     for _ in 0..<100 where !condition() {
         try? await Task.sleep(for: .milliseconds(10))
+    }
+}
+
+private func stubFlowBackgroundRequests(archive: ArchiveItem) {
+    let headers = ["Content-Type": "application/json"]
+    let archiveId = archive.id
+    let archiveName = archive.name
+    let archiveTags = archive.tags
+    let archiveExt = archive.extension
+    stub(condition: isHost("localhost") && isPath("/api/archives/\(archiveId)/files") && isMethodGET()) { @Sendable _ in
+        HTTPStubsResponse(jsonObject: ["pages": []], statusCode: 200, headers: headers)
+    }
+    stub(condition: isHost("localhost") && isPath("/api/categories") && isMethodGET()) { @Sendable _ in
+        HTTPStubsResponse(jsonObject: [], statusCode: 200, headers: headers)
+    }
+    stub(condition: isHost("localhost") && isPath("/api/database/stats") && isMethodGET()) { @Sendable _ in
+        HTTPStubsResponse(jsonObject: [], statusCode: 200, headers: headers)
+    }
+    stub(condition: isHost("localhost") && isPath("/api/search") && isMethodGET()) { @Sendable _ in
+        HTTPStubsResponse(
+            jsonObject: [
+                "data": [[
+                    "arcid": archiveId,
+                    "extension": archiveExt,
+                    "isnew": "false",
+                    "pagecount": 10,
+                    "progress": 0,
+                    "tags": archiveTags,
+                    "title": archiveName
+                ]],
+                "draw": 0,
+                "recordsFiltered": 1,
+                "recordsTotal": 1
+            ],
+            statusCode: 200,
+            headers: headers
+        )
     }
 }

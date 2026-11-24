@@ -86,9 +86,12 @@ final class CacheDownloadTests: LANreaderTestCase {
         try good.write(to: folder.appendingPathComponent("1.jpg"))
         try Data("error".utf8).write(to: folder.appendingPathComponent("2.img"))
         let requests = OSAllocatedUnfairLock(initialState: [String]())
+        let allowFiles = DispatchSemaphore(value: 0)
+        defer { allowFiles.signal() }
         stub(condition: isHost("localhost") && isPath("/api/archives/\(id)/files") && isMethodGET()) { @Sendable _ in
-            HTTPStubsResponse(jsonObject: ["pages": ["./cache-feature/1", "./cache-feature/2"]],
-                              statusCode: 200, headers: ["Content-Type": "application/json"])
+            _ = allowFiles.wait(timeout: .now() + 5)
+            return HTTPStubsResponse(jsonObject: ["pages": ["./cache-feature/1", "./cache-feature/2"]],
+                                     statusCode: 200, headers: ["Content-Type": "application/json"])
         }
         stub(condition: isHost("localhost") && pathStartsWith("/cache-feature/")) { @Sendable request in
             requests.withLock { $0.append(request.url!.path) }
@@ -113,6 +116,7 @@ final class CacheDownloadTests: LANreaderTestCase {
             $0.retryingDownloads.insert(id)
         }
         await store.send(.retryCache(id))
+        allowFiles.signal()
         await store.receive(.retryCacheFinished(id)) { $0.retryingDownloads.remove(id) }
         try await waitForCacheDownloads(service, archiveId: id)
         await receiveCompletionAfterDownloads(store, clock: clock, archiveId: id) {
@@ -269,6 +273,9 @@ final class CacheDownloadTests: LANreaderTestCase {
                 $0.lanraragiService = service
             }
             let renderedCover = try XCTUnwrap(renderCachedCover(gridStore, database: database))
+            let emptyDatabase = try AppDatabase(DatabaseQueue())
+            let missingCover = try XCTUnwrap(renderCachedCover(gridStore, database: emptyDatabase))
+            XCTAssertNotEqual(renderedCover, missingCover)
             try database.clearDatabase()
             XCTAssertNil(try database.readArchiveThumbnail(id))
             XCTAssertEqual(try database.readCache(id)?.thumbnail, cover)
@@ -472,8 +479,21 @@ private func renderCachedCover(_ store: StoreOf<GridFeature>, database: AppDatab
     withDependencies {
         $0.appDatabase = database
     } operation: {
-        ImageRenderer(content: ArchiveGridV2(store: store).frame(width: 180, height: 270))
-            .uiImage?.pngData()
+        let size = CGSize(width: 180, height: 270)
+        let controller = UIHostingController(rootView: ArchiveGridV2(store: store))
+        let window = UIWindow(frame: CGRect(origin: .zero, size: size))
+        window.rootViewController = controller
+        window.isHidden = false
+        controller.view.frame = window.bounds
+        controller.view.setNeedsLayout()
+        controller.view.layoutIfNeeded()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+        }
+        return UIGraphicsImageRenderer(size: size).pngData { context in
+            controller.view.layer.render(in: context.cgContext)
+        }
     }
 }
 
