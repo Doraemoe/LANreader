@@ -258,6 +258,39 @@ final class AutomaticPageLayoutTests: LANreaderTestCase {
         XCTAssertEqual(store.currentPageIndex, 14)
         _ = window
     }
+
+    @MainActor
+    func testAutomaticUIKitUpdatesSizeInsideNestedNavigationHostAndSkipsWhenPopped() async {
+        let store = makeAutomaticReaderStore()
+        let collectionController = UIPageCollectionController(store: store)
+        let hostingContainer = UIViewController()
+        hostingContainer.addChild(collectionController)
+        hostingContainer.view.addSubview(collectionController.view)
+        collectionController.didMove(toParent: hostingContainer)
+
+        let readerContainer = UIViewController()
+        readerContainer.addChild(hostingContainer)
+        readerContainer.view.addSubview(hostingContainer.view)
+        hostingContainer.didMove(toParent: readerContainer)
+
+        let root = UIViewController()
+        let navigation = UINavigationController(rootViewController: root)
+        navigation.loadViewIfNeeded()
+        navigation.pushViewController(readerContainer, animated: false)
+        XCTAssertTrue(collectionController.navigationController === navigation)
+        XCTAssertFalse(navigation.viewControllers.contains { $0 === collectionController.parent })
+
+        await resizeReader(collectionController, to: CGSize(width: 562, height: 466))
+        XCTAssertTrue(store.doublePageLayout)
+        XCTAssertEqual(store.readerSize, CGSize(width: 562, height: 466))
+
+        // While popping with animation, UIKit removes the ancestor from `viewControllers` before
+        // tearing down its containment chain, so layout passes must not emit to a popped stack store.
+        navigation.popViewController(animated: true)
+        await resizeReader(collectionController, to: CGSize(width: 382, height: 644))
+        XCTAssertTrue(store.doublePageLayout)
+        XCTAssertEqual(store.readerSize, CGSize(width: 562, height: 466))
+    }
 }
 
 @MainActor
