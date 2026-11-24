@@ -26,7 +26,6 @@ class UITabViewController: UITabBarController {
     private let store: StoreOf<AppFeature>
     private var libraryNav: UINavigationController?
     private var searchNav: UINavigationController?
-    private var searchView: UISearchViewV2Controller?
 
     init(store: StoreOf<AppFeature>) {
         self.store = store
@@ -58,7 +57,7 @@ class UITabViewController: UITabBarController {
             tag: 1
         )
 
-        let (searchNav, searchView) = makeSearchNavigationController(
+        let searchNav = makeSearchNavigationController(
             store: store.scope(\.search, action: \.search)
         )
         searchNav.tabBarItem = UITabBarItem(
@@ -78,7 +77,6 @@ class UITabViewController: UITabBarController {
         self.viewControllers = [libraryNav, categoryNav, searchNav, settingsNav]
         self.libraryNav = libraryNav
         self.searchNav = searchNav
-        self.searchView = searchView
         observeDeepLinks()
     }
 
@@ -100,7 +98,6 @@ class UITabViewController: UITabBarController {
             store.send(.openDeepLinkReader(archive, cached: cached))
         case let .search(query):
             guard let searchNav else { return }
-            searchView?.showSearch(keyword: query)
             store.send(.openDeepLinkSearch(query))
             selectedViewController = searchNav
         }

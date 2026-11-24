@@ -5,6 +5,7 @@ import OHHTTPStubs
 import OHHTTPStubsSwift
 import SwiftUI
 import UIKit
+import os
 @testable import LANreader
 
 final class SearchFeatureTests: LANreaderTestCase {
@@ -207,13 +208,9 @@ final class SearchFeatureTests: LANreaderTestCase {
 
     @MainActor
     func testSearchSubmitSavesTrimmedKeywordToRecentSearches() async throws {
-        let database = try AppDatabase(DatabaseQueue())
-        let store = TestStore(initialState: SearchFeature.State()) {
-            SearchFeature()
-        } withDependencies: {
-            $0.appDatabase = database
-            $0.date.now = Date(timeIntervalSince1970: 10)
-        }
+        try await configureTestServer()
+        stubEmptySearch(filter: " artist:a$ ")
+        let store = try makeSearchFeatureTestStore()
 
         await store.send(.searchSubmit(" artist:a$ ")) {
             $0.archiveList.filter = SearchFilter(category: nil, filter: " artist:a$ ")
@@ -221,21 +218,22 @@ final class SearchFeatureTests: LANreaderTestCase {
         await store.receive(\.loadRecentSearches) {
             $0.recentSearches = ["artist:a$"]
         }
+        await store.receive(\.archiveList.reloadFromFirstPage) {
+            $0.archiveList.loading = true
+        }
+        await store.receive(\.archiveList.populateArchives) {
+            $0.archiveList.loading = false
+        }
         XCTAssertFalse(store.state.showsRecentSearches)
     }
 
     @MainActor
     func testRecentSearchTappedRunsThatSearch() async throws {
+        try await configureTestServer()
+        stubEmptySearch(filter: "artist:a$")
         let database = try AppDatabase(DatabaseQueue())
         try database.saveSearchHistory(keyword: "artist:a$", date: Date(timeIntervalSince1970: 1))
-        var initialState = SearchFeature.State()
-        initialState.recentSearches = ["artist:a$"]
-        let store = TestStore(initialState: initialState) {
-            SearchFeature()
-        } withDependencies: {
-            $0.appDatabase = database
-            $0.date.now = Date(timeIntervalSince1970: 10)
-        }
+        let store = try makeSearchFeatureTestStore(database: database, recentSearches: ["artist:a$"])
         XCTAssertTrue(store.state.showsRecentSearches)
 
         await store.send(.recentSearchTapped("artist:a$")) {
@@ -245,7 +243,37 @@ final class SearchFeatureTests: LANreaderTestCase {
             $0.archiveList.filter = SearchFilter(category: nil, filter: "artist:a$")
         }
         await store.receive(\.loadRecentSearches)
+        await store.receive(\.archiveList.reloadFromFirstPage) {
+            $0.archiveList.loading = true
+        }
+        await store.receive(\.archiveList.populateArchives) {
+            $0.archiveList.loading = false
+        }
         XCTAssertFalse(store.state.showsRecentSearches)
+    }
+
+    @MainActor
+    func testResubmittingSameSearchKeywordReloadsFromFirstPage() async throws {
+        try await configureTestServer()
+        let requestCount = OSAllocatedUnfairLock(initialState: 0)
+        stub(condition: isHost("localhost")
+                && isPath("/api/search")
+                && containsQueryParams(["filter": "artist:a$"])) { @Sendable _ in
+            requestCount.withLock { $0 += 1 }
+            return HTTPStubsResponse(
+                data: Data(#"{"data":[],"recordsFiltered":0,"recordsTotal":0}"#.utf8),
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+        let store = try makeSearchFeatureTestStore()
+        store.exhaustivity = .off
+
+        await store.send(.searchSubmit("artist:a$"))
+        await store.receive(\.archiveList.populateArchives)
+        await store.send(.searchSubmit("artist:a$"))
+        await store.receive(\.archiveList.populateArchives)
+        XCTAssertEqual(requestCount.withLock { $0 }, 2)
     }
 
     @MainActor
@@ -471,7 +499,7 @@ final class SearchFeatureTests: LANreaderTestCase {
     }
 }
 
-private extension UIView {
+extension UIView {
     func firstSubview<View: UIView>(of type: View.Type) -> View? {
         for subview in subviews {
             if let match = subview as? View {
@@ -660,8 +688,9 @@ final class SearchTabNavigationTests: LANreaderTestCase {
             let store = Store(initialState: initialState) {
                 SearchTabFeature()
             }
-            let (nav, root) = makeSearchNavigationController(store: store)
+            let nav = makeSearchNavigationController(store: store)
             nav.loadViewIfNeeded()
+            let root = try XCTUnwrap(nav.topViewController as? UISearchViewV2Controller)
             root.loadViewIfNeeded()
 
             XCTAssertEqual(nav.viewControllers.count, 1)
@@ -721,6 +750,36 @@ private func makeSearchTestArchive(id: String, name: String, tags: String) -> Ar
         pagecount: 10,
         dateAdded: nil
     )
+}
+
+@MainActor
+private func makeSearchFeatureTestStore(
+    database: AppDatabase? = nil,
+    recentSearches: [String] = []
+) throws -> TestStoreOf<SearchFeature> {
+    let database = try database ?? AppDatabase(DatabaseQueue())
+    var initialState = SearchFeature.State()
+    initialState.recentSearches = recentSearches
+    initialState.archiveList.$lastTagRefresh = Shared(value: Date().timeIntervalSince1970)
+    initialState.archiveList.$searchSort = Shared(value: SearchSort.name.rawValue)
+    let store = TestStore(initialState: initialState) { SearchFeature() } withDependencies: {
+        $0.appDatabase = database
+        $0.date.now = Date(timeIntervalSince1970: 10)
+    }
+    store.timeout = .seconds(5)
+    return store
+}
+
+private func stubEmptySearch(filter: String) {
+    stub(condition: isHost("localhost")
+            && isPath("/api/search")
+            && containsQueryParams(["filter": filter])) { @Sendable _ in
+        HTTPStubsResponse(
+            data: Data(#"{"data":[],"recordsFiltered":0,"recordsTotal":0}"#.utf8),
+            statusCode: 200,
+            headers: ["Content-Type": "application/json"]
+        )
+    }
 }
 
 @MainActor

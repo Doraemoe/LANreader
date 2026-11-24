@@ -103,7 +103,11 @@ import UIKit
                         logger.error("failed to save search history. \(error)")
                     }
                 }
-                return .merge(.cancel(id: CancelId.search), .send(.loadRecentSearches))
+                return .merge(
+                    .cancel(id: CancelId.search),
+                    .send(.loadRecentSearches),
+                    .send(.archiveList(.reloadFromFirstPage))
+                )
             case .searchCleared:
                 guard state.archiveList.filter.filter != nil else { return .none }
                 state.archiveList.filter = SearchFilter(category: nil, filter: nil)
@@ -174,17 +178,17 @@ import UIKit
 @MainActor
 func makeSearchNavigationController(
     store: StoreOf<SearchTabFeature>
-) -> (navigationController: NavigationStackController, rootViewController: UISearchViewV2Controller) {
+) -> NavigationStackController {
     @UIBindable var store = store
-    let rootViewController = UISearchViewV2Controller(
-        store: store.scope(\.root, action: \.root)
-    )
-    let navigationController = NavigationStackController(
+    return NavigationStackController(
         path: $store.scope(\.path, action: \.path),
-        root: { rootViewController },
+        root: {
+            UISearchViewV2Controller(
+                store: store.scope(\.root, action: \.root)
+            )
+        },
         destination: makeArchiveFlowDestination
     )
-    return (navigationController, rootViewController)
 }
 
 class UISearchViewV2Controller: UIViewController {
@@ -260,6 +264,7 @@ class UISearchViewV2Controller: UIViewController {
     private var hasRenderedSuggestions = false
     private var isEditingSearchText = false
     private var isBrowsingSuggestions = false
+    private var wasLoadingSearch = false
 
     // MARK: - Init
     init(store: StoreOf<SearchFeature>) {
@@ -400,6 +405,27 @@ class UISearchViewV2Controller: UIViewController {
     }
 
     private func setupObserve() {
+        wasLoadingSearch = store.archiveList.loading
+
+        observe { [weak self] in
+            guard let self else { return }
+            let keyword = store.keyword
+            if activeSearchBar.text != keyword {
+                activeSearchBar.text = keyword
+            }
+        }
+
+        observe { [weak self] in
+            guard let self else { return }
+            let isLoading = store.archiveList.loading
+            defer { wasLoadingSearch = isLoading }
+            guard isLoading, !wasLoadingSearch else { return }
+            isEditingSearchText = false
+            isBrowsingSuggestions = false
+            activeSearchBar.resignFirstResponder()
+            hideSuggestions(animated: false)
+        }
+
         observe { [weak self] in
             self?.renderSuggestions()
         }
@@ -431,15 +457,6 @@ class UISearchViewV2Controller: UIViewController {
         suggestionsTableView.reloadData()
         updateSuggestionsVisibility(animated: hasRenderedSuggestions)
         hasRenderedSuggestions = true
-    }
-
-    func showSearch(keyword: String) {
-        loadViewIfNeeded()
-        activeSearchBar.text = keyword
-        isEditingSearchText = false
-        isBrowsingSuggestions = false
-        activeSearchBar.resignFirstResponder()
-        hideSuggestions(animated: false)
     }
 
     private func runRecentSearch(_ keyword: String) {

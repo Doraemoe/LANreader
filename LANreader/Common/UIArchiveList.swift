@@ -838,7 +838,6 @@ class UIArchiveListViewController: UIViewController {
     private var lastObservedLanraragiUrl: String?
     private var lastObservedSearchSort: String?
     private var lastObservedSearchSortOrder: String?
-    private var lastObservedFilter: SearchFilter?
     private var lastObservedPaginateArchiveList: Bool?
     private let paginationBar = PaginationBar()
     private lazy var readFilterEmptyView: UIContentUnavailableView = {
@@ -1184,7 +1183,6 @@ class UIArchiveListViewController: UIViewController {
         lastObservedLanraragiUrl = store.lanraragiUrl
         lastObservedSearchSort = store.searchSort
         lastObservedSearchSortOrder = store.searchSortOrder
-        lastObservedFilter = store.filter
 
         observe { [weak self] in
             self?.setupToolbar()
@@ -1286,7 +1284,12 @@ class UIArchiveListViewController: UIViewController {
 
         observe { [weak self] in
             guard let self else { return }
-            if !store.loading {
+            if store.loading {
+                if store.archives.isEmpty, view.window != nil,
+                   !refreshControl.isRefreshing, !store.batchActionInProgress {
+                    beginRefreshingAtTop()
+                }
+            } else {
                 refreshControl.endRefreshing()
             }
         }
@@ -1333,17 +1336,6 @@ class UIArchiveListViewController: UIViewController {
 
             // The two modes hold different slices of the result set, so reload from the top.
             guard let previous, previous != paginate else { return }
-            reloadFromFirstPage()
-        }
-
-        observe { [weak self] in
-            guard let self else { return }
-            let filter = store.filter
-            let previousFilter = lastObservedFilter
-            defer { lastObservedFilter = filter }
-
-            guard filter.filter?.isEmpty == false else { return }
-            guard previousFilter?.filter != filter.filter else { return }
             reloadFromFirstPage()
         }
 
