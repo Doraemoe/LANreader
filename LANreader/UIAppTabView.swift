@@ -22,10 +22,8 @@ public struct UIAppTabView: UIViewControllerRepresentable {
 
 }
 
-class UITabViewController: UITabBarController {
+class UITabViewController: UITabBarController, UITabBarControllerDelegate {
     private let store: StoreOf<AppFeature>
-    private var libraryNav: UINavigationController?
-    private var searchNav: UINavigationController?
 
     init(store: StoreOf<AppFeature>) {
         self.store = store
@@ -38,6 +36,7 @@ class UITabViewController: UITabBarController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        delegate = self
 
         let libraryNav = makeLibraryNavigationController(
             store: store.scope(\.library, action: \.library)
@@ -45,7 +44,7 @@ class UITabViewController: UITabBarController {
         libraryNav.tabBarItem = UITabBarItem(
             title: String(localized: "library"),
             image: UIImage(systemName: "books.vertical"),
-            tag: 0
+            tag: TabName.library.tabIndex
         )
 
         let categoryNav = makeCategoryNavigationController(
@@ -54,7 +53,7 @@ class UITabViewController: UITabBarController {
         categoryNav.tabBarItem = UITabBarItem(
             title: String(localized: "category"),
             image: UIImage(systemName: "folder"),
-            tag: 1
+            tag: TabName.category.tabIndex
         )
 
         let searchNav = makeSearchNavigationController(
@@ -62,7 +61,7 @@ class UITabViewController: UITabBarController {
         )
         searchNav.tabBarItem = UITabBarItem(
             tabBarSystemItem: .search,
-            tag: 2
+            tag: TabName.search.tabIndex
         )
 
         let settingsNav = makeSettingsNavigationController(
@@ -71,35 +70,29 @@ class UITabViewController: UITabBarController {
         settingsNav.tabBarItem = UITabBarItem(
             title: String(localized: "settings"),
             image: UIImage(systemName: "gearshape"),
-            tag: 3
+            tag: TabName.settings.tabIndex
         )
 
         self.viewControllers = [libraryNav, categoryNav, searchNav, settingsNav]
-        self.libraryNav = libraryNav
-        self.searchNav = searchNav
-        observeDeepLinks()
+        observeSelectedTab()
     }
 
-    private func observeDeepLinks() {
+    private func observeSelectedTab() {
         observe { [weak self] in
-            guard let self,
-                  let route = store.pendingDeepLink,
-                  store.destination == nil else { return }
-            open(route)
-            store.send(.deepLinkHandled)
+            guard let self else { return }
+            let targetIndex = store.selectedTab.tabIndex
+            if selectedIndex != targetIndex {
+                selectedIndex = targetIndex
+            }
         }
     }
 
-    private func open(_ route: DeepLinkRoute) {
-        switch route {
-        case let .reader(archive, cached):
-            guard let libraryNav else { return }
-            selectedViewController = libraryNav
-            store.send(.openDeepLinkReader(archive, cached: cached))
-        case let .search(query):
-            guard let searchNav else { return }
-            store.send(.openDeepLinkSearch(query))
-            selectedViewController = searchNav
-        }
+    func tabBarController(
+        _ tabBarController: UITabBarController,
+        didSelect viewController: UIViewController
+    ) {
+        guard let tab = TabName(tabIndex: selectedIndex),
+              store.selectedTab != tab else { return }
+        store.send(.selectTab(tab))
     }
 }

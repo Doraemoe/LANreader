@@ -34,6 +34,7 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
     @ObservableState
     public struct State: Equatable {
         @Presents var destination: Destination.State?
+        var selectedTab: TabName = .library
 
         @SharedReader(.appStorage(SettingsKey.lanraragiUrl)) var lanraragiUrl = ""
         @SharedReader(.appStorage(SettingsKey.passcode)) var storedPasscode = ""
@@ -49,6 +50,20 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
         var category = CategoryFeature.State()
         var search = SearchTabFeature.State()
         var settings = SettingsFeature.State()
+
+        public init(
+            selectedTab: TabName = .library,
+            destination: Destination.State? = nil
+        ) {
+            self.selectedTab = selectedTab
+            if let destination {
+                self.destination = destination
+            } else if !self.storedPasscode.isEmpty {
+                self.destination = .lockScreen(LockScreenFeature.State(lockState: .normal))
+            } else if self.lanraragiUrl.isEmpty {
+                self.destination = .login(LANraragiConfigFeature.State())
+            }
+        }
     }
 
     public enum Action: BindableAction {
@@ -61,13 +76,10 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
         case search(SearchTabFeature.Action)
         case settings(SettingsFeature.Action)
 
-        case showLogin
+        case selectTab(TabName)
         case showLockScreen
         case openURL(URL)
         case deepLinkArchiveLoaded(ArchiveItem, cached: Bool)
-        case openDeepLinkReader(ArchiveItem, cached: Bool)
-        case openDeepLinkSearch(String)
-        case deepLinkHandled
         case queueUrlDownload(URL)
         case setErrorMessage(String)
         case setSuccessMessage(String)
@@ -94,21 +106,25 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
 
         Reduce { state, action in
             switch action {
-            case .showLogin:
-                state.destination = .login(LANraragiConfigFeature.State())
+            case let .selectTab(tab):
+                state.selectedTab = tab
                 return .none
             case .showLockScreen:
                 state.destination = .lockScreen(
                     LockScreenFeature.State(lockState: .normal)
                 )
                 return .none
+            case .destination(.dismiss):
+                guard let route = state.pendingDeepLink else {
+                    return .none
+                }
+                return openDeepLink(route, state: &state)
             case let .openURL(url):
                 switch DeepLink(url: url) {
                 case let .read(archiveId, preferCached):
                     return loadDeepLinkArchive(id: archiveId, preferCached: preferCached)
                 case let .search(query):
-                    state.pendingDeepLink = .search(query: query)
-                    return .none
+                    return openOrQueueDeepLink(.search(query: query), state: &state)
                 case let .download(downloadURL):
                     return .send(.queueUrlDownload(downloadURL))
                 case nil:
@@ -119,26 +135,7 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
                 if !cached {
                     state.$archiveItems.withLock { _ = $0.updateOrAppend(archive) }
                 }
-                state.pendingDeepLink = .reader(archive, cached: cached)
-                return .none
-            case let .openDeepLinkReader(archive, cached):
-                let sharedArchive = cached ? nil : Shared(state.$archiveItems[id: archive.id])
-                state.library.path = StackState([
-                    .reader(
-                        ArchiveReaderFeature.State(
-                            currentArchiveId: archive.id,
-                            allArchives: [sharedArchive ?? Shared(value: archive)],
-                            cached: cached
-                        )
-                    )
-                ])
-                return .none
-            case let .openDeepLinkSearch(query):
-                state.search.path.removeAll()
-                return .send(.search(.root(.recentSearchTapped(query))))
-            case .deepLinkHandled:
-                state.pendingDeepLink = nil
-                return .none
+                return openOrQueueDeepLink(.reader(archive, cached: cached), state: &state)
             case let .queueUrlDownload(url):
                 return .run { send in
                     let response = try await service.queueUrlDownload(downloadUrl: url.absoluteString).value
@@ -163,6 +160,32 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
             }
         }
         .ifLet(\.$destination, action: \.destination)
+    }
+
+    private func openOrQueueDeepLink(
+        _ route: DeepLinkRoute,
+        state: inout State
+    ) -> Effect<Action> {
+        guard state.destination == nil else {
+            state.pendingDeepLink = route
+            return .none
+        }
+        return openDeepLink(route, state: &state)
+    }
+
+    private func openDeepLink(
+        _ route: DeepLinkRoute,
+        state: inout State
+    ) -> Effect<Action> {
+        state.pendingDeepLink = nil
+        switch route {
+        case let .reader(archive, cached):
+            state.selectedTab = .library
+            return .send(.library(.openDeepLinkReader(archive, cached: cached)))
+        case let .search(query):
+            state.selectedTab = .search
+            return .send(.search(.openDeepLinkSearch(query)))
+        }
     }
 
     private func loadDeepLinkArchive(id: String, preferCached: Bool) -> Effect<Action> {
@@ -225,18 +248,6 @@ struct ContentView: View {
         UIAppTabView(store: store)
             .ignoresSafeArea()
             .modifier(Covers(store: store))
-            .onAppear {
-                if store.lanraragiUrl.isEmpty != false {
-                    store.send(.showLogin)
-                }
-            }
-            .onAppear {
-                if !store.storedPasscode.isEmpty {
-                    _ = withTransaction(self.noAnimationTransaction) {
-                        store.send(.showLockScreen)
-                    }
-                }
-            }
             .onChange(of: scenePhase) {
                 if !store.storedPasscode.isEmpty && scenePhase != .active && store.destination == nil {
                     _ = withTransaction(self.noAnimationTransaction) {

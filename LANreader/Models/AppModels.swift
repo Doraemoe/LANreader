@@ -21,12 +21,31 @@ enum TagType: Sendable {
     case popular
 }
 
-enum TabName: String, CaseIterable, Identifiable {
+public enum TabName: String, CaseIterable, Identifiable, Sendable {
     case library
     case category
     case search
     case settings
-    var id: String { self.rawValue }
+    public var id: String { self.rawValue }
+
+    var tabIndex: Int {
+        switch self {
+        case .library: 0
+        case .category: 1
+        case .search: 2
+        case .settings: 3
+        }
+    }
+
+    init?(tabIndex: Int) {
+        switch tabIndex {
+        case 0: self = .library
+        case 1: self = .category
+        case 2: self = .search
+        case 3: self = .settings
+        default: return nil
+        }
+    }
 }
 
 enum PageControl: String, CaseIterable, Identifiable {
