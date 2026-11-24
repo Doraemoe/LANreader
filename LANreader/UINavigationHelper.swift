@@ -26,7 +26,7 @@ private struct SynchronousCancellationReducer<Base: Reducer>: Reducer {
     let base: Base
 
     func reduce(into state: inout Base.State, action: Base.Action) -> Effect<Base.Action> {
-        let effect = base.reduce(into: &state, action: action)
+        let effect = base._reduce(into: &state, action: action)
         return .publisher { _EffectPublisher(effect) }
     }
 }

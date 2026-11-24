@@ -391,7 +391,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
                 .forEach { $0.setFitPageWidth(fitPageWidth) }
         }
         observe { [weak self] in
-            guard let self else { return }
+            guard let self, !isDetachedFromNavigationStack else { return }
             let allowsStampCreation = store.canUseStamps
             let showsStamps = store.shouldShowStamps
             collectionView.visibleCells
@@ -1242,9 +1242,11 @@ extension UIPageCollectionController: UICollectionViewDelegateFlowLayout {
         _ collectionView: UICollectionView,
         willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath
     ) {
+        guard !isDetachedFromNavigationStack else { return }
         if let pageCell = cell as? UIPageCell {
-            Task {
-                await pageCell.store?.send(.load(false)).finish()
+            Task { [weak self, weak pageCell] in
+                guard let self, !self.isDetachedFromNavigationStack else { return }
+                await pageCell?.store?.send(.load(false)).finish()
             }
         }
     }

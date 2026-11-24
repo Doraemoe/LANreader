@@ -116,6 +116,7 @@ class UIPageCell: UICollectionViewCell {
     private var onCreateStamp: ((ArchiveStampPosition) -> Void)?
     private var onEditStamp: ((ArchiveStamp) -> Void)?
     private var fitPageWidth = false
+    private var showsStamps = false
     private var allowsStampCreation = false
     private var fitScreenHeightConstraint: NSLayoutConstraint!
     private var fitWidthAspectConstraint: NSLayoutConstraint?
@@ -272,6 +273,7 @@ class UIPageCell: UICollectionViewCell {
         self.onCreateStamp = onCreateStamp
         self.onEditStamp = onEditStamp
         self.fitPageWidth = fitPageWidth
+        self.showsStamps = showsStamps
         stampOverlayView.clear()
         stampOverlayView.isHidden = !showsStamps
         resetImageLayout()
@@ -326,6 +328,8 @@ class UIPageCell: UICollectionViewCell {
     }
 
     func setShowsStamps(_ showsStamps: Bool) {
+        guard self.showsStamps != showsStamps else { return }
+        self.showsStamps = showsStamps
         stampOverlayView.isHidden = !showsStamps
         if showsStamps {
             store?.send(.loadStamps)
@@ -524,6 +528,7 @@ class UIPageCell: UICollectionViewCell {
         scrollView.zoomScale = 1.0
         scrollView.setContentOffset(.zero, animated: false)
         fitPageWidth = false
+        showsStamps = false
         allowsStampCreation = false
         stampCreationGesture.isEnabled = false
         stampOverlayView.clear()

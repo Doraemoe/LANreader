@@ -455,6 +455,65 @@ final class ArchiveFlowConsistencyTests: LANreaderTestCase {
             XCTFail("Expected first online reader to remain open with updated cache flag")
         }
     }
+
+    @MainActor
+    func testDeletingArchiveFromDetailsDoesNotSendLoadStampsToPoppedReader() async throws {
+        try await configureTestServer()
+        let archive = makeDetailsArchive(id: "stampArc", name: "Stamped", tags: "artist:test")
+        stubFlowBackgroundRequests(archive: archive)
+        stub(condition: isHost("localhost") && isPath("/api/archives/\(archive.id)/stamps/1")) { @Sendable _ in
+            HTTPStubsResponse(
+                jsonObject: ["result": []],
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
+        let database = try makeFlowThumbnailDatabase(archiveIds: [archive.id])
+        defer { clearFlowSharedArchives() }
+
+        try await withDependencies {
+            $0.appDatabase = database
+        } operation: {
+            var readerState = ArchiveReaderFeature.State(
+                currentArchiveId: archive.id, allArchives: [Shared(value: archive)]
+            )
+            readerState.$showStamps = Shared(value: true)
+            readerState.stampsSupported = true
+            var page = PageFeature.State(archiveId: archive.id, pageId: "/page/1", pageNumber: 1)
+            page.imageLoaded = true
+            page.stampsLoaded = true
+            readerState.pages = [page]
+            var initialState = LibraryFeature.State()
+            initialState.path.append(.reader(readerState))
+
+            let store = Store(initialState: initialState) { LibraryFeature() }
+            let nav = makeLibraryNavigationController(store: store)
+            let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+            window.rootViewController = nav
+            window.isHidden = false
+            defer {
+                window.isHidden = true
+                window.rootViewController = nil
+            }
+            await waitForFlowNavigation {
+                nav.viewControllers.count == 2
+                    && !(nav.topViewController?.view.firstSubview(of: UICollectionView.self)?
+                        .visibleCells.compactMap { $0 as? UIPageCell }.isEmpty ?? true)
+            }
+            let readerID = try XCTUnwrap(store.path.ids.last)
+
+            sendFlowActionWithoutAnimation(store, .path(.element(id: readerID, action: .reader(.openDetailsTapped))))
+            await waitForFlowNavigation { nav.viewControllers.count == 3 }
+            let detailsID = try XCTUnwrap(store.path.ids.last)
+
+            sendFlowActionWithoutAnimation(store, .path(.element(id: detailsID, action: .details(.deleteSuccess))))
+            await waitForFlowNavigation { nav.viewControllers.count == 1 }
+            try? await Task.sleep(for: .milliseconds(50))
+
+            XCTAssertTrue(store.path.isEmpty)
+            XCTAssertEqual(nav.viewControllers.count, 1)
+        }
+    }
 }
 
 @MainActor
