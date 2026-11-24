@@ -84,10 +84,21 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
 
     @MainActor
     func testPushedTagSearchKeepsSortButtonWhenLoadingFinishes() async throws {
+        try await configureTestServer()
+        stub(condition: isHost("localhost")
+                && isPath("/api/search")
+                && containsQueryParams(["filter": "artist:test"])) { @Sendable _ in
+            HTTPStubsResponse(
+                data: Data(#"{"data":[],"recordsFiltered":0,"recordsTotal":0}"#.utf8),
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
         let database = try AppDatabase(DatabaseQueue())
         var state = SearchFeature.State(keyword: "artist:test")
         state.archiveList.filter = SearchFilter(category: nil, filter: "artist:test")
         state.archiveList.loading = true
+        state.archiveList.$lastTagRefresh = Shared(value: Date().timeIntervalSince1970)
         state.archiveList.$searchSort = Shared(value: SearchSort.dateAdded.rawValue)
         state.archiveList.$searchSortOrder = Shared(value: SearchSortOrder.asc.rawValue)
         let store = withDependencies {
@@ -117,7 +128,7 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
         let sortMenu = try XCTUnwrap(sortButton.menu?.children.first as? UIMenu)
         let nameAction = try XCTUnwrap(sortMenu.children.first as? UIAction)
         nameAction.performWithSender(nil, target: nil)
-        await Task.yield()
+        await waitForLibraryNav { !store.archiveList.loading }
 
         XCTAssertEqual(store.archiveList.searchSort, SearchSort.name.rawValue)
     }
@@ -248,19 +259,38 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
 
     @MainActor
     func testNewSearchClearsSelection() async throws {
+        try await configureTestServer()
+        stub(condition: isHost("localhost")
+                && isPath("/api/search")
+                && containsQueryParams(["filter": "new query"])) { @Sendable _ in
+            HTTPStubsResponse(
+                data: Data(#"{"data":[],"recordsFiltered":0,"recordsTotal":0}"#.utf8),
+                statusCode: 200,
+                headers: ["Content-Type": "application/json"]
+            )
+        }
         let database = try AppDatabase(DatabaseQueue())
         var state = SearchFeature.State()
         state.archiveList.selected = ["old-result"]
+        state.archiveList.$lastTagRefresh = Shared(value: Date().timeIntervalSince1970)
+        state.archiveList.$searchSort = Shared(value: SearchSort.name.rawValue)
         let store = TestStore(initialState: state) { SearchFeature() } withDependencies: {
             $0.appDatabase = database
             $0.date.now = Date(timeIntervalSince1970: 1)
         }
+        store.timeout = .seconds(5)
         await store.send(.searchSubmit("new query")) {
             $0.archiveList.filter = SearchFilter(category: nil, filter: "new query")
             $0.archiveList.selected = []
         }
         await store.receive(\.loadRecentSearches) {
             $0.recentSearches = ["new query"]
+        }
+        await store.receive(\.archiveList.reloadFromFirstPage) {
+            $0.archiveList.loading = true
+        }
+        await store.receive(\.archiveList.populateArchives) {
+            $0.archiveList.loading = false
         }
     }
 

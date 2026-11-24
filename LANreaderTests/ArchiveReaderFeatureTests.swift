@@ -4442,7 +4442,7 @@ private func finishSliderPreviewPrefetch(_ store: TestStoreOf<ArchiveReaderFeatu
     // An exhaustive `finish()` fails on the download results it waits for, so wait without it.
     let exhaustivity = store.exhaustivity
     store.exhaustivity = .off(showSkippedAssertions: false)
-    await store.finish()
+    await store.finish(timeout: .seconds(15))
     await store.skipReceivedActions(strict: false)
     store.exhaustivity = exhaustivity
 }

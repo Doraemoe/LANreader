@@ -141,11 +141,16 @@ final class DeepLinkTests: LANreaderTestCase {
 
     @MainActor
     func testSearchLinkRunsSearchAndRecordsHistory() async throws {
+        try await configureTestServer()
+        stubSearchResult(query: "artist:e auo", archiveId: "searchHit")
         var initialState = AppFeature.State()
         initialState.search.path.append(
             .search(SearchFeature.State(keyword: "old"))
         )
+        initialState.search.root.archiveList.$lastTagRefresh = Shared(value: Date().timeIntervalSince1970)
+        initialState.search.root.archiveList.$searchSort = Shared(value: SearchSort.name.rawValue)
         let store = try makeAppTestStore(initialState: initialState)
+        defer { store.state.$archiveItems.withLock { $0 = [] } }
 
         await store.send(.openURL(try url("lanreader://search?query=artist%3Ae%20auo"))) {
             $0.pendingDeepLink = .search(query: "artist:e auo")
@@ -159,9 +164,12 @@ final class DeepLinkTests: LANreaderTestCase {
         await store.receive(\.search.root.recentSearchTapped)
         await store.receive(\.search.root.searchSubmit)
         await store.receive(\.search.root.loadRecentSearches)
+        await store.receive(\.search.root.archiveList.reloadFromFirstPage)
+        await store.receive(\.search.root.archiveList.populateArchives)
 
         XCTAssertEqual(store.state.search.root.keyword, "artist:e auo")
         XCTAssertEqual(store.state.search.root.archiveList.filter.filter, "artist:e auo")
+        XCTAssertEqual(store.state.search.root.archiveList.archivesToDisplay.ids, ["searchHit"])
         XCTAssertEqual(store.state.search.root.recentSearches, ["artist:e auo"])
         XCTAssertTrue(store.state.search.path.isEmpty)
     }
@@ -286,6 +294,15 @@ final class DeepLinkTests: LANreaderTestCase {
             XCTAssertEqual(store.search.root.keyword, "artist:cold")
             XCTAssertEqual(try database.recentSearches(), ["artist:cold"])
             XCTAssertEqual(store.search.root.archiveList.archivesToDisplay.ids, ["coldHit"])
+
+            let searchNav = try XCTUnwrap(tabs.viewControllers?[2] as? UINavigationController)
+            let searchController = try XCTUnwrap(searchNav.topViewController as? UISearchViewV2Controller)
+            searchController.loadViewIfNeeded()
+            let searchBar = try XCTUnwrap(
+                searchController.navigationItem.searchController?.searchBar
+                    ?? searchController.view.subviews.compactMap { $0 as? UISearchBar }.first
+            )
+            XCTAssertEqual(searchBar.text, "artist:cold")
         }
     }
 
@@ -335,6 +352,49 @@ final class DeepLinkTests: LANreaderTestCase {
             XCTAssertTrue(libraryNav.topViewController is UIArchiveReaderController)
             XCTAssertEqual(store.library.path.count, 1)
         }
+    }
+
+    @MainActor
+    func testSearchControllerSyncsKeywordAndDismissesSuggestionsOnExternalSearch() async throws {
+        try await configureTestServer()
+        stubSearchResult(query: "artist:deep", archiveId: "deepHit")
+        let database = try makeDeepLinkThumbnailDatabase(archiveIds: ["deepHit"])
+        var popularTag = TagItem(tag: "female:b", count: 10)
+        try database.saveTag(tagItem: &popularTag)
+        var initialState = SearchFeature.State()
+        initialState.archiveList.$lastTagRefresh = Shared(value: Date().timeIntervalSince1970)
+        initialState.archiveList.$searchSort = Shared(value: SearchSort.name.rawValue)
+        let store = withDependencies {
+            $0.appDatabase = database
+            $0.date.now = Date(timeIntervalSince1970: 10)
+        } operation: {
+            Store(initialState: initialState) { SearchFeature() }
+        }
+        defer { store.state.archiveList.$archiveItems.withLock { $0 = [] } }
+        let controller = UISearchViewV2Controller(store: store)
+        let navigation = UINavigationController(rootViewController: controller)
+        navigation.loadViewIfNeeded()
+        controller.loadViewIfNeeded()
+        await Task.yield()
+
+        let searchBar = try XCTUnwrap(
+            controller.navigationItem.searchController?.searchBar
+                ?? controller.view.firstSubview(of: UISearchBar.self)
+        )
+        let suggestions = try XCTUnwrap(controller.view.firstSubview(of: UITableView.self))
+        controller.searchBarTextDidBeginEditing(searchBar)
+        XCTAssertFalse(suggestions.isHidden)
+
+        store.send(.recentSearchTapped("artist:deep"))
+        await waitUntil {
+            !store.archiveList.loading
+                && store.archiveList.archivesToDisplay.ids == ["deepHit"]
+                && searchBar.text == "artist:deep"
+        }
+
+        XCTAssertEqual(searchBar.text, "artist:deep")
+        XCTAssertTrue(suggestions.isHidden)
+        XCTAssertEqual(store.archiveList.archivesToDisplay.ids, ["deepHit"])
     }
 }
 

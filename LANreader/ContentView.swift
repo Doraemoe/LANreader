@@ -134,14 +134,7 @@ func notificationBannerEdgeInsets(safeAreaInsets: UIEdgeInsets) -> UIEdgeInsets 
                 ])
                 return .none
             case let .openDeepLinkSearch(query):
-                let sameFilter = state.search.root.archiveList.filter.filter == query
                 state.search.path.removeAll()
-                if sameFilter {
-                    return .merge(
-                        .send(.search(.root(.recentSearchTapped(query)))),
-                        .send(.search(.root(.archiveList(.reloadFromFirstPage))))
-                    )
-                }
                 return .send(.search(.root(.recentSearchTapped(query))))
             case .deepLinkHandled:
                 state.pendingDeepLink = nil
