@@ -86,13 +86,11 @@ import Logging
         case createTankoubon(String)
         case createTankoubonSucceeded
         case createTankoubonFailed(String)
-        case setFilter(SearchFilter)
         case reloadFromFirstPage
         case load
         case populateArchives([ArchiveItem], Int, Bool)
         case refreshThumbnail(String)
         case appendArchives(String)
-        case removeArchive(String)
         case cacheArchive(String)
         case cacheSelected
         case toggleSelectionMode
@@ -100,7 +98,6 @@ import Logging
         case cacheArchiveFailed(String, String)
         case setErrorMessage(String)
         case setSuccessMessage(String)
-        case cancelSearch
         case addSelect(String)
         case removeSelect(String)
         case refreshDisplayArchives
@@ -147,13 +144,6 @@ import Logging
                 state.batchCachingArchiveIds.formUnion(state.cachingArchiveIds.subtracting(previous))
                 state.selected.formIntersection(state.batchCachingArchiveIds)
                 return .merge(effects)
-            case let .setFilter(filter):
-                if state.filter != filter {
-                    state.selected.removeAll()
-                    state.preserveSelectionOnNextPopulate = false
-                }
-                state.filter = filter
-                return .none
             case .reloadFromFirstPage:
                 resetArchives(state: &state)
                 guard state.canLoadArchives else {
@@ -193,14 +183,6 @@ import Logging
                     append: true,
                     cancellationID: state.searchCancellationID
                 )
-            case let .removeArchive(id):
-                state.selected.remove(id)
-                state.archivesToDisplay.remove(id: id)
-                state.archives.remove(id: id)
-                state.$archiveItems.withLock {
-                    _ = $0.remove(id: id)
-                }
-                return reloadPageAfterRemoval(state: &state, removedCount: 1)
             case let .populateArchives(archives, total, append):
                 archives.forEach { item in
                     state.$archiveItems.withLock {
@@ -291,14 +273,6 @@ import Logging
                 state.successMessage = message
                 return .none
             case .grid:
-                return .none
-            case .cancelSearch:
-                state.pendingPage = nil
-                state.preserveSelectionOnNextPopulate = false
-                if state.loading {
-                    state.loading = false
-                    return .cancel(id: state.searchCancellationID)
-                }
                 return .none
             case let .addSelect(id):
                 guard !state.loading, state.selectMode == .active,

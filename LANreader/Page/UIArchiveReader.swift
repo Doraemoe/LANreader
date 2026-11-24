@@ -35,7 +35,6 @@ class UIArchiveReaderController: UIViewController {
     func setupToolbar() {
         let detailsAction = UIAction(image: UIImage(systemName: "info.circle")) { [weak self] _ in
             guard let self else { return }
-            guard store.canOpenDetails else { return }
             store.send(.openDetailsTapped)
         }
         let detailsButton = UIBarButtonItem(primaryAction: detailsAction)
