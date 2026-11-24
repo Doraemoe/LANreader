@@ -493,7 +493,14 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         let height = view.window.map {
             $0.bounds.height - $0.safeAreaInsets.top - $0.safeAreaInsets.bottom
         } ?? view.bounds.height
-        store.send(.readerSizeChanged(CGSize(width: availableItemWidth(), height: height)))
+        let isDetachedFromNavigationStack = if let navigationController, let parent {
+            !navigationController.viewControllers.contains { $0 === parent }
+        } else {
+            false
+        }
+        if !isDetachedFromNavigationStack {
+            store.send(.readerSizeChanged(CGSize(width: availableItemWidth(), height: height)))
+        }
         consumePendingScrollRequestIfPossible()
     }
 

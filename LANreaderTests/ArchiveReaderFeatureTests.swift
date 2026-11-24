@@ -3621,6 +3621,69 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     }
 
     @MainActor
+    func testPoppingReaderImmediatelyAfterStartingSliderPreviewPrefetchDoesNotEmitToMissingElement() async throws {
+        configureReaderDefaults()
+        let archiveId = "pop-race-\(UUID().uuidString)"
+        let previewFolder = sliderPreviewURL(archiveId: archiveId, pageNumber: 1).deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: previewFolder, withIntermediateDirectories: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: previewFolder)
+        }
+        for page in 1...3 {
+            try makeCacheTestImageData().write(to: sliderPreviewURL(archiveId: archiveId, pageNumber: page))
+        }
+        var readerState = makeState(archiveId: archiveId, progress: 1)
+        readerState.pages = makePageStates(count: 3, archiveId: archiveId)
+
+        var libraryState = LibraryFeature.State()
+        libraryState.path.append(.reader(readerState))
+        let store = Store(initialState: libraryState) { LibraryFeature() }
+        let readerID = try XCTUnwrap(store.path.ids.first)
+
+        // Start utility-priority preview fetches and immediately pop before those tasks start on MainActor.
+        store.send(.path(.element(
+            id: readerID,
+            action: .reader(.sliderPreviewThumbnailsQueued([readyThumbnailQueueResult(archiveId: archiveId)]))
+        )))
+        store.send(.path(.popFrom(id: readerID)))
+        try await Task.sleep(for: .milliseconds(100))
+
+        XCTAssertTrue(store.path.isEmpty)
+    }
+
+    @MainActor
+    func testDeletingArchiveImmediatelyAfterStartingSliderPreviewPrefetchDoesNotEmitToMissingElement() async throws {
+        configureReaderDefaults()
+        let archiveId = "delete-race-\(UUID().uuidString)"
+        let previewFolder = sliderPreviewURL(archiveId: archiveId, pageNumber: 1).deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: previewFolder, withIntermediateDirectories: true)
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: previewFolder)
+        }
+        for page in 1...3 {
+            try makeCacheTestImageData().write(to: sliderPreviewURL(archiveId: archiveId, pageNumber: page))
+        }
+        var readerState = makeState(archiveId: archiveId, progress: 1)
+        readerState.pages = makePageStates(count: 3, archiveId: archiveId)
+
+        var libraryState = LibraryFeature.State()
+        libraryState.path.append(.reader(readerState))
+        let store = Store(initialState: libraryState) { LibraryFeature() }
+        let readerID = try XCTUnwrap(store.path.ids.first)
+        store.send(.path(.element(id: readerID, action: .reader(.openDetailsTapped))))
+        let detailsID = try XCTUnwrap(store.path.ids.last)
+
+        store.send(.path(.element(
+            id: readerID,
+            action: .reader(.sliderPreviewThumbnailsQueued([readyThumbnailQueueResult(archiveId: archiveId)]))
+        )))
+        store.send(.path(.element(id: detailsID, action: .details(.deleteSuccess))))
+        try await Task.sleep(for: .milliseconds(100))
+
+        XCTAssertTrue(store.path.isEmpty)
+    }
+
+    @MainActor
     func testAutoPageTickRequestsNextPage() async {
         configureReaderDefaults(autoPageInterval: 1)
         let clock = TestClock()

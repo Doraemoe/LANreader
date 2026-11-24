@@ -66,7 +66,9 @@ import SwiftUI
                 return .none
             }
         }
-        .forEach(\.path, action: \.path)
+        .forEach(\.path, action: \.path) {
+            Path.body.synchronousCancellation()
+        }
     }
 }
 
