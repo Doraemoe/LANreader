@@ -1706,7 +1706,6 @@ public struct ChapterMutationTarget: Equatable, Sendable {
             } ?? false
             await send(.sliderPreviewFetched(pageNumber: pageNumber, stored ? .stored : .failed))
         } catch: { error, send in
-            guard !Task.isCancelled else { return }
             if LANraragiService.isBlockedByLowDataMode(error) {
                 await send(.sliderPreviewFetched(pageNumber: pageNumber, .networkConstrained))
                 return

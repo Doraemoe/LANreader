@@ -148,42 +148,5 @@ struct TranslationConfigView: View {
                 }
             }
         }
-        .toolbar(.hidden, for: .tabBar)
-    }
-}
-
-class UITranslationConfigController: UIViewController {
-    private let store: StoreOf<TranslationConfigFeature>
-    private var hostingController: UIHostingController<TranslationConfigView>!
-
-    init(store: StoreOf<TranslationConfigFeature>) {
-        self.store = store
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    @objc override func viewDidLoad() {
-        super.viewDidLoad()
-
-        hostingController = UIHostingController(rootView: TranslationConfigView(store: store))
-        add(hostingController)
-        NSLayoutConstraint.activate([
-            hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
-            hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            hostingController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor)
-        ])
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        if #available(iOS 18.0, *) {
-            tabBarController?.setTabBarHidden(true, animated: false)
-        } else {
-            tabBarController?.tabBar.isHidden = true
-        }
     }
 }

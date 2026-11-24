@@ -343,9 +343,7 @@ struct ArchiveDetailsV2: View {
         .alert(deleteConfirmationTitle, isPresented: $store.showAlert) {
             Button("cancel", role: .cancel) { }
             Button("delete", role: .destructive) {
-                Task {
-                    await store.send(.confirmDelete).finish()
-                }
+                store.send(.confirmDelete)
             }
         } message: {
             if store.deleteTarget == .tankoubon {

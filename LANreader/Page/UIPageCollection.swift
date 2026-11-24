@@ -347,6 +347,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
             _ = store.readDirection
             _ = store.splitImage
             _ = store.pages.count
+            lastReportedReaderSize = nil
             view.setNeedsLayout()
         }
     }
@@ -390,7 +391,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
                 .forEach { $0.setFitPageWidth(fitPageWidth) }
         }
         observe { [weak self] in
-            guard let self else { return }
+            guard let self, !isDetachedFromNavigationStack else { return }
             let allowsStampCreation = store.canUseStamps
             let showsStamps = store.shouldShowStamps
             collectionView.visibleCells
@@ -456,6 +457,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
 
     // MARK: - Rotation / Size Change Handling
     private var lastLayoutWidth: CGFloat?
+    private var lastReportedReaderSize: CGSize?
     private var resizeRestoreTarget: ResizeRestoreTarget?
 
     private struct ResizeRestoreTarget {
@@ -494,8 +496,10 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         let height = view.window.map {
             $0.bounds.height - $0.safeAreaInsets.top - $0.safeAreaInsets.bottom
         } ?? view.bounds.height
-        if !isDetachedFromNavigationStack {
-            store.send(.readerSizeChanged(CGSize(width: availableItemWidth(), height: height)))
+        let readerSize = CGSize(width: availableItemWidth(), height: height)
+        if !isDetachedFromNavigationStack, lastReportedReaderSize != readerSize {
+            lastReportedReaderSize = readerSize
+            store.send(.readerSizeChanged(readerSize))
         }
         consumePendingScrollRequestIfPossible()
     }
@@ -1238,9 +1242,11 @@ extension UIPageCollectionController: UICollectionViewDelegateFlowLayout {
         _ collectionView: UICollectionView,
         willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath
     ) {
+        guard !isDetachedFromNavigationStack else { return }
         if let pageCell = cell as? UIPageCell {
-            Task {
-                await pageCell.store?.send(.load(false)).finish()
+            Task { [weak self, weak pageCell] in
+                guard let self, !self.isDetachedFromNavigationStack else { return }
+                await pageCell?.store?.send(.load(false)).finish()
             }
         }
     }

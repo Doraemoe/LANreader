@@ -113,12 +113,17 @@ struct SettingsView: View {
     }
 }
 
-class UISettingsViewController: UIViewController {
-    private let store: StoreOf<SettingsFeature>
+final class SettingsHostingController<Content: View>: UIViewController {
+    private let rootView: Content
+    private let hidesTabBar: Bool
 
-    init(store: StoreOf<SettingsFeature>) {
-        self.store = store
+    init(rootView: Content, title: String? = nil, hidesTabBar: Bool = true) {
+        self.rootView = rootView
+        self.hidesTabBar = hidesTabBar
         super.init(nibName: nil, bundle: nil)
+        if let title {
+            navigationItem.title = title
+        }
     }
 
     required init?(coder: NSCoder) {
@@ -128,10 +133,7 @@ class UISettingsViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let hostingController = UIHostingController(
-            rootView: SettingsView(store: store)
-        )
-
+        let hostingController = UIHostingController(rootView: rootView)
         add(hostingController)
         NSLayoutConstraint.activate([
             hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
@@ -144,9 +146,9 @@ class UISettingsViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         if #available(iOS 18.0, *) {
-            tabBarController?.setTabBarHidden(false, animated: false)
+            tabBarController?.setTabBarHidden(hidesTabBar, animated: false)
         } else {
-            tabBarController?.tabBar.isHidden = false
+            tabBarController?.tabBar.isHidden = hidesTabBar
         }
     }
 }
@@ -157,22 +159,30 @@ func makeSettingsNavigationController(store: StoreOf<SettingsFeature>) -> Naviga
     return NavigationStackController(
         path: $store.scope(\.path, action: \.path),
         root: {
-            let settingsView = UISettingsViewController(store: store)
-            settingsView.navigationItem.title = String(localized: "settings")
-            return settingsView
+            SettingsHostingController(
+                rootView: SettingsView(store: store),
+                title: String(localized: "settings"),
+                hidesTabBar: false
+            )
         },
         destination: { store in
             switch store.case {
             case let .serverConfig(store):
-                UILANraragiConfigViewController(store: store)
+                SettingsHostingController(rootView: LANraragiConfigView(store: store))
             case let .upload(store):
-                UIUploadViewController(store: store)
+                SettingsHostingController(
+                    rootView: UploadView(store: store),
+                    title: String(localized: "settings.host.upload")
+                )
             case let .translation(store):
-                UITranslationConfigController(store: store)
+                SettingsHostingController(rootView: TranslationConfigView(store: store))
             case let .support(store):
-                UISupportViewController(store: store)
+                SettingsHostingController(
+                    rootView: SupportView(store: store),
+                    title: String(localized: "settings.support")
+                )
             case let .log(store):
-                UILogViewController(store: store)
+                SettingsHostingController(rootView: LogView(store: store))
             }
         }
     )
