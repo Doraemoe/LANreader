@@ -49,18 +49,17 @@ struct ViewSettings: View {
     @Bindable var store: StoreOf<ViewSettingsFeature>
 
     var body: some View {
-        LabeledContent {
-            TextField("settings.archive.list.order.custom.title", text: Binding(store.$searchSortCustom))
-                .multilineTextAlignment(.trailing)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-        } label: {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("settings.archive.list.order.custom.title")
-                Text("settings.archive.list.order.custom.explain")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 4) {
+            LabeledContent("settings.archive.list.order.custom.title") {
+                TextField("settings.archive.list.order.custom.title", text: Binding(store.$searchSortCustom))
+                    .multilineTextAlignment(.trailing)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
             }
+            Text("settings.archive.list.order.custom.explain")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding()
         Toggle(isOn: Binding(self.store.$blurInterfaceWhenInactive), label: {

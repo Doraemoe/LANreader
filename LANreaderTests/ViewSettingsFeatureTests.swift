@@ -1,4 +1,5 @@
 import XCTest
+import SwiftUI
 import UIKit
 import ComposableArchitecture
 @testable import LANreader
@@ -25,6 +26,56 @@ final class ViewSettingsFeatureTests: LANreaderTestCase {
         await store.send(.showLockScreen(false)) {
             $0.destination = .lockScreen(LockScreenFeature.State(lockState: .remove))
         }
+    }
+
+    @MainActor
+    func testCustomSortExplanationWrapsVerticallyOnCompactPhoneWidth() async throws {
+        let store = Store(initialState: ViewSettingsFeature.State()) {
+            ViewSettingsFeature()
+        }
+        store.$searchSortCustom.withLock { $0 = "artist" }
+        let zhLarge = try await measureCustomSortRow(store: store, locale: "zh-Hans", dynamicTypeSize: .large)
+        let enLarge = try await measureCustomSortRow(store: store, locale: "en", dynamicTypeSize: .large)
+        let zhLargeText = try await measureCustomSortRow(store: store, locale: "zh-Hans", dynamicTypeSize: .xxxLarge)
+
+        XCTAssertGreaterThan(zhLarge.cellHeight, zhLarge.fieldHeight + 20)
+        XCTAssertGreaterThan(enLarge.cellHeight, enLarge.fieldHeight + 20)
+        XCTAssertGreaterThan(zhLargeText.cellHeight, zhLarge.cellHeight)
+    }
+
+    @MainActor
+    private func measureCustomSortRow(
+        store: StoreOf<ViewSettingsFeature>,
+        locale: String,
+        dynamicTypeSize: DynamicTypeSize
+    ) async throws -> (cellHeight: CGFloat, fieldHeight: CGFloat) {
+        let rootView = Form {
+            Section(header: Text("settings.view")) {
+                ViewSettings(store: store)
+            }
+        }
+        .environment(\.locale, Locale(identifier: locale))
+        .environment(\.dynamicTypeSize, dynamicTypeSize)
+        let controller = UIHostingController(rootView: rootView)
+        let windowScene = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first
+        let window = windowScene.map { UIWindow(windowScene: $0) } ?? UIWindow()
+        window.frame = CGRect(x: 0, y: 0, width: 375, height: 667)
+        window.traitOverrides.horizontalSizeClass = .compact
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+        }
+        controller.view.frame = window.bounds
+        window.layoutIfNeeded()
+        await waitUntil { findFirstSubview(of: UITextField.self, in: window) != nil }
+        window.layoutIfNeeded()
+        let textField = try XCTUnwrap(findFirstSubview(of: UITextField.self, in: window))
+        let cell = try XCTUnwrap(enclosingCollectionCell(for: textField))
+        return (cell.bounds.height, textField.bounds.height)
     }
 }
 
@@ -127,6 +178,31 @@ final class SettingsFeatureTests: LANreaderTestCase {
         XCTAssertTrue(nav.topViewController is SettingsHostingController<SupportView>)
         XCTAssertEqual(nav.topViewController?.navigationItem.title, String(localized: "settings.support"))
     }
+}
+
+@MainActor
+private func findFirstSubview<ViewType: UIView>(of type: ViewType.Type, in root: UIView) -> ViewType? {
+    if let match = root as? ViewType {
+        return match
+    }
+    for subview in root.subviews {
+        if let match = findFirstSubview(of: type, in: subview) {
+            return match
+        }
+    }
+    return nil
+}
+
+@MainActor
+private func enclosingCollectionCell(for view: UIView) -> UICollectionViewCell? {
+    var current: UIView? = view.superview
+    while let candidate = current {
+        if let cell = candidate as? UICollectionViewCell {
+            return cell
+        }
+        current = candidate.superview
+    }
+    return nil
 }
 
 @MainActor
