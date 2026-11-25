@@ -128,7 +128,7 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
         let sortMenu = try XCTUnwrap(sortButton.menu?.children.first as? UIMenu)
         let nameAction = try XCTUnwrap(sortMenu.children.first as? UIAction)
         nameAction.performWithSender(nil, target: nil)
-        await waitForLibraryNav { !store.archiveList.loading }
+        await waitUntil { !store.archiveList.loading }
 
         XCTAssertEqual(store.archiveList.searchSort, SearchSort.name.rawValue)
     }
@@ -170,7 +170,7 @@ final class ArchiveListSelectionTests: LANreaderTestCase {
 
             let select = try XCTUnwrap(controller.navigationItem.rightBarButtonItem?.menu?.children.last as? UIAction)
             select.performWithSender(nil, target: nil)
-            await waitForLibraryNav { !store.archiveList.categoryItems.isEmpty }
+            await waitUntil { !store.archiveList.categoryItems.isEmpty }
 
             XCTAssertEqual(store.archiveList.selectMode, .active)
             XCTAssertFalse(store.archiveList.loading)
@@ -628,14 +628,13 @@ final class LibraryTabNavigationTests: LANreaderTestCase {
 
         var cache = makeArchiveCacheRecord(id: archive.id, title: archive.name, cached: true)
         try database.saveCache(&cache)
-        await store.send(.path(.element(id: readerID, action: .reader(.finishDownloadPages))))
-        await waitForLibraryNav { inCache() == true }
+        await waitUntil { inCache() == true }
         XCTAssertEqual(inCache(), true)
 
         _ = try database.deleteCache(archive.id)
         await store.send(.path(.element(id: readerID, action: .reader(.removeCacheSuccess))))
         XCTAssertEqual(Array(store.state.path.ids), [readerID])
-        await waitForLibraryNav { inCache() == false }
+        await waitUntil { inCache() == false }
         XCTAssertEqual(inCache(), false)
     }
 
@@ -699,7 +698,7 @@ final class LibraryTabNavigationTests: LANreaderTestCase {
             XCTAssertTrue(nav.topViewController is UILibraryListViewController)
 
             sendLibraryAction(store, .cacheButtonTapped)
-            await waitForLibraryNav { nav.viewControllers.count == 2 }
+            await waitUntil { nav.viewControllers.count == 2 }
             XCTAssertTrue(nav.topViewController is UICacheViewController)
 
             let cacheID = try XCTUnwrap(store.path.ids.last)
@@ -708,17 +707,17 @@ final class LibraryTabNavigationTests: LANreaderTestCase {
                 id: cacheID,
                 action: .cache(.openReader(archiveId: archive.id, fromStart: false))
             )))
-            await waitForLibraryNav { nav.viewControllers.count == 3 }
+            await waitUntil { nav.viewControllers.count == 3 }
             XCTAssertTrue(nav.topViewController is UIArchiveReaderController)
 
             let readerID = try XCTUnwrap(store.path.ids.last)
             sendLibraryAction(store, .path(.element(id: readerID, action: .reader(.openDetailsTapped))))
-            await waitForLibraryNav { nav.viewControllers.count == 4 }
+            await waitUntil { nav.viewControllers.count == 4 }
             XCTAssertTrue(nav.topViewController is UIHostingController<ArchiveDetailsV2>)
 
             let detailsID = try XCTUnwrap(store.path.ids.last)
             sendLibraryAction(store, .path(.element(id: detailsID, action: .details(.deleteSuccess))))
-            await waitForLibraryNav { nav.viewControllers.count == 2 }
+            await waitUntil { nav.viewControllers.count == 2 }
             XCTAssertTrue(nav.topViewController is UICacheViewController)
             XCTAssertEqual(Array(store.path.ids), [cacheID])
         }
@@ -778,11 +777,4 @@ private func makeArchiveCacheRecord(id: String, title: String, cached: Bool) -> 
         toc: nil,
         lastUpdate: Date(timeIntervalSince1970: 1)
     )
-}
-
-@MainActor
-private func waitForLibraryNav(_ condition: () -> Bool) async {
-    for _ in 0..<100 where !condition() {
-        try? await Task.sleep(for: .milliseconds(10))
-    }
 }

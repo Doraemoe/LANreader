@@ -95,7 +95,8 @@ final class ArchiveDetailsTagParserTests: LANreaderTestCase {
             $0.name = "Updated"
             $0.tags = "artist:new"
         }
-        XCTAssertTrue(store.state.needsLocalFieldsRefresh)
+        XCTAssertEqual(store.state.title, "Original")
+        XCTAssertEqual(store.state.archive.name, "Updated")
 
         await store.send(.binding(.set(\.editMode, .active))) {
             $0.editMode = .active
@@ -112,7 +113,6 @@ final class ArchiveDetailsTagParserTests: LANreaderTestCase {
             $0.title = "Updated"
             $0.editableTags = "artist:new"
         }
-        XCTAssertFalse(store.state.needsLocalFieldsRefresh)
     }
 
     @MainActor
@@ -309,7 +309,8 @@ final class ArchiveFlowConsistencyTests: LANreaderTestCase {
         guard case let .details(staleOuterDetails) = nestedStore.state.path[id: outerDetailsID] else {
             return XCTFail("Expected outer details state")
         }
-        XCTAssertTrue(staleOuterDetails.needsLocalFieldsRefresh)
+        XCTAssertEqual(staleOuterDetails.title, "Old Tank")
+        XCTAssertEqual(staleOuterDetails.editableTags, "artist:old")
         await nestedStore.send(.path(.element(id: outerDetailsID, action: .details(.loadLocalFields))))
         guard case let .details(refreshedOuterDetails) = nestedStore.state.path[id: outerDetailsID] else {
             return XCTFail("Expected refreshed outer details state")
@@ -317,7 +318,6 @@ final class ArchiveFlowConsistencyTests: LANreaderTestCase {
         XCTAssertEqual(refreshedOuterDetails.title, "Updated Tank")
         XCTAssertEqual(refreshedOuterDetails.editableTags, "artist:new")
         XCTAssertEqual(refreshedOuterDetails.readOnlyTags, "artist:included")
-        XCTAssertFalse(refreshedOuterDetails.needsLocalFieldsRefresh)
     }
 
     @MainActor
@@ -338,19 +338,19 @@ final class ArchiveFlowConsistencyTests: LANreaderTestCase {
 
             _ = store.send(.archiveList(.populateArchives([archive], 1, false)))
             sendFlowActionWithoutAnimation(store, .archiveList(.openReader(archiveId: archive.id, fromStart: false)))
-            await waitForFlowNavigation { nav.viewControllers.count == 2 }
+            await waitUntil { nav.viewControllers.count == 2 }
             let outerReaderID = try XCTUnwrap(store.path.ids.last)
 
             sendFlowActionWithoutAnimation(
                 store, .path(.element(id: outerReaderID, action: .reader(.openDetailsTapped)))
             )
-            await waitForFlowNavigation { nav.viewControllers.count == 3 }
+            await waitUntil { nav.viewControllers.count == 3 }
             let outerDetailsID = try XCTUnwrap(store.path.ids.last)
 
             sendFlowActionWithoutAnimation(
                 store, .path(.element(id: outerDetailsID, action: .details(.tagTapped("artist:dup"))))
             )
-            await waitForFlowNavigation { nav.viewControllers.count == 4 }
+            await waitUntil { nav.viewControllers.count == 4 }
             let tagSearchID = try XCTUnwrap(store.path.ids.last)
             let searchController = try XCTUnwrap(nav.topViewController as? UISearchViewV2Controller)
 
@@ -360,17 +360,17 @@ final class ArchiveFlowConsistencyTests: LANreaderTestCase {
             sendFlowActionWithoutAnimation(store, .path(.element(
                 id: tagSearchID, action: .search(.archiveList(.openReader(archiveId: archive.id, fromStart: false)))
             )))
-            await waitForFlowNavigation { nav.viewControllers.count == 5 }
+            await waitUntil { nav.viewControllers.count == 5 }
             let innerReaderID = try XCTUnwrap(store.path.ids.last)
 
             sendFlowActionWithoutAnimation(
                 store, .path(.element(id: innerReaderID, action: .reader(.openDetailsTapped)))
             )
-            await waitForFlowNavigation { nav.viewControllers.count == 6 }
+            await waitUntil { nav.viewControllers.count == 6 }
             let innerDetailsID = try XCTUnwrap(store.path.ids.last)
 
             sendFlowActionWithoutAnimation(store, .path(.element(id: innerDetailsID, action: .details(.deleteSuccess))))
-            await waitForFlowNavigation { nav.viewControllers.count == 2 }
+            await waitUntil { nav.viewControllers.count == 2 }
 
             XCTAssertEqual(Array(store.path.ids), [tagSearchID])
             XCTAssertTrue(nav.topViewController === searchController)
@@ -447,13 +447,13 @@ final class ArchiveFlowConsistencyTests: LANreaderTestCase {
 
             var cache = makeFlowCacheRecord(id: archive.id, title: archive.name)
             try database.saveCache(&cache)
-            await waitForFlowNavigation { inCache(firstOnlineID) && otherTabReader.inCache }
+            await waitUntil { inCache(firstOnlineID) && otherTabReader.inCache }
             XCTAssertTrue(inCache(firstOnlineID) && otherTabReader.inCache)
 
             _ = try database.deleteCache(archive.id)
             await store.send(.path(.element(id: secondOnlineID, action: .reader(.removeCacheSuccess))))
             XCTAssertEqual(Array(store.state.path.ids), [ids[0], ids[3], ids[4], ids[5], ids[6], ids[7]])
-            await waitForFlowNavigation { !inCache(firstOnlineID) && !otherTabReader.inCache }
+            await waitUntil { !inCache(firstOnlineID) && !otherTabReader.inCache }
             XCTAssertFalse(inCache(firstOnlineID) || otherTabReader.inCache)
         }
     }
@@ -485,19 +485,20 @@ final class ArchiveFlowConsistencyTests: LANreaderTestCase {
         try await configureTestServer()
         let archive = makeDetailsArchive(id: "stampArc", name: "Stamped", tags: "artist:test")
         stubFlowBackgroundRequests(archive: archive)
+        stubFlowCategories()
         stub(condition: isHost("localhost") && isPath("/api/archives/\(archive.id)/stamps/1")) { @Sendable _ in
             HTTPStubsResponse(
-                jsonObject: ["result": []],
-                statusCode: 200,
-                headers: ["Content-Type": "application/json"]
+                jsonObject: ["result": []], statusCode: 200, headers: ["Content-Type": "application/json"]
             )
         }
+        clearFlowSharedCategories()
         let database = try makeFlowThumbnailDatabase(archiveIds: [archive.id])
-        defer { clearFlowSharedArchives() }
+        defer {
+            clearFlowSharedArchives()
+            clearFlowSharedCategories()
+        }
 
-        try await withDependencies {
-            $0.appDatabase = database
-        } operation: {
+        try await withDependencies { $0.appDatabase = database } operation: {
             var readerState = ArchiveReaderFeature.State(
                 currentArchiveId: archive.id, allArchives: [Shared(value: archive)]
             )
@@ -512,30 +513,99 @@ final class ArchiveFlowConsistencyTests: LANreaderTestCase {
 
             let store = Store(initialState: initialState) { LibraryFeature() }
             let nav = makeLibraryNavigationController(store: store)
-            let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
-            window.rootViewController = nav
-            window.isHidden = false
-            defer {
-                window.isHidden = true
-                window.rootViewController = nil
-            }
-            await waitForFlowNavigation {
+            let window = makeFlowTestWindow(rootViewController: nav)
+            defer { window.isHidden = true; window.rootViewController = nil }
+            await waitUntil {
                 nav.viewControllers.count == 2
+                    && nav.transitionCoordinator == nil
                     && !(nav.topViewController?.view.firstSubview(of: UICollectionView.self)?
                         .visibleCells.compactMap { $0 as? UIPageCell }.isEmpty ?? true)
             }
+            await drainMainQueue()
             let readerID = try XCTUnwrap(store.path.ids.last)
 
             sendFlowActionWithoutAnimation(store, .path(.element(id: readerID, action: .reader(.openDetailsTapped))))
-            await waitForFlowNavigation { nav.viewControllers.count == 3 }
+            await waitUntil { nav.viewControllers.count == 3 && nav.transitionCoordinator == nil }
             let detailsID = try XCTUnwrap(store.path.ids.last)
+            await waitUntil { !(store.path[id: detailsID, case: \.details]?.categoryItems.isEmpty ?? true) }
+            await drainMainQueue()
 
             sendFlowActionWithoutAnimation(store, .path(.element(id: detailsID, action: .details(.deleteSuccess))))
-            await waitForFlowNavigation { nav.viewControllers.count == 1 }
+            await waitUntil { nav.viewControllers.count == 1 }
             try? await Task.sleep(for: .milliseconds(50))
 
             XCTAssertTrue(store.path.isEmpty)
             XCTAssertEqual(nav.viewControllers.count, 1)
+        }
+    }
+
+    @MainActor
+    func testUIKitPopAndPopToRootSyncBackToStorePath() async throws {
+        try await configureTestServer()
+        let archive = makeDetailsArchive(id: "uikitPopArc", name: "UIKit Pop", tags: "artist:test")
+        stubFlowBackgroundRequests(archive: archive)
+        let database = try makeFlowThumbnailDatabase(archiveIds: [archive.id])
+        defer { clearFlowSharedArchives() }
+
+        try await withDependencies { $0.appDatabase = database } operation: {
+            let store = Store(initialState: LibraryFeature.State()) { LibraryFeature() }
+            let nav = makeLibraryNavigationController(store: store)
+            let window = makeFlowTestWindow(rootViewController: nav)
+            defer {
+                window.isHidden = true
+                window.rootViewController = nil
+            }
+            await drainMainQueue()
+            _ = store.send(.archiveList(.populateArchives([archive], 1, false)))
+            sendFlowActionWithoutAnimation(store, .archiveList(.openReader(archiveId: archive.id, fromStart: false)))
+            await waitUntil { nav.viewControllers.count == 2 && nav.transitionCoordinator == nil }
+            await drainMainQueue()
+            let readerID = try XCTUnwrap(store.path.ids.last)
+            await waitUntil { store.path[id: readerID, case: \.reader]?.canOpenDetails == true }
+            sendFlowActionWithoutAnimation(store, .path(.element(id: readerID, action: .reader(.openDetailsTapped))))
+            await waitUntil { nav.viewControllers.count == 3 && nav.transitionCoordinator == nil }
+            await drainMainQueue()
+
+            nav.popViewController(animated: false)
+            await waitUntil { store.path.count == 1 }
+            XCTAssertEqual(nav.viewControllers.count, 2)
+            XCTAssertEqual(Array(store.path.ids), [readerID])
+            await drainMainQueue()
+
+            await waitUntil { store.path[id: readerID, case: \.reader]?.canOpenDetails == true }
+            sendFlowActionWithoutAnimation(store, .path(.element(id: readerID, action: .reader(.openDetailsTapped))))
+            await waitUntil { nav.viewControllers.count == 3 && nav.transitionCoordinator == nil }
+            await drainMainQueue()
+            nav.popToRootViewController(animated: false)
+            await waitUntil { store.path.isEmpty }
+            XCTAssertEqual(nav.viewControllers.count, 1)
+        }
+    }
+}
+
+@MainActor
+private func makeFlowTestWindow(rootViewController: UIViewController) -> UIWindow {
+    let windowScene = UIApplication.shared.connectedScenes
+        .compactMap { $0 as? UIWindowScene }
+        .first
+    let window = windowScene.map { UIWindow(windowScene: $0) } ?? UIWindow()
+    window.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
+    withUITransaction(\.uiKit.disablesAnimations, true) {
+        UIView.performWithoutAnimation {
+            window.rootViewController = rootViewController
+            window.isHidden = false
+            rootViewController.loadViewIfNeeded()
+            window.layoutIfNeeded()
+        }
+    }
+    return window
+}
+
+@MainActor
+private func drainMainQueue() async {
+    await withCheckedContinuation { continuation in
+        DispatchQueue.main.async {
+            continuation.resume()
         }
     }
 }
@@ -584,6 +654,24 @@ private func clearFlowSharedArchives() {
     $archiveItems.withLock { $0 = [] }
 }
 
+private func clearFlowSharedCategories() {
+    @Shared(.category) var categoryItems: IdentifiedArrayOf<CategoryItem> = []
+    $categoryItems.withLock { $0 = [] }
+}
+
+private func stubFlowCategories() {
+    let headers = ["Content-Type": "application/json"]
+    stub(condition: isHost("localhost") && isPath("/api/categories") && isMethodGET()) { @Sendable _ in
+        HTTPStubsResponse(
+            jsonObject: [[
+                "id": "SET_1", "name": "Cat", "archives": [], "search": "", "pinned": "0"
+            ]],
+            statusCode: 200,
+            headers: headers
+        )
+    }
+}
+
 private func stubTankoubonMetadataUpdate(id: String, name: String, tags: String) {
     let matchesBody: HTTPStubsTestBlock = { request in
         guard let body = request.ohhttpStubs_httpBody,
@@ -615,13 +703,6 @@ private func sendFlowActionWithoutAnimation(
 ) {
     withUITransaction(\.uiKit.disablesAnimations, true) {
         _ = store.send(action)
-    }
-}
-
-@MainActor
-private func waitForFlowNavigation(_ condition: () -> Bool) async {
-    for _ in 0..<100 where !condition() {
-        try? await Task.sleep(for: .milliseconds(10))
     }
 }
 

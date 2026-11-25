@@ -204,10 +204,3 @@ private func enclosingCollectionCell(for view: UIView) -> UICollectionViewCell? 
     }
     return nil
 }
-
-@MainActor
-private func waitUntil(_ condition: () -> Bool) async {
-    for _ in 0..<100 where !condition() {
-        try? await Task.sleep(for: .milliseconds(10))
-    }
-}

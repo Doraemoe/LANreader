@@ -355,13 +355,9 @@ struct CachedArchiveIDsKey: SharedReaderKey {
 
     private let database: AppDatabase
 
-    init(database: AppDatabase? = nil) {
-        if let database {
-            self.database = database
-        } else {
-            @Dependency(\.appDatabase) var appDatabase
-            self.database = appDatabase
-        }
+    init() {
+        @Dependency(\.appDatabase) var appDatabase
+        self.database = appDatabase
     }
 
     var id: ObjectIdentifier {

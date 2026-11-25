@@ -38,7 +38,6 @@ class UIArchiveReaderController: UIViewController {
             store.send(.openDetailsTapped)
         }
         let detailsButton = UIBarButtonItem(primaryAction: detailsAction)
-        detailsButton.isEnabled = store.canOpenDetails
         self.detailsButton = detailsButton
 
         navigationItem.rightBarButtonItem = detailsButton

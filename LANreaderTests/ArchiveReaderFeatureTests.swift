@@ -3616,6 +3616,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
         // Popping the reader from the stack cancels its in-flight polling effect automatically.
         await store.send(.path(.popFrom(id: readerID)))
+        store.exhaustivity = .on
         await store.finish()
         XCTAssertTrue(store.state.path.isEmpty)
     }

@@ -255,6 +255,7 @@ final class DeepLinkTests: LANreaderTestCase {
         await store.receive(\.search.root.archiveList.populateArchives)
 
         // Both suspended TestClock suggestion effects must be cancelled by StackReducer.
+        store.exhaustivity = .on
         await store.finish(timeout: .seconds(2))
     }
 
@@ -507,13 +508,6 @@ private func searchTabSearchBar(in tabs: UITabViewController) throws -> UISearch
         searchController.navigationItem.searchController?.searchBar
             ?? searchController.view.firstSubview(of: UISearchBar.self)
     )
-}
-
-@MainActor
-private func waitUntil(_ condition: () -> Bool) async {
-    for _ in 0..<100 where !condition() {
-        try? await Task.sleep(for: .milliseconds(10))
-    }
 }
 
 private func savedCache(id: String) throws -> AppDatabase {
