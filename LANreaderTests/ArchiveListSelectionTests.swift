@@ -609,32 +609,34 @@ final class LibraryTabNavigationTests: LANreaderTestCase {
     @MainActor
     func testOnlineReaderStaysOpenAndUpdatesInCacheFlagOnCacheChanges() async throws {
         let archive = makeLibraryTestArchive(id: "libArc1", name: "First", tags: "")
-        let store = try makeLibraryTabTestStore()
+        let database = try makeArchiveListTestDatabase()
+        let store = try makeLibraryTabTestStore(database: database)
         defer { clearLibrarySharedArchives() }
 
         await store.send(.archiveList(.populateArchives([archive], 1, false)))
         await store.send(.archiveList(.openReader(archiveId: archive.id, fromStart: false)))
         let readerID = try XCTUnwrap(store.state.path.ids.last)
+        let inCache: () -> Bool? = {
+            guard case let .reader(readerState) = store.state.path[id: readerID] else { return nil }
+            return readerState.inCache
+        }
         guard case let .reader(readerState) = store.state.path[id: readerID] else {
             return XCTFail("Expected pushed online reader state")
         }
         XCTAssertFalse(readerState.cached)
         XCTAssertFalse(readerState.inCache)
 
+        var cache = makeArchiveCacheRecord(id: archive.id, title: archive.name, cached: true)
+        try database.saveCache(&cache)
         await store.send(.path(.element(id: readerID, action: .reader(.finishDownloadPages))))
-        if case let .reader(cachedReader) = store.state.path[id: readerID] {
-            XCTAssertTrue(cachedReader.inCache)
-        } else {
-            XCTFail("Expected online reader to remain open after caching")
-        }
+        await waitForLibraryNav { inCache() == true }
+        XCTAssertEqual(inCache(), true)
 
+        _ = try database.deleteCache(archive.id)
         await store.send(.path(.element(id: readerID, action: .reader(.removeCacheSuccess))))
         XCTAssertEqual(Array(store.state.path.ids), [readerID])
-        if case let .reader(uncachedReader) = store.state.path[id: readerID] {
-            XCTAssertFalse(uncachedReader.inCache)
-        } else {
-            XCTFail("Expected online reader to remain open after cache removal")
-        }
+        await waitForLibraryNav { inCache() == false }
+        XCTAssertEqual(inCache(), false)
     }
 
     @MainActor

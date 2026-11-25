@@ -271,12 +271,13 @@ final class ArchiveFlowConsistencyTests: LANreaderTestCase {
     @MainActor
     func testNestedTankoubonEditMarksOriginalDetailsForRefreshOnPopBack() async throws {
         let tankoubon = makeDetailsArchive(id: "TANK_42", name: "Old Tank", tags: "artist:old,artist:included")
+        let sharedTankoubon = Shared(value: tankoubon)
         let metadata = TankoubonDetailsMetadata(
             id: tankoubon.id, name: "Old Tank", tags: "artist:old", includedArchiveTags: "artist:included"
         )
         var initialState = LibraryFeature.State()
         var outerReader = ArchiveReaderFeature.State(
-            currentArchiveId: tankoubon.id, allArchives: [Shared(value: tankoubon)]
+            currentArchiveId: tankoubon.id, allArchives: [sharedTankoubon]
         )
         outerReader.currentTankoubonDetails = metadata
         initialState.path.append(.reader(outerReader))
@@ -289,7 +290,7 @@ final class ArchiveFlowConsistencyTests: LANreaderTestCase {
         let searchID = try XCTUnwrap(store.state.path.ids.last)
 
         var innerReader = ArchiveReaderFeature.State(
-            currentArchiveId: tankoubon.id, allArchives: [Shared(value: tankoubon)]
+            currentArchiveId: tankoubon.id, allArchives: [sharedTankoubon]
         )
         innerReader.currentTankoubonDetails = metadata
         var stateWithNested = store.state
@@ -412,48 +413,71 @@ final class ArchiveFlowConsistencyTests: LANreaderTestCase {
     @MainActor
     func testCacheChangesSyncOnlineReaderFlagAndCleanStaleCachedEntries() async throws {
         let archive = makeDetailsArchive(id: "arc1", name: "First", tags: "artist:dup")
-        var state = LibraryFeature.State()
-        state.path.append(.cache(CacheFeature.State()))
-        state.path.append(.reader(ArchiveReaderFeature.State(
-            currentArchiveId: archive.id, allArchives: [Shared(value: archive)], cached: true
-        )))
-        state.path.append(.details(ArchiveDetailsFeature.State(archive: Shared(value: archive), cached: true)))
-        state.path.append(.search(SearchFeature.State(keyword: "artist:dup")))
-        state.path.append(.reader(ArchiveReaderFeature.State(
-            currentArchiveId: archive.id, allArchives: [Shared(value: archive)], cached: false
-        )))
-        state.path.append(.details(ArchiveDetailsFeature.State(archive: Shared(value: archive), cached: false)))
-        state.path.append(.search(SearchFeature.State(keyword: "artist:dup")))
-        state.path.append(.reader(ArchiveReaderFeature.State(
-            currentArchiveId: archive.id, allArchives: [Shared(value: archive)], cached: false
-        )))
+        let database = try AppDatabase(DatabaseQueue())
+        try await withDependencies { $0.appDatabase = database } operation: {
+            var state = LibraryFeature.State()
+            let sharedArchive = Shared(value: archive)
+            let otherTabReader = ArchiveReaderFeature.State(
+                currentArchiveId: archive.id, allArchives: [sharedArchive], cached: false
+            )
+            for element: ArchiveFlowPath.State in [
+                .cache(CacheFeature.State()),
+                .reader(ArchiveReaderFeature.State(
+                    currentArchiveId: archive.id, allArchives: [sharedArchive], cached: true)),
+                .details(ArchiveDetailsFeature.State(archive: sharedArchive, cached: true)),
+                .search(SearchFeature.State(keyword: "artist:dup")),
+                .reader(ArchiveReaderFeature.State(
+                    currentArchiveId: archive.id, allArchives: [sharedArchive], cached: false)),
+                .details(ArchiveDetailsFeature.State(archive: sharedArchive, cached: false)),
+                .search(SearchFeature.State(keyword: "artist:dup")),
+                .reader(ArchiveReaderFeature.State(
+                    currentArchiveId: archive.id, allArchives: [sharedArchive], cached: false))
+            ] {
+                state.path.append(element)
+            }
+            let store = try makeFlowLibraryTestStore(initialState: state, database: database)
+            let ids = Array(store.state.path.ids)
+            let firstOnlineID = ids[4]
+            let secondOnlineID = ids[7]
+            let inCache: (StackElementID) -> Bool = { id in
+                if case let .reader(reader) = store.state.path[id: id] { return reader.inCache }
+                return false
+            }
+            XCTAssertFalse(inCache(firstOnlineID) || otherTabReader.inCache)
 
-        let store = try makeFlowLibraryTestStore(initialState: state)
-        let ids = Array(store.state.path.ids)
-        let cacheID = ids[0]
-        let firstSearchID = ids[3]
-        let firstOnlineReaderID = ids[4]
-        let firstOnlineDetailsID = ids[5]
-        let secondSearchID = ids[6]
-        let secondOnlineReaderID = ids[7]
+            var cache = makeFlowCacheRecord(id: archive.id, title: archive.name)
+            try database.saveCache(&cache)
+            await waitForFlowNavigation { inCache(firstOnlineID) && otherTabReader.inCache }
+            XCTAssertTrue(inCache(firstOnlineID) && otherTabReader.inCache)
 
-        await store.send(.path(.element(id: secondOnlineReaderID, action: .reader(.finishDownloadPages))))
-        if case let .reader(firstOnline) = store.state.path[id: firstOnlineReaderID] {
-            XCTAssertTrue(firstOnline.inCache)
-        } else {
-            XCTFail("Expected first online reader")
+            _ = try database.deleteCache(archive.id)
+            await store.send(.path(.element(id: secondOnlineID, action: .reader(.removeCacheSuccess))))
+            XCTAssertEqual(Array(store.state.path.ids), [ids[0], ids[3], ids[4], ids[5], ids[6], ids[7]])
+            await waitForFlowNavigation { !inCache(firstOnlineID) && !otherTabReader.inCache }
+            XCTAssertFalse(inCache(firstOnlineID) || otherTabReader.inCache)
         }
+    }
 
-        await store.send(.path(.element(id: secondOnlineReaderID, action: .reader(.removeCacheSuccess))))
-        XCTAssertEqual(
-            Array(store.state.path.ids),
-            [cacheID, firstSearchID, firstOnlineReaderID, firstOnlineDetailsID, secondSearchID, secondOnlineReaderID]
-        )
-        if case let .reader(firstOnline) = store.state.path[id: firstOnlineReaderID] {
-            XCTAssertFalse(firstOnline.inCache)
-        } else {
-            XCTFail("Expected first online reader to remain open with updated cache flag")
+    @MainActor
+    func testCachedArchiveIdsLoadsInitialStateAndTracksArchiveSwitch() throws {
+        let arc1 = makeDetailsArchive(id: "arc1", name: "First")
+        let arc2 = makeDetailsArchive(id: "arc2", name: "Second")
+        let database = try AppDatabase(DatabaseQueue())
+        var cache = makeFlowCacheRecord(id: arc1.id, title: arc1.name)
+        try database.saveCache(&cache)
+
+        var reader = withDependencies {
+            $0.appDatabase = database
+        } operation: {
+            ArchiveReaderFeature.State(
+                currentArchiveId: arc1.id,
+                allArchives: [Shared(value: arc1), Shared(value: arc2)],
+                cached: false
+            )
         }
+        XCTAssertTrue(reader.inCache)
+        reader.currentArchiveId = arc2.id
+        XCTAssertFalse(reader.inCache)
     }
 
     @MainActor
@@ -517,8 +541,11 @@ final class ArchiveFlowConsistencyTests: LANreaderTestCase {
 }
 
 @MainActor
-private func makeFlowLibraryTestStore(initialState: LibraryFeature.State) throws -> TestStoreOf<LibraryFeature> {
-    let database = try AppDatabase(DatabaseQueue())
+private func makeFlowLibraryTestStore(
+    initialState: LibraryFeature.State,
+    database: AppDatabase? = nil
+) throws -> TestStoreOf<LibraryFeature> {
+    let database = try database ?? AppDatabase(DatabaseQueue())
     let store = TestStore(initialState: initialState) {
         LibraryFeature()
     } withDependencies: {
@@ -526,6 +553,19 @@ private func makeFlowLibraryTestStore(initialState: LibraryFeature.State) throws
     }
     store.exhaustivity = .off
     return store
+}
+
+private func makeFlowCacheRecord(id: String, title: String, cached: Bool = true) -> ArchiveCache {
+    ArchiveCache(
+        id: id,
+        title: title,
+        tags: "",
+        thumbnail: nil,
+        cached: cached,
+        totalPages: 10,
+        toc: nil,
+        lastUpdate: Date(timeIntervalSince1970: 1)
+    )
 }
 
 @MainActor
