@@ -1569,7 +1569,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
-            $0.sliderPreviewStatus = [3: .fetching, 4: .fetching, 2: .fetching]
+            $0.sliderPreviewPrefetchInFlight = true
         }
         await finishSliderPreviewPrefetch(store)
     }
@@ -1605,7 +1605,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
-            $0.sliderPreviewStatus = [3: .fetching, 4: .fetching, 2: .fetching]
+            $0.sliderPreviewPrefetchInFlight = true
         }
         await finishSliderPreviewPrefetch(store)
     }
@@ -1635,7 +1635,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
-            $0.sliderPreviewStatus = [3: .fetching, 4: .fetching, 2: .fetching]
+            $0.sliderPreviewPrefetchInFlight = true
         }
         await finishSliderPreviewPrefetch(store)
     }
@@ -1664,7 +1664,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
-            $0.sliderPreviewStatus = [1: .fetching, 2: .fetching, 3: .fetching]
+            $0.sliderPreviewPrefetchInFlight = true
         }
         await finishSliderPreviewPrefetch(store)
     }
@@ -1695,7 +1695,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
-            $0.sliderPreviewStatus = [1: .fetching, 2: .fetching, 3: .fetching]
+            $0.sliderPreviewPrefetchInFlight = true
         }
         await finishSliderPreviewPrefetch(store)
     }
@@ -1725,7 +1725,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
-            $0.sliderPreviewStatus = [5: .fetching, 4: .fetching, 3: .fetching]
+            $0.sliderPreviewPrefetchInFlight = true
         }
         await finishSliderPreviewPrefetch(store)
     }
@@ -1755,7 +1755,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4, 5])
-            $0.sliderPreviewStatus = [5: .fetching, 4: .fetching, 3: .fetching]
+            $0.sliderPreviewPrefetchInFlight = true
         }
         await finishSliderPreviewPrefetch(store)
     }
@@ -1785,7 +1785,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             .sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4])
-            $0.sliderPreviewStatus = [4: .fetching, 3: .fetching, 2: .fetching]
+            $0.sliderPreviewPrefetchInFlight = true
         }
         await finishSliderPreviewPrefetch(store)
     }
@@ -1876,7 +1876,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             .sliderPreviewThumbnailsQueued(readyThumbnailQueueResults(for: sourceArchives))
         ) {
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4])
-            $0.sliderPreviewStatus = [2: .fetching, 3: .fetching, 1: .fetching]
+            $0.sliderPreviewPrefetchInFlight = true
         }
         await finishSliderPreviewPrefetch(store)
     }
@@ -2416,7 +2416,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             $0.pages = expectedPages
             $0.currentPageIndex = 2
             $0.controlUiHidden = true
-            $0.sliderPreviewStatus = [3: .fetching, 4: .fetching]
+            $0.sliderPreviewPrefetchInFlight = true
         }
         await store.receive(.requestJump(2, source: .initialRestore)) {
             $0.scrollRequest = makeScrollRequest(
@@ -2523,7 +2523,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             $0.pages = expectedPages
             $0.currentPageIndex = 0
             $0.controlUiHidden = true
-            $0.sliderPreviewStatus = [1: .fetching, 2: .fetching]
+            $0.sliderPreviewPrefetchInFlight = true
         }
         await store.receive(.requestJump(0, source: .initialRestore)) {
             $0.scrollRequest = makeScrollRequest(
@@ -2571,7 +2571,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             $0.pages = expectedPages
             $0.currentPageIndex = 0
             $0.controlUiHidden = true
-            $0.sliderPreviewStatus = [1: .fetching, 2: .fetching]
+            $0.sliderPreviewPrefetchInFlight = true
         }
         await store.receive(.requestJump(0, source: .initialRestore)) {
             $0.scrollRequest = makeScrollRequest(
@@ -3624,64 +3624,77 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     @MainActor
     func testPoppingReaderImmediatelyAfterStartingSliderPreviewPrefetchDoesNotEmitToMissingElement() async throws {
         configureReaderDefaults()
+        try await configureTestServer()
         let archiveId = "pop-race-\(UUID().uuidString)"
         let previewFolder = sliderPreviewURL(archiveId: archiveId, pageNumber: 1).deletingLastPathComponent()
         try FileManager.default.createDirectory(at: previewFolder, withIntermediateDirectories: true)
         addTeardownBlock {
             try? FileManager.default.removeItem(at: previewFolder)
         }
-        for page in 1...3 {
-            try makeCacheTestImageData().write(to: sliderPreviewURL(archiveId: archiveId, pageNumber: page))
-        }
+        try writeSliderPreview(archiveId: archiveId, pageNumber: 1)
+        stubSliderPreviewThumbnails(archiveId: archiveId, delay: 5)
         var readerState = makeState(archiveId: archiveId, progress: 1)
-        readerState.pages = makePageStates(count: 3, archiveId: archiveId)
+        readerState.pages = makePageStates(count: 6, archiveId: archiveId)
 
         var libraryState = LibraryFeature.State()
         libraryState.path.append(.reader(readerState))
-        let store = Store(initialState: libraryState) { LibraryFeature() }
-        let readerID = try XCTUnwrap(store.path.ids.first)
+        let store = TestStore(initialState: libraryState) { LibraryFeature() }
+        store.timeout = .seconds(5)
+        store.exhaustivity = .off
+        let readerID = try XCTUnwrap(store.state.path.ids.first)
 
-        // Start utility-priority preview fetches and immediately pop before those tasks start on MainActor.
-        store.send(.path(.element(
+        await store.send(.path(.element(
             id: readerID,
             action: .reader(.sliderPreviewThumbnailsQueued([readyThumbnailQueueResult(archiveId: archiveId)]))
         )))
-        store.send(.path(.popFrom(id: readerID)))
-        try await Task.sleep(for: .milliseconds(100))
+        await store.receive(\.path[id: readerID].reader.sliderPreviewFetched)
+        await store.send(.path(.popFrom(id: readerID)))
+        store.exhaustivity = .on
+        await store.finish()
 
-        XCTAssertTrue(store.path.isEmpty)
+        XCTAssertTrue(store.state.path.isEmpty)
+        XCTAssertFalse(
+            FileManager.default.fileExists(atPath: sliderPreviewURL(archiveId: archiveId, pageNumber: 6).path)
+        )
     }
 
     @MainActor
     func testDeletingArchiveImmediatelyAfterStartingSliderPreviewPrefetchDoesNotEmitToMissingElement() async throws {
         configureReaderDefaults()
+        try await configureTestServer()
         let archiveId = "delete-race-\(UUID().uuidString)"
         let previewFolder = sliderPreviewURL(archiveId: archiveId, pageNumber: 1).deletingLastPathComponent()
         try FileManager.default.createDirectory(at: previewFolder, withIntermediateDirectories: true)
         addTeardownBlock {
             try? FileManager.default.removeItem(at: previewFolder)
         }
-        for page in 1...3 {
-            try makeCacheTestImageData().write(to: sliderPreviewURL(archiveId: archiveId, pageNumber: page))
-        }
+        try writeSliderPreview(archiveId: archiveId, pageNumber: 1)
+        stubSliderPreviewThumbnails(archiveId: archiveId, delay: 5)
         var readerState = makeState(archiveId: archiveId, progress: 1)
-        readerState.pages = makePageStates(count: 3, archiveId: archiveId)
+        readerState.pages = makePageStates(count: 6, archiveId: archiveId)
 
         var libraryState = LibraryFeature.State()
         libraryState.path.append(.reader(readerState))
-        let store = Store(initialState: libraryState) { LibraryFeature() }
-        let readerID = try XCTUnwrap(store.path.ids.first)
-        store.send(.path(.element(id: readerID, action: .reader(.openDetailsTapped))))
-        let detailsID = try XCTUnwrap(store.path.ids.last)
+        let store = TestStore(initialState: libraryState) { LibraryFeature() }
+        store.timeout = .seconds(5)
+        store.exhaustivity = .off
+        let readerID = try XCTUnwrap(store.state.path.ids.first)
+        await store.send(.path(.element(id: readerID, action: .reader(.openDetailsTapped))))
+        let detailsID = try XCTUnwrap(store.state.path.ids.last)
 
-        store.send(.path(.element(
+        await store.send(.path(.element(
             id: readerID,
             action: .reader(.sliderPreviewThumbnailsQueued([readyThumbnailQueueResult(archiveId: archiveId)]))
         )))
-        store.send(.path(.element(id: detailsID, action: .details(.deleteSuccess))))
-        try await Task.sleep(for: .milliseconds(100))
+        await store.receive(\.path[id: readerID].reader.sliderPreviewFetched)
+        await store.send(.path(.element(id: detailsID, action: .details(.deleteSuccess))))
+        store.exhaustivity = .on
+        await store.finish()
 
-        XCTAssertTrue(store.path.isEmpty)
+        XCTAssertTrue(store.state.path.isEmpty)
+        XCTAssertFalse(
+            FileManager.default.fileExists(atPath: sliderPreviewURL(archiveId: archiveId, pageNumber: 6).path)
+        )
     }
 
     @MainActor
@@ -3746,7 +3759,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             $0.sliderThumbnailJobsById = [:]
             $0.sliderReadyThumbnailPages = Set([1, 2, 3, 4])
             // A finished job starts the preview downloads.
-            $0.sliderPreviewStatus = [1: .fetching, 2: .fetching, 3: .fetching]
+            $0.sliderPreviewPrefetchInFlight = true
         }
         await finishSliderPreviewPrefetch(store)
     }
@@ -3923,17 +3936,66 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         state.currentPageIndex = 5
         let store = makeTestStore(initialState: state)
 
+        XCTAssertEqual(ArchiveReaderFeature.pageIndicesNearestFirst(from: 5, count: 8), [5, 6, 4, 7, 3, 2, 1, 0])
+
         await store.send(.sliderPreviewThumbnailsQueued([readyThumbnailQueueResult()])) {
             $0.sliderReadyThumbnailPages = Set(1...8)
-            $0.sliderPreviewStatus = [6: .fetching, 7: .fetching, 5: .fetching]
+            $0.sliderPreviewPrefetchInFlight = true
         }
         await finishSliderPreviewPrefetch(store)
 
+        XCTAssertFalse(store.state.sliderPreviewPrefetchInFlight)
         XCTAssertEqual(store.state.sliderPreviewStatus, Dictionary(uniqueKeysWithValues: (1...8).map { ($0, .stored) }))
         XCTAssertEqual(requestedPages.withLock { $0 }.sorted(), Array(1...8))
         for pageNumber in 1...8 {
             XCTAssertTrue(FileManager.default.fileExists(atPath: sliderPreviewURL(pageNumber: pageNumber).path))
         }
+    }
+
+    @MainActor
+    func testSliderPreviewPrefetchPicksUpNewlyReadyPagesAfterActiveWaveFinishes() async throws {
+        configureReaderDefaults()
+        try await configureTestServer()
+        let requestedPages = stubSliderPreviewThumbnails(delay: 0.05)
+        var state = makeState(progress: 1)
+        state.pages = makePageStates(count: 4)
+        state.sliderThumbnailJobsById = [42: "archive"]
+        let store = makeTestStore(initialState: state)
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(
+            .sliderPreviewThumbnailJobStatus(
+                42,
+                "archive",
+                BasicJobStatus(
+                    task: "generate_page_thumbnails",
+                    state: "active",
+                    notes: ["1": .string("processed"), "2": .string("processed")],
+                    error: ""
+                )
+            )
+        )
+        XCTAssertTrue(store.state.sliderPreviewPrefetchInFlight)
+
+        await store.send(
+            .sliderPreviewThumbnailJobStatus(
+                42,
+                "archive",
+                BasicJobStatus(
+                    task: "generate_page_thumbnails",
+                    state: "finished",
+                    notes: [:],
+                    error: ""
+                )
+            )
+        )
+        XCTAssertTrue(store.state.sliderPreviewPrefetchInFlight)
+
+        await finishSliderPreviewPrefetch(store)
+
+        XCTAssertFalse(store.state.sliderPreviewPrefetchInFlight)
+        XCTAssertEqual(requestedPages.withLock { $0 }.sorted(), [1, 2, 3, 4])
+        XCTAssertEqual(store.state.sliderPreviewStatus, Dictionary(uniqueKeysWithValues: (1...4).map { ($0, .stored) }))
     }
 
     /// A page whose preview is already on disk shows as soon as the slider reaches it, with no request.
@@ -3989,10 +4051,8 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         await store.receive(.sliderPreviewFetched(pageNumber: 3, .stored)) {
             $0.sliderPreviewImageURL = sliderPreviewURL(pageNumber: 3)
             $0.sliderPreviewLoading = false
-            // The rest of the pages, nearest the slider first.
-            $0.sliderPreviewStatus = [2: .stored, 3: .stored, 4: .fetching, 1: .fetching]
+            $0.sliderPreviewStatus = [2: .stored, 3: .stored]
         }
-        await finishSliderPreviewPrefetch(store)
     }
 
     /// The drag gesture reports every finger movement. Moving within one page must not restart that page's
@@ -4014,7 +4074,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         }
         await finishSliderPreviewPrefetch(store)
 
-        XCTAssertEqual(requestedPages.withLock { $0 }.sorted(), [1, 2, 3, 4])
+        XCTAssertEqual(requestedPages.withLock { $0 }.sorted(), [1, 3])
         XCTAssertEqual(store.state.sliderPreviewImageURL, sliderPreviewURL(pageNumber: 3))
         XCTAssertFalse(store.state.sliderPreviewLoading)
     }
@@ -4109,6 +4169,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         XCTAssertTrue(state.sliderReadyThumbnailPages.isEmpty)
         XCTAssertTrue(state.sliderPreviewStatus.isEmpty)
         XCTAssertFalse(state.sliderPreviewPrefetchStopped)
+        XCTAssertFalse(state.sliderPreviewPrefetchInFlight)
         XCTAssertNil(state.spreadAnchorPageIndex)
         XCTAssertFalse(state.collectionScrolling)
         XCTAssertTrue(state.pendingSplitResolutions.isEmpty)
@@ -5124,6 +5185,7 @@ private func makeDirtyReaderState() -> ArchiveReaderFeature.State {
     state.sliderReadyThumbnailPages = Set([1, 2])
     state.sliderPreviewStatus = [1: .stored, 2: .fetching]
     state.sliderPreviewPrefetchStopped = true
+    state.sliderPreviewPrefetchInFlight = true
     state.spreadAnchorPageIndex = 2
     state.collectionScrolling = true
     state.pendingSplitResolutions = ["1": true]

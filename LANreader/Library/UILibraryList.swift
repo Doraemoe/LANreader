@@ -57,9 +57,7 @@ import UIKit
                 return .none
             }
         }
-        .forEach(\.path, action: \.path) {
-            ArchiveFlowPath.body.synchronousCancellation()
-        }
+        .forEach(\.path, action: \.path)
     }
 }
 

@@ -13,26 +13,6 @@ public enum ArchiveFlowPath {
 
 extension ArchiveFlowPath.State: Equatable {}
 
-extension Reducer {
-    /// Converts `.run` effects into Combine publisher effects so `StackReducer`'s
-    /// `._cancellable(navigationIDPath:)` registers synchronously when an effect is returned and
-    /// cuts off in-flight emissions synchronously when the stack element is popped.
-    func synchronousCancellation() -> some ReducerOf<Self> {
-        SynchronousCancellationReducer(base: self)
-    }
-}
-
-private struct SynchronousCancellationReducer<Base: Reducer>: Reducer {
-    let base: Base
-
-    func reduce(into state: inout Base.State, action: Base.Action) -> Effect<Base.Action> {
-        let effect = base._reduce(into: &state, action: action)
-        return .publisher { _EffectPublisher(effect) }
-    }
-}
-
-extension SynchronousCancellationReducer: Sendable where Base: Sendable {}
-
 func reduceArchiveFlowPath(
     path: inout StackState<ArchiveFlowPath.State>,
     action: StackActionOf<ArchiveFlowPath>
