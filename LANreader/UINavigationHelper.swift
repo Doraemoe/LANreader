@@ -50,9 +50,6 @@ func reduceArchiveFlowPath(
     case let .element(id: id, action: .reader(.openDetailsTapped)):
         guard case let .reader(readerState) = path[id: id] else { return }
         appendDetails(from: readerState, to: &path)
-    case let .element(id: readerID, action: .reader(.finishDownloadPages)):
-        guard case let .reader(readerState) = path[id: readerID] else { return }
-        syncReaderCacheFlag(archiveId: readerState.currentArchiveId, inCache: true, excluding: readerID, in: &path)
     case let .element(id: readerID, action: .reader(.removeCacheSuccess)):
         guard case let .reader(readerState) = path[id: readerID] else { return }
         let archiveId = readerState.currentArchiveId
@@ -163,60 +160,25 @@ private func syncTankoubonMetadata(
     in path: inout StackState<ArchiveFlowPath.State>
 ) {
     guard case let .details(sourceDetails) = path[id: detailsID],
-          let updatedMetadata = sourceDetails.tankoubonMetadata else {
+          let tankoubonId = sourceDetails.tankoubonMetadata?.id else {
         return
     }
-    let tankoubonId = updatedMetadata.id
-    let combinedTags = updatedMetadata.combinedTags
 
     for id in path.ids where id != detailsID {
         switch path[id: id] {
-        case var .reader(readerState) where !readerState.cached:
-            var changed = false
-            if readerState.currentTankoubonDetails?.id == tankoubonId {
-                readerState.currentTankoubonDetails?.name = title
-                readerState.currentTankoubonDetails?.tags = tags
-                changed = true
-            }
-            if let tankArchive = readerState.allArchives[id: tankoubonId] {
-                tankArchive.withLock {
-                    $0.name = title
-                    $0.tags = combinedTags
-                }
-            }
-            if changed {
-                path[id: id] = .reader(readerState)
-            }
+        case var .reader(readerState)
+            where !readerState.cached && readerState.currentTankoubonDetails?.id == tankoubonId:
+            readerState.currentTankoubonDetails?.name = title
+            readerState.currentTankoubonDetails?.tags = tags
+            path[id: id] = .reader(readerState)
         case var .details(detailsState)
             where !detailsState.cached && detailsState.tankoubonMetadata?.id == tankoubonId:
             detailsState.tankoubonMetadata?.name = title
             detailsState.tankoubonMetadata?.tags = tags
-            detailsState.$archive.withLock {
-                $0.name = title
-                $0.tags = combinedTags
-            }
             path[id: id] = .details(detailsState)
         default:
             break
         }
-    }
-}
-
-private func syncReaderCacheFlag(
-    archiveId: String,
-    inCache: Bool,
-    excluding excludedID: StackElementID,
-    in path: inout StackState<ArchiveFlowPath.State>
-) {
-    for id in path.ids where id != excludedID {
-        guard case var .reader(readerState) = path[id: id],
-              !readerState.cached,
-              readerState.currentArchiveId == archiveId,
-              readerState.inCache != inCache else {
-            continue
-        }
-        readerState.inCache = inCache
-        path[id: id] = .reader(readerState)
     }
 }
 
@@ -228,17 +190,11 @@ private func cleanDeletedArchiveFromStack(
     var idsToRemove: Set<StackElementID> = []
     for id in path.ids {
         switch path[id: id] {
-        case var .reader(readerState):
-            if readerState.cached == cachedOnly {
-                if readerState.currentArchiveId == archiveId {
-                    idsToRemove.insert(id)
-                } else if readerState.allArchives[id: archiveId] != nil {
-                    readerState.allArchives.remove(id: archiveId)
-                    path[id: id] = .reader(readerState)
-                }
-            } else if cachedOnly, !readerState.cached,
-                      readerState.currentArchiveId == archiveId, readerState.inCache {
-                readerState.inCache = false
+        case var .reader(readerState) where readerState.cached == cachedOnly:
+            if readerState.currentArchiveId == archiveId {
+                idsToRemove.insert(id)
+            } else if readerState.allArchives[id: archiveId] != nil {
+                readerState.allArchives.remove(id: archiveId)
                 path[id: id] = .reader(readerState)
             }
         case let .details(detailsState):

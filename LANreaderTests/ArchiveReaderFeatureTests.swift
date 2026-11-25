@@ -4096,7 +4096,6 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         XCTAssertEqual(state.spreadPairingOffset, 0)
         XCTAssertFalse(state.fromStart)
         XCTAssertNil(state.scrollRequest)
-        XCTAssertFalse(state.inCache)
         XCTAssertEqual(state.errorMessage, "")
         XCTAssertEqual(state.successMessage, "")
         XCTAssertNil(state.sliderDraftIndex)
@@ -4625,10 +4624,10 @@ private func makeInMemoryDatabase() throws -> AppDatabase {
 
 @MainActor
 private func makeTestStore(
-    initialState: ArchiveReaderFeature.State,
+    initialState: @autoclosure () -> ArchiveReaderFeature.State,
     configureDependencies: ((inout DependencyValues) -> Void)? = nil
 ) -> TestStoreOf<ArchiveReaderFeature> {
-    let store = TestStore(initialState: initialState) {
+    let store = TestStore(initialState: initialState()) {
         ArchiveReaderFeature()
     } withDependencies: {
         $0.uuid = .incrementing
@@ -5112,7 +5111,6 @@ private func makeDirtyReaderState() -> ArchiveReaderFeature.State {
     state.spreadPairingOffset = 1
     state.fromStart = true
     state.scrollRequest = ScrollRequest(targetPageIndex: 2, source: .slider, animated: false)
-    state.inCache = true
     state.errorMessage = "error"
     state.successMessage = "success"
     state.sliderDraftIndex = 1

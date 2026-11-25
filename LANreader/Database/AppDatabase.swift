@@ -3,8 +3,9 @@
 import Foundation
 import GRDB
 import Dependencies
+import Sharing
 
-struct AppDatabase {
+struct AppDatabase: Sendable {
     private let dbWriter: DatabaseWriter
 
     init(_ dbWriter: DatabaseWriter) throws {
@@ -320,10 +321,95 @@ extension AppDatabase {
     public var dbReader: any GRDB.DatabaseReader {
         dbWriter
     }
+
+    var identity: ObjectIdentifier {
+        ObjectIdentifier(dbWriter)
+    }
+
+    func readCachedArchiveIds() throws -> Set<String> {
+        try dbReader.read { database in
+            try String.fetchSet(database, sql: "SELECT id FROM archiveCache")
+        }
+    }
+
+    func observeCachedArchiveIds(
+        onError: @escaping @Sendable (Error) -> Void = { _ in },
+        onChange: @escaping @Sendable (Set<String>) -> Void
+    ) -> AnyDatabaseCancellable {
+        ValueObservation
+            .tracking { database in
+                try String.fetchSet(database, sql: "SELECT id FROM archiveCache")
+            }
+            .removeDuplicates()
+            .start(
+                in: dbReader,
+                scheduling: .async(onQueue: .main),
+                onError: onError,
+                onChange: onChange
+            )
+    }
+}
+
+struct CachedArchiveIDsKey: SharedReaderKey {
+    typealias Value = Set<String>
+
+    private let database: AppDatabase
+
+    init(database: AppDatabase? = nil) {
+        if let database {
+            self.database = database
+        } else {
+            @Dependency(\.appDatabase) var appDatabase
+            self.database = appDatabase
+        }
+    }
+
+    var id: ObjectIdentifier {
+        database.identity
+    }
+
+    func load(
+        context: LoadContext<Set<String>>,
+        continuation: LoadContinuation<Set<String>>
+    ) {
+        do {
+            continuation.resume(returning: try database.readCachedArchiveIds())
+        } catch {
+            continuation.resume(throwing: error)
+        }
+    }
+
+    func subscribe(
+        context: LoadContext<Set<String>>,
+        subscriber: SharedSubscriber<Set<String>>
+    ) -> SharedSubscription {
+        let cancellable = database.observeCachedArchiveIds(
+            onError: { subscriber.yield(throwing: $0) },
+            onChange: { subscriber.yield($0) }
+        )
+        return SharedSubscription {
+            cancellable.cancel()
+        }
+    }
+}
+
+extension SharedReaderKey where Self == CachedArchiveIDsKey {
+    static var cachedArchiveIds: Self {
+        CachedArchiveIDsKey()
+    }
 }
 
 extension AppDatabase: DependencyKey {
-  static let liveValue = AppDatabase.shared
+    static let liveValue = AppDatabase.shared
+    static let testValue = makeInMemory()
+
+    private static func makeInMemory() -> AppDatabase {
+        do {
+            return try AppDatabase(DatabaseQueue())
+        } catch {
+            fatalError("Failed to create in-memory AppDatabase: \(error)")
+        }
+    }
 }
 
 extension DependencyValues {

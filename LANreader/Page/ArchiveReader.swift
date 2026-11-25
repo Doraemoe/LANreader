@@ -174,6 +174,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         @SharedReader(.appStorage(SettingsKey.fitPageWidth)) var fitPageWidth = false
         @Shared(.appStorage(SettingsKey.showStamps)) var showStamps = false
         @SharedReader(.appStorage(SettingsKey.restartFinished)) var restartFinished = false
+        @SharedReader(.cachedArchiveIds) var cachedArchiveIds: Set<String> = []
 
         var currentArchiveId = ""
         var currentPageIndex = 0
@@ -195,7 +196,9 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         var autoPage = AutomaticPageFeature.State()
         var lastAutoPageIndex: Int?
         var cached = false
-        var inCache = false
+        var inCache: Bool {
+            cachedArchiveIds.contains(currentArchiveId)
+        }
         var currentTankoubonDetails: TankoubonDetailsMetadata?
         var sliderDraftIndex: Int?
         var sliderDragging = false
@@ -464,10 +467,6 @@ public struct ChapterMutationTarget: Equatable, Sendable {
             case .extractArchive:
                 state.extracting = true
                 let id = state.currentArchiveId
-                let isCached = try? database.existCache(id)
-                if isCached == true {
-                    state.inCache = true
-                }
                 return .run { send in
                     await send(.stampsSupportResolved(await service.supportsStamps))
                     await send(.chapterMutationSupportResolved(await service.supportsChapterMutations))
@@ -1308,7 +1307,6 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                     await send(.setError(error.localizedDescription))
                 }
             case .finishDownloadPages:
-                state.inCache = true
                 let successMessage = String(localized: "archive.cache.added")
                 state.successMessage = successMessage
                 return .none
@@ -1339,7 +1337,6 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                     await send(.setError(error.localizedDescription))
                 }
             case .removeCacheSuccess:
-                state.inCache = false
                 return .none
             case .alert:
                 return .none
@@ -1859,7 +1856,6 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         state.scrollRequest = nil
         state.collectionScrolling = false
         state.pendingSplitResolutions = [:]
-        state.inCache = false
         state.errorMessage = ""
         state.successMessage = ""
         state.currentTankoubonDetails = nil
