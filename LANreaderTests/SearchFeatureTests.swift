@@ -659,7 +659,8 @@ final class SearchTabNavigationTests: LANreaderTestCase {
         guard case let .details(staleDetails) = store.state.path[id: detailsID] else {
             return XCTFail("Expected original details state")
         }
-        XCTAssertTrue(staleDetails.needsLocalFieldsRefresh)
+        XCTAssertEqual(staleDetails.title, "First")
+        XCTAssertEqual(staleDetails.editableTags, "artist:e auo")
 
         await store.send(.path(.element(id: detailsID, action: .details(.loadLocalFields))))
         guard case let .details(refreshedDetails) = store.state.path[id: detailsID] else {
@@ -667,7 +668,6 @@ final class SearchTabNavigationTests: LANreaderTestCase {
         }
         XCTAssertEqual(refreshedDetails.title, "Updated")
         XCTAssertEqual(refreshedDetails.editableTags, "artist:e auo, character:bob")
-        XCTAssertFalse(refreshedDetails.needsLocalFieldsRefresh)
     }
 
     @MainActor
@@ -779,12 +779,5 @@ private func stubEmptySearch(filter: String) {
             statusCode: 200,
             headers: ["Content-Type": "application/json"]
         )
-    }
-}
-
-@MainActor
-private func waitUntil(_ condition: () -> Bool) async {
-    for _ in 0..<100 where !condition() {
-        try? await Task.sleep(for: .milliseconds(10))
     }
 }

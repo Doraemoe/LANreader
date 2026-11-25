@@ -91,8 +91,7 @@ class UITabViewController: UITabBarController, UITabBarControllerDelegate {
         _ tabBarController: UITabBarController,
         didSelect viewController: UIViewController
     ) {
-        guard let tab = TabName(tabIndex: selectedIndex),
-              store.selectedTab != tab else { return }
+        guard let tab = TabName(tabIndex: selectedIndex) else { return }
         store.send(.selectTab(tab))
     }
 }

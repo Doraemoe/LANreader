@@ -37,13 +37,6 @@ import GRDBQuery
             self.readOnlyTags = tankoubonMetadata?.includedArchiveTags ?? ""
         }
 
-        var needsLocalFieldsRefresh: Bool {
-            guard editMode != .active else { return false }
-            return title != (tankoubonMetadata?.name ?? archive.name)
-                || editableTags != (tankoubonMetadata?.tags ?? archive.tags)
-                || readOnlyTags != (tankoubonMetadata?.includedArchiveTags ?? "")
-        }
-
         var isTankoubon: Bool {
             archive.id.isTankoubonArchiveId
         }
@@ -296,9 +289,7 @@ struct ArchiveDetailsV2: View {
         }
         .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
         .onAppear {
-            if store.needsLocalFieldsRefresh {
-                store.send(.loadLocalFields)
-            }
+            store.send(.loadLocalFields)
         }
         .toolbar {
             store.cached ? nil :

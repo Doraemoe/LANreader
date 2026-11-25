@@ -47,6 +47,22 @@ class LANreaderTestCase: XCTestCase {
         }
     }
 
+    @MainActor
+    func waitUntil(
+        timeout: Duration = .seconds(1),
+        file: StaticString = #filePath,
+        line: UInt = #line,
+        _ condition: () -> Bool
+    ) async {
+        let deadline = ContinuousClock.now.advanced(by: timeout)
+        while !condition(), ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        if !condition() {
+            XCTFail("Timed out waiting for condition after \(timeout)", file: file, line: line)
+        }
+    }
+
     private static var settingsDomain: String {
         Bundle.main.bundleIdentifier ?? "com.jif.LANreader.3"
     }

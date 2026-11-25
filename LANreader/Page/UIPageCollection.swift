@@ -342,11 +342,15 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
     private func observeLayoutPreferences() {
         observe { [weak self] in
             guard let self else { return }
-            _ = store.manualDoublePageLayout
-            _ = store.automaticPageLayout
-            _ = store.readDirection
-            _ = store.splitImage
-            _ = store.pages.count
+            let key = LayoutPreferenceKey(
+                manualDoublePageLayout: store.manualDoublePageLayout,
+                automaticPageLayout: store.automaticPageLayout,
+                readDirection: store.readDirection,
+                splitImage: store.splitImage,
+                pageCount: store.pages.count
+            )
+            guard key != lastLayoutPreferenceKey else { return }
+            lastLayoutPreferenceKey = key
             lastReportedReaderSize = nil
             view.setNeedsLayout()
         }
@@ -391,7 +395,7 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
                 .forEach { $0.setFitPageWidth(fitPageWidth) }
         }
         observe { [weak self] in
-            guard let self, !isDetachedFromNavigationStack else { return }
+            guard let self else { return }
             let allowsStampCreation = store.canUseStamps
             let showsStamps = store.shouldShowStamps
             collectionView.visibleCells
@@ -455,9 +459,18 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
         return true
     }
 
+    private struct LayoutPreferenceKey: Equatable {
+        let manualDoublePageLayout: Bool
+        let automaticPageLayout: Bool
+        let readDirection: String
+        let splitImage: Bool
+        let pageCount: Int
+    }
+
     // MARK: - Rotation / Size Change Handling
     private var lastLayoutWidth: CGFloat?
     private var lastReportedReaderSize: CGSize?
+    private var lastLayoutPreferenceKey: LayoutPreferenceKey?
     private var resizeRestoreTarget: ResizeRestoreTarget?
 
     private struct ResizeRestoreTarget {
@@ -1246,7 +1259,7 @@ extension UIPageCollectionController: UICollectionViewDelegateFlowLayout {
         if let pageCell = cell as? UIPageCell {
             Task { [weak self, weak pageCell] in
                 guard let self, !self.isDetachedFromNavigationStack else { return }
-                await pageCell?.store?.send(.load(false)).finish()
+                _ = pageCell?.store?.send(.load(false))
             }
         }
     }

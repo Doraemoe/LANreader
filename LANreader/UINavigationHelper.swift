@@ -52,11 +52,7 @@ func reduceArchiveFlowPath(
         appendDetails(from: readerState, to: &path)
     case let .element(id: readerID, action: .reader(.removeCacheSuccess)):
         guard case let .reader(readerState) = path[id: readerID] else { return }
-        let archiveId = readerState.currentArchiveId
-        if readerState.cached {
-            path.pop(from: readerID)
-        }
-        cleanDeletedArchiveFromStack(archiveId: archiveId, cachedOnly: true, in: &path)
+        cleanDeletedArchiveFromStack(archiveId: readerState.currentArchiveId, cachedOnly: true, in: &path)
     case let .element(id: detailsID, action: .details(.updateLocalTankoubonMetadata(title, tags))):
         syncTankoubonMetadata(from: detailsID, title: title, tags: tags, in: &path)
     case let .element(id: _, action: .details(.tagTapped(tag))):
@@ -166,16 +162,14 @@ private func syncTankoubonMetadata(
 
     for id in path.ids where id != detailsID {
         switch path[id: id] {
-        case var .reader(readerState)
+        case let .reader(readerState)
             where !readerState.cached && readerState.currentTankoubonDetails?.id == tankoubonId:
-            readerState.currentTankoubonDetails?.name = title
-            readerState.currentTankoubonDetails?.tags = tags
-            path[id: id] = .reader(readerState)
-        case var .details(detailsState)
+            path[id: id, case: \.reader]?.currentTankoubonDetails?.name = title
+            path[id: id, case: \.reader]?.currentTankoubonDetails?.tags = tags
+        case let .details(detailsState)
             where !detailsState.cached && detailsState.tankoubonMetadata?.id == tankoubonId:
-            detailsState.tankoubonMetadata?.name = title
-            detailsState.tankoubonMetadata?.tags = tags
-            path[id: id] = .details(detailsState)
+            path[id: id, case: \.details]?.tankoubonMetadata?.name = title
+            path[id: id, case: \.details]?.tankoubonMetadata?.tags = tags
         default:
             break
         }
@@ -187,27 +181,20 @@ private func cleanDeletedArchiveFromStack(
     cachedOnly: Bool,
     in path: inout StackState<ArchiveFlowPath.State>
 ) {
-    var idsToRemove: Set<StackElementID> = []
     for id in path.ids {
         switch path[id: id] {
-        case var .reader(readerState) where readerState.cached == cachedOnly:
+        case let .reader(readerState) where readerState.cached == cachedOnly:
             if readerState.currentArchiveId == archiveId {
-                idsToRemove.insert(id)
+                path[id: id] = nil
             } else if readerState.allArchives[id: archiveId] != nil {
-                readerState.allArchives.remove(id: archiveId)
-                path[id: id] = .reader(readerState)
+                path[id: id, case: \.reader]?.allArchives.remove(id: archiveId)
             }
-        case let .details(detailsState):
-            if detailsState.cached == cachedOnly, detailsState.archive.id == archiveId {
-                idsToRemove.insert(id)
-            }
+        case let .details(detailsState)
+            where detailsState.cached == cachedOnly && detailsState.archive.id == archiveId:
+            path[id: id] = nil
         default:
             break
         }
-    }
-    guard !idsToRemove.isEmpty else { return }
-    for index in path.ids.indices.reversed() where idsToRemove.contains(path.ids[index]) {
-        path.remove(at: index)
     }
 }
 
