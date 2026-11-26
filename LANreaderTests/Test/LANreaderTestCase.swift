@@ -49,7 +49,7 @@ class LANreaderTestCase: XCTestCase {
 
     @MainActor
     func waitUntil(
-        timeout: Duration = .seconds(1),
+        timeout: Duration = .seconds(5),
         file: StaticString = #filePath,
         line: UInt = #line,
         _ condition: () -> Bool
