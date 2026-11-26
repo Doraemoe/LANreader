@@ -503,7 +503,7 @@ final class ArchiveFlowConsistencyTests: LANreaderTestCase {
                 currentArchiveId: archive.id, allArchives: [Shared(value: archive)]
             )
             readerState.$showStamps = Shared(value: true)
-            readerState.stampsSupported = true
+            readerState.stamp.supported = true
             var page = PageFeature.State(archiveId: archive.id, pageId: "/page/1", pageNumber: 1)
             page.imageLoaded = true
             page.stampsLoaded = true

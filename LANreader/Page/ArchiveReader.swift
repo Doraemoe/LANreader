@@ -5,25 +5,6 @@ import Logging
 
 // swiftlint:disable type_body_length file_length
 
-public struct StampCreationTarget: Equatable, Sendable {
-    let sourceArchiveId: String
-    let sourcePageNumber: Int
-    let position: ArchiveStampPosition
-}
-
-public struct StampEditingTarget: Equatable, Sendable {
-    let stampId: String
-    let sourceArchiveId: String
-    let sourcePageNumber: Int
-}
-
-public struct ChapterMutationTarget: Equatable, Sendable {
-    let readerArchiveId: String
-    let readerPageNumber: Int
-    let sourceArchiveId: String
-    let sourcePageNumber: Int
-}
-
 @Reducer public struct ArchiveReaderFeature: Sendable {
     private let logger = Logger(label: "ArchiveReaderFeature")
 
@@ -75,17 +56,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         /// Median aspect ratio of the pages measured so far, used to size pages that have not been
         /// measured yet. Pages within an archive are near-uniform, so this converges almost immediately.
         var estimatedPageAspectRatio: Double = ReaderPageLayout.defaultAspectRatio
-        var stampCreationTarget: StampCreationTarget?
-        var stampComment = ""
-        var stampEditingTarget: StampEditingTarget?
-        var stampEditText = ""
-        var stampRequestInFlight = false
-        var stampsSupported: Bool?
-        var chapterCreationTarget: ChapterMutationTarget?
-        var chapterEditingTarget: ChapterMutationTarget?
-        var chapterTitle = ""
-        var chapterRequestInFlight = false
-        var chapterMutationsSupported: Bool?
+        var stamp = ReaderStampState()
+        var chapter = ReaderChapterState()
 
         var allArchives: IdentifiedArrayOf<Shared<ArchiveItem>> = []
 
@@ -140,6 +112,42 @@ public struct ChapterMutationTarget: Equatable, Sendable {
             }
         }
 
+        var stampScope: ReaderStampFeature.State {
+            get {
+                ReaderStampFeature.State(
+                    cached: cached,
+                    pages: pages.map(ReaderStampPage.init),
+                    stored: stamp
+                )
+            }
+            set {
+                if stamp != newValue.stored {
+                    stamp = newValue.stored
+                }
+            }
+        }
+
+        var chapterScope: ReaderChapterFeature.State {
+            get {
+                ReaderChapterFeature.State(
+                    context: ReaderChapterContext(
+                        archiveId: currentArchiveId,
+                        cached: cached,
+                        pages: pages.map(ReaderChapterPage.init),
+                        currentPageIndex: currentPageIndex,
+                        chapters: chapters,
+                        automaticChapterPages: currentTankoubonDetails?.automaticChapterPages
+                    ),
+                    stored: chapter
+                )
+            }
+            set {
+                if chapter != newValue.stored {
+                    chapter = newValue.stored
+                }
+            }
+        }
+
         var chapters: [ArchiveChapter] {
             guard let currentArchive = allArchives[id: currentArchiveId] else {
                 return []
@@ -148,15 +156,17 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         }
 
         var canAddChapter: Bool {
-            !cached && chapterMutationsSupported != false && currentPage != nil
+            !cached && chapter.mutationsSupported != false && currentPage != nil
         }
 
         var editableChapterPages: Set<Int> {
-            guard !cached, chapterMutationsSupported != false else { return [] }
-            let chapterPages = Set(chapters.map(\.page))
-            guard currentArchiveId.isTankoubonArchiveId else { return chapterPages }
-            guard let currentTankoubonDetails else { return [] }
-            return chapterPages.subtracting(currentTankoubonDetails.automaticChapterPages)
+            ReaderChapterFeature.editableChapterPages(
+                archiveId: currentArchiveId,
+                cached: cached,
+                mutationsSupported: chapter.mutationsSupported,
+                chapters: chapters,
+                automaticChapterPages: currentTankoubonDetails?.automaticChapterPages
+            )
         }
 
         var shouldShowChapterMenu: Bool {
@@ -181,7 +191,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         }
 
         var canUseStamps: Bool {
-            !cached && stampsSupported != false
+            !cached && stamp.supported != false
         }
 
         var shouldShowStamps: Bool {
@@ -199,8 +209,6 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         case setLastAutoPageIndex(Int?)
         case page(IdentifiedActionOf<PageFeature>)
         case extractArchive
-        case stampsSupportResolved(Bool?)
-        case chapterMutationSupportResolved(Bool?)
         case finishExtracting([ReaderExtractedPage], TankoubonDetailsMetadata?)
         case primePageAspectRatios
         case pageAspectRatiosPrimed([Int: Double])
@@ -208,36 +216,9 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         case pageLayoutModeChanged(ReaderPageLayoutMode)
         case readerSizeChanged(CGSize)
         case toggleStampsVisibility
-        case stampCreationRequested(pageId: String, position: ArchiveStampPosition)
-        case stampCommentChanged(String)
-        case cancelStampCreation
-        case confirmStampCreation
-        case stampCreated(
-            target: StampCreationTarget,
-            stamp: ArchiveStamp,
-            refreshedStamps: [ArchiveStamp]?
-        )
-        case stampCreationFailed(target: StampCreationTarget, content: String)
-        case stampEditingRequested(pageId: String, stamp: ArchiveStamp)
-        case stampEditTextChanged(String)
-        case cancelStampEditing
-        case confirmStampEditing
-        case confirmStampDeletion
-        case stampUpdated(target: StampEditingTarget, content: String)
-        case stampUpdateFailed(target: StampEditingTarget, content: String)
-        case stampDeleted(target: StampEditingTarget)
-        case stampDeleteFailed(target: StampEditingTarget, content: String)
+        case stamp(ReaderStampFeature.Action)
         case visiblePageChanged(Int)
-        case chapterCreationRequested
-        case chapterEditingRequested(Int)
-        case cancelChapterMutation
-        case confirmChapterMutation
-        case confirmChapterDeletion
-        case chapterSaved(target: ChapterMutationTarget, title: String)
-        case chapterSaveFailed(target: ChapterMutationTarget, title: String, isEditing: Bool)
-        case chapterDeleted(target: ChapterMutationTarget)
-        case chapterDeleteFailed(target: ChapterMutationTarget, title: String)
-        case chapterSelected(Int)
+        case chapter(ReaderChapterFeature.Action)
         case requestJump(Int, source: ReaderNavigationSource)
         case navigate(ReaderNavigationDirection, source: ReaderNavigationSource)
         case scrollRequestHandled(UUID)
@@ -272,9 +253,6 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         case updateProgress
         case autoPage
         case primePageAspectRatios
-        case stampCreation
-        case stampMutation
-        case chapterCreation
     }
 
     public var body: some ReducerOf<Self> {
@@ -286,6 +264,14 @@ public struct ChapterMutationTarget: Equatable, Sendable {
 
         Scope(\.sliderPreviewScope, action: \.sliderPreview) {
             ReaderSliderPreviewFeature()
+        }
+
+        Scope(\.stampScope, action: \.stamp) {
+            ReaderStampFeature()
+        }
+
+        Scope(\.chapterScope, action: \.chapter) {
+            ReaderChapterFeature()
         }
 
         Reduce<State, Action> { (state: inout State, action: Action) -> Effect<Action> in
@@ -337,8 +323,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                 state.extracting = true
                 let id = state.currentArchiveId
                 return .run { send in
-                    await send(.stampsSupportResolved(await service.supportsStamps))
-                    await send(.chapterMutationSupportResolved(await service.supportsChapterMutations))
+                    await send(.stamp(.supportResolved(await service.supportsStamps)))
+                    await send(.chapter(.mutationSupportResolved(await service.supportsChapterMutations)))
                     let extraction = try await service.extractArchiveForReading(id: id)
 
                     if extraction.pages.isEmpty {
@@ -352,27 +338,6 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                     await send(.setError(error.localizedDescription))
                     await send(.finishExtracting([], nil))
                 }
-            case let .stampsSupportResolved(isSupported):
-                state.stampsSupported = isSupported
-                guard isSupported == false else { return .none }
-                state.stampCreationTarget = nil
-                state.stampComment = ""
-                state.stampEditingTarget = nil
-                state.stampEditText = ""
-                state.stampRequestInFlight = false
-                for pageId in state.pages.ids {
-                    state.pages[id: pageId]?.stampsLoading = false
-                    state.pages[id: pageId]?.stampsLoaded = true
-                }
-                return .none
-            case let .chapterMutationSupportResolved(isSupported):
-                state.chapterMutationsSupported = isSupported
-                guard isSupported == false else { return .none }
-                state.chapterCreationTarget = nil
-                state.chapterEditingTarget = nil
-                state.chapterTitle = ""
-                state.chapterRequestInFlight = false
-                return .cancel(id: CancelId.chapterCreation)
             case let .finishExtracting(pages, tankoubonDetails):
                 state.currentTankoubonDetails = tankoubonDetails
                 if !pages.isEmpty {
@@ -449,359 +414,13 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                 let showsStamps = !state.showStamps
                 state.$showStamps.withLock { $0 = showsStamps }
                 return .none
-            case let .stampCreationRequested(pageId, position):
-                guard state.canUseStamps,
-                      !state.stampRequestInFlight,
-                      state.stampEditingTarget == nil,
-                      let page = state.pages[id: pageId],
-                      !page.cached,
-                      page.imageLoaded else {
-                    return .none
-                }
-                state.stampCreationTarget = StampCreationTarget(
-                    sourceArchiveId: page.sourceArchiveId,
-                    sourcePageNumber: page.sourcePageNumber,
-                    position: position
-                )
-                state.stampComment = ""
+            case let .stamp(.delegate(delegateAction)):
+                return self.handleStampDelegate(delegateAction, state: &state)
+            case .stamp:
                 return .none
-            case let .stampCommentChanged(comment):
-                state.stampComment = comment
-                return .none
-            case .cancelStampCreation:
-                state.stampCreationTarget = nil
-                state.stampComment = ""
-                return .none
-            case .confirmStampCreation:
-                guard let target = state.stampCreationTarget else { return .none }
-                let draft = state.stampComment
-                let content = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !content.isEmpty else { return .none }
-                state.stampCreationTarget = nil
-                state.stampComment = ""
-                state.stampRequestInFlight = true
-                let logContext = "archive=\(target.sourceArchiveId) page=\(target.sourcePageNumber)"
-                return .run { send in
-                    do {
-                        let response = try await service.addStamp(
-                            id: target.sourceArchiveId,
-                            page: target.sourcePageNumber,
-                            content: content,
-                            position: target.position.rawValue
-                        ).value
-                        guard response.success == 1 else {
-                            logger.warning("server rejected stamp creation. \(logContext)")
-                            await send(.stampCreationFailed(target: target, content: draft))
-                            return
-                        }
-                        let stamp = ArchiveStamp(
-                            id: response.stampId,
-                            position: target.position.rawValue,
-                            content: content
-                        )
-                        let refreshedStamps: [ArchiveStamp]?
-                        do {
-                            refreshedStamps = try await service.retrieveStamps(
-                                id: target.sourceArchiveId,
-                                page: target.sourcePageNumber
-                            ).value.result
-                        } catch {
-                            logger.warning(
-                                "failed to refresh stamps after creation. \(logContext) \(error.localizedDescription)"
-                            )
-                            refreshedStamps = nil
-                        }
-                        await send(.stampCreated(
-                            target: target,
-                            stamp: stamp,
-                            refreshedStamps: refreshedStamps
-                        ))
-                    } catch {
-                        logger.warning("failed to create stamp. \(logContext) \(error.localizedDescription)")
-                        await send(.stampCreationFailed(target: target, content: draft))
-                    }
-                }
-                .cancellable(id: CancelId.stampCreation, cancelInFlight: true)
-            case let .stampCreated(target, stamp, refreshedStamps):
-                state.stampRequestInFlight = false
-                let matchingPageIds = state.pages.compactMap { page in
-                    page.sourceArchiveId == target.sourceArchiveId
-                        && page.sourcePageNumber == target.sourcePageNumber
-                        ? page.id
-                        : nil
-                }
-                guard !matchingPageIds.isEmpty else {
-                    return .none
-                }
-                for pageId in matchingPageIds {
-                    if let refreshedStamps {
-                        state.pages[id: pageId]?.stamps = refreshedStamps
-                        state.pages[id: pageId]?.stampsLoaded = true
-                        state.pages[id: pageId]?.stampsLoading = false
-                    } else {
-                        if state.pages[id: pageId]?.stamps.contains(stamp) == false {
-                            state.pages[id: pageId]?.stamps.append(stamp)
-                        }
-                        state.pages[id: pageId]?.stampsLoaded = false
-                        state.pages[id: pageId]?.stampsLoading = false
-                    }
-                }
-                state.$showStamps.withLock { $0 = true }
-                guard refreshedStamps == nil else { return .none }
-                return .merge(matchingPageIds.map { pageId in
-                    .send(.page(.element(id: pageId, action: .loadStamps)))
-                })
-            case let .stampCreationFailed(target, content):
-                state.stampRequestInFlight = false
-                state.stampCreationTarget = target
-                state.stampComment = content
-                state.errorMessage = String(localized: "archive.reader.stamp.add.failed")
-                return .none
-            case let .stampEditingRequested(pageId, stamp):
-                guard state.canUseStamps,
-                      !state.stampRequestInFlight,
-                      state.stampCreationTarget == nil,
-                      let stampId = stamp.id,
-                      !stampId.isEmpty,
-                      let page = state.pages[id: pageId],
-                      !page.cached,
-                      page.stamps.contains(where: { $0.id == stampId }) else {
-                    return .none
-                }
-                state.stampEditingTarget = StampEditingTarget(
-                    stampId: stampId,
-                    sourceArchiveId: page.sourceArchiveId,
-                    sourcePageNumber: page.sourcePageNumber
-                )
-                state.stampEditText = stamp.content
-                return .none
-            case let .stampEditTextChanged(content):
-                state.stampEditText = content
-                return .none
-            case .cancelStampEditing:
-                state.stampEditingTarget = nil
-                state.stampEditText = ""
-                return .none
-            case .confirmStampEditing:
-                guard let target = state.stampEditingTarget else { return .none }
-                let draft = state.stampEditText
-                let content = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !content.isEmpty else { return .none }
-                state.stampEditingTarget = nil
-                state.stampEditText = ""
-                state.stampRequestInFlight = true
-                return .run { send in
-                    do {
-                        let response = try await service.updateStamp(id: target.stampId, content: content).value
-                        guard response.success == 1 else {
-                            logger.warning("server rejected stamp update. stamp=\(target.stampId)")
-                            await send(.stampUpdateFailed(target: target, content: draft))
-                            return
-                        }
-                        await send(.stampUpdated(target: target, content: content))
-                    } catch {
-                        logger.warning("failed to update stamp. stamp=\(target.stampId) \(error.localizedDescription)")
-                        await send(.stampUpdateFailed(target: target, content: draft))
-                    }
-                }
-                .cancellable(id: CancelId.stampMutation, cancelInFlight: true)
-            case .confirmStampDeletion:
-                guard let target = state.stampEditingTarget else { return .none }
-                let content = state.stampEditText
-                state.stampEditingTarget = nil
-                state.stampEditText = ""
-                state.stampRequestInFlight = true
-                return .run { send in
-                    do {
-                        let response = try await service.deleteStamp(id: target.stampId).value
-                        guard response.success == 1 else {
-                            logger.warning("server rejected stamp deletion. stamp=\(target.stampId)")
-                            await send(.stampDeleteFailed(target: target, content: content))
-                            return
-                        }
-                        await send(.stampDeleted(target: target))
-                    } catch {
-                        logger.warning("failed to delete stamp. stamp=\(target.stampId) \(error.localizedDescription)")
-                        await send(.stampDeleteFailed(target: target, content: content))
-                    }
-                }
-                .cancellable(id: CancelId.stampMutation, cancelInFlight: true)
-            case let .stampUpdated(target, content):
-                state.stampRequestInFlight = false
-                for pageId in state.pages.ids {
-                    guard let page = state.pages[id: pageId],
-                          page.sourceArchiveId == target.sourceArchiveId,
-                          page.sourcePageNumber == target.sourcePageNumber,
-                          let index = page.stamps.firstIndex(where: { $0.id == target.stampId }) else {
-                        continue
-                    }
-                    let stamp = page.stamps[index]
-                    state.pages[id: pageId]?.stamps[index] = ArchiveStamp(
-                        id: stamp.id,
-                        position: stamp.position,
-                        content: content
-                    )
-                }
-                return .none
-            case let .stampUpdateFailed(target, content):
-                state.stampRequestInFlight = false
-                state.stampEditingTarget = target
-                state.stampEditText = content
-                state.errorMessage = String(localized: "archive.reader.stamp.update.failed")
-                return .none
-            case let .stampDeleted(target):
-                state.stampRequestInFlight = false
-                for pageId in state.pages.ids {
-                    guard let page = state.pages[id: pageId],
-                          page.sourceArchiveId == target.sourceArchiveId,
-                          page.sourcePageNumber == target.sourcePageNumber else {
-                        continue
-                    }
-                    state.pages[id: pageId]?.stamps.removeAll { $0.id == target.stampId }
-                }
-                return .none
-            case let .stampDeleteFailed(target, content):
-                state.stampRequestInFlight = false
-                state.stampEditingTarget = target
-                state.stampEditText = content
-                state.errorMessage = String(localized: "archive.reader.stamp.delete.failed")
-                return .none
-            case .chapterCreationRequested:
-                guard state.canAddChapter,
-                      !state.chapterRequestInFlight,
-                      state.chapterEditingTarget == nil,
-                      let page = state.currentPage else {
-                    return .none
-                }
-                state.chapterCreationTarget = ChapterMutationTarget(
-                    readerArchiveId: state.currentArchiveId,
-                    readerPageNumber: page.pageNumber,
-                    sourceArchiveId: page.sourceArchiveId,
-                    sourcePageNumber: page.sourcePageNumber
-                )
-                state.chapterTitle = ""
-                return .none
-            case let .chapterEditingRequested(pageNumber):
-                guard state.editableChapterPages.contains(pageNumber),
-                      !state.chapterRequestInFlight,
-                      state.chapterCreationTarget == nil,
-                      let chapter = state.chapters.first(where: { $0.page == pageNumber }),
-                      let page = state.pages.first(where: { $0.pageNumber == pageNumber }) else {
-                    return .none
-                }
-                state.chapterEditingTarget = ChapterMutationTarget(
-                    readerArchiveId: state.currentArchiveId,
-                    readerPageNumber: pageNumber,
-                    sourceArchiveId: page.sourceArchiveId,
-                    sourcePageNumber: page.sourcePageNumber
-                )
-                state.chapterTitle = chapter.name
-                return .none
-            case .cancelChapterMutation:
-                state.chapterCreationTarget = nil
-                state.chapterEditingTarget = nil
-                state.chapterTitle = ""
-                return .none
-            case .confirmChapterMutation:
-                let isEditing = state.chapterEditingTarget != nil
-                guard let target = state.chapterEditingTarget ?? state.chapterCreationTarget else { return .none }
-                let draft = state.chapterTitle
-                let title = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !title.isEmpty else { return .none }
-                state.chapterCreationTarget = nil
-                state.chapterEditingTarget = nil
-                state.chapterTitle = ""
-                state.chapterRequestInFlight = true
-                return .run { send in
-                    do {
-                        let response = try await service.addArchiveChapter(
-                            id: target.sourceArchiveId,
-                            page: target.sourcePageNumber,
-                            title: title
-                        ).value
-                        guard response.success == 1 else {
-                            await send(.chapterSaveFailed(target: target, title: draft, isEditing: isEditing))
-                            return
-                        }
-                        await send(.chapterSaved(target: target, title: title))
-                    } catch {
-                        let source = "\(target.sourceArchiveId):\(target.sourcePageNumber)"
-                        logger.warning("failed to save chapter. source=\(source) \(error.localizedDescription)")
-                        await send(.chapterSaveFailed(target: target, title: draft, isEditing: isEditing))
-                    }
-                }
-                .cancellable(id: CancelId.chapterCreation, cancelInFlight: true)
-            case .confirmChapterDeletion:
-                guard let target = state.chapterEditingTarget else { return .none }
-                let title = state.chapterTitle
-                state.chapterEditingTarget = nil
-                state.chapterTitle = ""
-                state.chapterRequestInFlight = true
-                return .run { send in
-                    do {
-                        let response = try await service.deleteArchiveChapter(
-                            id: target.sourceArchiveId,
-                            page: target.sourcePageNumber
-                        ).value
-                        guard response.success == 1 else {
-                            await send(.chapterDeleteFailed(target: target, title: title))
-                            return
-                        }
-                        await send(.chapterDeleted(target: target))
-                    } catch {
-                        let source = "\(target.sourceArchiveId):\(target.sourcePageNumber)"
-                        logger.warning("failed to delete chapter. source=\(source) \(error.localizedDescription)")
-                        await send(.chapterDeleteFailed(target: target, title: title))
-                    }
-                }
-                .cancellable(id: CancelId.chapterCreation, cancelInFlight: true)
-            case let .chapterSaved(target, title):
-                state.chapterRequestInFlight = false
-                guard let archive = state.allArchives[id: target.readerArchiveId] else { return .none }
-                var chapters = archive.wrappedValue.toc ?? []
-                chapters.removeAll { $0.page == target.readerPageNumber }
-                chapters.append(ArchiveChapter(name: title, page: target.readerPageNumber))
-                chapters.sort { $0.page < $1.page }
-                archive.withLock { $0.toc = chapters }
-                if state.currentTankoubonDetails?.id == target.readerArchiveId {
-                    state.currentTankoubonDetails?.toc = chapters
-                    state.currentTankoubonDetails?.automaticChapterPages.remove(target.readerPageNumber)
-                }
-                return .none
-            case let .chapterSaveFailed(target, title, isEditing):
-                state.chapterRequestInFlight = false
-                if isEditing {
-                    state.chapterEditingTarget = target
-                } else {
-                    state.chapterCreationTarget = target
-                }
-                state.chapterTitle = title
-                state.errorMessage = String(localized: isEditing
-                    ? "archive.reader.chapter.edit.failed"
-                    : "archive.reader.chapter.add.failed")
-                return .none
-            case let .chapterDeleted(target):
-                state.chapterRequestInFlight = false
-                guard let archive = state.allArchives[id: target.readerArchiveId] else { return .none }
-                var chapters = archive.wrappedValue.toc ?? []
-                chapters.removeAll { $0.page == target.readerPageNumber }
-                if state.currentTankoubonDetails?.id == target.readerArchiveId {
-                    if let defaultChapter = state.currentTankoubonDetails?.defaultChapters.first(
-                        where: { $0.page == target.readerPageNumber }
-                    ) {
-                        chapters.append(defaultChapter)
-                        chapters.sort { $0.page < $1.page }
-                        state.currentTankoubonDetails?.automaticChapterPages.insert(defaultChapter.page)
-                    }
-                    state.currentTankoubonDetails?.toc = chapters.isEmpty ? nil : chapters
-                }
-                archive.withLock { $0.toc = chapters.isEmpty ? nil : chapters }
-                return .none
-            case let .chapterDeleteFailed(target, title):
-                state.chapterRequestInFlight = false
-                state.chapterEditingTarget = target
-                state.chapterTitle = title
-                state.errorMessage = String(localized: "archive.reader.chapter.delete.failed")
+            case let .chapter(.delegate(delegateAction)):
+                return self.handleChapterDelegate(delegateAction, state: &state)
+            case .chapter:
                 return .none
             case let .visiblePageChanged(index):
                 guard !state.pages.isEmpty else { return .none }
@@ -853,11 +472,6 @@ public struct ChapterMutationTarget: Equatable, Sendable {
                         _ = await service.clearNewFlag(id: id)
                     }
                 )
-            case let .chapterSelected(pageNumber):
-                guard let pageIndex = state.pages.firstIndex(where: { $0.pageNumber == pageNumber }) else {
-                    return .none
-                }
-                return .send(.requestJump(pageIndex, source: .chapter))
             case let .requestJump(index, source):
                 guard !state.pages.isEmpty else { return .none }
                 let clampedIndex = ReaderPositioning.clampedPageIndex(index, pageCount: state.pages.count)
@@ -952,7 +566,7 @@ public struct ChapterMutationTarget: Equatable, Sendable {
             case .binding:
                 return .none
             case .page(.element(id: _, action: .stampsLoadFailed(endpointUnavailable: true))):
-                return .send(.stampsSupportResolved(false))
+                return .send(.stamp(.supportResolved(false)))
             case let .page(.element(id: id, action: .storedImageResolved(shouldDisplayAsSplitPages))):
                 self.handleSplitResolution(
                     id: id,
@@ -1088,6 +702,155 @@ public struct ChapterMutationTarget: Equatable, Sendable {
             PageFeature()
         }
         .ifLet(\.$alert, action: \.alert)
+    }
+
+    private func handleStampDelegate(
+        _ action: ReaderStampFeature.Action.Delegate,
+        state: inout State
+    ) -> Effect<Action> {
+        switch action {
+        case .unsupportedServerResolved:
+            for pageId in state.pages.ids {
+                state.pages[id: pageId]?.stampsLoading = false
+                state.pages[id: pageId]?.stampsLoaded = true
+            }
+            return .none
+        case let .created(target, stamp, refreshedStamps):
+            return applyCreatedStamp(target: target, stamp: stamp, refreshedStamps: refreshedStamps, state: &state)
+        case let .updated(target, content):
+            applyUpdatedStamp(target: target, content: content, state: &state)
+            return .none
+        case let .deleted(target):
+            applyDeletedStamp(target: target, state: &state)
+            return .none
+        case let .errorOccurred(message):
+            state.errorMessage = message
+            return .none
+        }
+    }
+
+    private func applyCreatedStamp(
+        target: StampCreationTarget,
+        stamp: ArchiveStamp,
+        refreshedStamps: [ArchiveStamp]?,
+        state: inout State
+    ) -> Effect<Action> {
+        let matchingPageIds = state.pages.compactMap { page in
+            page.sourceArchiveId == target.sourceArchiveId
+                && page.sourcePageNumber == target.sourcePageNumber
+                ? page.id
+                : nil
+        }
+        guard !matchingPageIds.isEmpty else { return .none }
+        for pageId in matchingPageIds {
+            if let refreshedStamps {
+                state.pages[id: pageId]?.stamps = refreshedStamps
+                state.pages[id: pageId]?.stampsLoaded = true
+                state.pages[id: pageId]?.stampsLoading = false
+            } else {
+                if state.pages[id: pageId]?.stamps.contains(stamp) == false {
+                    state.pages[id: pageId]?.stamps.append(stamp)
+                }
+                state.pages[id: pageId]?.stampsLoaded = false
+                state.pages[id: pageId]?.stampsLoading = false
+            }
+        }
+        state.$showStamps.withLock { $0 = true }
+        guard refreshedStamps == nil else { return .none }
+        return .merge(matchingPageIds.map { pageId in
+            .send(.page(.element(id: pageId, action: .loadStamps)))
+        })
+    }
+
+    private func applyUpdatedStamp(
+        target: StampEditingTarget,
+        content: String,
+        state: inout State
+    ) {
+        for pageId in state.pages.ids {
+            guard let page = state.pages[id: pageId],
+                  page.sourceArchiveId == target.sourceArchiveId,
+                  page.sourcePageNumber == target.sourcePageNumber,
+                  let index = page.stamps.firstIndex(where: { $0.id == target.stampId }) else {
+                continue
+            }
+            let stamp = page.stamps[index]
+            state.pages[id: pageId]?.stamps[index] = ArchiveStamp(
+                id: stamp.id,
+                position: stamp.position,
+                content: content
+            )
+        }
+    }
+
+    private func applyDeletedStamp(
+        target: StampEditingTarget,
+        state: inout State
+    ) {
+        for pageId in state.pages.ids {
+            guard let page = state.pages[id: pageId],
+                  page.sourceArchiveId == target.sourceArchiveId,
+                  page.sourcePageNumber == target.sourcePageNumber else {
+                continue
+            }
+            state.pages[id: pageId]?.stamps.removeAll { $0.id == target.stampId }
+        }
+    }
+
+    private func handleChapterDelegate(
+        _ action: ReaderChapterFeature.Action.Delegate,
+        state: inout State
+    ) -> Effect<Action> {
+        switch action {
+        case let .jumpRequested(pageIndex):
+            return .send(.requestJump(pageIndex, source: .chapter))
+        case let .saved(target, title):
+            applySavedChapter(target: target, title: title, state: &state)
+            return .none
+        case let .deleted(target):
+            applyDeletedChapter(target: target, state: &state)
+            return .none
+        case let .errorOccurred(message):
+            state.errorMessage = message
+            return .none
+        }
+    }
+
+    private func applySavedChapter(
+        target: ChapterMutationTarget,
+        title: String,
+        state: inout State
+    ) {
+        guard let archive = state.allArchives[id: target.readerArchiveId] else { return }
+        let chapters = ReaderChapterFeature.chaptersBySaving(
+            title,
+            at: target.readerPageNumber,
+            in: archive.wrappedValue.toc ?? []
+        )
+        archive.withLock { $0.toc = chapters }
+        if state.currentTankoubonDetails?.id == target.readerArchiveId {
+            state.currentTankoubonDetails?.toc = chapters
+            state.currentTankoubonDetails?.automaticChapterPages.remove(target.readerPageNumber)
+        }
+    }
+
+    private func applyDeletedChapter(
+        target: ChapterMutationTarget,
+        state: inout State
+    ) {
+        guard let archive = state.allArchives[id: target.readerArchiveId] else { return }
+        let result = ReaderChapterFeature.applyChapterDeletion(
+            at: target.readerPageNumber,
+            chapters: archive.wrappedValue.toc ?? [],
+            defaultChapters: state.currentTankoubonDetails?.defaultChapters ?? []
+        )
+        if state.currentTankoubonDetails?.id == target.readerArchiveId {
+            if let restoredPage = result.restoredDefaultPage {
+                state.currentTankoubonDetails?.automaticChapterPages.insert(restoredPage)
+            }
+            state.currentTankoubonDetails?.toc = result.chapters.isEmpty ? nil : result.chapters
+        }
+        archive.withLock { $0.toc = result.chapters.isEmpty ? nil : result.chapters }
     }
 
     private func preparePendingSplitMode(
@@ -1273,9 +1036,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         self.resetState(state: &state)
         return .merge(
             ReaderSliderPreviewFeature.cancelEffects(),
-            .cancel(id: CancelId.stampCreation),
-            .cancel(id: CancelId.stampMutation),
-            .cancel(id: CancelId.chapterCreation),
+            ReaderStampFeature.cancelEffects(),
+            ReaderChapterFeature.cancelEffects(),
             state.cached ? .send(.loadCached) : .send(.extractArchive)
         )
     }
@@ -1362,15 +1124,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
         state.successMessage = ""
         state.currentTankoubonDetails = nil
         state.estimatedPageAspectRatio = ReaderPageLayout.defaultAspectRatio
-        state.stampCreationTarget = nil
-        state.stampComment = ""
-        state.stampEditingTarget = nil
-        state.stampEditText = ""
-        state.stampRequestInFlight = false
-        state.chapterCreationTarget = nil
-        state.chapterEditingTarget = nil
-        state.chapterTitle = ""
-        state.chapterRequestInFlight = false
+        state.stamp.resetTransientState()
+        state.chapter.resetTransientState()
         state.sliderPreview.resetArchiveState()
     }
 }

@@ -328,7 +328,7 @@ struct ReaderBottomToolbar: View {
         return Menu {
             ForEach(store.chapters) { chapter in
                 Button(chapter.name) {
-                    store.send(.chapterSelected(chapter.page))
+                    store.send(.chapter(.selected(chapter.page)))
                 }
             }
             if !store.chapters.isEmpty, !editablePages.isEmpty || store.canAddChapter {
@@ -338,9 +338,9 @@ struct ReaderBottomToolbar: View {
                 Menu {
                     ForEach(store.chapters.filter { editablePages.contains($0.page) }) { chapter in
                         Button(chapter.name) {
-                            store.send(.chapterEditingRequested(chapter.page))
+                            store.send(.chapter(.editingRequested(chapter.page)))
                         }
-                        .disabled(store.chapterRequestInFlight)
+                        .disabled(store.chapter.requestInFlight)
                     }
                 } label: {
                     Label("archive.reader.chapters.edit", systemImage: "pencil")
@@ -348,11 +348,11 @@ struct ReaderBottomToolbar: View {
             }
             if store.canAddChapter {
                 Button {
-                    store.send(.chapterCreationRequested)
+                    store.send(.chapter(.creationRequested))
                 } label: {
                     Label("archive.reader.chapter.add", systemImage: "plus")
                 }
-                .disabled(store.chapterRequestInFlight)
+                .disabled(store.chapter.requestInFlight)
             }
         } label: {
             readerToolbarGlyph(systemImage: "list.bullet.rectangle", tint: Color.indigo)

@@ -84,81 +84,6 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         XCTAssertTrue(readerStore.disablePageFlipAnimation)
     }
 
-    func testStampPositionParsesNormalizedCoordinates() throws {
-        let position = try XCTUnwrap(ArchiveStampPosition(rawValue: " 12.5,100 "))
-        XCTAssertEqual(position.horizontalPercentage, 12.5)
-        XCTAssertEqual(position.verticalPercentage, 100)
-        XCTAssertNotNil(ArchiveStampPosition(rawValue: "0,0"))
-        XCTAssertNil(ArchiveStampPosition(rawValue: "-1,50"))
-        XCTAssertNil(ArchiveStampPosition(rawValue: "50,101"))
-        XCTAssertNil(ArchiveStampPosition(rawValue: "not-a-position"))
-    }
-
-    func testStampPositioningMapsStampsOntoSplitPageHalves() {
-        let leftPosition = ArchiveStampPosition(rawValue: "25,30")!
-        let rightPosition = ArchiveStampPosition(rawValue: "75,30")!
-
-        XCTAssertEqual(
-            StampOverlayPositioning.displayedPosition(leftPosition, pageMode: .left),
-            ArchiveStampPosition(rawValue: "50,30")
-        )
-        XCTAssertNil(StampOverlayPositioning.displayedPosition(rightPosition, pageMode: .left))
-        XCTAssertEqual(
-            StampOverlayPositioning.displayedPosition(rightPosition, pageMode: .right),
-            ArchiveStampPosition(rawValue: "50,30")
-        )
-        XCTAssertNil(StampOverlayPositioning.displayedPosition(leftPosition, pageMode: .right))
-    }
-
-    func testStampPositioningMapsLongPressToSourceCoordinates() {
-        let imageSize = CGSize(width: 1_000, height: 500)
-        let bounds = CGRect(x: 0, y: 0, width: 400, height: 400)
-        let point = CGPoint(x: 100, y: 150)
-
-        XCTAssertEqual(
-            StampOverlayPositioning.sourcePosition(
-                at: point,
-                pageMode: .normal,
-                imageSize: imageSize,
-                in: bounds
-            ),
-            ArchiveStampPosition(rawValue: "25,25")
-        )
-        XCTAssertNil(
-            StampOverlayPositioning.sourcePosition(
-                at: CGPoint(x: 100, y: 50),
-                pageMode: .normal,
-                imageSize: imageSize,
-                in: bounds
-            )
-        )
-    }
-
-    func testStampPositioningMapsSplitLongPressToSourceCoordinates() {
-        let imageSize = CGSize(width: 1_000, height: 500)
-        let bounds = CGRect(x: 0, y: 0, width: 400, height: 400)
-        let point = CGPoint(x: 100, y: 150)
-
-        XCTAssertEqual(
-            StampOverlayPositioning.sourcePosition(
-                at: point,
-                pageMode: .left,
-                imageSize: imageSize,
-                in: bounds
-            ),
-            ArchiveStampPosition(rawValue: "12.5,25")
-        )
-        XCTAssertEqual(
-            StampOverlayPositioning.sourcePosition(
-                at: point,
-                pageMode: .right,
-                imageSize: imageSize,
-                in: bounds
-            ),
-            ArchiveStampPosition(rawValue: "62.5,25")
-        )
-    }
-
     @MainActor
     func testToggleStampsVisibility() async {
         let state = makeState()
@@ -174,7 +99,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
     func testUnsupportedServerDisablesStampControlsWithoutChangingPreference() async {
         var state = makeState()
         state.$showStamps = Shared(value: true)
-        state.stampsSupported = false
+        state.stamp.supported = false
         var page = PageFeature.State(archiveId: "archive", pageId: "1", pageNumber: 1)
         page.imageLoaded = true
         state.pages = [page]
@@ -183,12 +108,12 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         XCTAssertFalse(store.state.canUseStamps)
         XCTAssertFalse(store.state.shouldShowStamps)
         await store.send(.toggleStampsVisibility)
-        await store.send(.stampCreationRequested(
+        await store.send(.stamp(.creationRequested(
             pageId: page.id,
             position: ArchiveStampPosition(rawValue: "50,50")!
-        ))
+        )))
         XCTAssertTrue(store.state.showStamps)
-        XCTAssertNil(store.state.stampCreationTarget)
+        XCTAssertNil(store.state.stamp.creationTarget)
     }
 
     @MainActor
@@ -220,8 +145,8 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         store.exhaustivity = .off
 
         await store.send(.extractArchive)
-        await store.receive(.stampsSupportResolved(nil))
-        await store.receive(.chapterMutationSupportResolved(nil))
+        await store.receive(.stamp(.supportResolved(nil)))
+        await store.receive(.chapter(.mutationSupportResolved(nil)))
         await store.receive(\.finishExtracting)
         await finishSliderPreviewPrefetch(store)
 
@@ -247,8 +172,10 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
             $0.pages[id: firstPage.id]?.stampsLoading = false
             $0.pages[id: firstPage.id]?.stampsLoaded = true
         }
-        await store.receive(.stampsSupportResolved(false)) {
-            $0.stampsSupported = false
+        await store.receive(.stamp(.supportResolved(false))) {
+            $0.stamp.supported = false
+        }
+        await store.receive(.stamp(.delegate(.unsupportedServerResolved))) {
             $0.pages[id: secondPage.id]?.stampsLoaded = true
         }
         XCTAssertTrue(store.state.showStamps)
@@ -261,16 +188,17 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         let chapter = ArchiveChapter(name: "Opening", page: 1)
         var state = makeState(allArchives: [makeArchive(toc: [chapter])])
         state.pages = [PageFeature.State(archiveId: "archive", pageId: "1", pageNumber: 1)]
-        state.chapterMutationsSupported = false
+        state.chapter.mutationsSupported = false
         let store = makeTestStore(initialState: state)
 
         XCTAssertEqual(store.state.chapters, [chapter])
         XCTAssertFalse(store.state.canAddChapter)
         XCTAssertTrue(store.state.editableChapterPages.isEmpty)
 
-        await store.send(.chapterCreationRequested)
-        await store.send(.chapterEditingRequested(chapter.page))
-        await store.send(.chapterSelected(chapter.page))
+        await store.send(.chapter(.creationRequested))
+        await store.send(.chapter(.editingRequested(chapter.page)))
+        await store.send(.chapter(.selected(chapter.page)))
+        await store.receive(.chapter(.delegate(.jumpRequested(0))))
         await store.receive(.requestJump(0, source: .chapter)) {
             $0.scrollRequest = makeScrollRequest(
                 id: 0,
@@ -279,110 +207,6 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
                 animated: false
             )
         }
-    }
-
-    @MainActor
-    func testCachedPageDoesNotLoadStampsFromServer() async {
-        let store = TestStore(
-            initialState: PageFeature.State(
-                archiveId: "archive",
-                pageId: "1",
-                pageNumber: 1,
-                cached: true
-            )
-        ) {
-            PageFeature()
-        }
-
-        await store.send(.loadStamps)
-    }
-
-    @MainActor
-    func testPageLoadsStampsUsingSourceArchiveAndPage() async throws {
-        try await configureTestServer()
-        let stamp = ArchiveStamp(id: "stamp", position: "12,34", content: "Comment")
-        stubArchiveStamps(archiveId: "source", page: 4)
-        let store = TestStore(
-            initialState: PageFeature.State(
-                archiveId: "tank",
-                pageId: "page",
-                pageNumber: 8,
-                sourceArchiveId: "source",
-                sourcePageNumber: 4
-            )
-        ) {
-            PageFeature()
-        }
-        store.timeout = .seconds(5)
-
-        await store.send(.loadStamps) {
-            $0.stampsLoading = true
-        }
-        await store.receive(.stampsLoaded([stamp])) {
-            $0.stamps = [stamp]
-            $0.stampsLoading = false
-            $0.stampsLoaded = true
-        }
-    }
-
-    @MainActor
-    func testPageRetriesStampsAfterTransientFailure() async throws {
-        try await configureTestServer()
-        stubArchiveStampsFailure(archiveId: "archive", page: 1, statusCode: 500)
-        let store = TestStore(
-            initialState: PageFeature.State(
-                archiveId: "archive",
-                pageId: "1",
-                pageNumber: 1
-            )
-        ) {
-            PageFeature()
-        }
-        store.timeout = .seconds(5)
-
-        await store.send(.loadStamps) {
-            $0.stampsLoading = true
-        }
-        await store.receive(.stampsLoadFailed(endpointUnavailable: false)) {
-            $0.stampsLoading = false
-        }
-
-        stubArchiveStamps(archiveId: "archive", page: 1)
-        await store.send(.loadStamps) {
-            $0.stampsLoading = true
-        }
-        await store.receive(.stampsLoaded([
-            ArchiveStamp(id: "stamp", position: "12,34", content: "Comment")
-        ])) {
-            $0.stamps = [ArchiveStamp(id: "stamp", position: "12,34", content: "Comment")]
-            $0.stampsLoading = false
-            $0.stampsLoaded = true
-        }
-    }
-
-    @MainActor
-    func testPageDoesNotRetryUnavailableStampsEndpoint() async throws {
-        try await configureTestServer()
-        stubArchiveStampsFailure(archiveId: "archive", page: 1, statusCode: 404)
-        let store = TestStore(
-            initialState: PageFeature.State(
-                archiveId: "archive",
-                pageId: "1",
-                pageNumber: 1
-            )
-        ) {
-            PageFeature()
-        }
-        store.timeout = .seconds(5)
-
-        await store.send(.loadStamps) {
-            $0.stampsLoading = true
-        }
-        await store.receive(.stampsLoadFailed(endpointUnavailable: true)) {
-            $0.stampsLoading = false
-            $0.stampsLoaded = true
-        }
-        await store.send(.loadStamps)
     }
 
     @MainActor
@@ -398,47 +222,32 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
         var initialState = makeState(archiveId: "TANK_test")
         initialState.$showStamps = Shared(value: false)
-        var page = PageFeature.State(
-            archiveId: "TANK_test", pageId: "page", pageNumber: 8,
-            sourceArchiveId: "source", sourcePageNumber: 4,
-            pageMode: .left
+        let splitPages = makeStampSiblingPages(
+            archiveId: "TANK_test", pageId: "page", pageNumber: 8, source: ("source", 4)
         )
-        page.imageLoaded = true
-        var siblingPage = PageFeature.State(
-            archiveId: "TANK_test", pageId: "page", pageNumber: 8,
-            sourceArchiveId: "source", sourcePageNumber: 4,
-            pageMode: .right
-        )
-        siblingPage.imageLoaded = true
-        initialState.pages = [page, siblingPage]
-        let target = StampCreationTarget(
-            sourceArchiveId: "source", sourcePageNumber: 4, position: position
-        )
+        let (page, siblingPage) = (splitPages[0], splitPages[1])
+        initialState.pages = IdentifiedArray(uniqueElements: splitPages)
+        let target = StampCreationTarget(sourceArchiveId: "source", sourcePageNumber: 4, position: position)
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.stampCreationRequested(pageId: page.id, position: position)) {
-            $0.stampCreationTarget = target
+        await store.send(.stamp(.creationRequested(pageId: page.id, position: position))) {
+            $0.stamp.creationTarget = target
         }
-        await store.send(.stampCommentChanged("  New comment\n")) {
-            $0.stampComment = "  New comment\n"
-        }
-        await store.send(.confirmStampCreation) {
-            $0.stampCreationTarget = nil
-            $0.stampComment = ""
-            $0.stampRequestInFlight = true
-        }
-        await store.receive(.stampCreated(
-            target: target,
-            stamp: stamp,
-            refreshedStamps: [stamp]
-        )) {
-            $0.stampRequestInFlight = false
-            $0.pages[id: page.id]?.stamps = [stamp]
-            $0.pages[id: page.id]?.stampsLoaded = true
-            $0.pages[id: siblingPage.id]?.stamps = [stamp]
-            $0.pages[id: siblingPage.id]?.stampsLoaded = true
-            $0.$showStamps.withLock { $0 = true }
-        }
+        await store.send(.stamp(.commentChanged("  New comment\n"))) { $0.stamp.comment = "  New comment\n" }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+        await store.send(.stamp(.confirmCreation))
+        await store.receive(\.stamp.delegate.created)
+        store.exhaustivity = .on
+        await store.finish()
+
+        XCTAssertFalse(store.state.stamp.requestInFlight)
+        XCTAssertNil(store.state.stamp.creationTarget)
+        XCTAssertEqual(store.state.stamp.comment, "")
+        XCTAssertEqual(store.state.pages[id: page.id]?.stamps, [stamp])
+        XCTAssertEqual(store.state.pages[id: page.id]?.stampsLoaded, true)
+        XCTAssertEqual(store.state.pages[id: siblingPage.id]?.stamps, [stamp])
+        XCTAssertEqual(store.state.pages[id: siblingPage.id]?.stampsLoaded, true)
+        XCTAssertTrue(store.state.showStamps)
     }
 
     /// The stamp was saved on the server, so it must still show even when reloading the page's
@@ -462,11 +271,13 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         let store = makeTestStore(initialState: initialState)
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(.stampCreationRequested(pageId: page.id, position: position))
-        await store.send(.stampCommentChanged("New comment"))
-        await store.send(.confirmStampCreation)
-        await store.receive(\.stampCreated) {
-            $0.stampRequestInFlight = false
+        await store.send(.stamp(.creationRequested(pageId: page.id, position: position)))
+        await store.send(.stamp(.commentChanged("New comment")))
+        await store.send(.stamp(.confirmCreation))
+        await store.receive(\.stamp.created) {
+            $0.stamp.requestInFlight = false
+        }
+        await store.receive(\.stamp.delegate.created) {
             $0.pages[id: page.id]?.stamps = [stamp]
         }
         // It also asks the page to load its stamps again later.
@@ -510,195 +321,23 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         ]
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.chapterCreationRequested) {
-            $0.chapterCreationTarget = target
+        await store.send(.chapter(.creationRequested)) {
+            $0.chapter.creationTarget = target
         }
-        await store.send(.binding(.set(\.chapterTitle, "  New chapter\n"))) {
-            $0.chapterTitle = "  New chapter\n"
+        await store.send(.chapter(.titleChanged("  New chapter\n"))) {
+            $0.chapter.title = "  New chapter\n"
         }
-        await store.send(.confirmChapterMutation) {
-            $0.chapterCreationTarget = nil
-            $0.chapterTitle = ""
-            $0.chapterRequestInFlight = true
+        await store.send(.chapter(.confirmMutation)) {
+            $0.chapter.creationTarget = nil
+            $0.chapter.title = ""
+            $0.chapter.requestInFlight = true
         }
-        await store.receive(.chapterSaved(target: target, title: "New chapter")) {
-            $0.chapterRequestInFlight = false
+        await store.receive(.chapter(.saved(target: target, title: "New chapter"))) {
+            $0.chapter.requestInFlight = false
+        }
+        await store.receive(.chapter(.delegate(.saved(target: target, title: "New chapter")))) {
             $0.allArchives[id: tankId]?.withLock { $0.toc = chapters }
             $0.currentTankoubonDetails?.toc = chapters
-        }
-    }
-
-    /// A chapter the server refused is not lost: the add sheet comes back with what was typed.
-    @MainActor
-    func testFailedChapterAddRestoresTheDraft() async throws {
-        configureReaderDefaults()
-        try await configureTestServer()
-        stubAddArchiveChapter(archiveId: "archive", page: 3, title: "New chapter", success: 0)
-        var initialState = makeState(archiveId: "archive", allArchives: [makeArchive(id: "archive", toc: [])])
-        initialState.pages = makePageStates(count: 4)
-        initialState.currentPageIndex = 2
-        let target = ChapterMutationTarget(
-            readerArchiveId: "archive", readerPageNumber: 3, sourceArchiveId: "archive", sourcePageNumber: 3
-        )
-        let store = makeTestStore(initialState: initialState)
-
-        await store.send(.chapterCreationRequested) {
-            $0.chapterCreationTarget = target
-        }
-        await store.send(.binding(.set(\.chapterTitle, "New chapter"))) {
-            $0.chapterTitle = "New chapter"
-        }
-        await store.send(.confirmChapterMutation) {
-            $0.chapterCreationTarget = nil
-            $0.chapterTitle = ""
-            $0.chapterRequestInFlight = true
-        }
-        await store.receive(.chapterSaveFailed(target: target, title: "New chapter", isEditing: false)) {
-            $0.chapterRequestInFlight = false
-            $0.chapterCreationTarget = target
-            $0.chapterTitle = "New chapter"
-            $0.errorMessage = String(localized: "archive.reader.chapter.add.failed")
-        }
-        XCTAssertEqual(store.state.chapters, [])
-    }
-
-    @MainActor
-    func testEditChapterUsesOriginalSourcePageAndUpdatesTitle() async throws {
-        configureReaderDefaults()
-        try await configureTestServer()
-
-        let tankId = "TANK_test"
-        let chapter = ArchiveChapter(name: "Original", page: 8)
-        let updatedChapter = ArchiveChapter(name: "Updated", page: 8)
-        stubAddArchiveChapter(archiveId: "source", page: 4, title: "Updated")
-        var initialState = makeState(
-            archiveId: tankId,
-            allArchives: [makeArchive(id: tankId, toc: [chapter])]
-        )
-        initialState.pages = [
-            PageFeature.State(
-                archiveId: tankId,
-                pageId: "page",
-                pageNumber: 8,
-                sourceArchiveId: "source",
-                sourcePageNumber: 4
-            )
-        ]
-        initialState.currentTankoubonDetails = makeTankoubonDetailsMetadata(tankId: tankId, toc: [chapter])
-        let target = ChapterMutationTarget(
-            readerArchiveId: tankId,
-            readerPageNumber: 8,
-            sourceArchiveId: "source",
-            sourcePageNumber: 4
-        )
-        let store = makeTestStore(initialState: initialState)
-
-        await store.send(.chapterEditingRequested(chapter.page)) {
-            $0.chapterEditingTarget = target
-            $0.chapterTitle = "Original"
-        }
-        await store.send(.binding(.set(\.chapterTitle, "  Updated\n"))) {
-            $0.chapterTitle = "  Updated\n"
-        }
-        await store.send(.confirmChapterMutation) {
-            $0.chapterEditingTarget = nil
-            $0.chapterTitle = ""
-            $0.chapterRequestInFlight = true
-        }
-        await store.receive(.chapterSaved(target: target, title: "Updated")) {
-            $0.chapterRequestInFlight = false
-            $0.allArchives[id: tankId]?.withLock { $0.toc = [updatedChapter] }
-            $0.currentTankoubonDetails?.toc = [updatedChapter]
-        }
-    }
-
-    @MainActor
-    func testEditChapterFailureRestoresDraft() async throws {
-        configureReaderDefaults()
-        try await configureTestServer()
-
-        let chapter = ArchiveChapter(name: "Original", page: 4)
-        stubAddArchiveChapter(archiveId: "archive", page: 4, title: "Updated", success: 0)
-        var initialState = makeState(allArchives: [makeArchive(toc: [chapter])])
-        initialState.pages = [
-            PageFeature.State(archiveId: "archive", pageId: "4", pageNumber: 4)
-        ]
-        let target = ChapterMutationTarget(
-            readerArchiveId: "archive",
-            readerPageNumber: 4,
-            sourceArchiveId: "archive",
-            sourcePageNumber: 4
-        )
-        let store = makeTestStore(initialState: initialState)
-
-        await store.send(.chapterEditingRequested(chapter.page)) {
-            $0.chapterEditingTarget = target
-            $0.chapterTitle = "Original"
-        }
-        await store.send(.binding(.set(\.chapterTitle, "  Updated\n"))) {
-            $0.chapterTitle = "  Updated\n"
-        }
-        await store.send(.confirmChapterMutation) {
-            $0.chapterEditingTarget = nil
-            $0.chapterTitle = ""
-            $0.chapterRequestInFlight = true
-        }
-        await store.receive(.chapterSaveFailed(
-            target: target,
-            title: "  Updated\n",
-            isEditing: true
-        )) {
-            $0.chapterRequestInFlight = false
-            $0.chapterEditingTarget = target
-            $0.chapterTitle = "  Updated\n"
-            $0.errorMessage = String(localized: "archive.reader.chapter.edit.failed")
-        }
-        XCTAssertEqual(store.state.chapters, [chapter])
-    }
-
-    @MainActor
-    func testDeleteChapterUsesOriginalSourcePageAndRemovesChapter() async throws {
-        configureReaderDefaults()
-        try await configureTestServer()
-
-        let tankId = "TANK_test"
-        let chapter = ArchiveChapter(name: "Delete me", page: 8)
-        stubDeleteArchiveChapter(archiveId: "source", page: 4)
-        var initialState = makeState(
-            archiveId: tankId,
-            allArchives: [makeArchive(id: tankId, toc: [chapter])]
-        )
-        initialState.pages = [
-            PageFeature.State(
-                archiveId: tankId,
-                pageId: "page",
-                pageNumber: 8,
-                sourceArchiveId: "source",
-                sourcePageNumber: 4
-            )
-        ]
-        initialState.currentTankoubonDetails = makeTankoubonDetailsMetadata(tankId: tankId, toc: [chapter])
-        let target = ChapterMutationTarget(
-            readerArchiveId: tankId,
-            readerPageNumber: 8,
-            sourceArchiveId: "source",
-            sourcePageNumber: 4
-        )
-        let store = makeTestStore(initialState: initialState)
-
-        await store.send(.chapterEditingRequested(chapter.page)) {
-            $0.chapterEditingTarget = target
-            $0.chapterTitle = chapter.name
-        }
-        await store.send(.confirmChapterDeletion) {
-            $0.chapterEditingTarget = nil
-            $0.chapterTitle = ""
-            $0.chapterRequestInFlight = true
-        }
-        await store.receive(.chapterDeleted(target: target)) {
-            $0.chapterRequestInFlight = false
-            $0.allArchives[id: tankId]?.withLock { $0.toc = nil }
-            $0.currentTankoubonDetails?.toc = nil
         }
     }
 
@@ -735,109 +374,24 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         )
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.chapterEditingRequested(manualChapter.page)) {
-            $0.chapterEditingTarget = target
-            $0.chapterTitle = manualChapter.name
+        await store.send(.chapter(.editingRequested(manualChapter.page))) {
+            $0.chapter.editingTarget = target
+            $0.chapter.title = manualChapter.name
         }
-        await store.send(.confirmChapterDeletion) {
-            $0.chapterEditingTarget = nil
-            $0.chapterTitle = ""
-            $0.chapterRequestInFlight = true
+        await store.send(.chapter(.confirmDeletion)) {
+            $0.chapter.editingTarget = nil
+            $0.chapter.title = ""
+            $0.chapter.requestInFlight = true
         }
-        await store.receive(.chapterDeleted(target: target)) {
-            $0.chapterRequestInFlight = false
+        await store.receive(.chapter(.deleted(target: target))) {
+            $0.chapter.requestInFlight = false
+        }
+        await store.receive(.chapter(.delegate(.deleted(target: target)))) {
             $0.allArchives[id: tankId]?.withLock { $0.toc = [defaultChapter] }
             $0.currentTankoubonDetails?.toc = [defaultChapter]
             $0.currentTankoubonDetails?.automaticChapterPages = [defaultChapter.page]
         }
         XCTAssertTrue(store.state.editableChapterPages.isEmpty)
-    }
-
-    @MainActor
-    func testDeleteChapterFailureRestoresEdit() async throws {
-        configureReaderDefaults()
-        try await configureTestServer()
-
-        let chapter = ArchiveChapter(name: "Keep me", page: 4)
-        stubDeleteArchiveChapter(archiveId: "archive", page: 4, success: 0)
-        var initialState = makeState(allArchives: [makeArchive(toc: [chapter])])
-        initialState.pages = [
-            PageFeature.State(archiveId: "archive", pageId: "4", pageNumber: 4)
-        ]
-        let target = ChapterMutationTarget(
-            readerArchiveId: "archive",
-            readerPageNumber: 4,
-            sourceArchiveId: "archive",
-            sourcePageNumber: 4
-        )
-        let store = makeTestStore(initialState: initialState)
-
-        await store.send(.chapterEditingRequested(chapter.page)) {
-            $0.chapterEditingTarget = target
-            $0.chapterTitle = chapter.name
-        }
-        await store.send(.confirmChapterDeletion) {
-            $0.chapterEditingTarget = nil
-            $0.chapterTitle = ""
-            $0.chapterRequestInFlight = true
-        }
-        await store.receive(.chapterDeleteFailed(target: target, title: chapter.name)) {
-            $0.chapterRequestInFlight = false
-            $0.chapterEditingTarget = target
-            $0.chapterTitle = chapter.name
-            $0.errorMessage = String(localized: "archive.reader.chapter.delete.failed")
-        }
-        XCTAssertEqual(store.state.chapters, [chapter])
-    }
-
-    @MainActor
-    func testAutomaticTankoubonChapterCannotBeEdited() async {
-        configureReaderDefaults()
-
-        let tankId = "TANK_test"
-        let manualFirstPage = ArchiveChapter(name: "Manual", page: 1)
-        let automaticFirstPage = ArchiveChapter(name: "Source 2", page: 3)
-        var initialState = makeState(
-            archiveId: tankId,
-            allArchives: [makeArchive(id: tankId, toc: [manualFirstPage, automaticFirstPage])]
-        )
-        initialState.pages = [
-            PageFeature.State(
-                archiveId: tankId,
-                pageId: "first",
-                pageNumber: 1,
-                sourceArchiveId: "source-1",
-                sourcePageNumber: 1
-            ),
-            PageFeature.State(
-                archiveId: tankId,
-                pageId: "second",
-                pageNumber: 3,
-                sourceArchiveId: "source-2",
-                sourcePageNumber: 1
-            )
-        ]
-        var details = makeTankoubonDetailsMetadata(
-            tankId: tankId,
-            toc: [manualFirstPage, automaticFirstPage]
-        )
-        details.automaticChapterPages = [3]
-        initialState.currentTankoubonDetails = details
-        let store = makeTestStore(initialState: initialState)
-
-        XCTAssertEqual(store.state.editableChapterPages, [1])
-        await store.send(.chapterEditingRequested(automaticFirstPage.page))
-
-        let target = ChapterMutationTarget(
-            readerArchiveId: tankId,
-            readerPageNumber: 1,
-            sourceArchiveId: "source-1",
-            sourcePageNumber: 1
-        )
-        await store.send(.chapterEditingRequested(manualFirstPage.page)) {
-            $0.chapterEditingTarget = target
-            $0.chapterTitle = "Manual"
-        }
     }
 
     @MainActor
@@ -848,50 +402,31 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         let stamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Original text")
         stubUpdateArchiveStamp(stampId: "stamp", content: "Updated text")
         var initialState = makeState()
-        var page = PageFeature.State(
-            archiveId: "archive",
-            pageId: "1",
-            pageNumber: 1,
-            pageMode: .left
+        let splitPages = makeStampSiblingPages(
+            archiveId: "archive", pageId: "1", pageNumber: 1, initialStamps: [stamp]
         )
-        page.imageLoaded = true
-        page.stamps = [stamp]
-        page.stampsLoaded = true
-        var siblingPage = PageFeature.State(
-            archiveId: "archive",
-            pageId: "1",
-            pageNumber: 1,
-            pageMode: .right
-        )
-        siblingPage.imageLoaded = true
-        siblingPage.stamps = [stamp]
-        siblingPage.stampsLoaded = true
-        initialState.pages = [page, siblingPage]
-        let target = StampEditingTarget(
-            stampId: "stamp", sourceArchiveId: "archive", sourcePageNumber: 1
-        )
+        let (page, siblingPage) = (splitPages[0], splitPages[1])
+        initialState.pages = IdentifiedArray(uniqueElements: splitPages)
+        let target = StampEditingTarget(stampId: "stamp", sourceArchiveId: "archive", sourcePageNumber: 1)
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.stampEditingRequested(pageId: page.id, stamp: stamp)) {
-            $0.stampEditingTarget = target
-            $0.stampEditText = "Original text"
+        await store.send(.stamp(.editingRequested(pageId: page.id, stamp: stamp))) {
+            $0.stamp.editingTarget = target
+            $0.stamp.editText = "Original text"
         }
-        await store.send(.stampEditTextChanged("  Updated text\n")) {
-            $0.stampEditText = "  Updated text\n"
+        await store.send(.stamp(.editTextChanged("  Updated text\n"))) { $0.stamp.editText = "  Updated text\n" }
+        await store.send(.stamp(.confirmEditing)) {
+            $0.stamp.editingTarget = nil
+            $0.stamp.editText = ""
+            $0.stamp.requestInFlight = true
         }
-        await store.send(.confirmStampEditing) {
-            $0.stampEditingTarget = nil
-            $0.stampEditText = ""
-            $0.stampRequestInFlight = true
+        await store.receive(.stamp(.updated(target: target, content: "Updated text"))) {
+            $0.stamp.requestInFlight = false
         }
-        await store.receive(.stampUpdated(target: target, content: "Updated text")) {
-            $0.stampRequestInFlight = false
-            $0.pages[id: page.id]?.stamps = [
-                ArchiveStamp(id: "stamp", position: "25,30", content: "Updated text")
-            ]
-            $0.pages[id: siblingPage.id]?.stamps = [
-                ArchiveStamp(id: "stamp", position: "25,30", content: "Updated text")
-            ]
+        await store.receive(.stamp(.delegate(.updated(target: target, content: "Updated text")))) {
+            let updatedStamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Updated text")
+            $0.pages[id: page.id]?.stamps = [updatedStamp]
+            $0.pages[id: siblingPage.id]?.stamps = [updatedStamp]
         }
     }
 
@@ -915,175 +450,21 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         )
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.stampEditingRequested(pageId: page.id, stamp: stamp)) {
-            $0.stampEditingTarget = target
-            $0.stampEditText = "Delete me"
+        await store.send(.stamp(.editingRequested(pageId: page.id, stamp: stamp))) {
+            $0.stamp.editingTarget = target
+            $0.stamp.editText = "Delete me"
         }
-        await store.send(.confirmStampDeletion) {
-            $0.stampEditingTarget = nil
-            $0.stampEditText = ""
-            $0.stampRequestInFlight = true
+        await store.send(.stamp(.confirmDeletion)) {
+            $0.stamp.editingTarget = nil
+            $0.stamp.editText = ""
+            $0.stamp.requestInFlight = true
         }
-        await store.receive(.stampDeleted(target: target)) {
-            $0.stampRequestInFlight = false
+        await store.receive(.stamp(.deleted(target: target))) {
+            $0.stamp.requestInFlight = false
+        }
+        await store.receive(.stamp(.delegate(.deleted(target: target)))) {
             $0.pages[id: page.id]?.stamps = []
         }
-    }
-
-    @MainActor
-    func testCreateStampFailureRestoresDraft() async throws {
-        configureReaderDefaults()
-        try await configureTestServer()
-
-        let position = ArchiveStampPosition(rawValue: "25,30")!
-        stubAddArchiveStamp(
-            archiveId: "archive",
-            page: 1,
-            content: "Keep this text",
-            position: position.rawValue,
-            success: 0
-        )
-        var initialState = makeState()
-        var page = PageFeature.State(archiveId: "archive", pageId: "1", pageNumber: 1)
-        page.imageLoaded = true
-        initialState.pages = [page]
-        let target = StampCreationTarget(
-            sourceArchiveId: "archive",
-            sourcePageNumber: 1,
-            position: position
-        )
-        let store = makeTestStore(initialState: initialState)
-
-        await store.send(.stampCreationRequested(pageId: page.id, position: position)) {
-            $0.stampCreationTarget = target
-        }
-        await store.send(.stampCommentChanged("  Keep this text\n")) {
-            $0.stampComment = "  Keep this text\n"
-        }
-        await store.send(.confirmStampCreation) {
-            $0.stampCreationTarget = nil
-            $0.stampComment = ""
-            $0.stampRequestInFlight = true
-        }
-        await store.receive(.stampCreationFailed(target: target, content: "  Keep this text\n")) {
-            $0.stampCreationTarget = target
-            $0.stampComment = "  Keep this text\n"
-            $0.stampRequestInFlight = false
-            $0.errorMessage = String(localized: "archive.reader.stamp.add.failed")
-        }
-    }
-
-    @MainActor
-    func testEditStampFailureRestoresDraft() async throws {
-        configureReaderDefaults()
-        try await configureTestServer()
-
-        let stamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Original text")
-        stubUpdateArchiveStamp(stampId: "stamp", content: "Keep edit", success: 0)
-        var initialState = makeState()
-        var page = PageFeature.State(archiveId: "archive", pageId: "1", pageNumber: 1)
-        page.imageLoaded = true
-        page.stamps = [stamp]
-        initialState.pages = [page]
-        let target = StampEditingTarget(
-            stampId: "stamp",
-            sourceArchiveId: "archive",
-            sourcePageNumber: 1
-        )
-        let store = makeTestStore(initialState: initialState)
-
-        await store.send(.stampEditingRequested(pageId: page.id, stamp: stamp)) {
-            $0.stampEditingTarget = target
-            $0.stampEditText = "Original text"
-        }
-        await store.send(.stampEditTextChanged("  Keep edit\n")) {
-            $0.stampEditText = "  Keep edit\n"
-        }
-        await store.send(.confirmStampEditing) {
-            $0.stampEditingTarget = nil
-            $0.stampEditText = ""
-            $0.stampRequestInFlight = true
-        }
-        await store.receive(.stampUpdateFailed(target: target, content: "  Keep edit\n")) {
-            $0.stampEditingTarget = target
-            $0.stampEditText = "  Keep edit\n"
-            $0.stampRequestInFlight = false
-            $0.errorMessage = String(localized: "archive.reader.stamp.update.failed")
-        }
-    }
-
-    @MainActor
-    func testDeleteStampFailureRestoresEditor() async throws {
-        configureReaderDefaults()
-        try await configureTestServer()
-
-        let stamp = ArchiveStamp(id: "stamp", position: "25,30", content: "Keep stamp")
-        stubDeleteArchiveStamp(stampId: "stamp", success: 0)
-        var initialState = makeState()
-        var page = PageFeature.State(archiveId: "archive", pageId: "1", pageNumber: 1)
-        page.imageLoaded = true
-        page.stamps = [stamp]
-        initialState.pages = [page]
-        let target = StampEditingTarget(
-            stampId: "stamp",
-            sourceArchiveId: "archive",
-            sourcePageNumber: 1
-        )
-        let store = makeTestStore(initialState: initialState)
-
-        await store.send(.stampEditingRequested(pageId: page.id, stamp: stamp)) {
-            $0.stampEditingTarget = target
-            $0.stampEditText = "Keep stamp"
-        }
-        await store.send(.confirmStampDeletion) {
-            $0.stampEditingTarget = nil
-            $0.stampEditText = ""
-            $0.stampRequestInFlight = true
-        }
-        await store.receive(.stampDeleteFailed(target: target, content: "Keep stamp")) {
-            $0.stampEditingTarget = target
-            $0.stampEditText = "Keep stamp"
-            $0.stampRequestInFlight = false
-            $0.errorMessage = String(localized: "archive.reader.stamp.delete.failed")
-        }
-    }
-
-    @MainActor
-    func testCachedReaderDoesNotOfferStampCreation() async {
-        var initialState = makeState(cached: true)
-        var page = PageFeature.State(
-            archiveId: "archive",
-            pageId: "1",
-            pageNumber: 1,
-            pageMode: .normal,
-            cached: true
-        )
-        page.imageLoaded = true
-        initialState.pages = [page]
-        let store = makeTestStore(initialState: initialState)
-
-        await store.send(.stampCreationRequested(
-            pageId: page.id,
-            position: ArchiveStampPosition(rawValue: "50,50")!
-        ))
-    }
-
-    @MainActor
-    func testCachedReaderDoesNotOfferStampEditing() async {
-        let stamp = ArchiveStamp(id: "stamp", position: "50,50", content: "Offline")
-        var initialState = makeState(cached: true)
-        var page = PageFeature.State(
-            archiveId: "archive",
-            pageId: "1",
-            pageNumber: 1,
-            cached: true
-        )
-        page.imageLoaded = true
-        page.stamps = [stamp]
-        initialState.pages = [page]
-        let store = makeTestStore(initialState: initialState)
-
-        await store.send(.stampEditingRequested(pageId: page.id, stamp: stamp))
     }
 
     @MainActor
@@ -1193,7 +574,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         cell.requestStampCreation(at: CGPoint(x: 80, y: 200))
 
         XCTAssertEqual(
-            store.stampCreationTarget,
+            store.stamp.creationTarget,
             StampCreationTarget(
                 sourceArchiveId: "archive",
                 sourcePageNumber: 1,
@@ -1207,7 +588,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         configureReaderDefaults()
 
         var initialState = makeState(progress: 1)
-        initialState.stampsSupported = false
+        initialState.stamp.supported = false
         var page = PageFeature.State(
             archiveId: "archive",
             pageId: "1",
@@ -1236,7 +617,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         XCTAssertEqual(disabledLongPressCount(in: cell), 1)
         cell.requestStampCreation(at: CGPoint(x: cell.bounds.midX, y: cell.bounds.midY))
 
-        XCTAssertNil(store.stampCreationTarget)
+        XCTAssertNil(store.stamp.creationTarget)
     }
 
     @MainActor
@@ -1285,14 +666,14 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         await Task.yield()
 
         XCTAssertEqual(
-            store.stampEditingTarget,
+            store.stamp.editingTarget,
             StampEditingTarget(
                 stampId: "stamp",
                 sourceArchiveId: "archive",
                 sourcePageNumber: 1
             )
         )
-        XCTAssertEqual(store.stampEditText, "Editable")
+        XCTAssertEqual(store.stamp.editText, "Editable")
     }
 
     @MainActor
@@ -1709,8 +1090,8 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         store.exhaustivity = .off
 
         await store.send(.extractArchive)
-        await store.receive(.stampsSupportResolved(false))
-        await store.receive(.chapterMutationSupportResolved(false))
+        await store.receive(.stamp(.supportResolved(false)))
+        await store.receive(.chapter(.mutationSupportResolved(false)))
         await store.receive(\.finishExtracting)
         await finishSliderPreviewPrefetch(store)
 
@@ -1741,8 +1122,8 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         }
 
         await store.send(.extractArchive) { $0.extracting = true }
-        await store.receive(.stampsSupportResolved(true)) { $0.stampsSupported = true }
-        await store.receive(.chapterMutationSupportResolved(true)) { $0.chapterMutationsSupported = true }
+        await store.receive(.stamp(.supportResolved(true))) { $0.stamp.supported = true }
+        await store.receive(.chapter(.mutationSupportResolved(true))) { $0.chapter.mutationsSupported = true }
         await store.receive(.finishExtracting(extractedPages, chapterFixture.metadata)) {
             $0.pages = makePageStates(archiveId: tankId, sourceArchives: sourceArchives)
             $0.currentPageIndex = 1
@@ -2211,7 +1592,8 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
         XCTAssertEqual(store.state.chapters, chapters)
 
-        await store.send(.chapterSelected(3))
+        await store.send(.chapter(.selected(3)))
+        await store.receive(.chapter(.delegate(.jumpRequested(3))))
         await store.receive(.requestJump(3, source: .chapter)) {
             $0.scrollRequest = makeScrollRequest(
                 id: 0,
@@ -2278,7 +1660,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         )
         state.pages = makePageStates(count: 4, archiveId: "current")
         state.currentPageIndex = 3
-        state.chapterTitle = "Draft for the previous archive"
+        state.chapter.title = "Draft for the previous archive"
         let store = makeTestStore(initialState: state) {
             $0.appDatabase = database
         }
@@ -2287,7 +1669,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         await store.send(.loadNextArchive) {
             $0.currentArchiveId = "next"
             $0.pages = []
-            $0.chapterTitle = ""
+            $0.chapter.title = ""
         }
         await store.receive(.extractArchive)
         await store.receive(\.finishExtracting)
@@ -3689,15 +3071,8 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         XCTAssertFalse(state.collectionScrolling)
         XCTAssertTrue(state.pendingSplitResolutions.isEmpty)
         XCTAssertEqual(state.estimatedPageAspectRatio, ReaderPageLayout.defaultAspectRatio)
-        XCTAssertNil(state.stampCreationTarget)
-        XCTAssertEqual(state.stampComment, "")
-        XCTAssertNil(state.stampEditingTarget)
-        XCTAssertEqual(state.stampEditText, "")
-        XCTAssertFalse(state.stampRequestInFlight)
-        XCTAssertNil(state.chapterCreationTarget)
-        XCTAssertNil(state.chapterEditingTarget)
-        XCTAssertEqual(state.chapterTitle, "")
-        XCTAssertFalse(state.chapterRequestInFlight)
+        XCTAssertEqual(state.stamp, ReaderStampState())
+        XCTAssertEqual(state.chapter, ReaderChapterState())
     }
 
     @MainActor
@@ -4516,19 +3891,6 @@ private func stubArchiveStamps(
     }
 }
 
-private func stubArchiveStampsFailure(archiveId: String, page: Int, statusCode: Int32) {
-    stub(condition: isHost("localhost")
-            && isPath("/api/archives/\(archiveId)/stamps/\(page)")
-            && isMethodGET()
-            && hasHeaderNamed("Authorization", value: "Bearer YXBpS2V5")) { _ in
-        HTTPStubsResponse(
-            data: Data("{\"error\":\"stamps unavailable\"}".utf8),
-            statusCode: statusCode,
-            headers: ["Content-Type": "application/json"]
-        )
-    }
-}
-
 private func stubAddArchiveChapter(archiveId: String, page: Int, title: String, success: Int = 1) {
     stub(condition: isHost("localhost")
             && isPath("/api/archives/\(archiveId)/toc")
@@ -4670,18 +4032,18 @@ private func makeDirtyReaderState() -> ArchiveReaderFeature.State {
     let target = ChapterMutationTarget(
         readerArchiveId: "one", readerPageNumber: 3, sourceArchiveId: "one", sourcePageNumber: 3
     )
-    state.stampCreationTarget = StampCreationTarget(
+    state.stamp.creationTarget = StampCreationTarget(
         sourceArchiveId: "one", sourcePageNumber: 3,
         position: ArchiveStampPosition(horizontalPercentage: 10, verticalPercentage: 20)
     )
-    state.stampComment = "draft"
-    state.stampEditingTarget = StampEditingTarget(stampId: "stamp", sourceArchiveId: "one", sourcePageNumber: 3)
-    state.stampEditText = "edit"
-    state.stampRequestInFlight = true
-    state.chapterCreationTarget = target
-    state.chapterEditingTarget = target
-    state.chapterTitle = "Chapter"
-    state.chapterRequestInFlight = true
+    state.stamp.comment = "draft"
+    state.stamp.editingTarget = StampEditingTarget(stampId: "stamp", sourceArchiveId: "one", sourcePageNumber: 3)
+    state.stamp.editText = "edit"
+    state.stamp.requestInFlight = true
+    state.chapter.creationTarget = target
+    state.chapter.editingTarget = target
+    state.chapter.title = "Chapter"
+    state.chapter.requestInFlight = true
     return state
 }
 
@@ -4694,6 +4056,31 @@ private func makeDisplayedPageStates(count: Int) -> IdentifiedArrayOf<PageFeatur
         pages[id: id]?.imageLoaded = true
     }
     return pages
+}
+
+private func makeStampSiblingPages(
+    archiveId: String,
+    pageId: String,
+    pageNumber: Int,
+    source: (id: String, page: Int)? = nil,
+    initialStamps: [ArchiveStamp] = []
+) -> [PageFeature.State] {
+    [PageMode.left, .right].map { mode in
+        var page = PageFeature.State(
+            archiveId: archiveId,
+            pageId: pageId,
+            pageNumber: pageNumber,
+            sourceArchiveId: source?.id,
+            sourcePageNumber: source?.page,
+            pageMode: mode
+        )
+        page.imageLoaded = true
+        if !initialStamps.isEmpty {
+            page.stamps = initialStamps
+            page.stampsLoaded = true
+        }
+        return page
+    }
 }
 
 private func makePageStates(

@@ -68,6 +68,10 @@
 		F1A2B4172FE0000100AAA001 /* ReaderPageCollectionPeripheralTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B4182FE0000100AAA001 /* ReaderPageCollectionPeripheralTests.swift */; };
 		F1A2B4212FE0000100AAA001 /* ReaderSliderPreviewFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B4222FE0000100AAA001 /* ReaderSliderPreviewFeature.swift */; };
 		F1A2B4232FE0000100AAA001 /* ReaderSliderPreviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B4242FE0000100AAA001 /* ReaderSliderPreviewTests.swift */; };
+		F1A2B4312FE0000100AAA001 /* ReaderStampFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B4322FE0000100AAA001 /* ReaderStampFeature.swift */; };
+		F1A2B4332FE0000100AAA001 /* ReaderChapterFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B4342FE0000100AAA001 /* ReaderChapterFeature.swift */; };
+		F1A2B4352FE0000100AAA001 /* ReaderStampTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B4362FE0000100AAA001 /* ReaderStampTests.swift */; };
+		F1A2B4372FE0000100AAA001 /* ReaderChapterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B4382FE0000100AAA001 /* ReaderChapterTests.swift */; };
 		E9623E6D2BF583FD005FD609 /* CacheView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9623E6C2BF583FD005FD609 /* CacheView.swift */; };
 		E9810CD52DDC0641002B047A /* AdvancedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9810CD42DDC063B002B047A /* AdvancedSettings.swift */; };
 		E9810CD72DDC086E002B047A /* TranslationConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9810CD62DDC086A002B047A /* TranslationConfigView.swift */; };
@@ -289,6 +293,10 @@
 		F1A2B4182FE0000100AAA001 /* ReaderPageCollectionPeripheralTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderPageCollectionPeripheralTests.swift; sourceTree = "<group>"; };
 		F1A2B4222FE0000100AAA001 /* ReaderSliderPreviewFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderSliderPreviewFeature.swift; sourceTree = "<group>"; };
 		F1A2B4242FE0000100AAA001 /* ReaderSliderPreviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderSliderPreviewTests.swift; sourceTree = "<group>"; };
+		F1A2B4322FE0000100AAA001 /* ReaderStampFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderStampFeature.swift; sourceTree = "<group>"; };
+		F1A2B4342FE0000100AAA001 /* ReaderChapterFeature.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderChapterFeature.swift; sourceTree = "<group>"; };
+		F1A2B4362FE0000100AAA001 /* ReaderStampTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderStampTests.swift; sourceTree = "<group>"; };
+		F1A2B4382FE0000100AAA001 /* ReaderChapterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderChapterTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -383,6 +391,8 @@
 				F1A2B4042FE0000100AAA001 /* ArchiveReaderView.swift */,
 				F1A2B4062FE0000100AAA001 /* ReaderToolbarView.swift */,
 				F1A2B4222FE0000100AAA001 /* ReaderSliderPreviewFeature.swift */,
+				F1A2B4322FE0000100AAA001 /* ReaderStampFeature.swift */,
+				F1A2B4342FE0000100AAA001 /* ReaderChapterFeature.swift */,
 				E9A8612C2BF31534003534FA /* AutomaticPageConfig.swift */,
 			);
 			path = Page;
@@ -529,6 +539,8 @@
 				F1A2B3F72FD0000100AAA001 /* UploadFeatureTests.swift */,
 				F1A2B4182FE0000100AAA001 /* ReaderPageCollectionPeripheralTests.swift */,
 				F1A2B4242FE0000100AAA001 /* ReaderSliderPreviewTests.swift */,
+				F1A2B4362FE0000100AAA001 /* ReaderStampTests.swift */,
+				F1A2B4382FE0000100AAA001 /* ReaderChapterTests.swift */,
 				7D354CB824F1316E00617F4A /* Info.plist */,
 				4BD820A697A4726B7B747BFD /* Service */,
 				E920C23C307E321B0085F875 /* CategoryFeatureTests.swift */,
@@ -864,6 +876,8 @@
 				F1A2B4132FE0000100AAA001 /* ReaderCollectionLayoutBuilder.swift in Sources */,
 				F1A2B4152FE0000100AAA001 /* UIPageCollectionInput.swift in Sources */,
 				F1A2B4212FE0000100AAA001 /* ReaderSliderPreviewFeature.swift in Sources */,
+				F1A2B4312FE0000100AAA001 /* ReaderStampFeature.swift in Sources */,
+				F1A2B4332FE0000100AAA001 /* ReaderChapterFeature.swift in Sources */,
 				6DA711FA92BEE61419224BB4 /* LoadingView.swift in Sources */,
 			);
 		};
@@ -889,6 +903,8 @@
 				F1A2B3F62FD0000100AAA001 /* UploadFeatureTests.swift in Sources */,
 				F1A2B4172FE0000100AAA001 /* ReaderPageCollectionPeripheralTests.swift in Sources */,
 				F1A2B4232FE0000100AAA001 /* ReaderSliderPreviewTests.swift in Sources */,
+				F1A2B4352FE0000100AAA001 /* ReaderStampTests.swift in Sources */,
+				F1A2B4372FE0000100AAA001 /* ReaderChapterTests.swift in Sources */,
 				F1A2B3D82F90000200AAA001 /* SearchFeatureTests.swift in Sources */,
 				4BD82555CE41A0467CCC6411 /* LANraragiServiceTest.swift in Sources */,
 				9844E88FC2B04B0D828EE6BB /* CacheDownloadTests.swift in Sources */,
@@ -1069,7 +1085,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreader.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 297;
+				CURRENT_PROJECT_VERSION = 298;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1097,7 +1113,7 @@
 				CODE_SIGN_ENTITLEMENTS = LANreader/LANreaderRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 297;
+				CURRENT_PROJECT_VERSION = 298;
 				DEVELOPMENT_ASSET_PATHS = "\"LANreader/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -1171,7 +1187,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 297;
+				CURRENT_PROJECT_VERSION = 298;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
@@ -1201,7 +1217,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 297;
+				CURRENT_PROJECT_VERSION = 298;
 				DEVELOPMENT_TEAM = UUEBW58SA6;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Action/Info.plist;
