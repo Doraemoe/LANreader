@@ -11,7 +11,7 @@ struct ReaderBottomToolbar: View {
             let isRightToLeft = store.resolvedReadDirection == .rightLeft
             let bubbleLayout = ReaderPageLayout.sliderPreviewBubbleLayout(readerSize: readerSize)
             let sliderHorizontalPadding = ReaderToolbarMetrics.sliderHorizontalPadding
-            let sliderDisplayIndex = store.sliderDraftIndex ?? store.currentPageIndex
+            let sliderDisplayIndex = store.sliderPreview.draftIndex ?? store.currentPageIndex
             let sliderDisplayValue = Double(sliderDisplayIndex)
             let displayIndex = ReaderPositioning.clampedPageIndex(
                 sliderDisplayIndex,
@@ -27,7 +27,7 @@ struct ReaderBottomToolbar: View {
             )
 
             VStack(spacing: ReaderToolbarMetrics.previewBottomSpacing) {
-                if store.sliderPreviewVisible {
+                if store.sliderPreview.previewVisible {
                     sliderPreviewRow(
                         displayIndex: displayIndex,
                         sliderContext: sliderContext,
@@ -70,8 +70,8 @@ struct ReaderBottomToolbar: View {
             )
 
             SliderPreviewBubble(
-                imageURL: store.sliderPreviewImageURL,
-                loading: store.sliderPreviewLoading,
+                imageURL: store.sliderPreview.previewImageURL,
+                loading: store.sliderPreview.previewLoading,
                 imageHeight: bubbleLayout.imageHeight
             )
             .frame(width: bubbleLayout.width)
@@ -298,8 +298,8 @@ struct ReaderBottomToolbar: View {
                     .gesture(
                         DragGesture(minimumDistance: 0)
                             .onChanged { value in
-                                if !store.sliderDragging {
-                                    store.send(.sliderDragStarted)
+                                if !store.sliderPreview.dragging {
+                                    store.send(.sliderPreview(.dragStarted))
                                 }
                                 sendSliderDragChanged(
                                     locationX: value.location.x,
@@ -313,7 +313,7 @@ struct ReaderBottomToolbar: View {
                                     sliderWidth: sliderWidth,
                                     context: context
                                 )
-                                store.send(.sliderDragEnded)
+                                store.send(.sliderPreview(.dragEnded))
                             }
                     )
             }
@@ -369,7 +369,7 @@ struct ReaderBottomToolbar: View {
         context: ReaderSliderContext
     ) {
         store.send(
-            .sliderDragChanged(
+            .sliderPreview(.dragChanged(
                 SliderPreviewPositioning.pageIndex(
                     at: locationX,
                     sliderWidth: sliderWidth,
@@ -377,7 +377,7 @@ struct ReaderBottomToolbar: View {
                     sliderMaxIndex: context.maxIndex,
                     isRightToLeft: context.isRightToLeft
                 )
-            )
+            ))
         )
     }
 }
