@@ -31,42 +31,45 @@ struct ArchiveReader: View {
             $store.scope(\.$alert, action: \.alert)
         )
         .alert(
-            store.chapterEditingTarget == nil
+            store.chapter.editingTarget == nil
                 ? "archive.reader.chapter.add"
                 : "archive.reader.chapter.edit.title",
             isPresented: Binding(
-                get: { store.chapterCreationTarget != nil || store.chapterEditingTarget != nil },
+                get: { store.chapter.creationTarget != nil || store.chapter.editingTarget != nil },
                 set: { isPresented in
                     if !isPresented {
-                        store.send(.cancelChapterMutation)
+                        store.send(.chapter(.cancelMutation))
                     }
                 }
             )
         ) {
             TextField(
                 "archive.reader.chapter.title.placeholder",
-                text: $store.chapterTitle
+                text: Binding(
+                    get: { store.chapter.title },
+                    set: { store.send(.chapter(.titleChanged($0))) }
+                )
             )
-            if store.chapterEditingTarget != nil {
+            if store.chapter.editingTarget != nil {
                 Button("delete", role: .destructive) {
-                    store.send(.confirmChapterDeletion)
+                    store.send(.chapter(.confirmDeletion))
                 }
             }
             Button("cancel", role: .cancel) {
-                store.send(.cancelChapterMutation)
+                store.send(.chapter(.cancelMutation))
             }
             Button("save") {
-                store.send(.confirmChapterMutation)
+                store.send(.chapter(.confirmMutation))
             }
-            .disabled(store.chapterTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(store.chapter.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .alert(
             "archive.reader.stamp.add.title",
             isPresented: Binding(
-                get: { store.stampCreationTarget != nil },
+                get: { store.stamp.creationTarget != nil },
                 set: { isPresented in
-                    if !isPresented, store.stampCreationTarget != nil {
-                        store.send(.cancelStampCreation)
+                    if !isPresented, store.stamp.creationTarget != nil {
+                        store.send(.stamp(.cancelCreation))
                     }
                 }
             )
@@ -74,25 +77,25 @@ struct ArchiveReader: View {
             TextField(
                 "archive.reader.stamp.text.placeholder",
                 text: Binding(
-                    get: { store.stampComment },
-                    set: { store.send(.stampCommentChanged($0)) }
+                    get: { store.stamp.comment },
+                    set: { store.send(.stamp(.commentChanged($0))) }
                 )
             )
             Button("cancel", role: .cancel) {
-                store.send(.cancelStampCreation)
+                store.send(.stamp(.cancelCreation))
             }
             Button("save") {
-                store.send(.confirmStampCreation)
+                store.send(.stamp(.confirmCreation))
             }
-            .disabled(store.stampComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(store.stamp.comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .alert(
             "archive.reader.stamp.edit.title",
             isPresented: Binding(
-                get: { store.stampEditingTarget != nil },
+                get: { store.stamp.editingTarget != nil },
                 set: { isPresented in
-                    if !isPresented, store.stampEditingTarget != nil {
-                        store.send(.cancelStampEditing)
+                    if !isPresented, store.stamp.editingTarget != nil {
+                        store.send(.stamp(.cancelEditing))
                     }
                 }
             )
@@ -100,20 +103,20 @@ struct ArchiveReader: View {
             TextField(
                 "archive.reader.stamp.text.placeholder",
                 text: Binding(
-                    get: { store.stampEditText },
-                    set: { store.send(.stampEditTextChanged($0)) }
+                    get: { store.stamp.editText },
+                    set: { store.send(.stamp(.editTextChanged($0))) }
                 )
             )
             Button("delete", role: .destructive) {
-                store.send(.confirmStampDeletion)
+                store.send(.stamp(.confirmDeletion))
             }
             Button("cancel", role: .cancel) {
-                store.send(.cancelStampEditing)
+                store.send(.stamp(.cancelEditing))
             }
             Button("save") {
-                store.send(.confirmStampEditing)
+                store.send(.stamp(.confirmEditing))
             }
-            .disabled(store.stampEditText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(store.stamp.editText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .overlay(content: {
             store.showAutoPageConfig ? AutomaticPageConfig(

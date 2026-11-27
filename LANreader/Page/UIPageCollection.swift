@@ -125,10 +125,10 @@ class UIPageCollectionController: UIViewController, UICollectionViewDelegate {
                     fitPageWidth: self.usesFitPageWidth,
                     showsStamps: self.store.shouldShowStamps,
                     onCreateStamp: { [weak self] position in
-                        self?.store.send(.stampCreationRequested(pageId: pageId, position: position))
+                        self?.store.send(.stamp(.creationRequested(pageId: pageId, position: position)))
                     },
                     onEditStamp: { [weak self] stamp in
-                        self?.store.send(.stampEditingRequested(pageId: pageId, stamp: stamp))
+                        self?.store.send(.stamp(.editingRequested(pageId: pageId, stamp: stamp)))
                     }
                 )
             }
