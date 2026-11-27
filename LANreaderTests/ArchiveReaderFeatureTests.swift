@@ -109,7 +109,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         XCTAssertFalse(store.state.shouldShowStamps)
         await store.send(.toggleStampsVisibility)
         await store.send(.stamp(.creationRequested(
-            pageId: page.id,
+            page: ReaderStampPage(page: page),
             position: ArchiveStampPosition(rawValue: "50,50")!
         )))
         XCTAssertTrue(store.state.showStamps)
@@ -230,7 +230,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         let target = StampCreationTarget(sourceArchiveId: "source", sourcePageNumber: 4, position: position)
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.stamp(.creationRequested(pageId: page.id, position: position))) {
+        await store.send(.stamp(.creationRequested(page: ReaderStampPage(page: page), position: position))) {
             $0.stamp.creationTarget = target
         }
         await store.send(.stamp(.commentChanged("  New comment\n"))) { $0.stamp.comment = "  New comment\n" }
@@ -271,7 +271,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         let store = makeTestStore(initialState: initialState)
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(.stamp(.creationRequested(pageId: page.id, position: position)))
+        await store.send(.stamp(.creationRequested(page: ReaderStampPage(page: page), position: position)))
         await store.send(.stamp(.commentChanged("New comment")))
         await store.send(.stamp(.confirmCreation))
         await store.receive(\.stamp.created) {
@@ -410,7 +410,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         let target = StampEditingTarget(stampId: "stamp", sourceArchiveId: "archive", sourcePageNumber: 1)
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.stamp(.editingRequested(pageId: page.id, stamp: stamp))) {
+        await store.send(.stamp(.editingRequested(page: ReaderStampPage(page: page), stamp: stamp))) {
             $0.stamp.editingTarget = target
             $0.stamp.editText = "Original text"
         }
@@ -450,7 +450,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         )
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.stamp(.editingRequested(pageId: page.id, stamp: stamp))) {
+        await store.send(.stamp(.editingRequested(page: ReaderStampPage(page: page), stamp: stamp))) {
             $0.stamp.editingTarget = target
             $0.stamp.editText = "Delete me"
         }
@@ -3071,7 +3071,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         XCTAssertFalse(state.collectionScrolling)
         XCTAssertTrue(state.pendingSplitResolutions.isEmpty)
         XCTAssertEqual(state.estimatedPageAspectRatio, ReaderPageLayout.defaultAspectRatio)
-        XCTAssertEqual(state.stamp, ReaderStampState())
+        XCTAssertEqual(state.stamp, ReaderStampFeature.State())
         XCTAssertEqual(state.chapter, ReaderChapterState())
     }
 

@@ -30,18 +30,18 @@ final class ReaderChapterTests: LANreaderTestCase {
         let store = makeChapterTestStore(initialState: ReaderChapterFeature.State(context: context))
 
         await store.send(.creationRequested) {
-            $0.creationTarget = target
+            $0.stored.creationTarget = target
         }
         await store.send(.titleChanged("  New chapter\n")) {
-            $0.title = "  New chapter\n"
+            $0.stored.title = "  New chapter\n"
         }
         await store.send(.confirmMutation) {
-            $0.creationTarget = nil
-            $0.title = ""
-            $0.requestInFlight = true
+            $0.stored.creationTarget = nil
+            $0.stored.title = ""
+            $0.stored.requestInFlight = true
         }
         await store.receive(.saved(target: target, title: "New chapter")) {
-            $0.requestInFlight = false
+            $0.stored.requestInFlight = false
         }
         await store.receive(.delegate(.saved(target: target, title: "New chapter")))
     }
@@ -64,20 +64,20 @@ final class ReaderChapterTests: LANreaderTestCase {
         let store = makeChapterTestStore(initialState: ReaderChapterFeature.State(context: context))
 
         await store.send(.creationRequested) {
-            $0.creationTarget = target
+            $0.stored.creationTarget = target
         }
         await store.send(.titleChanged("New chapter")) {
-            $0.title = "New chapter"
+            $0.stored.title = "New chapter"
         }
         await store.send(.confirmMutation) {
-            $0.creationTarget = nil
-            $0.title = ""
-            $0.requestInFlight = true
+            $0.stored.creationTarget = nil
+            $0.stored.title = ""
+            $0.stored.requestInFlight = true
         }
         await store.receive(.saveFailed(target: target, title: "New chapter", isEditing: false)) {
-            $0.requestInFlight = false
-            $0.creationTarget = target
-            $0.title = "New chapter"
+            $0.stored.requestInFlight = false
+            $0.stored.creationTarget = target
+            $0.stored.title = "New chapter"
         }
         await store.receive(.delegate(.errorOccurred(String(localized: "archive.reader.chapter.add.failed"))))
     }
@@ -103,19 +103,19 @@ final class ReaderChapterTests: LANreaderTestCase {
         let store = makeChapterTestStore(initialState: ReaderChapterFeature.State(context: context))
 
         await store.send(.editingRequested(chapter.page)) {
-            $0.editingTarget = target
-            $0.title = "Original"
+            $0.stored.editingTarget = target
+            $0.stored.title = "Original"
         }
         await store.send(.titleChanged("  Updated\n")) {
-            $0.title = "  Updated\n"
+            $0.stored.title = "  Updated\n"
         }
         await store.send(.confirmMutation) {
-            $0.editingTarget = nil
-            $0.title = ""
-            $0.requestInFlight = true
+            $0.stored.editingTarget = nil
+            $0.stored.title = ""
+            $0.stored.requestInFlight = true
         }
         await store.receive(.saved(target: target, title: "Updated")) {
-            $0.requestInFlight = false
+            $0.stored.requestInFlight = false
         }
         await store.receive(.delegate(.saved(target: target, title: "Updated")))
     }
@@ -139,21 +139,21 @@ final class ReaderChapterTests: LANreaderTestCase {
         let store = makeChapterTestStore(initialState: ReaderChapterFeature.State(context: context))
 
         await store.send(.editingRequested(chapter.page)) {
-            $0.editingTarget = target
-            $0.title = "Original"
+            $0.stored.editingTarget = target
+            $0.stored.title = "Original"
         }
         await store.send(.titleChanged("  Updated\n")) {
-            $0.title = "  Updated\n"
+            $0.stored.title = "  Updated\n"
         }
         await store.send(.confirmMutation) {
-            $0.editingTarget = nil
-            $0.title = ""
-            $0.requestInFlight = true
+            $0.stored.editingTarget = nil
+            $0.stored.title = ""
+            $0.stored.requestInFlight = true
         }
         await store.receive(.saveFailed(target: target, title: "  Updated\n", isEditing: true)) {
-            $0.requestInFlight = false
-            $0.editingTarget = target
-            $0.title = "  Updated\n"
+            $0.stored.requestInFlight = false
+            $0.stored.editingTarget = target
+            $0.stored.title = "  Updated\n"
         }
         await store.receive(.delegate(.errorOccurred(String(localized: "archive.reader.chapter.edit.failed"))))
     }
@@ -179,16 +179,16 @@ final class ReaderChapterTests: LANreaderTestCase {
         let store = makeChapterTestStore(initialState: ReaderChapterFeature.State(context: context))
 
         await store.send(.editingRequested(chapter.page)) {
-            $0.editingTarget = target
-            $0.title = chapter.name
+            $0.stored.editingTarget = target
+            $0.stored.title = chapter.name
         }
         await store.send(.confirmDeletion) {
-            $0.editingTarget = nil
-            $0.title = ""
-            $0.requestInFlight = true
+            $0.stored.editingTarget = nil
+            $0.stored.title = ""
+            $0.stored.requestInFlight = true
         }
         await store.receive(.deleted(target: target)) {
-            $0.requestInFlight = false
+            $0.stored.requestInFlight = false
         }
         await store.receive(.delegate(.deleted(target: target)))
     }
@@ -212,18 +212,18 @@ final class ReaderChapterTests: LANreaderTestCase {
         let store = makeChapterTestStore(initialState: ReaderChapterFeature.State(context: context))
 
         await store.send(.editingRequested(chapter.page)) {
-            $0.editingTarget = target
-            $0.title = chapter.name
+            $0.stored.editingTarget = target
+            $0.stored.title = chapter.name
         }
         await store.send(.confirmDeletion) {
-            $0.editingTarget = nil
-            $0.title = ""
-            $0.requestInFlight = true
+            $0.stored.editingTarget = nil
+            $0.stored.title = ""
+            $0.stored.requestInFlight = true
         }
         await store.receive(.deleteFailed(target: target, title: chapter.name)) {
-            $0.requestInFlight = false
-            $0.editingTarget = target
-            $0.title = chapter.name
+            $0.stored.requestInFlight = false
+            $0.stored.editingTarget = target
+            $0.stored.title = chapter.name
         }
         await store.receive(.delegate(.errorOccurred(String(localized: "archive.reader.chapter.delete.failed"))))
     }
@@ -254,8 +254,8 @@ final class ReaderChapterTests: LANreaderTestCase {
             sourcePageNumber: 1
         )
         await store.send(.editingRequested(manualFirstPage.page)) {
-            $0.editingTarget = target
-            $0.title = "Manual"
+            $0.stored.editingTarget = target
+            $0.stored.title = "Manual"
         }
     }
 

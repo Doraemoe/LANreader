@@ -98,20 +98,7 @@ private struct SliderPreviewTarget: Sendable {
         var cached = false
         var pages: [ReaderSliderPreviewPage] = []
         var currentPageIndex = 0
-        var draftIndex: Int?
-        var dragging = false
-        var previewVisible = false
-        var previewPageIndex: Int?
-        var previewImageURL: URL?
-        var previewLoading = false
-        var thumbnailJobsById: [Int: String] = [:]
-        var readyThumbnailPages: Set<Int> = []
-        /// Keyed by reader page number. A page with no entry has not been tried yet.
-        var previewStatus: [Int: SliderPreviewStatus] = [:]
-        /// Set once Low Data Mode blocks a background preview download. After that, only the page
-        /// under the slider is fetched.
-        var prefetchStopped = false
-        var prefetchInFlight = false
+        var stored = ReaderSliderPreviewState()
 
         public init(
             archiveId: String = "",
@@ -124,46 +111,11 @@ private struct SliderPreviewTarget: Sendable {
             self.cached = cached
             self.pages = pages
             self.currentPageIndex = currentPageIndex
-            self.draftIndex = stored.draftIndex
-            self.dragging = stored.dragging
-            self.previewVisible = stored.previewVisible
-            self.previewPageIndex = stored.previewPageIndex
-            self.previewImageURL = stored.previewImageURL
-            self.previewLoading = stored.previewLoading
-            self.thumbnailJobsById = stored.thumbnailJobsById
-            self.readyThumbnailPages = stored.readyThumbnailPages
-            self.previewStatus = stored.previewStatus
-            self.prefetchStopped = stored.prefetchStopped
-            self.prefetchInFlight = stored.prefetchInFlight
+            self.stored = stored
         }
 
         var archivePageCount: Int {
             Set(pages.map(\.pageNumber)).count
-        }
-
-        var stored: ReaderSliderPreviewState {
-            var snapshot = ReaderSliderPreviewState()
-            snapshot.draftIndex = draftIndex
-            snapshot.dragging = dragging
-            snapshot.previewVisible = previewVisible
-            snapshot.previewPageIndex = previewPageIndex
-            snapshot.previewImageURL = previewImageURL
-            snapshot.previewLoading = previewLoading
-            snapshot.thumbnailJobsById = thumbnailJobsById
-            snapshot.readyThumbnailPages = readyThumbnailPages
-            snapshot.previewStatus = previewStatus
-            snapshot.prefetchStopped = prefetchStopped
-            snapshot.prefetchInFlight = prefetchInFlight
-            return snapshot
-        }
-
-        mutating func resetDisplayState() {
-            draftIndex = nil
-            dragging = false
-            previewVisible = false
-            previewPageIndex = nil
-            previewImageURL = nil
-            previewLoading = false
         }
     }
 
@@ -237,7 +189,7 @@ private extension ReaderSliderPreviewFeature {
         case let .thumbnailJobStatus(jobId, archiveId, status):
             return handleThumbnailJobStatus(jobId: jobId, archiveId: archiveId, status: status, state: &state)
         case let .thumbnailPollingFailed(jobId, _):
-            state.thumbnailJobsById[jobId] = nil
+            state.stored.thumbnailJobsById[jobId] = nil
             return advancePreviews(state: &state)
         case .dragStarted:
             return handleDragStarted(state: &state)
@@ -248,7 +200,7 @@ private extension ReaderSliderPreviewFeature {
         case let .previewFetched(pageNumber, result):
             return handlePreviewFetched(pageNumber: pageNumber, result: result, state: &state)
         case .prefetchFinished:
-            state.prefetchInFlight = false
+            state.stored.prefetchInFlight = false
             return startPrefetchIfNeeded(state: &state)
         case .startPrefetchIfNeeded:
             return startPrefetchIfNeeded(state: &state)
@@ -259,8 +211,8 @@ private extension ReaderSliderPreviewFeature {
 
     func prepareThumbnails(state: inout State) -> Effect<Action> {
         guard !state.cached, !state.pages.isEmpty else { return .none }
-        guard state.thumbnailJobsById.isEmpty,
-              state.readyThumbnailPages.count < state.archivePageCount else {
+        guard state.stored.thumbnailJobsById.isEmpty,
+              state.stored.readyThumbnailPages.count < state.archivePageCount else {
             return .none
         }
 
@@ -284,18 +236,18 @@ private extension ReaderSliderPreviewFeature {
         _ results: [SliderPreviewThumbnailQueueResult],
         state: inout State
     ) -> Effect<Action> {
-        state.thumbnailJobsById = [:]
+        state.stored.thumbnailJobsById = [:]
         var effect: Effect<Action> = .none
 
         for result in results {
             if let jobId = result.response.job {
-                state.thumbnailJobsById[jobId] = result.archiveId
+                state.stored.thumbnailJobsById[jobId] = result.archiveId
                 effect = .merge(
                     effect,
                     .send(.pollThumbnailJob(jobId, archiveId: result.archiveId))
                 )
             } else {
-                state.readyThumbnailPages.formUnion(
+                state.stored.readyThumbnailPages.formUnion(
                     Self.readerPageNumbers(in: state.pages, sourceArchiveId: result.archiveId)
                 )
             }
@@ -326,7 +278,7 @@ private extension ReaderSliderPreviewFeature {
         status: BasicJobStatus,
         state: inout State
     ) -> Effect<Action> {
-        state.readyThumbnailPages.formUnion(
+        state.stored.readyThumbnailPages.formUnion(
             Self.readerPageNumbers(
                 in: state.pages,
                 sourceArchiveId: archiveId,
@@ -334,44 +286,44 @@ private extension ReaderSliderPreviewFeature {
             )
         )
         if status.state == "finished" {
-            state.readyThumbnailPages.formUnion(
+            state.stored.readyThumbnailPages.formUnion(
                 Self.readerPageNumbers(in: state.pages, sourceArchiveId: archiveId)
             )
-            state.thumbnailJobsById[jobId] = nil
+            state.stored.thumbnailJobsById[jobId] = nil
         } else if status.state == "failed" {
-            state.thumbnailJobsById[jobId] = nil
+            state.stored.thumbnailJobsById[jobId] = nil
         }
         return advancePreviews(state: &state)
     }
 
     func handleDragStarted(state: inout State) -> Effect<Action> {
-        state.dragging = true
+        state.stored.dragging = true
         let previewIndex = ReaderPositioning.clampedPageIndex(
-            state.draftIndex ?? state.currentPageIndex,
+            state.stored.draftIndex ?? state.currentPageIndex,
             pageCount: state.pages.count
         )
-        state.previewVisible = !state.pages.isEmpty
+        state.stored.previewVisible = !state.pages.isEmpty
         guard !state.pages.isEmpty else { return .none }
         return updatePreview(state: &state, pageIndex: previewIndex)
     }
 
     func handleDragChanged(_ newValue: Int, state: inout State) -> Effect<Action> {
-        guard state.dragging, !state.pages.isEmpty else { return .none }
+        guard state.stored.dragging, !state.pages.isEmpty else { return .none }
         let targetIndex = ReaderPositioning.clampedPageIndex(newValue, pageCount: state.pages.count)
         return updatePreview(state: &state, pageIndex: targetIndex)
     }
 
     func handleDragEnded(state: inout State) -> Effect<Action> {
-        state.dragging = false
+        state.stored.dragging = false
         guard !state.pages.isEmpty else {
-            state.resetDisplayState()
+            state.stored.resetDisplayState()
             return .none
         }
         let targetIndex = ReaderPositioning.clampedPageIndex(
-            state.draftIndex ?? state.currentPageIndex,
+            state.stored.draftIndex ?? state.currentPageIndex,
             pageCount: state.pages.count
         )
-        state.resetDisplayState()
+        state.stored.resetDisplayState()
         return .send(.delegate(.jumpRequested(targetIndex)))
     }
 
@@ -385,27 +337,27 @@ private extension ReaderSliderPreviewFeature {
         }
         switch result {
         case .stored:
-            state.previewStatus[pageNumber] = .stored
+            state.stored.previewStatus[pageNumber] = .stored
         case .failed:
-            if state.previewStatus[pageNumber] != .stored {
-                state.previewStatus[pageNumber] = .failed
+            if state.stored.previewStatus[pageNumber] != .stored {
+                state.stored.previewStatus[pageNumber] = .failed
             }
         case .networkConstrained:
-            if state.previewStatus[pageNumber] == .fetching {
-                state.previewStatus[pageNumber] = nil
+            if state.stored.previewStatus[pageNumber] == .fetching {
+                state.stored.previewStatus[pageNumber] = nil
             }
-            state.prefetchStopped = true
+            state.stored.prefetchStopped = true
         }
         if result != .networkConstrained,
-           state.previewVisible,
-           let previewIndex = state.previewPageIndex,
+           state.stored.previewVisible,
+           let previewIndex = state.stored.previewPageIndex,
            state.pages.indices.contains(previewIndex),
            state.pages[previewIndex].pageNumber == pageNumber {
-            let stored = state.previewStatus[pageNumber] == .stored
-            state.previewImageURL = stored
+            let stored = state.stored.previewStatus[pageNumber] == .stored
+            state.stored.previewImageURL = stored
                 ? Self.sliderPreviewFileURL(archiveId: state.archiveId, pageNumber: pageNumber)
                 : nil
-            state.previewLoading = false
+            state.stored.previewLoading = false
         }
         return .none
     }
@@ -433,10 +385,10 @@ private extension ReaderSliderPreviewFeature {
         }
 
         // The drag gesture reports every finger movement, so most calls land on the page already shown.
-        let pageChanged = state.previewPageIndex != clampedIndex
-        state.draftIndex = clampedIndex
-        state.previewVisible = true
-        state.previewPageIndex = clampedIndex
+        let pageChanged = state.stored.previewPageIndex != clampedIndex
+        state.stored.draftIndex = clampedIndex
+        state.stored.previewVisible = true
+        state.stored.previewPageIndex = clampedIndex
         guard pageChanged else { return .none }
         return showPreview(pageIndex: clampedIndex, state: &state)
     }
@@ -446,26 +398,26 @@ private extension ReaderSliderPreviewFeature {
     func showPreview(pageIndex: Int, state: inout State) -> Effect<Action> {
         let page = state.pages[pageIndex]
         let fileURL = Self.sliderPreviewFileURL(archiveId: state.archiveId, pageNumber: page.pageNumber)
-        if state.previewStatus[page.pageNumber] == nil, Self.fileExists(fileURL) {
-            state.previewStatus[page.pageNumber] = .stored
+        if state.stored.previewStatus[page.pageNumber] == nil, Self.fileExists(fileURL) {
+            state.stored.previewStatus[page.pageNumber] = .stored
         }
 
-        let status = state.previewStatus[page.pageNumber]
-        state.previewImageURL = status == .stored ? fileURL : nil
+        let status = state.stored.previewStatus[page.pageNumber]
+        state.stored.previewImageURL = status == .stored ? fileURL : nil
         switch status {
         case .stored:
-            state.previewLoading = false
+            state.stored.previewLoading = false
             return .none
         case .fetching:
-            state.previewLoading = true
+            state.stored.previewLoading = true
             return .none
         case .failed, nil:
-            guard state.cached || state.readyThumbnailPages.contains(page.pageNumber) else {
+            guard state.cached || state.stored.readyThumbnailPages.contains(page.pageNumber) else {
                 // The server has not generated this page's thumbnail yet.
-                state.previewLoading = !state.thumbnailJobsById.isEmpty
+                state.stored.previewLoading = !state.stored.thumbnailJobsById.isEmpty
                 return .none
             }
-            state.previewLoading = true
+            state.stored.previewLoading = true
             return fetchForegroundPreview(page, state: &state)
         }
     }
@@ -474,10 +426,10 @@ private extension ReaderSliderPreviewFeature {
     /// and starts the background prefetch wave if none is active.
     func advancePreviews(state: inout State) -> Effect<Action> {
         var waitingPreview: Effect<Action> = .none
-        if state.previewVisible,
-           let previewIndex = state.previewPageIndex,
+        if state.stored.previewVisible,
+           let previewIndex = state.stored.previewPageIndex,
            state.pages.indices.contains(previewIndex),
-           state.previewStatus[state.pages[previewIndex].pageNumber] == nil {
+           state.stored.previewStatus[state.pages[previewIndex].pageNumber] == nil {
             waitingPreview = showPreview(pageIndex: previewIndex, state: &state)
         }
         return .merge(waitingPreview, startPrefetchIfNeeded(state: &state))
@@ -485,8 +437,8 @@ private extension ReaderSliderPreviewFeature {
 
     /// Starts one background prefetch wave for all ready, untried preview pages, nearest first.
     func startPrefetchIfNeeded(state: inout State) -> Effect<Action> {
-        guard !state.prefetchStopped,
-              !state.prefetchInFlight,
+        guard !state.stored.prefetchStopped,
+              !state.stored.prefetchInFlight,
               !state.pages.isEmpty else {
             return .none
         }
@@ -494,7 +446,7 @@ private extension ReaderSliderPreviewFeature {
         let targets = prefetchTargets(state: state)
         guard !targets.isEmpty else { return .none }
 
-        state.prefetchInFlight = true
+        state.stored.prefetchInFlight = true
         let archiveId = state.archiveId
         let cached = state.cached
         let limit = cached ? Self.previewGenerationLimit : Self.previewDownloadLimit
@@ -512,7 +464,7 @@ private extension ReaderSliderPreviewFeature {
 
     func prefetchTargets(state: State) -> [SliderPreviewTarget] {
         let anchor = ReaderPositioning.clampedPageIndex(
-            (state.previewVisible ? state.previewPageIndex : nil) ?? state.currentPageIndex,
+            (state.stored.previewVisible ? state.stored.previewPageIndex : nil) ?? state.currentPageIndex,
             pageCount: state.pages.count
         )
         var seenPages: Set<Int> = []
@@ -520,8 +472,8 @@ private extension ReaderSliderPreviewFeature {
         for index in Self.pageIndicesNearestFirst(from: anchor, count: state.pages.count) {
             let page = state.pages[index]
             guard seenPages.insert(page.pageNumber).inserted else { continue }
-            guard state.previewStatus[page.pageNumber] == nil,
-                  state.cached || state.readyThumbnailPages.contains(page.pageNumber) else {
+            guard state.stored.previewStatus[page.pageNumber] == nil,
+                  state.cached || state.stored.readyThumbnailPages.contains(page.pageNumber) else {
                 continue
             }
             targets.append(
@@ -592,7 +544,7 @@ private extension ReaderSliderPreviewFeature {
         _ page: ReaderSliderPreviewPage,
         state: inout State
     ) -> Effect<Action> {
-        state.previewStatus[page.pageNumber] = .fetching
+        state.stored.previewStatus[page.pageNumber] = .fetching
         let archiveId = state.archiveId
         let cached = state.cached
         let target = SliderPreviewTarget(

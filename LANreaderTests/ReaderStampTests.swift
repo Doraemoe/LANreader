@@ -202,11 +202,11 @@ final class ReaderStampTests: LANreaderTestCase {
         stubAddArchiveStamp(archiveId: "source", page: 4, content: "New comment", position: "25.0,30.0")
         stubArchiveStamps(archiveId: "source", page: 4, stamps: [stamp])
 
-        let page = makeStampPage(id: "page-left", sourceArchiveId: "source", sourcePageNumber: 4)
+        let page = makeStampPage(sourceArchiveId: "source", sourcePageNumber: 4)
         let target = StampCreationTarget(sourceArchiveId: "source", sourcePageNumber: 4, position: position)
-        let store = makeStampTestStore(initialState: ReaderStampFeature.State(pages: [page]))
+        let store = makeStampTestStore(initialState: ReaderStampFeature.State())
 
-        await store.send(.creationRequested(pageId: page.id, position: position)) {
+        await store.send(.creationRequested(page: page, position: position)) {
             $0.creationTarget = target
         }
         await store.send(.commentChanged("  New comment\n")) {
@@ -233,9 +233,9 @@ final class ReaderStampTests: LANreaderTestCase {
 
         let page = makeStampPage()
         let target = StampCreationTarget(sourceArchiveId: "archive", sourcePageNumber: 1, position: position)
-        let store = makeStampTestStore(initialState: ReaderStampFeature.State(pages: [page]))
+        let store = makeStampTestStore(initialState: ReaderStampFeature.State())
 
-        await store.send(.creationRequested(pageId: page.id, position: position)) {
+        await store.send(.creationRequested(page: page, position: position)) {
             $0.creationTarget = target
         }
         await store.send(.commentChanged("New comment")) {
@@ -259,9 +259,9 @@ final class ReaderStampTests: LANreaderTestCase {
         stubUpdateArchiveStamp(stampId: "stamp", content: "Updated text")
         let page = makeStampPage(stampIds: ["stamp"])
         let target = StampEditingTarget(stampId: "stamp", sourceArchiveId: "archive", sourcePageNumber: 1)
-        let store = makeStampTestStore(initialState: ReaderStampFeature.State(pages: [page]))
+        let store = makeStampTestStore(initialState: ReaderStampFeature.State())
 
-        await store.send(.editingRequested(pageId: page.id, stamp: stamp)) {
+        await store.send(.editingRequested(page: page, stamp: stamp)) {
             $0.editingTarget = target
             $0.editText = "Original text"
         }
@@ -286,9 +286,9 @@ final class ReaderStampTests: LANreaderTestCase {
         stubDeleteArchiveStamp(stampId: "stamp")
         let page = makeStampPage(stampIds: ["stamp"])
         let target = StampEditingTarget(stampId: "stamp", sourceArchiveId: "archive", sourcePageNumber: 1)
-        let store = makeStampTestStore(initialState: ReaderStampFeature.State(pages: [page]))
+        let store = makeStampTestStore(initialState: ReaderStampFeature.State())
 
-        await store.send(.editingRequested(pageId: page.id, stamp: stamp)) {
+        await store.send(.editingRequested(page: page, stamp: stamp)) {
             $0.editingTarget = target
             $0.editText = "Delete me"
         }
@@ -316,9 +316,9 @@ final class ReaderStampTests: LANreaderTestCase {
         )
         let page = makeStampPage()
         let target = StampCreationTarget(sourceArchiveId: "archive", sourcePageNumber: 1, position: position)
-        let store = makeStampTestStore(initialState: ReaderStampFeature.State(pages: [page]))
+        let store = makeStampTestStore(initialState: ReaderStampFeature.State())
 
-        await store.send(.creationRequested(pageId: page.id, position: position)) {
+        await store.send(.creationRequested(page: page, position: position)) {
             $0.creationTarget = target
         }
         await store.send(.commentChanged("  Keep this text\n")) {
@@ -344,9 +344,9 @@ final class ReaderStampTests: LANreaderTestCase {
         stubUpdateArchiveStamp(stampId: "stamp", content: "Keep edit", success: 0)
         let page = makeStampPage(stampIds: ["stamp"])
         let target = StampEditingTarget(stampId: "stamp", sourceArchiveId: "archive", sourcePageNumber: 1)
-        let store = makeStampTestStore(initialState: ReaderStampFeature.State(pages: [page]))
+        let store = makeStampTestStore(initialState: ReaderStampFeature.State())
 
-        await store.send(.editingRequested(pageId: page.id, stamp: stamp)) {
+        await store.send(.editingRequested(page: page, stamp: stamp)) {
             $0.editingTarget = target
             $0.editText = "Original text"
         }
@@ -373,9 +373,9 @@ final class ReaderStampTests: LANreaderTestCase {
         stubDeleteArchiveStamp(stampId: "stamp", success: 0)
         let page = makeStampPage(stampIds: ["stamp"])
         let target = StampEditingTarget(stampId: "stamp", sourceArchiveId: "archive", sourcePageNumber: 1)
-        let store = makeStampTestStore(initialState: ReaderStampFeature.State(pages: [page]))
+        let store = makeStampTestStore(initialState: ReaderStampFeature.State())
 
-        await store.send(.editingRequested(pageId: page.id, stamp: stamp)) {
+        await store.send(.editingRequested(page: page, stamp: stamp)) {
             $0.editingTarget = target
             $0.editText = "Keep stamp"
         }
@@ -395,10 +395,10 @@ final class ReaderStampTests: LANreaderTestCase {
     @MainActor
     func testCachedReaderDoesNotOfferStampCreation() async {
         let page = makeStampPage(cached: true)
-        let store = makeStampTestStore(initialState: ReaderStampFeature.State(cached: true, pages: [page]))
+        let store = makeStampTestStore(initialState: ReaderStampFeature.State())
 
         await store.send(.creationRequested(
-            pageId: page.id,
+            page: page,
             position: ArchiveStampPosition(rawValue: "50,50")!
         ))
     }
@@ -407,17 +407,17 @@ final class ReaderStampTests: LANreaderTestCase {
     func testCachedReaderDoesNotOfferStampEditing() async {
         let stamp = ArchiveStamp(id: "stamp", position: "50,50", content: "Offline")
         let page = makeStampPage(cached: true, stampIds: ["stamp"])
-        let store = makeStampTestStore(initialState: ReaderStampFeature.State(cached: true, pages: [page]))
+        let store = makeStampTestStore(initialState: ReaderStampFeature.State())
 
-        await store.send(.editingRequested(pageId: page.id, stamp: stamp))
+        await store.send(.editingRequested(page: page, stamp: stamp))
     }
 
     @MainActor
     func testUnsupportedServerResetsDraftAndEmitsDelegate() async {
-        var stored = ReaderStampState()
-        stored.comment = "draft"
-        stored.editText = "edit"
-        let store = makeStampTestStore(initialState: ReaderStampFeature.State(stored: stored))
+        var initialState = ReaderStampFeature.State()
+        initialState.comment = "draft"
+        initialState.editText = "edit"
+        let store = makeStampTestStore(initialState: initialState)
 
         await store.send(.supportResolved(false)) {
             $0.supported = false
@@ -429,7 +429,6 @@ final class ReaderStampTests: LANreaderTestCase {
 }
 
 private func makeStampPage(
-    id: String = "1",
     sourceArchiveId: String = "archive",
     sourcePageNumber: Int = 1,
     cached: Bool = false,
@@ -437,7 +436,6 @@ private func makeStampPage(
     stampIds: Set<String> = []
 ) -> ReaderStampPage {
     ReaderStampPage(
-        id: id,
         sourceArchiveId: sourceArchiveId,
         sourcePageNumber: sourcePageNumber,
         cached: cached,
