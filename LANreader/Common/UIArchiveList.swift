@@ -1,31 +1,15 @@
-// swiftlint:disable file_length
 import ComposableArchitecture
 import OrderedCollections
 import SwiftUI
 import UIKit
 
-// swiftlint:disable:next type_body_length
 class UIArchiveListViewController: UIViewController {
     let store: StoreOf<ArchiveListFeature>
-    @Dependency(\.appDatabase) private var database
+    @Dependency(\.appDatabase) var database
 
-    private struct SelectionToolbarState: Equatable {
-        struct CategoryMenuItem: Equatable {
-            let id: String
-            let name: String
-        }
-
-        let selecting: Bool
-        let selected: OrderedSet<String>
-        let actionsEnabled: Bool
-        let staticCategoryId: String?
-        let categories: [CategoryMenuItem]
-    }
-    private var renderedSelectionToolbarState: SelectionToolbarState?
-
+    var renderedSelectionToolbarState: ArchiveListSelectionToolbarState?
     var collectionView: UICollectionView!
-    var dataSource:
-        UICollectionViewDiffableDataSource<Section, StoreOf<GridFeature>>!
+    var dataSource: UICollectionViewDiffableDataSource<Section, StoreOf<GridFeature>>!
     var isLoading = false
 
     private let refreshControl = UIRefreshControl()
@@ -52,7 +36,7 @@ class UIArchiveListViewController: UIViewController {
     }
 
     func setupCollectionView() {
-        let layout = makeCollectionViewLayout()
+        let layout = ArchiveListLayoutBuilder.makeCollectionViewLayout()
         view.backgroundColor = .systemGroupedBackground
         collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
         collectionView.backgroundColor = .systemGroupedBackground
@@ -101,93 +85,21 @@ class UIArchiveListViewController: UIViewController {
         collectionView.verticalScrollIndicatorInsets.bottom = inset
     }
 
-    private func makeCollectionViewLayout() -> UICollectionViewCompositionalLayout {
-        UICollectionViewCompositionalLayout { _, layoutEnvironment -> NSCollectionLayoutSection? in
-            Self.makeArchiveGridSection(layoutEnvironment: layoutEnvironment)
-        }
-    }
-
-    private static func makeArchiveGridSection(
-        layoutEnvironment: NSCollectionLayoutEnvironment
-    ) -> NSCollectionLayoutSection {
-        let containerWidth = layoutEnvironment.container.effectiveContentSize.width
-        let sideInset: CGFloat = 12.0
-        let interItemSpacing: CGFloat = 12.0
-        let contentWidth = max(containerWidth - sideInset * 2, 1)
-        let columns = max(Int(contentWidth / 172), 1)
-        let totalSpacing = CGFloat(columns - 1) * interItemSpacing
-        let cellWidth = (contentWidth - totalSpacing) / CGFloat(columns)
-        let cellHeight = cellWidth / ArchiveGridMetrics.coverAspectRatio + 4.0
-
-        let itemSize = NSCollectionLayoutSize(
-            widthDimension: .fractionalWidth(1.0 / CGFloat(columns)),
-            heightDimension: .fractionalHeight(1.0)
-        )
-        let item = NSCollectionLayoutItem(layoutSize: itemSize)
-        let group = makeArchiveGridGroup(
-            item: item,
-            columns: columns,
-            cellHeight: cellHeight,
-            interItemSpacing: interItemSpacing
-        )
-        let section = NSCollectionLayoutSection(group: group)
-        section.contentInsets = NSDirectionalEdgeInsets(
-            top: 12,
-            leading: sideInset,
-            bottom: 20,
-            trailing: sideInset
-        )
-        section.interGroupSpacing = interItemSpacing
-        section.boundarySupplementaryItems = [makeArchiveGridFooter()]
-        return section
-    }
-
-    private static func makeArchiveGridGroup(
-        item: NSCollectionLayoutItem,
-        columns: Int,
-        cellHeight: CGFloat,
-        interItemSpacing: CGFloat
-    ) -> NSCollectionLayoutGroup {
-        let groupSize = NSCollectionLayoutSize(
-            widthDimension: .fractionalWidth(1.0),
-            heightDimension: .absolute(cellHeight)
-        )
-        let group = NSCollectionLayoutGroup.horizontal(
-            layoutSize: groupSize,
-            repeatingSubitem: item,
-            count: columns
-        )
-        group.interItemSpacing = .fixed(interItemSpacing)
-        return group
-    }
-
-    private static func makeArchiveGridFooter() -> NSCollectionLayoutBoundarySupplementaryItem {
-        let footerSize = NSCollectionLayoutSize(
-            widthDimension: .fractionalWidth(1.0),
-            heightDimension: .absolute(80)
-        )
-        return NSCollectionLayoutBoundarySupplementaryItem(
-            layoutSize: footerSize,
-            elementKind: UICollectionView.elementKindSectionFooter,
-            alignment: .bottom
-        )
-    }
-
     func setupRefresh() {
         refreshControl.addTarget(
-            self, action: #selector(didPullToRefresh(_:)), for: .valueChanged)
+            self, action: #selector(didPullToRefresh(_:)), for: .valueChanged
+        )
         collectionView.alwaysBounceVertical = true
         collectionView.refreshControl = refreshControl
     }
 
     func setupCell() {
-        collectionView.register(
-            UIArchiveCell.self, forCellWithReuseIdentifier: "Archive")
+        collectionView.register(UIArchiveCell.self, forCellWithReuseIdentifier: "Archive")
         collectionView.register(
             LoadingReusableView.self,
-            forSupplementaryViewOfKind: UICollectionView
-                .elementKindSectionFooter,
-            withReuseIdentifier: LoadingReusableView.reuseIdentifier)
+            forSupplementaryViewOfKind: UICollectionView.elementKindSectionFooter,
+            withReuseIdentifier: LoadingReusableView.reuseIdentifier
+        )
 
         let cellRegistration = UICollectionView.CellRegistration<
             UIArchiveCell, StoreOf<GridFeature>
@@ -203,19 +115,17 @@ class UIArchiveListViewController: UIViewController {
             Section, StoreOf<GridFeature>
         >(collectionView: collectionView) { collectionView, indexPath, itemStore in
             collectionView.dequeueConfiguredReusableCell(
-                using: cellRegistration,
-                for: indexPath,
-                item: itemStore
+                using: cellRegistration, for: indexPath, item: itemStore
             )
         }
 
         dataSource.supplementaryViewProvider = { [weak self] collectionView, kind, indexPath in
             guard kind == UICollectionView.elementKindSectionFooter else { return nil }
-            let footer =
-                collectionView.dequeueReusableSupplementaryView(
-                    ofKind: kind,
-                    withReuseIdentifier: LoadingReusableView.reuseIdentifier,
-                    for: indexPath) as? LoadingReusableView
+            let footer = collectionView.dequeueReusableSupplementaryView(
+                ofKind: kind,
+                withReuseIdentifier: LoadingReusableView.reuseIdentifier,
+                for: indexPath
+            ) as? LoadingReusableView
             if self?.isLoading == true {
                 footer?.startAnimation()
             } else {
@@ -225,7 +135,7 @@ class UIArchiveListViewController: UIViewController {
         }
     }
 
-    private func goToPage(_ page: Int) {
+    func goToPage(_ page: Int) {
         let target = PaginationPositioning.clampedPage(page, pageCount: store.pageCount)
         guard store.paginationActive, store.loading == false, target != store.currentPage else { return }
         beginRefreshingAtTop()
@@ -238,244 +148,42 @@ class UIArchiveListViewController: UIViewController {
             paginationBar.configure(
                 currentPage: store.currentPage,
                 pageCount: store.pageCount,
-                onSelectPage: { [weak self] page in
-                    self?.goToPage(page)
-                },
-                onRequestPageInput: { [weak self] in
-                    self?.presentPageInput()
-                }
+                onSelectPage: { [weak self] page in self?.goToPage(page) },
+                onRequestPageInput: { [weak self] in self?.presentPageInput() }
             )
             paginationBar.layoutIfNeeded()
         }
         updateContentInsetForPaginationBar()
     }
 
-    private func presentPageInput() {
-        let pageCount = store.pageCount
-        guard pageCount > 1 else { return }
-
-        let alert = UIAlertController(
-            title: String(localized: "archive.list.page.jump.title"),
-            message: String(
-                format: String(localized: "archive.list.page.jump.message %lld"), Int64(pageCount)
-            ),
-            preferredStyle: .alert
-        )
-        alert.addTextField { field in
-            field.keyboardType = .numberPad
-            field.textAlignment = .center
-            field.text = String(self.store.currentPage + 1)
-            field.clearButtonMode = .whileEditing
-        }
-        alert.addAction(UIAlertAction(title: String(localized: "cancel"), style: .cancel))
-        let goAction = UIAlertAction(
-            title: String(localized: "archive.list.page.jump.go"), style: .default
-        ) { [weak self, weak alert] _ in
-            guard let self, let text = alert?.textFields?.first?.text,
-                  let requested = Int(text.trimmingCharacters(in: .whitespaces)) else { return }
-            // Displayed page numbers are one-based; the reducer works in zero-based pages.
-            goToPage(requested - 1)
-        }
-        alert.addAction(goAction)
-        present(alert, animated: true)
-    }
-
-    // swiftlint:disable function_body_length
-    func setupToolbar() {
-        if store.selectMode == .active {
-            parent?.navigationItem.rightBarButtonItem = UIBarButtonItem(
-                title: String(localized: "done"), primaryAction: UIAction { [weak self] _ in
-                    self?.store.send(.toggleSelectionMode)
-                }
-            )
-            parent?.navigationItem.rightBarButtonItem?.isEnabled = !store.batchActionInProgress
-            return
-        }
-        let actions = SearchSort.allCases.filter { $0 != SearchSort.random }.map { sort in
-            let localizedKey = "settings.archive.list.order.\(sort)"
-            let label = NSLocalizedString(localizedKey, comment: "")
-            let image: UIImage? =
-                if store.searchSort == sort.rawValue
-                    || (store.searchSort == store.searchSortCustom
-                        && sort == SearchSort.custom) {
-                    if store.searchSortOrder == "asc" {
-                        UIImage(systemName: "arrow.up")
-                    } else {
-                        UIImage(systemName: "arrow.down")
-                    }
-                } else {
-                    UIImage(systemName: "checkmark")?.withTintColor(.clear, renderingMode: .alwaysOriginal)
-                }
-            return UIAction(title: label, image: image) { [weak self] _ in
-                guard let self else { return }
-                if store.searchSort == sort.rawValue
-                    || (store.searchSort == store.searchSortCustom
-                        && sort == SearchSort.custom) {
-                    if store.searchSortOrder == "asc" {
-                        store.send(.setSearchSortOrder("desc"))
-                    } else {
-                        store.send(.setSearchSortOrder("asc"))
-                    }
-                } else {
-                    if sort == SearchSort.custom {
-                        store.send(.setSearchSort(store.searchSortCustom))
-                    } else {
-                        store.send(.setSearchSort(sort.rawValue))
-                    }
-                }
-            }
-        }
-        let sortGroup = UIMenu(
-            title: "", options: .displayInline, children: actions)
-
-        let randomAction = UIAction(
-            title: String(localized: "settings.archive.list.order.random"),
-            image: store.searchSort == SearchSort.random.rawValue ?
-            UIImage(systemName: "checkmark") :
-                UIImage(systemName: "checkmark")?.withTintColor(.clear, renderingMode: .alwaysOriginal)
-        ) { [weak self] _ in
-            guard let self else { return }
-            store.send(.setSearchSort(SearchSort.random.rawValue))
-        }
-
-        let hideReadAction = UIAction(
-            title: String(localized: "settings.view.hideRead"),
-            image: store.hideRead ?
-            UIImage(systemName: "checkmark") :
-                UIImage(systemName: "checkmark")?.withTintColor(.clear, renderingMode: .alwaysOriginal)
-        ) { [weak self] _ in
-            guard let self else { return }
-            store.send(.toggleHideRead)
-        }
-
-        let otherGroup = UIMenu(
-            title: "", options: .displayInline, children: [randomAction, hideReadAction]
-        )
-
-        // Create a menu with the actions
-        var groups: [UIMenuElement] = [sortGroup, otherGroup]
-        groups.append(UIAction(
-            title: String(localized: "select"),
-            image: UIImage(systemName: "checkmark")?.withTintColor(.clear, renderingMode: .alwaysOriginal)
-        ) { [weak self] _ in
-            guard let self else { return }
-            store.send(.toggleSelectionMode)
-            if store.selectMode == .active && store.categoryItems.isEmpty {
-                store.send(.loadCategory)
-            }
-        })
-        let menu = UIMenu(title: "", children: groups)
-        let menuButton = UIBarButtonItem(
-            image: UIImage(systemName: "arrow.up.arrow.down.circle"), menu: menu
-        )
-        parent?.navigationItem.rightBarButtonItem = menuButton
-    }
-    // swiftlint:enable function_body_length
-
-    // swiftlint:disable function_body_length
     func setupObserve() {
         lastObservedLanraragiUrl = store.lanraragiUrl
         lastObservedSearchSort = store.searchSort
         lastObservedSearchSortOrder = store.searchSortOrder
 
+        observeListContentAndDisplay()
+        observeReloadTriggers()
+        observeStatusBanners()
+    }
+
+    private func observeListContentAndDisplay() {
         observe { [weak self] in
             self?.setupToolbar()
         }
-
         observe { [weak self] in
-            guard let self else { return }
-            let selecting = store.selectMode == .active
-            let selected = store.selected
-            let actionsEnabled = store.canStartBatchAction
-            let staticCategoryId = store.currentStaticCategoryId
-            let categories = store.categoryItems.filter { $0.search.isEmpty }.map {
-                SelectionToolbarState.CategoryMenuItem(id: $0.id, name: $0.name)
-            }
-            let toolbarState = SelectionToolbarState(
-                selecting: selecting, selected: selected, actionsEnabled: actionsEnabled,
-                staticCategoryId: staticCategoryId, categories: categories
-            )
-            guard toolbarState != renderedSelectionToolbarState else { return }
-            renderedSelectionToolbarState = toolbarState
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                for indexPath in collectionView.indexPathsForVisibleItems {
-                    guard let item = dataSource.itemIdentifier(for: indexPath),
-                          let cell = collectionView.cellForItem(at: indexPath) as? UIArchiveCell else { continue }
-                    cell.configure(
-                        with: item, database: database, selecting: selecting, selected: selected.contains(item.id)
-                    )
-                }
-            }
-            let count = UIBarButtonItem.selectionCount(selected.count)
-            let categoryAction: UIBarButtonItem
-            if staticCategoryId != nil {
-                categoryAction = UIBarButtonItem(
-                    image: UIImage(systemName: "folder.badge.minus"), style: .plain,
-                    target: self, action: #selector(confirmBatchCategoryRemoval(_:))
-                )
-                categoryAction.accessibilityLabel = String(localized: "remove")
-                categoryAction.isEnabled = actionsEnabled
-            } else {
-                let categoryActions = categories.map { category in
-                    UIAction(title: category.name) { [weak self] _ in
-                        self?.store.send(.addArchivesToCategory(category.id))
-                    }
-                }
-                categoryAction = UIBarButtonItem(
-                    image: UIImage(systemName: "folder.badge.plus"),
-                    menu: UIMenu(
-                        title: String(localized: "archive.selected.category.add"),
-                        children: categoryActions
-                    )
-                )
-                categoryAction.accessibilityLabel = String(localized: "archive.selected.category.add")
-                categoryAction.isEnabled = actionsEnabled && !categoryActions.isEmpty
-            }
-            let createTankoubon = UIBarButtonItem(
-                image: UIImage(systemName: "book.badge.plus"), style: .plain,
-                target: self, action: #selector(promptForTankoubonName(_:))
-            )
-            createTankoubon.accessibilityLabel = String(localized: "archive.selected.tankoubon.create")
-            createTankoubon.isEnabled = actionsEnabled
-            let download = UIBarButtonItem(
-                image: UIImage(systemName: "tray.and.arrow.down"),
-                primaryAction: UIAction { [weak self] _ in
-                    self?.store.send(.cacheSelected)
-                }
-            )
-            download.accessibilityLabel = String(localized: "archive.cache.add")
-            download.isEnabled = actionsEnabled
-            let delete = UIBarButtonItem(
-                image: UIImage(systemName: "trash"), style: .plain,
-                target: self, action: #selector(confirmBatchDeletion(_:))
-            )
-            delete.accessibilityLabel = String(localized: "archive.delete")
-            delete.isEnabled = actionsEnabled
-            parent?.toolbarItems = [count, .flexibleSpace(), categoryAction, createTankoubon, download, delete]
-            updateSelectionToolbarAppearance()
-            delete.tintColor = .systemRed
-            updateSelectionBarVisibility()
+            self?.renderSelectionToolbarIfNeeded()
         }
-
         observe { [weak self] in
             guard let self else { return }
-            var snapshot = NSDiffableDataSourceSnapshot<
-                Section, StoreOf<GridFeature>
-            >()
+            var snapshot = NSDiffableDataSourceSnapshot<Section, StoreOf<GridFeature>>()
             snapshot.appendSections([.main])
-            snapshot.appendItems(
-                Array(store.scope(\.archivesToDisplay, action: \.grid)))
+            snapshot.appendItems(Array(store.scope(\.archivesToDisplay, action: \.grid)))
             dataSource.apply(snapshot, animatingDifferences: false)
         }
-
         observe { [weak self] in
             guard let self else { return }
-            collectionView.backgroundView = store.showsReadFilterEmptyState
-                ? readFilterEmptyView
-                : nil
+            collectionView.backgroundView = store.showsReadFilterEmptyState ? readFilterEmptyView : nil
         }
-
         observe { [weak self] in
             guard let self else { return }
             if store.loading {
@@ -487,77 +195,62 @@ class UIArchiveListViewController: UIViewController {
                 refreshControl.endRefreshing()
             }
         }
-
         observe { [weak self] in
-            guard let self else { return }
             // `observe` only re-runs when the state read here changes, and rendering the bar
             // is idempotent, so no change tracking of its own is needed.
-            renderPaginationBar()
+            self?.renderPaginationBar()
         }
+    }
 
+    private func observeReloadTriggers() {
         observe { [weak self] in
             guard let self else { return }
             let lanraragiUrl = store.lanraragiUrl
             defer { lastObservedLanraragiUrl = lanraragiUrl }
-
             guard lanraragiUrl != lastObservedLanraragiUrl, !lanraragiUrl.isEmpty else { return }
             reloadFromFirstPage()
         }
-
         observe { [weak self] in
             guard let self else { return }
             let searchSort = store.searchSort
             defer { lastObservedSearchSort = searchSort }
-
             guard searchSort != lastObservedSearchSort else { return }
             reloadFromFirstPage()
         }
-
         observe { [weak self] in
             guard let self else { return }
             let searchSortOrder = store.searchSortOrder
             defer { lastObservedSearchSortOrder = searchSortOrder }
-
             guard searchSortOrder != lastObservedSearchSortOrder else { return }
             reloadFromFirstPage()
         }
-
         observe { [weak self] in
             guard let self else { return }
             let paginate = store.paginateArchiveList
             let previous = lastObservedPaginateArchiveList
             defer { lastObservedPaginateArchiveList = paginate }
-
             // The two modes hold different slices of the result set, so reload from the top.
             guard let previous, previous != paginate else { return }
             reloadFromFirstPage()
         }
+    }
 
+    private func observeStatusBanners() {
         observe { [weak self] in
             guard let self else { return }
             let message = store.errorMessage
             guard !message.isEmpty else { return }
-            showNotificationBanner(
-                title: String(localized: "error"),
-                subtitle: message,
-                style: .danger
-            )
+            showNotificationBanner(title: String(localized: "error"), subtitle: message, style: .danger)
             store.send(.setErrorMessage(""))
         }
-
         observe { [weak self] in
             guard let self else { return }
             let message = store.successMessage
             guard !message.isEmpty else { return }
-            showNotificationBanner(
-                title: String(localized: "success"),
-                subtitle: message,
-                style: .success
-            )
+            showNotificationBanner(title: String(localized: "success"), subtitle: message, style: .success)
             store.send(.setSuccessMessage(""))
         }
     }
-    // swiftlint:enable function_body_length
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -634,117 +327,39 @@ class UIArchiveListViewController: UIViewController {
 }
 
 extension UIArchiveListViewController: UICollectionViewDelegate {
-    private func updateSelectionToolbarAppearance() {
-        let foreground = UIColor.label.resolvedColor(with: parent?.traitCollection ?? traitCollection)
-        parent?.toolbarItems?.dropLast().forEach { $0.tintColor = foreground }
-    }
-
-    private func updateSelectionBarVisibility() {
-        guard let navigationController, navigationController.topViewController === parent else { return }
-        let selecting = store.selectMode == .active
-        parent?.navigationItem.setHidesBackButton(selecting, animated: false)
-        navigationController.setToolbarHidden(!selecting, animated: false)
-        updateTabBarVisibility()
-    }
-
-    private func updateTabBarVisibility() {
-        guard let navigationController, navigationController.topViewController === parent else { return }
-        let hideTabs = store.selectMode == .active || navigationController.viewControllers.first !== parent
-        if #available(iOS 18.0, *) {
-            if tabBarController?.isTabBarHidden != hideTabs {
-                tabBarController?.setTabBarHidden(hideTabs, animated: false)
-            }
-        } else {
-            tabBarController?.tabBar.isHidden = hideTabs
-        }
-    }
-
-    @objc func confirmBatchDeletion(_ sender: UIBarButtonItem) {
-        guard store.canStartBatchAction else { return }
-        let confirmation = UIAlertController(
-            title: String(localized: "archive.selected.delete"), message: nil, preferredStyle: .actionSheet
-        )
-        confirmation.addAction(UIAlertAction(
-            title: String(localized: "delete"), style: .destructive
-        ) { [weak self] _ in
-            self?.store.send(.confirmDelete)
-        })
-        confirmation.addAction(UIAlertAction(title: String(localized: "cancel"), style: .cancel))
-        confirmation.popoverPresentationController?.barButtonItem = sender
-        present(confirmation, animated: true)
-    }
-
-    @objc func promptForTankoubonName(_: UIBarButtonItem) {
-        guard store.canStartBatchAction else { return }
-        guard !store.selected.contains(where: \.isTankoubonArchiveId) else {
-            store.send(.setErrorMessage(String(localized: "archive.selected.tankoubon.nested.error")))
-            return
-        }
-        let alert = UIAlertController(
-            title: String(localized: "archive.selected.tankoubon.create"),
-            message: nil,
-            preferredStyle: .alert
-        )
-        alert.addTextField { field in
-            field.placeholder = String(localized: "archive.selected.tankoubon.name")
-        }
-        alert.addAction(UIAlertAction(title: String(localized: "cancel"), style: .cancel))
-        alert.addAction(UIAlertAction(
-            title: String(localized: "archive.selected.tankoubon.create"), style: .default
-        ) { [weak self, weak alert] _ in
-            self?.store.send(.createTankoubon(alert?.textFields?.first?.text ?? ""))
-        })
-        present(alert, animated: true)
-    }
-
-    @objc func confirmBatchCategoryRemoval(_ sender: UIBarButtonItem) {
-        guard store.canStartBatchAction,
-              store.currentStaticCategoryId != nil else { return }
-        let confirmation = UIAlertController(
-            title: String(localized: "archive.selected.category.remove"),
-            message: nil,
-            preferredStyle: .actionSheet
-        )
-        confirmation.addAction(UIAlertAction(
-            title: String(localized: "remove"), style: .destructive
-        ) { [weak self] _ in
-            self?.store.send(.confirmRemoveFromCategory)
-        })
-        confirmation.addAction(UIAlertAction(title: String(localized: "cancel"), style: .cancel))
-        confirmation.popoverPresentationController?.barButtonItem = sender
-        present(confirmation, animated: true)
-    }
     func collectionView(
         _ collectionView: UICollectionView,
-        willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath
+        willDisplay cell: UICollectionViewCell,
+        forItemAt indexPath: IndexPath
     ) {
-        if indexPath.item == collectionView.numberOfItems(inSection: 0) - 1 {
-            if store.paginationActive == false
-                && store.selectMode != .active
-                && store.searchSort != SearchSort.random.rawValue
-                && store.loading == false
-                && store.archives.count < store.total {
-                Task {
-                    self.isLoading = true
-                    collectionView.performBatchUpdates { }
-                    await store.send(
-                        .appendArchives(String(store.archives.count))
-                    ).finish()
-                    self.isLoading = false
-                    collectionView.performBatchUpdates { }
-                }
-            }
+        guard indexPath.item == collectionView.numberOfItems(inSection: 0) - 1,
+              store.paginationActive == false,
+              store.selectMode != .active,
+              store.searchSort != SearchSort.random.rawValue,
+              store.loading == false,
+              store.archives.count < store.total else {
+            return
+        }
+        Task {
+            self.isLoading = true
+            collectionView.performBatchUpdates { }
+            await store.send(.appendArchives(String(store.archives.count))).finish()
+            self.isLoading = false
+            collectionView.performBatchUpdates { }
         }
     }
 
     func collectionView(
-        _ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath
+        _ collectionView: UICollectionView,
+        didSelectItemAt indexPath: IndexPath
     ) {
-        guard let selectedItemStore = dataSource.itemIdentifier(for: indexPath)
-        else { return }
+        guard let selectedItemStore = dataSource.itemIdentifier(for: indexPath) else { return }
         if store.selectMode == .active {
-            store.send(store.selected.contains(selectedItemStore.id)
-                ? .removeSelect(selectedItemStore.id) : .addSelect(selectedItemStore.id))
+            store.send(
+                store.selected.contains(selectedItemStore.id)
+                    ? .removeSelect(selectedItemStore.id)
+                    : .addSelect(selectedItemStore.id)
+            )
         } else {
             openReader(for: selectedItemStore)
         }
@@ -817,4 +432,3 @@ class LoadingReusableView: UICollectionReusableView {
         activityIndicator.stopAnimating()
     }
 }
-// swiftlint:enable file_length

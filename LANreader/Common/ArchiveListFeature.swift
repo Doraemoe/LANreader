@@ -4,9 +4,8 @@ import Logging
 import OrderedCollections
 import SwiftUI
 
-// swiftlint:disable type_body_length
 @Reducer public struct ArchiveListFeature: Sendable {
-    private let logger = Logger(label: "ArchiveListFeature")
+    let logger = Logger(label: "ArchiveListFeature")
 
     @ObservableState
     public struct State: Equatable, Sendable {
@@ -46,33 +45,6 @@ import SwiftUI
         /// Items returned per request. LANraragi has no page-size parameter, so this is
         /// discovered from a page-zero response rather than chosen by the app.
         var serverPageSize = 0
-
-        var pageCount: Int {
-            PaginationPositioning.pageCount(total: total, pageSize: serverPageSize)
-        }
-
-        // Library/category can load an unfiltered list; Search treats an empty filter as no query yet.
-        var canLoadArchives: Bool {
-            currentTab != .search || hasSearchFilter
-        }
-
-        var showsReadFilterEmptyState: Bool {
-            hideRead && !loading && !archives.isEmpty && archivesToDisplay.isEmpty
-                && (paginationActive || archives.count >= total)
-        }
-
-        var canStartBatchAction: Bool {
-            !loading && !batchActionInProgress && !selected.isEmpty
-                && !selected.contains(where: cachingArchiveIds.contains)
-        }
-
-        private var hasSearchFilter: Bool {
-            guard currentTab == .search else { return true }
-            if filter.category != nil {
-                return true
-            }
-            return filter.filter?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-        }
     }
 
     public enum Action: Equatable {
@@ -123,26 +95,9 @@ import SwiftUI
                 state.$lastTagRefresh.withLock { $0 = Date().timeIntervalSince1970 }
                 return .none
             case .toggleSelectionMode:
-                guard !state.batchActionInProgress else { return .none }
-                if state.selectMode != .active && state.loading {
-                    guard !state.archivesToDisplay.isEmpty else { return .none }
-                    state.loading = false
-                    state.pendingPage = nil
-                    state.selectMode = .active
-                    state.selected.removeAll()
-                    return .cancel(id: state.searchCancellationID)
-                }
-                state.selectMode = state.selectMode == .active ? .inactive : .active
-                state.selected.removeAll()
-                return .none
+                return handleToggleSelectionMode(state: &state)
             case .cacheSelected:
-                guard state.canStartBatchAction else { return .none }
-                let ids = state.selected.sorted()
-                let previous = state.cachingArchiveIds
-                let effects = ids.map { cacheArchive(state: &state, id: $0) }
-                state.batchCachingArchiveIds.formUnion(state.cachingArchiveIds.subtracting(previous))
-                state.selected.formIntersection(state.batchCachingArchiveIds)
-                return .merge(effects)
+                return handleCacheSelected(state: &state)
             case .reloadFromFirstPage:
                 resetArchives(state: &state)
                 guard state.canLoadArchives else {
@@ -155,9 +110,7 @@ import SwiftUI
                     clearArchives(state: &state)
                     return .none
                 }
-                guard state.loading == false else {
-                    return .none
-                }
+                guard state.loading == false else { return .none }
                 // A reload keeps the page the user is on, so pull-to-refresh reloads what is on
                 // screen. Every path that means "start over" sends `reloadFromFirstPage` instead,
                 // which is what puts the pager back on the first page.
@@ -166,88 +119,22 @@ import SwiftUI
                     : 0
                 return loadArchives(state: &state, page: page)
             case let .appendArchives(start):
-                guard state.canLoadArchives, state.selectMode != .active else {
-                    return .none
-                }
-                guard state.loading == false else {
+                guard state.canLoadArchives, state.selectMode != .active, state.loading == false else {
                     return .none
                 }
                 state.loading = true
-                let sortby = state.searchSort
-                let order = state.searchSortOrder
-                return self.search(
+                return search(
                     searchFilter: state.filter,
-                    sort: (by: sortby, order: order),
+                    sort: (by: state.searchSort, order: state.searchSortOrder),
                     start: start,
                     append: true,
                     cancellationID: state.searchCancellationID
                 )
             case let .populateArchives(archives, total, append):
-                archives.forEach { item in
-                    state.$archiveItems.withLock {
-                        _ = $0.updateOrAppend(item)
-                    }
-                }
-                let gridFeatureState = archives.compactMap { item in
-                    Shared(state.$archiveItems[id: item.id])
-                }.map {
-                    GridFeature.State(archive: $0)
-                }
-                if let pendingPage = state.pendingPage {
-                    state.currentPage = pendingPage
-                    state.pendingPage = nil
-                }
-                if !append {
-                    state.archives = .init()
-                    state.archivesToDisplay = .init()
-                    state.total = 0
-                }
-                let visibleCountBefore = state.archivesToDisplay.count
-                state.archives.append(contentsOf: gridFeatureState)
-
-                // LANraragi exposes no page-size parameter, so the size is inferred from a
-                // full page-zero response. Later pages can be short, which is why only page
-                // zero is trusted to define it.
-                if !append, state.currentPage == 0, !archives.isEmpty {
-                    state.serverPageSize = archives.count
-                }
-
-                if state.hideRead {
-                    let result = state.archives.filter {
-                        $0.archive.pagecount != $0.archive.progress
-                    }
-                    state.archivesToDisplay = IdentifiedArray(uniqueElements: result)
-                } else {
-                    state.archivesToDisplay = state.archives
-                }
-
-                state.total = total
-                state.loading = false
-
-                // Archives removed elsewhere can shrink the list past the page being reloaded.
-                // Fall back to the last valid page instead of leaving an empty grid behind.
-                if !append, state.paginationActive, state.pageCount > 0, state.currentPage >= state.pageCount {
-                    state.currentPage = PaginationPositioning.clampedPage(
-                        state.currentPage, pageCount: state.pageCount
-                    )
-                    return .send(.load)
-                }
-                if state.preserveSelectionOnNextPopulate {
-                    state.preserveSelectionOnNextPopulate = false
-                } else {
-                    state.selected.formIntersection(state.archivesToDisplay.ids)
-                }
-                if !archives.isEmpty, state.archivesToDisplay.count == visibleCountBefore,
-                   state.canAppendHiddenArchives {
-                    return .send(.appendArchives(String(state.archives.count)))
-                }
-                return .none
+                return handlePopulateArchives(archives, total: total, append: append, state: &state)
             case let .refreshThumbnail(archiveId):
-                if state.archivesToDisplay.contains(where: { $0.id == archiveId }) {
-                    return .send(.grid(.element(id: archiveId, action: .load(true))))
-                } else {
-                    return .none
-                }
+                guard state.archivesToDisplay.contains(where: { $0.id == archiveId }) else { return .none }
+                return .send(.grid(.element(id: archiveId, action: .load(true))))
             case let .cacheArchive(id):
                 return cacheArchive(state: &state, id: id)
             case let .cacheArchiveFinished(id):
@@ -283,368 +170,189 @@ import SwiftUI
                 state.selected.remove(id)
                 return .none
             case .refreshDisplayArchives:
-                let before = state.archives.count
-                let filteredGridFeatureState = state.archives.filter { gridState in
-                    state.archiveItems[id: gridState.archive.id] != nil
-                }
-                let after = filteredGridFeatureState.count
-                let diff = before - after
-                state.total -= diff
-
-                state.archives = filteredGridFeatureState
-
-                if state.hideRead {
-                    let result = state.archives.filter {
-                        $0.archive.pagecount != $0.archive.progress
-                    }
-                    state.archivesToDisplay = IdentifiedArray(uniqueElements: result)
-                } else {
-                    state.archivesToDisplay = state.archives
-                }
-
-                state.selected.formIntersection(state.archivesToDisplay.ids)
-                return .none
+                return handleRefreshDisplayArchives(state: &state)
             case .confirmRemoveFromCategory:
-                guard state.canStartBatchAction,
-                      let categoryId = state.currentStaticCategoryId else { return .none }
-                state.loading = true
-                state.batchActionInProgress = true
-                let selected = state.selected
-                return .run { send in
-                    var successIds: Set<String> = .init()
-                    var errorIds: Set<String> = .init()
-
-                    for archiveId in selected.sorted() {
-                        do {
-                            let response = try await service.removeArchiveFromCategory(
-                                categoryId: categoryId, archiveId: archiveId
-                            ).value
-                            if response.success == 1 {
-                                successIds.insert(archiveId)
-                            } else {
-                                errorIds.insert(archiveId)
-                            }
-                        } catch {
-                            logger.error(
-                                """
-                                failed to remove archive from category.
-                                categoryId=\(categoryId), archiveId=\(archiveId) \(error)
-                                """
-                            )
-                            errorIds.insert(archiveId)
-                        }
-
-                    }
-                    await send(.removeFromCategoryFinished(categoryId, successIds, !errorIds.isEmpty))
-                }
+                return handleConfirmRemoveFromCategory(state: &state)
             case let .removeFromCategoryFinished(categoryId, archiveIds, hadErrors):
-                state.$categoryItems.withLock {
-                    $0[id: categoryId]?.archives.removeAll(where: archiveIds.contains)
-                }
-                archiveIds.forEach { id in
-                    state.selected.remove(id)
-                    state.archivesToDisplay.remove(id: id)
-                    state.archives.remove(id: id)
-                }
-                state.loading = false
-                state.batchActionInProgress = false
-                if hadErrors {
-                    state.errorMessage = String(localized: "archive.selected.category.remove.error")
-                } else {
-                    state.successMessage = String(localized: "archive.selected.category.remove.success")
-                }
-                return reloadPageAfterRemoval(state: &state, removedCount: archiveIds.count)
+                return handleRemoveFromCategoryFinished(
+                    categoryId: categoryId, archiveIds: archiveIds, hadErrors: hadErrors, state: &state
+                )
             case .confirmDelete:
-                guard state.canStartBatchAction else { return .none }
-                state.loading = true
-                state.batchActionInProgress = true
-                return deleteSelected(state)
+                return handleConfirmDelete(state: &state)
             case let .setSearchSortOrder(order):
-                state.$searchSortOrder.withLock {
-                    $0 = order
-                }
+                state.$searchSortOrder.withLock { $0 = order }
                 return .none
             case let .setSearchSort(sort):
-                state.$searchSort.withLock {
-                    $0 = sort
-                }
+                state.$searchSort.withLock { $0 = sort }
                 return .none
             case .toggleHideRead:
-                state.selected.removeAll()
-                state.$hideRead.withLock {
-                    $0.toggle()
-                }
-                if state.hideRead {
-                    let result = state.archives.filter {
-                        $0.archive.pagecount != $0.archive.progress
-                    }
-                    state.archivesToDisplay = IdentifiedArray(uniqueElements: result)
-                } else {
-                    state.archivesToDisplay = state.archives
-                }
-                if state.archivesToDisplay.count < state.archives.count, state.canAppendHiddenArchives {
-                    return .send(.appendArchives(String(state.archives.count)))
-                }
-                return .none
+                return handleToggleHideRead(state: &state)
             case let .goToPage(page):
-                guard state.canLoadArchives, state.paginationActive else { return .none }
-                guard state.loading == false else { return .none }
-                let targetPage = PaginationPositioning.clampedPage(page, pageCount: state.pageCount)
-                guard targetPage != state.currentPage else { return .none }
-
-                state.selected.removeAll()
-                state.loading = true
-                state.pendingPage = targetPage
-                let start = PaginationPositioning.itemOffset(
-                    page: targetPage,
-                    pageSize: state.serverPageSize
-                )
-                return self.search(
-                    searchFilter: state.filter,
-                    sort: (by: state.searchSort, order: state.searchSortOrder),
-                    start: String(start),
-                    append: false,
-                    cancellationID: state.searchCancellationID
-                )
+                return handleGoToPage(page, state: &state)
             case let .deleteFinished(archiveIds, hadErrors):
-                state.batchActionInProgress = false
-                archiveIds.forEach { id in
-                    state.selected.remove(id)
-                    state.archivesToDisplay.remove(id: id)
-                    state.archives.remove(id: id)
-                    state.$archiveItems.withLock {
-                        _ = $0.remove(id: id)
-                    }
-                }
-                state.$categoryItems.withLock { categories in
-                    for index in categories.indices {
-                        categories[index].archives.removeAll(where: archiveIds.contains)
-                    }
-                }
-                state.loading = false
-                if hadErrors {
-                    state.errorMessage = String(localized: "archive.selected.delete.error")
-                } else {
-                    state.successMessage = String(localized: "archive.selected.delete.success")
-                }
-                if archiveIds.contains(where: \.isTankoubonArchiveId) {
-                    state.preserveSelectionOnNextPopulate = true
-                    let page = state.paginationActive
-                        ? PaginationPositioning.clampedPage(state.currentPage, pageCount: state.pageCount)
-                        : 0
-                    return loadArchives(state: &state, page: page)
-                }
-                return reloadPageAfterRemoval(state: &state, removedCount: archiveIds.count)
+                return handleDeleteFinished(archiveIds: archiveIds, hadErrors: hadErrors, state: &state)
             case .loadCategory:
-                return .run { send in
-                    let categories = try await service.retrieveCategories().value
-                    let items = categories.map { $0.toCategoryItem() }
-                        .sorted { $0.pinned == "1" && $1.pinned != "1" }
-                    await send(.populateCategory(items))
-                } catch: { error, send in
-                    logger.error("failed to load category. \(error)")
-                    await send(.setErrorMessage(error.localizedDescription))
-                }
+                return handleLoadCategory()
             case let .populateCategory(items):
-                state.$categoryItems.withLock {
-                    $0 = IdentifiedArray(uniqueElements: items)
-                }
+                state.$categoryItems.withLock { $0 = IdentifiedArray(uniqueElements: items) }
                 return .none
             case let .addArchivesToCategory(categoryId):
-                guard state.canStartBatchAction,
-                      state.categoryItems[id: categoryId] != nil else { return .none }
-                state.loading = true
-                state.batchActionInProgress = true
-                let selected = state.selected
-                return .run { send in
-                    var successIds: Set<String> = .init()
-                    var errorIds: Set<String> = .init()
-
-                    for archiveId in selected.sorted() {
-                        do {
-                            let response = try await service.addArchiveToCategory(
-                                categoryId: categoryId, archiveId: archiveId
-                            ).value
-                            if response.success == 1 {
-                                successIds.insert(archiveId)
-                            } else {
-                                errorIds.insert(archiveId)
-                            }
-                        } catch {
-                            logger.error(
-                                """
-                                failed to add archive to category.
-                                categoryId=\(categoryId), archiveId=\(archiveId) \(error)
-                                """
-                            )
-                            errorIds.insert(archiveId)
-                        }
-                    }
-                    await send(.addArchivesToCategoryFinished(categoryId, successIds, !errorIds.isEmpty))
-                }
+                return handleAddArchivesToCategory(categoryId, state: &state)
             case let .addArchivesToCategoryFinished(categoryId, archiveIds, hadErrors):
-                state.$categoryItems.withLock {
-                    for archiveId in archiveIds where $0[id: categoryId]?.archives.contains(archiveId) == false {
-                        $0[id: categoryId]?.archives.append(archiveId)
-                    }
-                }
-                archiveIds.forEach { id in
-                    state.selected.remove(id)
-                }
-                state.loading = false
-                state.batchActionInProgress = false
-                if hadErrors {
-                    state.errorMessage = String(localized: "archive.selected.category.add.error")
-                } else {
-                    state.successMessage = String(localized: "archive.selected.category.add.success")
-                }
-                return .none
+                return handleAddArchivesToCategoryFinished(
+                    categoryId: categoryId, archiveIds: archiveIds, hadErrors: hadErrors, state: &state
+                )
             case let .createTankoubon(name):
-                guard state.canStartBatchAction else { return .none }
-                let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !name.isEmpty else {
-                    state.errorMessage = String(localized: "archive.selected.tankoubon.name.required")
-                    return .none
-                }
-                guard !state.selected.contains(where: \.isTankoubonArchiveId) else {
-                    state.errorMessage = String(localized: "archive.selected.tankoubon.nested.error")
-                    return .none
-                }
-                state.loading = true
-                state.batchActionInProgress = true
-                let archives = Array(state.selected)
-                return .run { send in
-                    var createdTankoubon = false
-                    do {
-                        let created = try await service.createTankoubon(name: name).value
-                        guard created.success == 1, let id = created.tankoubonId, !id.isEmpty else {
-                            await send(.createTankoubonFailed(
-                                String(localized: "archive.selected.tankoubon.create.error")
-                            ))
-                            return
-                        }
-                        createdTankoubon = true
-                        let updated = try await service.updateTankoubon(id: id, archives: archives).value
-                        guard updated.success == 1 else {
-                            await send(.createTankoubonFailed(
-                                String(localized: "archive.selected.tankoubon.contents.error")
-                            ))
-                            return
-                        }
-                        await send(.createTankoubonSucceeded)
-                    } catch {
-                        logger.error("failed to create or populate Tankoubon. \(error)")
-                        await send(.createTankoubonFailed(
-                            String(localized: createdTankoubon
-                                ? "archive.selected.tankoubon.contents.error"
-                                : "archive.selected.tankoubon.create.error")
-                        ))
-                    }
-                }
+                return handleCreateTankoubon(name, state: &state)
             case .createTankoubonSucceeded:
-                state.loading = false
-                state.batchActionInProgress = false
-                state.successMessage = String(localized: "archive.selected.tankoubon.create.success")
-                return .send(.reloadFromFirstPage)
+                return handleCreateTankoubonSucceeded(state: &state)
             case let .createTankoubonFailed(message):
-                state.loading = false
-                state.batchActionInProgress = false
-                state.errorMessage = message
-                return .none
+                return handleCreateTankoubonFailed(message, state: &state)
             case .openReader:
                 return .none
             }
         }
-        .forEach(\.archivesToDisplay, action: \.grid) {
-            GridFeature()
-        }
+        .forEach(\.archivesToDisplay, action: \.grid) { GridFeature() }
     }
 }
-// swiftlint:enable type_body_length
 
-extension ArchiveListFeature {
-    private func deleteSelected(_ state: State) -> EffectOf<Self> {
-        return .run { [state] send in
-            var successIds: Set<String> = .init()
-            var errorIds: Set<String> = .init()
-
-            for archiveId in state.selected.sorted() {
-                do {
-                    let request = if archiveId.isTankoubonArchiveId {
-                        await service.deleteTankoubon(id: archiveId)
-                    } else {
-                        await service.deleteArchive(id: archiveId)
-                    }
-                    let response = try await request.value
-                    if response.success == 1 {
-                        successIds.insert(archiveId)
-                    } else {
-                        errorIds.insert(archiveId)
-                    }
-                } catch {
-                    logger.error("failed to delete archive id=\(archiveId) \(error)")
-                    errorIds.insert(archiveId)
-                }
-            }
-
-            await send(.deleteFinished(successIds, !errorIds.isEmpty))
+private extension ArchiveListFeature {
+    func handleToggleSelectionMode(state: inout State) -> EffectOf<Self> {
+        guard !state.batchActionInProgress else { return .none }
+        if state.selectMode != .active && state.loading {
+            guard !state.archivesToDisplay.isEmpty else { return .none }
+            state.loading = false
+            state.pendingPage = nil
+            state.selectMode = .active
+            state.selected.removeAll()
+            return .cancel(id: state.searchCancellationID)
         }
+        state.selectMode = state.selectMode == .active ? .inactive : .active
+        state.selected.removeAll()
+        return .none
     }
 
-}
-
-extension ArchiveListFeature {
-    private func finishCaching(state: inout State, id: String, succeeded: Bool, error: String? = nil) {
-        guard state.batchCachingArchiveIds.remove(id) != nil else {
-            if succeeded { state.successMessage = String(localized: "archive.cache.added") }
-            if let error { state.errorMessage = error }
-            return
+    func handlePopulateArchives(
+        _ archives: [ArchiveItem],
+        total: Int,
+        append: Bool,
+        state: inout State
+    ) -> EffectOf<Self> {
+        archives.forEach { item in
+            state.$archiveItems.withLock { _ = $0.updateOrAppend(item) }
         }
-        if let error {
-            state.batchCacheErrors.insert(error)
+        let gridFeatureState = archives.compactMap { item in
+            Shared(state.$archiveItems[id: item.id])
+        }.map { GridFeature.State(archive: $0) }
+        if let pendingPage = state.pendingPage {
+            state.currentPage = pendingPage
+            state.pendingPage = nil
         }
-        if succeeded { state.selected.remove(id) }
-        state.batchCacheHadSuccess = state.batchCacheHadSuccess || succeeded
-        guard state.batchCachingArchiveIds.isEmpty else { return }
-        if !state.batchCacheErrors.isEmpty {
-            state.errorMessage = state.batchCacheErrors.sorted().joined(separator: "\n")
-        } else if state.batchCacheHadSuccess {
-            state.successMessage = String(localized: "archive.cache.added")
+        if !append {
+            state.archives = .init()
+            state.archivesToDisplay = .init()
+            state.total = 0
         }
-        state.batchCacheErrors.removeAll()
-        state.batchCacheHadSuccess = false
-    }
-
-    private func cacheArchive(state: inout State, id: String) -> EffectOf<Self> {
-        guard !state.cachingArchiveIds.contains(id),
-              let archive = state.archives[id: id]?.archive else {
-            return .none
+        let visibleCountBefore = state.archivesToDisplay.count
+        state.archives.append(contentsOf: gridFeatureState)
+        // LANraragi exposes no page-size parameter, so the size is inferred from a full
+        // page-zero response. Later pages can be short, which is why only page zero defines it.
+        if !append, state.currentPage == 0, !archives.isEmpty {
+            state.serverPageSize = archives.count
         }
-        if (try? database.existCache(id)) == true {
-            return .none
-        }
-        state.cachingArchiveIds.insert(id)
-        return .run(priority: .utility) { send in
-            let extraction = try await service.extractArchiveForReading(id: id)
-            guard !extraction.pages.isEmpty else {
-                await send(.cacheArchiveFailed(id, String(localized: "error.page.empty")))
-                return
-            }
-
-            try await service.saveAndCacheArchive(
-                archive,
-                pages: extraction.pages,
-                toc: extraction.tankoubonDetails?.toc,
-                database: database
+        applyReadFilter(state: &state)
+        state.total = total
+        state.loading = false
+        // Archives removed elsewhere can shrink the list past the page being reloaded.
+        // Fall back to the last valid page instead of leaving an empty grid behind.
+        if !append, state.paginationActive, state.pageCount > 0, state.currentPage >= state.pageCount {
+            state.currentPage = PaginationPositioning.clampedPage(
+                state.currentPage, pageCount: state.pageCount
             )
-            await send(.cacheArchiveFinished(id))
+            return .send(.load)
+        }
+        if state.preserveSelectionOnNextPopulate {
+            state.preserveSelectionOnNextPopulate = false
+        } else {
+            state.selected.formIntersection(state.archivesToDisplay.ids)
+        }
+        if !archives.isEmpty, state.archivesToDisplay.count == visibleCountBefore,
+           state.canAppendHiddenArchives {
+            return .send(.appendArchives(String(state.archives.count)))
+        }
+        return .none
+    }
+
+    func handleRefreshDisplayArchives(state: inout State) -> EffectOf<Self> {
+        let before = state.archives.count
+        let filteredGridFeatureState = state.archives.filter { gridState in
+            state.archiveItems[id: gridState.archive.id] != nil
+        }
+        state.total -= before - filteredGridFeatureState.count
+        state.archives = filteredGridFeatureState
+        applyReadFilter(state: &state)
+        state.selected.formIntersection(state.archivesToDisplay.ids)
+        return .none
+    }
+
+    func handleToggleHideRead(state: inout State) -> EffectOf<Self> {
+        state.selected.removeAll()
+        state.$hideRead.withLock { $0.toggle() }
+        applyReadFilter(state: &state)
+        if state.archivesToDisplay.count < state.archives.count, state.canAppendHiddenArchives {
+            return .send(.appendArchives(String(state.archives.count)))
+        }
+        return .none
+    }
+
+    func handleGoToPage(_ page: Int, state: inout State) -> EffectOf<Self> {
+        guard state.canLoadArchives, state.paginationActive else { return .none }
+        guard state.loading == false else { return .none }
+        let targetPage = PaginationPositioning.clampedPage(page, pageCount: state.pageCount)
+        guard targetPage != state.currentPage else { return .none }
+
+        state.selected.removeAll()
+        state.loading = true
+        state.pendingPage = targetPage
+        let start = PaginationPositioning.itemOffset(
+            page: targetPage,
+            pageSize: state.serverPageSize
+        )
+        return search(
+            searchFilter: state.filter,
+            sort: (by: state.searchSort, order: state.searchSortOrder),
+            start: String(start),
+            append: false,
+            cancellationID: state.searchCancellationID
+        )
+    }
+
+    func handleLoadCategory() -> EffectOf<Self> {
+        .run { send in
+            let categories = try await service.retrieveCategories().value
+            let items = categories.map { $0.toCategoryItem() }
+                .sorted { $0.pinned == "1" && $1.pinned != "1" }
+            await send(.populateCategory(items))
         } catch: { error, send in
-            logger.error("failed to cache archive. id=\(id) \(error)")
-            await send(.cacheArchiveFailed(id, error.localizedDescription))
+            logger.error("failed to load category. \(error)")
+            await send(.setErrorMessage(error.localizedDescription))
         }
     }
 
-    private func resetArchives(state: inout State) {
+    func applyReadFilter(state: inout State) {
+        if state.hideRead {
+            let result = state.archives.filter {
+                $0.archive.pagecount != $0.archive.progress
+            }
+            state.archivesToDisplay = IdentifiedArray(uniqueElements: result)
+        } else {
+            state.archivesToDisplay = state.archives
+        }
+    }
+}
+
+extension ArchiveListFeature {
+    func resetArchives(state: inout State) {
         state.selected.removeAll()
         state.preserveSelectionOnNextPopulate = false
         state.archivesToDisplay = .init()
@@ -653,7 +361,7 @@ extension ArchiveListFeature {
         state.pendingPage = nil
     }
 
-    private func loadArchives(state: inout State, page: Int) -> EffectOf<Self> {
+    func loadArchives(state: inout State, page: Int) -> EffectOf<Self> {
         state.loading = true
         state.currentPage = page
         let start = PaginationPositioning.itemOffset(page: page, pageSize: state.serverPageSize)
@@ -680,7 +388,7 @@ extension ArchiveListFeature {
         state.loading = false
     }
 
-    private func reloadPageAfterRemoval(
+    func reloadPageAfterRemoval(
         state: inout State,
         removedCount: Int
     ) -> EffectOf<Self> {
@@ -727,9 +435,7 @@ extension ArchiveListFeature {
                         category: searchFilter.category,
                         filter: searchFilter.filter
                     ).value
-                    let archives = response.data.map {
-                        $0.toArchiveItem()
-                    }
+                    let archives = response.data.map { $0.toArchiveItem() }
                     await send(.populateArchives(archives, 100, false))
                 } else {
                     let response = try await service.searchArchive(
@@ -739,9 +445,7 @@ extension ArchiveListFeature {
                         sortby: sort.by,
                         order: sort.order
                     ).value
-                    let archives = response.data.map {
-                        $0.toArchiveItem()
-                    }
+                    let archives = response.data.map { $0.toArchiveItem() }
                     await send(.populateArchives(archives, response.recordsFiltered, append))
                 }
             } catch {
@@ -754,6 +458,33 @@ extension ArchiveListFeature {
 }
 
 extension ArchiveListFeature.State {
+    var pageCount: Int {
+        PaginationPositioning.pageCount(total: total, pageSize: serverPageSize)
+    }
+
+    // Library/category can load an unfiltered list; Search treats an empty filter as no query yet.
+    var canLoadArchives: Bool {
+        currentTab != .search || hasSearchFilter
+    }
+
+    var showsReadFilterEmptyState: Bool {
+        hideRead && !loading && !archives.isEmpty && archivesToDisplay.isEmpty
+            && (paginationActive || archives.count >= total)
+    }
+
+    var canStartBatchAction: Bool {
+        !loading && !batchActionInProgress && !selected.isEmpty
+            && !selected.contains(where: cachingArchiveIds.contains)
+    }
+
+    private var hasSearchFilter: Bool {
+        guard currentTab == .search else { return true }
+        if filter.category != nil {
+            return true
+        }
+        return filter.filter?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+    }
+
     var currentStaticCategoryId: String? {
         guard let categoryId = filter.category,
               categoryItems[id: categoryId]?.search.isEmpty == true else { return nil }
