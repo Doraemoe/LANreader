@@ -15,7 +15,6 @@ public struct StampEditingTarget: Equatable, Sendable {
 }
 
 public struct ReaderStampPage: Equatable, Sendable {
-    public let id: String
     public let sourceArchiveId: String
     public let sourcePageNumber: Int
     public let cached: Bool
@@ -24,32 +23,12 @@ public struct ReaderStampPage: Equatable, Sendable {
 }
 
 extension ReaderStampPage {
-    init(page: PageFeature.State) {
-        self.id = page.id
+    init(page: PageFeature.State, cached: Bool? = nil) {
         self.sourceArchiveId = page.sourceArchiveId
         self.sourcePageNumber = page.sourcePageNumber
-        self.cached = page.cached
+        self.cached = cached ?? page.cached
         self.imageLoaded = page.imageLoaded
         self.stampIds = Set(page.stamps.compactMap(\.id))
-    }
-}
-
-public struct ReaderStampState: Equatable, Sendable {
-    var creationTarget: StampCreationTarget?
-    var comment = ""
-    var editingTarget: StampEditingTarget?
-    var editText = ""
-    var requestInFlight = false
-    var supported: Bool?
-
-    public init() {}
-
-    mutating func resetTransientState() {
-        creationTarget = nil
-        comment = ""
-        editingTarget = nil
-        editText = ""
-        requestInFlight = false
     }
 }
 
@@ -58,8 +37,6 @@ public struct ReaderStampState: Equatable, Sendable {
 
     @ObservableState
     public struct State: Equatable, Sendable {
-        var cached = false
-        var pages: [ReaderStampPage] = []
         var creationTarget: StampCreationTarget?
         var comment = ""
         var editingTarget: StampEditingTarget?
@@ -67,35 +44,7 @@ public struct ReaderStampState: Equatable, Sendable {
         var requestInFlight = false
         var supported: Bool?
 
-        public init(
-            cached: Bool = false,
-            pages: [ReaderStampPage] = [],
-            stored: ReaderStampState = ReaderStampState()
-        ) {
-            self.cached = cached
-            self.pages = pages
-            self.creationTarget = stored.creationTarget
-            self.comment = stored.comment
-            self.editingTarget = stored.editingTarget
-            self.editText = stored.editText
-            self.requestInFlight = stored.requestInFlight
-            self.supported = stored.supported
-        }
-
-        var canUseStamps: Bool {
-            !cached && supported != false
-        }
-
-        var stored: ReaderStampState {
-            var snapshot = ReaderStampState()
-            snapshot.creationTarget = creationTarget
-            snapshot.comment = comment
-            snapshot.editingTarget = editingTarget
-            snapshot.editText = editText
-            snapshot.requestInFlight = requestInFlight
-            snapshot.supported = supported
-            return snapshot
-        }
+        public init() {}
 
         mutating func resetTransientState() {
             creationTarget = nil
@@ -108,13 +57,13 @@ public struct ReaderStampState: Equatable, Sendable {
 
     public enum Action: Equatable {
         case supportResolved(Bool?)
-        case creationRequested(pageId: String, position: ArchiveStampPosition)
+        case creationRequested(page: ReaderStampPage, position: ArchiveStampPosition)
         case commentChanged(String)
         case cancelCreation
         case confirmCreation
         case created(target: StampCreationTarget, stamp: ArchiveStamp, refreshedStamps: [ArchiveStamp]?)
         case creationFailed(target: StampCreationTarget, content: String)
-        case editingRequested(pageId: String, stamp: ArchiveStamp)
+        case editingRequested(page: ReaderStampPage, stamp: ArchiveStamp)
         case editTextChanged(String)
         case cancelEditing
         case confirmEditing
@@ -182,8 +131,8 @@ private extension ReaderStampFeature {
 
     func reduceCreation(state: inout State, action: Action) -> Effect<Action> {
         switch action {
-        case let .creationRequested(pageId, position):
-            return handleCreationRequested(pageId: pageId, position: position, state: &state)
+        case let .creationRequested(page, position):
+            return handleCreationRequested(page: page, position: position, state: &state)
         case let .commentChanged(comment):
             state.comment = comment
             return .none
@@ -208,8 +157,8 @@ private extension ReaderStampFeature {
 
     func reduceEditing(state: inout State, action: Action) -> Effect<Action> {
         switch action {
-        case let .editingRequested(pageId, stamp):
-            return handleEditingRequested(pageId: pageId, stamp: stamp, state: &state)
+        case let .editingRequested(page, stamp):
+            return handleEditingRequested(page: page, stamp: stamp, state: &state)
         case let .editTextChanged(content):
             state.editText = content
             return .none
@@ -243,14 +192,13 @@ private extension ReaderStampFeature {
     }
 
     func handleCreationRequested(
-        pageId: String,
+        page: ReaderStampPage,
         position: ArchiveStampPosition,
         state: inout State
     ) -> Effect<Action> {
-        guard state.canUseStamps,
+        guard state.supported != false,
               !state.requestInFlight,
               state.editingTarget == nil,
-              let page = state.pages.first(where: { $0.id == pageId }),
               !page.cached,
               page.imageLoaded else {
             return .none
@@ -319,16 +267,15 @@ private extension ReaderStampFeature {
     }
 
     func handleEditingRequested(
-        pageId: String,
+        page: ReaderStampPage,
         stamp: ArchiveStamp,
         state: inout State
     ) -> Effect<Action> {
-        guard state.canUseStamps,
+        guard state.supported != false,
               !state.requestInFlight,
               state.creationTarget == nil,
               let stampId = stamp.id,
               !stampId.isEmpty,
-              let page = state.pages.first(where: { $0.id == pageId }),
               !page.cached,
               page.stampIds.contains(stampId) else {
             return .none

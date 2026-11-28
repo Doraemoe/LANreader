@@ -51,7 +51,7 @@ import Logging
         /// Median aspect ratio of the pages measured so far, used to size pages that have not been
         /// measured yet. Pages within an archive are near-uniform, so this converges almost immediately.
         var estimatedPageAspectRatio: Double = ReaderPageLayout.defaultAspectRatio
-        var stamp = ReaderStampState()
+        var stamp = ReaderStampFeature.State()
         var chapter = ReaderChapterState()
 
         var allArchives: IdentifiedArrayOf<Shared<ArchiveItem>> = []
@@ -131,7 +131,7 @@ import Logging
 
         Scope(\.autoPage, action: \.autoPage) { AutomaticPageFeature() }
         Scope(\.sliderPreviewScope, action: \.sliderPreview) { ReaderSliderPreviewFeature() }
-        Scope(\.stampScope, action: \.stamp) { ReaderStampFeature() }
+        Scope(\.stamp, action: \.stamp) { ReaderStampFeature() }
         Scope(\.chapterScope, action: \.chapter) { ReaderChapterFeature() }
 
         Reduce<State, Action> { (state: inout State, action: Action) -> Effect<Action> in
@@ -361,17 +361,6 @@ extension ArchiveReaderFeature.State {
             )
         }
         set { if sliderPreview != newValue.stored { sliderPreview = newValue.stored } }
-    }
-
-    var stampScope: ReaderStampFeature.State {
-        get {
-            ReaderStampFeature.State(
-                cached: cached,
-                pages: pages.map(ReaderStampPage.init),
-                stored: stamp
-            )
-        }
-        set { if stamp != newValue.stored { stamp = newValue.stored } }
     }
 
     var chapterScope: ReaderChapterFeature.State {
