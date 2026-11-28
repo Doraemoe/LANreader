@@ -32,8 +32,8 @@ public struct ChapterMutationTarget: Equatable, Sendable {
 
     public enum Action: Equatable {
         case mutationSupportResolved(Bool?)
-        case creationRequested(target: ChapterMutationTarget, cached: Bool)
-        case editingRequested(target: ChapterMutationTarget, title: String, editable: Bool)
+        case creationRequested(target: ChapterMutationTarget)
+        case editingRequested(target: ChapterMutationTarget, title: String)
         case titleChanged(String)
         case cancelMutation
         case confirmMutation
@@ -121,10 +121,10 @@ private extension ReaderChapterFeature {
             guard isSupported == false else { return .none }
             state.resetTransientState()
             return Self.cancelEffects()
-        case let .creationRequested(target, cached):
-            return handleCreationRequested(target: target, cached: cached, state: &state)
-        case let .editingRequested(target, title, editable):
-            return handleEditingRequested(target: target, title: title, editable: editable, state: &state)
+        case let .creationRequested(target):
+            return handleCreationRequested(target: target, state: &state)
+        case let .editingRequested(target, title):
+            return handleEditingRequested(target: target, title: title, state: &state)
         case let .titleChanged(title):
             state.title = title
             return .none
@@ -176,11 +176,9 @@ private extension ReaderChapterFeature {
 
     func handleCreationRequested(
         target: ChapterMutationTarget,
-        cached: Bool,
         state: inout State
     ) -> Effect<Action> {
-        guard !cached,
-              state.mutationsSupported != false,
+        guard state.mutationsSupported != false,
               !state.requestInFlight,
               state.editingTarget == nil else {
             return .none
@@ -193,11 +191,9 @@ private extension ReaderChapterFeature {
     func handleEditingRequested(
         target: ChapterMutationTarget,
         title: String,
-        editable: Bool,
         state: inout State
     ) -> Effect<Action> {
-        guard editable,
-              state.mutationsSupported != false,
+        guard state.mutationsSupported != false,
               !state.requestInFlight,
               state.creationTarget == nil else {
             return .none

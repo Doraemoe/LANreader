@@ -140,23 +140,26 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
         let store = makePreviewTestStore(
             archiveId: "TANK_preview",
             pages: [
-                ReaderSliderPreviewPage(pageNumber: 8, sourceArchiveId: "source", sourcePageNumber: 4)
+                PageFeature.State(
+                    archiveId: "TANK_preview", pageId: "8", pageNumber: 8,
+                    sourceArchiveId: "source", sourcePageNumber: 4
+                )
             ],
             initialState: state
         )
 
-        await store.send(.dragStarted) {
-            $0.dragging = true
-            $0.draftIndex = 0
-            $0.previewVisible = true
-            $0.previewPageIndex = 0
-            $0.previewLoading = true
-            $0.previewStatus = [8: .fetching]
+        await store.send(.sliderPreview(.dragStarted)) {
+            $0.sliderPreview.dragging = true
+            $0.sliderPreview.draftIndex = 0
+            $0.sliderPreview.previewVisible = true
+            $0.sliderPreview.previewPageIndex = 0
+            $0.sliderPreview.previewLoading = true
+            $0.sliderPreview.previewStatus = [8: .fetching]
         }
-        await store.receive(.previewFetched(pageNumber: 8, .stored)) {
-            $0.previewStatus = [8: .stored]
-            $0.previewImageURL = sliderPreviewURL(archiveId: "TANK_preview", pageNumber: 8)
-            $0.previewLoading = false
+        await store.receive(.sliderPreview(.previewFetched(pageNumber: 8, .stored))) {
+            $0.sliderPreview.previewStatus = [8: .stored]
+            $0.sliderPreview.previewImageURL = sliderPreviewURL(archiveId: "TANK_preview", pageNumber: 8)
+            $0.sliderPreview.previewLoading = false
         }
         XCTAssertEqual(requestedPages.withLock { $0 }, [4])
     }
@@ -182,10 +185,10 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
         }
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(.pollThumbnailJob(42, archiveId: "archive"))
-        await store.receive(\.thumbnailPollingFailed) {
-            $0.thumbnailJobsById = [:]
-            $0.previewLoading = false
+        await store.send(.sliderPreview(.pollThumbnailJob(42, archiveId: "archive")))
+        await store.receive(\.sliderPreview.thumbnailPollingFailed) {
+            $0.sliderPreview.thumbnailJobsById = [:]
+            $0.sliderPreview.previewLoading = false
         }
         await store.finish()
     }
@@ -196,12 +199,12 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
         stubSliderPreviewThumbnails()
         let store = makePreviewTestStore(pages: makePreviewPages(count: 4), currentPageIndex: 1)
 
-        await store.send(.thumbnailsQueued([queuedThumbnailQueueResult()])) {
-            $0.thumbnailJobsById = [42: "archive"]
+        await store.send(.sliderPreview(.thumbnailsQueued([queuedThumbnailQueueResult()]))) {
+            $0.sliderPreview.thumbnailJobsById = [42: "archive"]
         }
-        await store.receive(.pollThumbnailJob(42, archiveId: "archive"))
+        await store.receive(.sliderPreview(.pollThumbnailJob(42, archiveId: "archive")))
         await store.receive(
-            .thumbnailJobStatus(
+            .sliderPreview(.thumbnailJobStatus(
                 42,
                 "archive",
                 BasicJobStatus(
@@ -210,12 +213,12 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
                     notes: [:],
                     error: ""
                 )
-            )
+            ))
         ) {
-            $0.thumbnailJobsById = [:]
-            $0.readyThumbnailPages = Set([1, 2, 3, 4])
+            $0.sliderPreview.thumbnailJobsById = [:]
+            $0.sliderPreview.readyThumbnailPages = Set([1, 2, 3, 4])
             // A finished job starts the preview downloads.
-            $0.prefetchInFlight = true
+            $0.sliderPreview.prefetchInFlight = true
         }
         await finishPreviewPrefetch(store)
     }
@@ -230,7 +233,7 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
             initialState: initialState
         )
 
-        await store.send(.prepareThumbnails)
+        await store.send(.sliderPreview(.prepareThumbnails))
     }
 
     @MainActor
@@ -246,7 +249,7 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
         )
 
         await store.send(
-            .thumbnailJobStatus(
+            .sliderPreview(.thumbnailJobStatus(
                 42,
                 "archive",
                 BasicJobStatus(
@@ -258,10 +261,10 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
                     ],
                     error: ""
                 )
-            )
+            ))
         ) {
-            $0.thumbnailJobsById = [:]
-            $0.readyThumbnailPages = Set([1, 2, 3])
+            $0.sliderPreview.thumbnailJobsById = [:]
+            $0.sliderPreview.readyThumbnailPages = Set([1, 2, 3])
         }
     }
 
@@ -276,8 +279,8 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
             initialState: initialState
         )
 
-        await store.send(.thumbnailsQueued([readyThumbnailQueueResult()])) {
-            $0.readyThumbnailPages = Set([1, 2, 3, 4])
+        await store.send(.sliderPreview(.thumbnailsQueued([readyThumbnailQueueResult()]))) {
+            $0.sliderPreview.readyThumbnailPages = Set([1, 2, 3, 4])
         }
     }
 
@@ -288,19 +291,20 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
         initialState.thumbnailJobsById = [41: "first", 42: "second"]
         // Background preview downloads are off, so the test sees only which pages become ready.
         initialState.prefetchStopped = true
+        let pages = [("first", 1), ("first", 2), ("second", 1), ("second", 2)].enumerated().map {
+            PageFeature.State(
+                archiveId: tankId, pageId: "\($0 + 1)", pageNumber: $0 + 1,
+                sourceArchiveId: $1.0, sourcePageNumber: $1.1
+            )
+        }
         let store = makePreviewTestStore(
             archiveId: tankId,
-            pages: [
-                ReaderSliderPreviewPage(pageNumber: 1, sourceArchiveId: "first", sourcePageNumber: 1),
-                ReaderSliderPreviewPage(pageNumber: 2, sourceArchiveId: "first", sourcePageNumber: 2),
-                ReaderSliderPreviewPage(pageNumber: 3, sourceArchiveId: "second", sourcePageNumber: 1),
-                ReaderSliderPreviewPage(pageNumber: 4, sourceArchiveId: "second", sourcePageNumber: 2)
-            ],
+            pages: pages,
             initialState: initialState
         )
 
         await store.send(
-            .thumbnailJobStatus(
+            .sliderPreview(.thumbnailJobStatus(
                 42,
                 "second",
                 BasicJobStatus(
@@ -309,13 +313,13 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
                     notes: ["1": .string("processed")],
                     error: ""
                 )
-            )
+            ))
         ) {
-            $0.readyThumbnailPages = Set([3])
+            $0.sliderPreview.readyThumbnailPages = Set([3])
         }
 
         await store.send(
-            .thumbnailJobStatus(
+            .sliderPreview(.thumbnailJobStatus(
                 42,
                 "second",
                 BasicJobStatus(
@@ -324,10 +328,10 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
                     notes: ["1": .string("processed")],
                     error: ""
                 )
-            )
+            ))
         ) {
-            $0.thumbnailJobsById = [41: "first"]
-            $0.readyThumbnailPages = Set([3, 4])
+            $0.sliderPreview.thumbnailJobsById = [41: "first"]
+            $0.sliderPreview.readyThumbnailPages = Set([3, 4])
         }
     }
 
@@ -335,21 +339,21 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
     func testSliderDragChangedUpdatesPreviewStateWithoutJump() async {
         let store = makePreviewTestStore(pages: makePreviewPages(count: 4), currentPageIndex: 1)
 
-        await store.send(.dragStarted) {
-            $0.dragging = true
-            $0.draftIndex = 1
-            $0.previewVisible = true
-            $0.previewPageIndex = 1
+        await store.send(.sliderPreview(.dragStarted)) {
+            $0.sliderPreview.dragging = true
+            $0.sliderPreview.draftIndex = 1
+            $0.sliderPreview.previewVisible = true
+            $0.sliderPreview.previewPageIndex = 1
         }
 
-        await store.send(.dragChanged(3)) {
-            $0.draftIndex = 3
-            $0.previewPageIndex = 3
+        await store.send(.sliderPreview(.dragChanged(3))) {
+            $0.sliderPreview.draftIndex = 3
+            $0.sliderPreview.previewPageIndex = 3
         }
     }
 
     @MainActor
-    func testSliderDragEndedEmitsJumpDelegateAndIgnoresTrailingDragChanges() async {
+    func testSliderDragEndedRequestsSliderJumpAndIgnoresTrailingDragChanges() async {
         var initialState = ReaderSliderPreviewFeature.State()
         initialState.draftIndex = 3
         initialState.dragging = true
@@ -361,16 +365,23 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
             initialState: initialState
         )
 
-        await store.send(.dragEnded) {
-            $0.draftIndex = nil
-            $0.dragging = false
-            $0.previewVisible = false
-            $0.previewPageIndex = nil
-            $0.previewImageURL = nil
-            $0.previewLoading = false
+        await store.send(.sliderPreview(.dragEnded)) {
+            $0.sliderPreview.draftIndex = nil
+            $0.sliderPreview.dragging = false
+            $0.sliderPreview.previewVisible = false
+            $0.sliderPreview.previewPageIndex = nil
+            $0.sliderPreview.previewImageURL = nil
+            $0.sliderPreview.previewLoading = false
         }
-        await store.receive(.delegate(.jumpRequested(3)))
-        await store.send(.dragChanged(3))
+        await store.receive(.requestJump(3, source: .slider)) {
+            $0.scrollRequest = ScrollRequest(
+                id: UUID(0),
+                targetPageIndex: 3,
+                source: .slider,
+                animated: false
+            )
+        }
+        await store.send(.sliderPreview(.dragChanged(3)))
     }
 
     /// After the reader opens, every page's preview is downloaded once, starting next to the page being
@@ -383,15 +394,15 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
 
         XCTAssertEqual(ReaderSliderPreviewFeature.pageIndicesNearestFirst(from: 5, count: 8), [5, 6, 4, 7, 3, 2, 1, 0])
 
-        await store.send(.thumbnailsQueued([readyThumbnailQueueResult()])) {
-            $0.readyThumbnailPages = Set(1...8)
-            $0.prefetchInFlight = true
+        await store.send(.sliderPreview(.thumbnailsQueued([readyThumbnailQueueResult()]))) {
+            $0.sliderPreview.readyThumbnailPages = Set(1...8)
+            $0.sliderPreview.prefetchInFlight = true
         }
         await finishPreviewPrefetch(store)
 
-        XCTAssertFalse(store.state.prefetchInFlight)
+        XCTAssertFalse(store.state.sliderPreview.prefetchInFlight)
         XCTAssertEqual(
-            store.state.previewStatus,
+            store.state.sliderPreview.previewStatus,
             Dictionary(uniqueKeysWithValues: (1...8).map { ($0, .stored) })
         )
         XCTAssertEqual(requestedPages.withLock { $0 }.sorted(), Array(1...8))
@@ -410,7 +421,7 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         await store.send(
-            .thumbnailJobStatus(
+            .sliderPreview(.thumbnailJobStatus(
                 42,
                 "archive",
                 BasicJobStatus(
@@ -419,12 +430,12 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
                     notes: ["1": .string("processed"), "2": .string("processed")],
                     error: ""
                 )
-            )
+            ))
         )
-        XCTAssertTrue(store.state.prefetchInFlight)
+        XCTAssertTrue(store.state.sliderPreview.prefetchInFlight)
 
         await store.send(
-            .thumbnailJobStatus(
+            .sliderPreview(.thumbnailJobStatus(
                 42,
                 "archive",
                 BasicJobStatus(
@@ -433,16 +444,16 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
                     notes: [:],
                     error: ""
                 )
-            )
+            ))
         )
-        XCTAssertTrue(store.state.prefetchInFlight)
+        XCTAssertTrue(store.state.sliderPreview.prefetchInFlight)
 
         await finishPreviewPrefetch(store)
 
-        XCTAssertFalse(store.state.prefetchInFlight)
+        XCTAssertFalse(store.state.sliderPreview.prefetchInFlight)
         XCTAssertEqual(requestedPages.withLock { $0 }.sorted(), [1, 2, 3, 4])
         XCTAssertEqual(
-            store.state.previewStatus,
+            store.state.sliderPreview.previewStatus,
             Dictionary(uniqueKeysWithValues: (1...4).map { ($0, .stored) })
         )
     }
@@ -454,13 +465,13 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
         let store = makePreviewTestStore(pages: makePreviewPages(count: 4), currentPageIndex: 1)
 
         // No server is configured, so any request fails the test.
-        await store.send(.dragStarted) {
-            $0.dragging = true
-            $0.draftIndex = 1
-            $0.previewVisible = true
-            $0.previewPageIndex = 1
-            $0.previewImageURL = previewURL
-            $0.previewStatus = [2: .stored]
+        await store.send(.sliderPreview(.dragStarted)) {
+            $0.sliderPreview.dragging = true
+            $0.sliderPreview.draftIndex = 1
+            $0.sliderPreview.previewVisible = true
+            $0.sliderPreview.previewPageIndex = 1
+            $0.sliderPreview.previewImageURL = previewURL
+            $0.sliderPreview.previewStatus = [2: .stored]
         }
     }
 
@@ -479,25 +490,25 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
             initialState: state
         )
 
-        await store.send(.dragStarted) {
-            $0.dragging = true
-            $0.draftIndex = 1
-            $0.previewVisible = true
-            $0.previewPageIndex = 1
-            $0.previewImageURL = firstPreviewURL
-            $0.previewStatus = [2: .stored]
+        await store.send(.sliderPreview(.dragStarted)) {
+            $0.sliderPreview.dragging = true
+            $0.sliderPreview.draftIndex = 1
+            $0.sliderPreview.previewVisible = true
+            $0.sliderPreview.previewPageIndex = 1
+            $0.sliderPreview.previewImageURL = firstPreviewURL
+            $0.sliderPreview.previewStatus = [2: .stored]
         }
-        await store.send(.dragChanged(2)) {
-            $0.draftIndex = 2
-            $0.previewPageIndex = 2
-            $0.previewImageURL = nil
-            $0.previewLoading = true
-            $0.previewStatus = [2: .stored, 3: .fetching]
+        await store.send(.sliderPreview(.dragChanged(2))) {
+            $0.sliderPreview.draftIndex = 2
+            $0.sliderPreview.previewPageIndex = 2
+            $0.sliderPreview.previewImageURL = nil
+            $0.sliderPreview.previewLoading = true
+            $0.sliderPreview.previewStatus = [2: .stored, 3: .fetching]
         }
-        await store.receive(.previewFetched(pageNumber: 3, .stored)) {
-            $0.previewImageURL = sliderPreviewURL(pageNumber: 3)
-            $0.previewLoading = false
-            $0.previewStatus = [2: .stored, 3: .stored]
+        await store.receive(.sliderPreview(.previewFetched(pageNumber: 3, .stored))) {
+            $0.sliderPreview.previewImageURL = sliderPreviewURL(pageNumber: 3)
+            $0.sliderPreview.previewLoading = false
+            $0.sliderPreview.previewStatus = [2: .stored, 3: .stored]
         }
     }
 
@@ -512,15 +523,15 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
         let store = makePreviewTestStore(pages: makePreviewPages(count: 4), initialState: state)
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(.dragStarted)
+        await store.send(.sliderPreview(.dragStarted))
         for _ in 0..<5 {
-            await store.send(.dragChanged(2))
+            await store.send(.sliderPreview(.dragChanged(2)))
         }
         await finishPreviewPrefetch(store)
 
         XCTAssertEqual(requestedPages.withLock { $0 }.sorted(), [1, 3])
-        XCTAssertEqual(store.state.previewImageURL, sliderPreviewURL(pageNumber: 3))
-        XCTAssertFalse(store.state.previewLoading)
+        XCTAssertEqual(store.state.sliderPreview.previewImageURL, sliderPreviewURL(pageNumber: 3))
+        XCTAssertFalse(store.state.sliderPreview.previewLoading)
     }
 
     /// In Low Data Mode the background downloads stop, but the page under the slider is still fetched.
@@ -546,16 +557,16 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
         let store = makePreviewTestStore(pages: makePreviewPages(count: 6))
         store.exhaustivity = .off(showSkippedAssertions: false)
 
-        await store.send(.thumbnailsQueued([readyThumbnailQueueResult()]))
+        await store.send(.sliderPreview(.thumbnailsQueued([readyThumbnailQueueResult()])))
         await finishPreviewPrefetch(store)
-        XCTAssertTrue(store.state.prefetchStopped)
-        XCTAssertEqual(store.state.previewStatus, [:])
+        XCTAssertTrue(store.state.sliderPreview.prefetchStopped)
+        XCTAssertEqual(store.state.sliderPreview.previewStatus, [:])
         XCTAssertEqual(blockedRequests.withLock { $0 }, 3)
 
-        await store.send(.dragStarted)
-        await store.receive(.previewFetched(pageNumber: 1, .stored))
-        XCTAssertEqual(store.state.previewStatus, [1: .stored])
-        XCTAssertEqual(store.state.previewImageURL, sliderPreviewURL(pageNumber: 1))
+        await store.send(.sliderPreview(.dragStarted))
+        await store.receive(.sliderPreview(.previewFetched(pageNumber: 1, .stored)))
+        XCTAssertEqual(store.state.sliderPreview.previewStatus, [1: .stored])
+        XCTAssertEqual(store.state.sliderPreview.previewImageURL, sliderPreviewURL(pageNumber: 1))
         XCTAssertEqual(blockedRequests.withLock { $0 }, 3)
     }
 
@@ -575,15 +586,15 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
         let store = makePreviewTestStore(
             archiveId: id,
             cached: true,
-            pages: makePreviewPages(count: 3, archiveId: id)
+            pages: makePreviewPages(count: 3, archiveId: id, cached: true)
         )
         store.exhaustivity = .off(showSkippedAssertions: false)
 
         // No server is configured, so any request fails the test.
-        await store.send(.startPrefetchIfNeeded)
+        await store.send(.sliderPreview(.startPrefetchIfNeeded))
         await finishPreviewPrefetch(store)
 
-        XCTAssertEqual(store.state.previewStatus, [1: .stored, 2: .stored, 3: .stored])
+        XCTAssertEqual(store.state.sliderPreview.previewStatus, [1: .stored, 2: .stored, 3: .stored])
         for pageNumber in 1...3 {
             let previewPath = sliderPreviewURL(archiveId: id, pageNumber: pageNumber).path
             XCTAssertNotNil(UIImage(contentsOfFile: previewPath))
@@ -593,25 +604,29 @@ final class ReaderSliderPreviewTests: LANreaderTestCase {
 
 private func makePreviewPages(
     count: Int,
-    archiveId: String = "archive"
-) -> [ReaderSliderPreviewPage] {
+    archiveId: String = "archive",
+    cached: Bool = false
+) -> [PageFeature.State] {
     (1...count).map { pageNumber in
-        ReaderSliderPreviewPage(
+        PageFeature.State(
+            archiveId: archiveId,
+            pageId: "\(pageNumber)",
             pageNumber: pageNumber,
             sourceArchiveId: archiveId,
-            sourcePageNumber: pageNumber
+            sourcePageNumber: pageNumber,
+            cached: cached
         )
     }
 }
 
 private func makeSplitPreviewPages(
     archiveId: String = "archive"
-) -> [ReaderSliderPreviewPage] {
+) -> [PageFeature.State] {
     [
-        ReaderSliderPreviewPage(pageNumber: 1, sourceArchiveId: archiveId, sourcePageNumber: 1),
-        ReaderSliderPreviewPage(pageNumber: 2, sourceArchiveId: archiveId, sourcePageNumber: 2),
-        ReaderSliderPreviewPage(pageNumber: 2, sourceArchiveId: archiveId, sourcePageNumber: 2),
-        ReaderSliderPreviewPage(pageNumber: 3, sourceArchiveId: archiveId, sourcePageNumber: 3)
+        PageFeature.State(archiveId: archiveId, pageId: "1", pageNumber: 1),
+        PageFeature.State(archiveId: archiveId, pageId: "2", pageNumber: 2, pageMode: .left),
+        PageFeature.State(archiveId: archiveId, pageId: "2", pageNumber: 2, pageMode: .right),
+        PageFeature.State(archiveId: archiveId, pageId: "3", pageNumber: 3)
     ]
 }
 
@@ -619,20 +634,23 @@ private func makeSplitPreviewPages(
 private func makePreviewTestStore(
     archiveId: String = "archive",
     cached: Bool = false,
-    pages: [ReaderSliderPreviewPage] = [],
+    pages: [PageFeature.State] = [],
     currentPageIndex: Int = 0,
     initialState: ReaderSliderPreviewFeature.State = ReaderSliderPreviewFeature.State(),
     configureDependencies: ((inout DependencyValues) -> Void)? = nil
-) -> TestStoreOf<ReaderSliderPreviewFeature> {
-    let context = ReaderSliderPreviewContext(
-        archiveId: archiveId,
-        cached: cached,
-        pages: pages,
-        currentPageIndex: currentPageIndex
+) -> TestStoreOf<ArchiveReaderFeature> {
+    var state = ArchiveReaderFeature.State(
+        currentArchiveId: archiveId,
+        allArchives: [],
+        cached: cached
     )
-    let store = TestStore(initialState: initialState) {
-        ReaderSliderPreviewFeature(context: context)
+    state.pages = IdentifiedArray(uniqueElements: pages)
+    state.currentPageIndex = currentPageIndex
+    state.sliderPreview = initialState
+    let store = TestStore(initialState: state) {
+        ArchiveReaderFeature()
     } withDependencies: {
+        $0.uuid = .incrementing
         configureDependencies?(&$0)
     }
     store.timeout = .seconds(5)
@@ -640,7 +658,7 @@ private func makePreviewTestStore(
 }
 
 @MainActor
-private func finishPreviewPrefetch(_ store: TestStoreOf<ReaderSliderPreviewFeature>) async {
+private func finishPreviewPrefetch(_ store: TestStoreOf<ArchiveReaderFeature>) async {
     let exhaustivity = store.exhaustivity
     store.exhaustivity = .off(showSkippedAssertions: false)
     await store.finish(timeout: .seconds(15))

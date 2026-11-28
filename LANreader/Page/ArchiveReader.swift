@@ -86,9 +86,13 @@ import Logging
         case pageLayoutModeChanged(ReaderPageLayoutMode)
         case readerSizeChanged(CGSize)
         case toggleStampsVisibility
+        case createStampRequested(pageId: String, position: ArchiveStampPosition)
+        case editStampRequested(pageId: String, stamp: ArchiveStamp)
         case stamp(ReaderStampFeature.Action)
         case visiblePageChanged(Int)
         case chapterSelected(Int)
+        case addChapterTapped
+        case editChapterTapped(Int)
         case chapter(ReaderChapterFeature.Action)
         case requestJump(Int, source: ReaderNavigationSource)
         case navigate(ReaderNavigationDirection, source: ReaderNavigationSource)
@@ -166,6 +170,10 @@ import Logging
                 let showsStamps = !state.showStamps
                 state.$showStamps.withLock { $0 = showsStamps }
                 return .none
+            case let .createStampRequested(pageId, position):
+                return handleCreateStampRequested(pageId: pageId, position: position, state: state)
+            case let .editStampRequested(pageId, stamp):
+                return handleEditStampRequested(pageId: pageId, stamp: stamp, state: state)
             case let .stamp(.delegate(delegateAction)):
                 return handleStampDelegate(delegateAction, state: &state)
             case .stamp:
@@ -181,6 +189,10 @@ import Logging
                     return .none
                 }
                 return .send(.requestJump(pageIndex, source: .chapter))
+            case .addChapterTapped:
+                return handleAddChapterTapped(state: state)
+            case let .editChapterTapped(pageNumber):
+                return handleEditChapterTapped(pageNumber, state: state)
             case let .requestJump(index, source):
                 guard !state.pages.isEmpty else { return .none }
                 let clampedIndex = ReaderPositioning.clampedPageIndex(index, pageCount: state.pages.count)
@@ -347,34 +359,6 @@ extension ArchiveReaderFeature.State {
 
     var archivePageCount: Int {
         archivePageNumbers.count
-    }
-
-    var sliderPreviewContext: ReaderSliderPreviewContext {
-        ReaderSliderPreviewContext(state: self)
-    }
-
-    func chapterCreationTarget() -> ChapterMutationTarget? {
-        guard let page = currentPage else { return nil }
-        return ChapterMutationTarget(
-            readerArchiveId: currentArchiveId,
-            readerPageNumber: page.pageNumber,
-            sourceArchiveId: page.sourceArchiveId,
-            sourcePageNumber: page.sourcePageNumber
-        )
-    }
-
-    func chapterEditingTarget(for pageNumber: Int) -> (target: ChapterMutationTarget, title: String)? {
-        guard let chapter = chapters.first(where: { $0.page == pageNumber }),
-              let page = pages.first(where: { $0.pageNumber == pageNumber }) else {
-            return nil
-        }
-        let target = ChapterMutationTarget(
-            readerArchiveId: currentArchiveId,
-            readerPageNumber: pageNumber,
-            sourceArchiveId: page.sourceArchiveId,
-            sourcePageNumber: page.sourcePageNumber
-        )
-        return (target, chapter.name)
     }
 
     var chapters: [ArchiveChapter] {
@@ -727,21 +711,6 @@ private extension ArchiveReaderFeature {
             logger.error("failed to remove archive cache, id=\(id) \(error)")
             await send(.setError(error.localizedDescription))
         }
-    }
-
-    func reduceSliderPreview(
-        _ action: ReaderSliderPreviewFeature.Action,
-        state: inout State
-    ) -> Effect<Action> {
-        if case let .delegate(.jumpRequested(index)) = action {
-            return .send(.requestJump(index, source: .slider))
-        }
-        return ReaderSliderPreviewFeature().reduce(
-            state: &state.sliderPreview,
-            action: action,
-            context: state.sliderPreviewContext,
-            embed: Action.sliderPreview
-        )
     }
 
     func switchArchive(offset: Int, state: inout State) -> Effect<Action> {

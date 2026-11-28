@@ -25,7 +25,7 @@ final class ReaderChapterTests: LANreaderTestCase {
         )
         let store = makeChapterTestStore()
 
-        await store.send(.creationRequested(target: target, cached: false)) {
+        await store.send(.creationRequested(target: target)) {
             $0.creationTarget = target
         }
         await store.send(.titleChanged("  New chapter\n")) {
@@ -54,7 +54,7 @@ final class ReaderChapterTests: LANreaderTestCase {
         )
         let store = makeChapterTestStore()
 
-        await store.send(.creationRequested(target: target, cached: false)) {
+        await store.send(.creationRequested(target: target)) {
             $0.creationTarget = target
         }
         await store.send(.titleChanged("New chapter")) {
@@ -86,7 +86,7 @@ final class ReaderChapterTests: LANreaderTestCase {
         )
         let store = makeChapterTestStore()
 
-        await store.send(.editingRequested(target: target, title: "Original", editable: true)) {
+        await store.send(.editingRequested(target: target, title: "Original")) {
             $0.editingTarget = target
             $0.title = "Original"
         }
@@ -116,7 +116,7 @@ final class ReaderChapterTests: LANreaderTestCase {
         )
         let store = makeChapterTestStore()
 
-        await store.send(.editingRequested(target: target, title: "Original", editable: true)) {
+        await store.send(.editingRequested(target: target, title: "Original")) {
             $0.editingTarget = target
             $0.title = "Original"
         }
@@ -149,7 +149,7 @@ final class ReaderChapterTests: LANreaderTestCase {
         )
         let store = makeChapterTestStore()
 
-        await store.send(.editingRequested(target: target, title: "Delete me", editable: true)) {
+        await store.send(.editingRequested(target: target, title: "Delete me")) {
             $0.editingTarget = target
             $0.title = "Delete me"
         }
@@ -176,7 +176,7 @@ final class ReaderChapterTests: LANreaderTestCase {
         )
         let store = makeChapterTestStore()
 
-        await store.send(.editingRequested(target: target, title: "Keep me", editable: true)) {
+        await store.send(.editingRequested(target: target, title: "Keep me")) {
             $0.editingTarget = target
             $0.title = "Keep me"
         }
@@ -194,7 +194,7 @@ final class ReaderChapterTests: LANreaderTestCase {
     }
 
     @MainActor
-    func testAutomaticTankoubonChapterCannotBeEdited() async {
+    func testAutomaticTankoubonChapterIsExcludedFromEditablePages() async {
         let tankId = "TANK_test"
         let manualFirstPage = ArchiveChapter(name: "Manual", page: 1)
         let automaticFirstPage = ArchiveChapter(name: "Source 2", page: 3)
@@ -207,37 +207,27 @@ final class ReaderChapterTests: LANreaderTestCase {
         )
         XCTAssertEqual(editablePages, [1])
 
-        let store = makeChapterTestStore()
-        let automaticTarget = ChapterMutationTarget(
-            readerArchiveId: tankId,
-            readerPageNumber: 3,
-            sourceArchiveId: "source-2",
-            sourcePageNumber: 1
-        )
-        await store.send(.editingRequested(
-            target: automaticTarget,
-            title: automaticFirstPage.name,
-            editable: editablePages.contains(automaticFirstPage.page)
-        ))
-
         let manualTarget = ChapterMutationTarget(
             readerArchiveId: tankId,
             readerPageNumber: 1,
             sourceArchiveId: "source-1",
             sourcePageNumber: 1
         )
-        await store.send(.editingRequested(
-            target: manualTarget,
-            title: manualFirstPage.name,
-            editable: editablePages.contains(manualFirstPage.page)
-        )) {
+        var busyState = ReaderChapterFeature.State()
+        busyState.requestInFlight = true
+        let busyStore = makeChapterTestStore(initialState: busyState)
+        await busyStore.send(.editingRequested(target: manualTarget, title: manualFirstPage.name))
+
+        let store = makeChapterTestStore()
+        await store.send(.editingRequested(target: manualTarget, title: manualFirstPage.name)) {
             $0.editingTarget = manualTarget
             $0.title = "Manual"
         }
+        await store.send(.creationRequested(target: manualTarget))
     }
 
     @MainActor
-    func testUnsupportedServerAndCachedArchiveRejectChapterMutations() async {
+    func testUnsupportedServerRejectsChapterMutations() async {
         let target = ChapterMutationTarget(
             readerArchiveId: "archive",
             readerPageNumber: 1,
@@ -249,12 +239,8 @@ final class ReaderChapterTests: LANreaderTestCase {
         unsupportedState.mutationsSupported = false
         let unsupportedStore = makeChapterTestStore(initialState: unsupportedState)
 
-        await unsupportedStore.send(.creationRequested(target: target, cached: false))
-        await unsupportedStore.send(.editingRequested(target: target, title: "Opening", editable: true))
-
-        let cachedStore = makeChapterTestStore()
-        await cachedStore.send(.creationRequested(target: target, cached: true))
-        await cachedStore.send(.editingRequested(target: target, title: "Opening", editable: false))
+        await unsupportedStore.send(.creationRequested(target: target))
+        await unsupportedStore.send(.editingRequested(target: target, title: "Opening"))
     }
 
     @MainActor
