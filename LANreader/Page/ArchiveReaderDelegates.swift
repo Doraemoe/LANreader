@@ -1,6 +1,72 @@
 import ComposableArchitecture
 
 extension ArchiveReaderFeature {
+    func handleCreateStampRequested(
+        pageId: String,
+        position: ArchiveStampPosition,
+        state: State
+    ) -> Effect<Action> {
+        guard state.canUseStamps,
+              let page = state.pages[id: pageId],
+              !page.cached,
+              page.imageLoaded else {
+            return .none
+        }
+        let target = StampCreationTarget(
+            sourceArchiveId: page.sourceArchiveId,
+            sourcePageNumber: page.sourcePageNumber,
+            position: position
+        )
+        return .send(.stamp(.creationRequested(target: target)))
+    }
+
+    func handleEditStampRequested(
+        pageId: String,
+        stamp: ArchiveStamp,
+        state: State
+    ) -> Effect<Action> {
+        guard state.canUseStamps,
+              let page = state.pages[id: pageId],
+              !page.cached,
+              let stampId = stamp.id,
+              !stampId.isEmpty,
+              page.stamps.contains(where: { $0.id == stampId }) else {
+            return .none
+        }
+        let target = StampEditingTarget(
+            stampId: stampId,
+            sourceArchiveId: page.sourceArchiveId,
+            sourcePageNumber: page.sourcePageNumber
+        )
+        return .send(.stamp(.editingRequested(target: target, content: stamp.content)))
+    }
+
+    func handleAddChapterTapped(state: State) -> Effect<Action> {
+        guard state.canAddChapter, let page = state.currentPage else { return .none }
+        let target = ChapterMutationTarget(
+            readerArchiveId: state.currentArchiveId,
+            readerPageNumber: page.pageNumber,
+            sourceArchiveId: page.sourceArchiveId,
+            sourcePageNumber: page.sourcePageNumber
+        )
+        return .send(.chapter(.creationRequested(target: target)))
+    }
+
+    func handleEditChapterTapped(_ pageNumber: Int, state: State) -> Effect<Action> {
+        guard state.editableChapterPages.contains(pageNumber),
+              let chapter = state.chapters.first(where: { $0.page == pageNumber }),
+              let page = state.pages.first(where: { $0.pageNumber == pageNumber }) else {
+            return .none
+        }
+        let target = ChapterMutationTarget(
+            readerArchiveId: state.currentArchiveId,
+            readerPageNumber: pageNumber,
+            sourceArchiveId: page.sourceArchiveId,
+            sourcePageNumber: page.sourcePageNumber
+        )
+        return .send(.chapter(.editingRequested(target: target, title: chapter.name)))
+    }
+
     func handleStampDelegate(
         _ action: ReaderStampFeature.Action.Delegate,
         state: inout State

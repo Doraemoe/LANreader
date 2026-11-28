@@ -14,24 +14,6 @@ public struct StampEditingTarget: Equatable, Sendable {
     let sourcePageNumber: Int
 }
 
-public struct ReaderStampPage: Equatable, Sendable {
-    public let sourceArchiveId: String
-    public let sourcePageNumber: Int
-    public let cached: Bool
-    public let imageLoaded: Bool
-    public let stampIds: Set<String>
-}
-
-extension ReaderStampPage {
-    init(page: PageFeature.State, cached: Bool? = nil) {
-        self.sourceArchiveId = page.sourceArchiveId
-        self.sourcePageNumber = page.sourcePageNumber
-        self.cached = cached ?? page.cached
-        self.imageLoaded = page.imageLoaded
-        self.stampIds = Set(page.stamps.compactMap(\.id))
-    }
-}
-
 @Reducer public struct ReaderStampFeature: Sendable {
     private let logger = Logger(label: "ReaderStampFeature")
 
@@ -57,13 +39,13 @@ extension ReaderStampPage {
 
     public enum Action: Equatable {
         case supportResolved(Bool?)
-        case creationRequested(page: ReaderStampPage, position: ArchiveStampPosition)
+        case creationRequested(target: StampCreationTarget)
         case commentChanged(String)
         case cancelCreation
         case confirmCreation
         case created(target: StampCreationTarget, stamp: ArchiveStamp, refreshedStamps: [ArchiveStamp]?)
         case creationFailed(target: StampCreationTarget, content: String)
-        case editingRequested(page: ReaderStampPage, stamp: ArchiveStamp)
+        case editingRequested(target: StampEditingTarget, content: String)
         case editTextChanged(String)
         case cancelEditing
         case confirmEditing
@@ -131,8 +113,8 @@ private extension ReaderStampFeature {
 
     func reduceCreation(state: inout State, action: Action) -> Effect<Action> {
         switch action {
-        case let .creationRequested(page, position):
-            return handleCreationRequested(page: page, position: position, state: &state)
+        case let .creationRequested(target):
+            return handleCreationRequested(target: target, state: &state)
         case let .commentChanged(comment):
             state.comment = comment
             return .none
@@ -157,8 +139,8 @@ private extension ReaderStampFeature {
 
     func reduceEditing(state: inout State, action: Action) -> Effect<Action> {
         switch action {
-        case let .editingRequested(page, stamp):
-            return handleEditingRequested(page: page, stamp: stamp, state: &state)
+        case let .editingRequested(target, content):
+            return handleEditingRequested(target: target, content: content, state: &state)
         case let .editTextChanged(content):
             state.editText = content
             return .none
@@ -192,22 +174,15 @@ private extension ReaderStampFeature {
     }
 
     func handleCreationRequested(
-        page: ReaderStampPage,
-        position: ArchiveStampPosition,
+        target: StampCreationTarget,
         state: inout State
     ) -> Effect<Action> {
         guard state.supported != false,
               !state.requestInFlight,
-              state.editingTarget == nil,
-              !page.cached,
-              page.imageLoaded else {
+              state.editingTarget == nil else {
             return .none
         }
-        state.creationTarget = StampCreationTarget(
-            sourceArchiveId: page.sourceArchiveId,
-            sourcePageNumber: page.sourcePageNumber,
-            position: position
-        )
+        state.creationTarget = target
         state.comment = ""
         return .none
     }
@@ -269,25 +244,17 @@ private extension ReaderStampFeature {
     }
 
     func handleEditingRequested(
-        page: ReaderStampPage,
-        stamp: ArchiveStamp,
+        target: StampEditingTarget,
+        content: String,
         state: inout State
     ) -> Effect<Action> {
         guard state.supported != false,
               !state.requestInFlight,
-              state.creationTarget == nil,
-              let stampId = stamp.id,
-              !stampId.isEmpty,
-              !page.cached,
-              page.stampIds.contains(stampId) else {
+              state.creationTarget == nil else {
             return .none
         }
-        state.editingTarget = StampEditingTarget(
-            stampId: stampId,
-            sourceArchiveId: page.sourceArchiveId,
-            sourcePageNumber: page.sourcePageNumber
-        )
-        state.editText = stamp.content
+        state.editingTarget = target
+        state.editText = content
         return .none
     }
 
