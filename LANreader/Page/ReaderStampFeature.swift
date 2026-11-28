@@ -249,6 +249,7 @@ private extension ReaderStampFeature {
             let refreshedStamps = await fetchRefreshedStamps(target: target, logContext: logContext)
             await send(.created(target: target, stamp: stamp, refreshedStamps: refreshedStamps))
         } catch {
+            if error is CancellationError || Task.isCancelled { return }
             logger.warning("failed to create stamp. \(logContext) \(error.localizedDescription)")
             await send(.creationFailed(target: target, content: draft))
         }
@@ -261,6 +262,7 @@ private extension ReaderStampFeature {
                 page: target.sourcePageNumber
             ).value.result
         } catch {
+            if error is CancellationError || Task.isCancelled { return nil }
             logger.warning("failed to refresh stamps after creation. \(logContext) \(error.localizedDescription)")
             return nil
         }
@@ -307,6 +309,7 @@ private extension ReaderStampFeature {
                 }
                 await send(.updated(target: target, content: content))
             } catch {
+                if error is CancellationError || Task.isCancelled { return }
                 logger.warning("failed to update stamp. stamp=\(target.stampId) \(error.localizedDescription)")
                 await send(.updateFailed(target: target, content: draft))
             }
@@ -330,6 +333,7 @@ private extension ReaderStampFeature {
                 }
                 await send(.deleted(target: target))
             } catch {
+                if error is CancellationError || Task.isCancelled { return }
                 logger.warning("failed to delete stamp. stamp=\(target.stampId) \(error.localizedDescription)")
                 await send(.deleteFailed(target: target, content: content))
             }

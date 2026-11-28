@@ -20,18 +20,21 @@ enum ArchiveListLayoutBuilder {
         return CGSize(width: cellWidth, height: cellHeight)
     }
 
+    @MainActor
     static func makeCollectionViewLayout() -> UICollectionViewCompositionalLayout {
         UICollectionViewCompositionalLayout { _, layoutEnvironment -> NSCollectionLayoutSection? in
             makeArchiveGridSection(layoutEnvironment: layoutEnvironment)
         }
     }
 
+    @MainActor
     static func makeArchiveGridSection(
         layoutEnvironment: NSCollectionLayoutEnvironment
     ) -> NSCollectionLayoutSection {
         makeArchiveGridSection(containerWidth: layoutEnvironment.container.effectiveContentSize.width)
     }
 
+    @MainActor
     static func makeArchiveGridSection(containerWidth: CGFloat) -> NSCollectionLayoutSection {
         let columns = gridColumns(forContainerWidth: containerWidth)
         let size = cellSize(forContainerWidth: containerWidth)
@@ -58,6 +61,7 @@ enum ArchiveListLayoutBuilder {
         return section
     }
 
+    @MainActor
     private static func makeArchiveGridGroup(
         item: NSCollectionLayoutItem,
         columns: Int,
@@ -77,6 +81,7 @@ enum ArchiveListLayoutBuilder {
         return group
     }
 
+    @MainActor
     private static func makeArchiveGridFooter() -> NSCollectionLayoutBoundarySupplementaryItem {
         let footerSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),

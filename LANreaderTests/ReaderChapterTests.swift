@@ -17,31 +17,27 @@ final class ReaderChapterTests: LANreaderTestCase {
         try await configureTestServer()
         let tankId = "TANK_test"
         stubAddArchiveChapter(archiveId: "source", page: 4, title: "New chapter")
-        let context = ReaderChapterContext(
-            archiveId: tankId,
-            pages: [ReaderChapterPage(pageNumber: 8, sourceArchiveId: "source", sourcePageNumber: 4)]
-        )
         let target = ChapterMutationTarget(
             readerArchiveId: tankId,
             readerPageNumber: 8,
             sourceArchiveId: "source",
             sourcePageNumber: 4
         )
-        let store = makeChapterTestStore(initialState: ReaderChapterFeature.State(context: context))
+        let store = makeChapterTestStore()
 
-        await store.send(.creationRequested) {
-            $0.stored.creationTarget = target
+        await store.send(.creationRequested(target: target, cached: false)) {
+            $0.creationTarget = target
         }
         await store.send(.titleChanged("  New chapter\n")) {
-            $0.stored.title = "  New chapter\n"
+            $0.title = "  New chapter\n"
         }
         await store.send(.confirmMutation) {
-            $0.stored.creationTarget = nil
-            $0.stored.title = ""
-            $0.stored.requestInFlight = true
+            $0.creationTarget = nil
+            $0.title = ""
+            $0.requestInFlight = true
         }
         await store.receive(.saved(target: target, title: "New chapter")) {
-            $0.stored.requestInFlight = false
+            $0.requestInFlight = false
         }
         await store.receive(.delegate(.saved(target: target, title: "New chapter")))
     }
@@ -50,34 +46,29 @@ final class ReaderChapterTests: LANreaderTestCase {
     func testFailedChapterAddRestoresTheDraft() async throws {
         try await configureTestServer()
         stubAddArchiveChapter(archiveId: "archive", page: 3, title: "New chapter", success: 0)
-        let context = ReaderChapterContext(
-            archiveId: "archive",
-            pages: makeChapterPages(count: 4),
-            currentPageIndex: 2
-        )
         let target = ChapterMutationTarget(
             readerArchiveId: "archive",
             readerPageNumber: 3,
             sourceArchiveId: "archive",
             sourcePageNumber: 3
         )
-        let store = makeChapterTestStore(initialState: ReaderChapterFeature.State(context: context))
+        let store = makeChapterTestStore()
 
-        await store.send(.creationRequested) {
-            $0.stored.creationTarget = target
+        await store.send(.creationRequested(target: target, cached: false)) {
+            $0.creationTarget = target
         }
         await store.send(.titleChanged("New chapter")) {
-            $0.stored.title = "New chapter"
+            $0.title = "New chapter"
         }
         await store.send(.confirmMutation) {
-            $0.stored.creationTarget = nil
-            $0.stored.title = ""
-            $0.stored.requestInFlight = true
+            $0.creationTarget = nil
+            $0.title = ""
+            $0.requestInFlight = true
         }
         await store.receive(.saveFailed(target: target, title: "New chapter", isEditing: false)) {
-            $0.stored.requestInFlight = false
-            $0.stored.creationTarget = target
-            $0.stored.title = "New chapter"
+            $0.requestInFlight = false
+            $0.creationTarget = target
+            $0.title = "New chapter"
         }
         await store.receive(.delegate(.errorOccurred(String(localized: "archive.reader.chapter.add.failed"))))
     }
@@ -86,36 +77,29 @@ final class ReaderChapterTests: LANreaderTestCase {
     func testEditChapterUsesOriginalSourcePageAndEmitsSavedDelegate() async throws {
         try await configureTestServer()
         let tankId = "TANK_test"
-        let chapter = ArchiveChapter(name: "Original", page: 8)
         stubAddArchiveChapter(archiveId: "source", page: 4, title: "Updated")
-        let context = ReaderChapterContext(
-            archiveId: tankId,
-            pages: [ReaderChapterPage(pageNumber: 8, sourceArchiveId: "source", sourcePageNumber: 4)],
-            chapters: [chapter],
-            automaticChapterPages: []
-        )
         let target = ChapterMutationTarget(
             readerArchiveId: tankId,
             readerPageNumber: 8,
             sourceArchiveId: "source",
             sourcePageNumber: 4
         )
-        let store = makeChapterTestStore(initialState: ReaderChapterFeature.State(context: context))
+        let store = makeChapterTestStore()
 
-        await store.send(.editingRequested(chapter.page)) {
-            $0.stored.editingTarget = target
-            $0.stored.title = "Original"
+        await store.send(.editingRequested(target: target, title: "Original", editable: true)) {
+            $0.editingTarget = target
+            $0.title = "Original"
         }
         await store.send(.titleChanged("  Updated\n")) {
-            $0.stored.title = "  Updated\n"
+            $0.title = "  Updated\n"
         }
         await store.send(.confirmMutation) {
-            $0.stored.editingTarget = nil
-            $0.stored.title = ""
-            $0.stored.requestInFlight = true
+            $0.editingTarget = nil
+            $0.title = ""
+            $0.requestInFlight = true
         }
         await store.receive(.saved(target: target, title: "Updated")) {
-            $0.stored.requestInFlight = false
+            $0.requestInFlight = false
         }
         await store.receive(.delegate(.saved(target: target, title: "Updated")))
     }
@@ -123,37 +107,31 @@ final class ReaderChapterTests: LANreaderTestCase {
     @MainActor
     func testEditChapterFailureRestoresDraft() async throws {
         try await configureTestServer()
-        let chapter = ArchiveChapter(name: "Original", page: 4)
         stubAddArchiveChapter(archiveId: "archive", page: 4, title: "Updated", success: 0)
-        let context = ReaderChapterContext(
-            archiveId: "archive",
-            pages: [ReaderChapterPage(pageNumber: 4, sourceArchiveId: "archive", sourcePageNumber: 4)],
-            chapters: [chapter]
-        )
         let target = ChapterMutationTarget(
             readerArchiveId: "archive",
             readerPageNumber: 4,
             sourceArchiveId: "archive",
             sourcePageNumber: 4
         )
-        let store = makeChapterTestStore(initialState: ReaderChapterFeature.State(context: context))
+        let store = makeChapterTestStore()
 
-        await store.send(.editingRequested(chapter.page)) {
-            $0.stored.editingTarget = target
-            $0.stored.title = "Original"
+        await store.send(.editingRequested(target: target, title: "Original", editable: true)) {
+            $0.editingTarget = target
+            $0.title = "Original"
         }
         await store.send(.titleChanged("  Updated\n")) {
-            $0.stored.title = "  Updated\n"
+            $0.title = "  Updated\n"
         }
         await store.send(.confirmMutation) {
-            $0.stored.editingTarget = nil
-            $0.stored.title = ""
-            $0.stored.requestInFlight = true
+            $0.editingTarget = nil
+            $0.title = ""
+            $0.requestInFlight = true
         }
         await store.receive(.saveFailed(target: target, title: "  Updated\n", isEditing: true)) {
-            $0.stored.requestInFlight = false
-            $0.stored.editingTarget = target
-            $0.stored.title = "  Updated\n"
+            $0.requestInFlight = false
+            $0.editingTarget = target
+            $0.title = "  Updated\n"
         }
         await store.receive(.delegate(.errorOccurred(String(localized: "archive.reader.chapter.edit.failed"))))
     }
@@ -162,33 +140,26 @@ final class ReaderChapterTests: LANreaderTestCase {
     func testDeleteChapterUsesOriginalSourcePageAndEmitsDeletedDelegate() async throws {
         try await configureTestServer()
         let tankId = "TANK_test"
-        let chapter = ArchiveChapter(name: "Delete me", page: 8)
         stubDeleteArchiveChapter(archiveId: "source", page: 4)
-        let context = ReaderChapterContext(
-            archiveId: tankId,
-            pages: [ReaderChapterPage(pageNumber: 8, sourceArchiveId: "source", sourcePageNumber: 4)],
-            chapters: [chapter],
-            automaticChapterPages: []
-        )
         let target = ChapterMutationTarget(
             readerArchiveId: tankId,
             readerPageNumber: 8,
             sourceArchiveId: "source",
             sourcePageNumber: 4
         )
-        let store = makeChapterTestStore(initialState: ReaderChapterFeature.State(context: context))
+        let store = makeChapterTestStore()
 
-        await store.send(.editingRequested(chapter.page)) {
-            $0.stored.editingTarget = target
-            $0.stored.title = chapter.name
+        await store.send(.editingRequested(target: target, title: "Delete me", editable: true)) {
+            $0.editingTarget = target
+            $0.title = "Delete me"
         }
         await store.send(.confirmDeletion) {
-            $0.stored.editingTarget = nil
-            $0.stored.title = ""
-            $0.stored.requestInFlight = true
+            $0.editingTarget = nil
+            $0.title = ""
+            $0.requestInFlight = true
         }
         await store.receive(.deleted(target: target)) {
-            $0.stored.requestInFlight = false
+            $0.requestInFlight = false
         }
         await store.receive(.delegate(.deleted(target: target)))
     }
@@ -196,34 +167,28 @@ final class ReaderChapterTests: LANreaderTestCase {
     @MainActor
     func testDeleteChapterFailureRestoresEdit() async throws {
         try await configureTestServer()
-        let chapter = ArchiveChapter(name: "Keep me", page: 4)
         stubDeleteArchiveChapter(archiveId: "archive", page: 4, success: 0)
-        let context = ReaderChapterContext(
-            archiveId: "archive",
-            pages: [ReaderChapterPage(pageNumber: 4, sourceArchiveId: "archive", sourcePageNumber: 4)],
-            chapters: [chapter]
-        )
         let target = ChapterMutationTarget(
             readerArchiveId: "archive",
             readerPageNumber: 4,
             sourceArchiveId: "archive",
             sourcePageNumber: 4
         )
-        let store = makeChapterTestStore(initialState: ReaderChapterFeature.State(context: context))
+        let store = makeChapterTestStore()
 
-        await store.send(.editingRequested(chapter.page)) {
-            $0.stored.editingTarget = target
-            $0.stored.title = chapter.name
+        await store.send(.editingRequested(target: target, title: "Keep me", editable: true)) {
+            $0.editingTarget = target
+            $0.title = "Keep me"
         }
         await store.send(.confirmDeletion) {
-            $0.stored.editingTarget = nil
-            $0.stored.title = ""
-            $0.stored.requestInFlight = true
+            $0.editingTarget = nil
+            $0.title = ""
+            $0.requestInFlight = true
         }
-        await store.receive(.deleteFailed(target: target, title: chapter.name)) {
-            $0.stored.requestInFlight = false
-            $0.stored.editingTarget = target
-            $0.stored.title = chapter.name
+        await store.receive(.deleteFailed(target: target, title: "Keep me")) {
+            $0.requestInFlight = false
+            $0.editingTarget = target
+            $0.title = "Keep me"
         }
         await store.receive(.delegate(.errorOccurred(String(localized: "archive.reader.chapter.delete.failed"))))
     }
@@ -233,72 +198,91 @@ final class ReaderChapterTests: LANreaderTestCase {
         let tankId = "TANK_test"
         let manualFirstPage = ArchiveChapter(name: "Manual", page: 1)
         let automaticFirstPage = ArchiveChapter(name: "Source 2", page: 3)
-        let context = ReaderChapterContext(
+        let editablePages = ReaderChapterFeature.editableChapterPages(
             archiveId: tankId,
-            pages: [
-                ReaderChapterPage(pageNumber: 1, sourceArchiveId: "source-1", sourcePageNumber: 1),
-                ReaderChapterPage(pageNumber: 3, sourceArchiveId: "source-2", sourcePageNumber: 1)
-            ],
+            cached: false,
+            mutationsSupported: true,
             chapters: [manualFirstPage, automaticFirstPage],
             automaticChapterPages: [3]
         )
-        let store = makeChapterTestStore(initialState: ReaderChapterFeature.State(context: context))
+        XCTAssertEqual(editablePages, [1])
 
-        XCTAssertEqual(store.state.editableChapterPages, [1])
-        await store.send(.editingRequested(automaticFirstPage.page))
+        let store = makeChapterTestStore()
+        let automaticTarget = ChapterMutationTarget(
+            readerArchiveId: tankId,
+            readerPageNumber: 3,
+            sourceArchiveId: "source-2",
+            sourcePageNumber: 1
+        )
+        await store.send(.editingRequested(
+            target: automaticTarget,
+            title: automaticFirstPage.name,
+            editable: editablePages.contains(automaticFirstPage.page)
+        ))
 
-        let target = ChapterMutationTarget(
+        let manualTarget = ChapterMutationTarget(
             readerArchiveId: tankId,
             readerPageNumber: 1,
             sourceArchiveId: "source-1",
             sourcePageNumber: 1
         )
-        await store.send(.editingRequested(manualFirstPage.page)) {
-            $0.stored.editingTarget = target
-            $0.stored.title = "Manual"
+        await store.send(.editingRequested(
+            target: manualTarget,
+            title: manualFirstPage.name,
+            editable: editablePages.contains(manualFirstPage.page)
+        )) {
+            $0.editingTarget = manualTarget
+            $0.title = "Manual"
         }
     }
 
     @MainActor
-    func testUnsupportedServerKeepsChaptersReadOnlyWhileAllowingSelection() async {
-        let chapter = ArchiveChapter(name: "Opening", page: 1)
-        let context = ReaderChapterContext(
-            archiveId: "archive",
-            pages: makeChapterPages(count: 2),
-            chapters: [chapter]
-        )
-        var stored = ReaderChapterState()
-        stored.mutationsSupported = false
-        let store = makeChapterTestStore(
-            initialState: ReaderChapterFeature.State(context: context, stored: stored)
+    func testUnsupportedServerAndCachedArchiveRejectChapterMutations() async {
+        let target = ChapterMutationTarget(
+            readerArchiveId: "archive",
+            readerPageNumber: 1,
+            sourceArchiveId: "archive",
+            sourcePageNumber: 1
         )
 
-        XCTAssertFalse(store.state.canAddChapter)
-        XCTAssertTrue(store.state.editableChapterPages.isEmpty)
+        var unsupportedState = ReaderChapterFeature.State()
+        unsupportedState.mutationsSupported = false
+        let unsupportedStore = makeChapterTestStore(initialState: unsupportedState)
 
-        await store.send(.creationRequested)
-        await store.send(.editingRequested(chapter.page))
-        await store.send(.selected(chapter.page))
-        await store.receive(.delegate(.jumpRequested(0)))
+        await unsupportedStore.send(.creationRequested(target: target, cached: false))
+        await unsupportedStore.send(.editingRequested(target: target, title: "Opening", editable: true))
+
+        let cachedStore = makeChapterTestStore()
+        await cachedStore.send(.creationRequested(target: target, cached: true))
+        await cachedStore.send(.editingRequested(target: target, title: "Opening", editable: false))
     }
 
     @MainActor
-    func testChapterSelectionMapsReaderPageNumberAcrossSplitPages() async {
-        let pages = [
-            ReaderChapterPage(pageNumber: 1, sourceArchiveId: "archive", sourcePageNumber: 1),
-            ReaderChapterPage(pageNumber: 2, sourceArchiveId: "archive", sourcePageNumber: 2),
-            ReaderChapterPage(pageNumber: 2, sourceArchiveId: "archive", sourcePageNumber: 2),
-            ReaderChapterPage(pageNumber: 3, sourceArchiveId: "archive", sourcePageNumber: 3)
-        ]
-        let context = ReaderChapterContext(
-            archiveId: "archive",
-            pages: pages,
-            chapters: [ArchiveChapter(name: "Third", page: 3)]
+    func testCancellingChapterSaveDoesNotEmitFailure() async throws {
+        try await configureTestServer()
+        stubAddArchiveChapter(archiveId: "archive", page: 3, title: "Chapter", requestDelay: 0.5)
+        let target = ChapterMutationTarget(
+            readerArchiveId: "archive",
+            readerPageNumber: 3,
+            sourceArchiveId: "archive",
+            sourcePageNumber: 3
         )
-        let store = makeChapterTestStore(initialState: ReaderChapterFeature.State(context: context))
+        var initialState = ReaderChapterFeature.State()
+        initialState.creationTarget = target
+        initialState.title = "Chapter"
+        let store = makeChapterTestStore(initialState: initialState)
 
-        await store.send(.selected(3))
-        await store.receive(.delegate(.jumpRequested(3)))
+        await store.send(.confirmMutation) {
+            $0.creationTarget = nil
+            $0.title = ""
+            $0.requestInFlight = true
+        }
+        await Task.yield()
+        await store.send(.mutationSupportResolved(false)) {
+            $0.mutationsSupported = false
+            $0.requestInFlight = false
+        }
+        await store.finish()
     }
 
     func testChapterMutationHelpersSaveSortAndRestoreDefaultTankoubonChapter() {
@@ -332,18 +316,9 @@ final class ReaderChapterTests: LANreaderTestCase {
     }
 }
 
-private func makeChapterPages(
-    count: Int,
-    archiveId: String = "archive"
-) -> [ReaderChapterPage] {
-    (1...count).map {
-        ReaderChapterPage(pageNumber: $0, sourceArchiveId: archiveId, sourcePageNumber: $0)
-    }
-}
-
 @MainActor
 private func makeChapterTestStore(
-    initialState: @autoclosure () -> ReaderChapterFeature.State
+    initialState: @autoclosure () -> ReaderChapterFeature.State = ReaderChapterFeature.State()
 ) -> TestStoreOf<ReaderChapterFeature> {
     let store = TestStore(initialState: initialState()) {
         ReaderChapterFeature()
@@ -352,7 +327,13 @@ private func makeChapterTestStore(
     return store
 }
 
-private func stubAddArchiveChapter(archiveId: String, page: Int, title: String, success: Int = 1) {
+private func stubAddArchiveChapter(
+    archiveId: String,
+    page: Int,
+    title: String,
+    success: Int = 1,
+    requestDelay: TimeInterval = 0
+) {
     stub(condition: isHost("localhost")
             && isPath("/api/archives/\(archiveId)/toc")
             && containsQueryParams(["page": "\(page)", "title": title])
@@ -363,6 +344,7 @@ private func stubAddArchiveChapter(archiveId: String, page: Int, title: String, 
             statusCode: 200,
             headers: ["Content-Type": "application/json"]
         )
+        .requestTime(requestDelay, responseTime: 0)
     }
 }
 

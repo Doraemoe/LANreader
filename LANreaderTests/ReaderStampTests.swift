@@ -426,6 +426,37 @@ final class ReaderStampTests: LANreaderTestCase {
         }
         await store.receive(.delegate(.unsupportedServerResolved))
     }
+
+    @MainActor
+    func testCancellingStampCreationDoesNotEmitFailure() async throws {
+        try await configureTestServer()
+        let position = ArchiveStampPosition(rawValue: "25,30")!
+        stubAddArchiveStamp(
+            archiveId: "archive",
+            page: 1,
+            content: "Comment",
+            position: "25.0,30.0",
+            requestDelay: 0.5
+        )
+        let target = StampCreationTarget(sourceArchiveId: "archive", sourcePageNumber: 1, position: position)
+        var initialState = ReaderStampFeature.State()
+        initialState.creationTarget = target
+        initialState.comment = "Comment"
+        let store = makeStampTestStore(initialState: initialState)
+
+        await store.send(.confirmCreation) {
+            $0.creationTarget = nil
+            $0.comment = ""
+            $0.requestInFlight = true
+        }
+        await Task.yield()
+        await store.send(.supportResolved(false)) {
+            $0.supported = false
+            $0.requestInFlight = false
+        }
+        await store.receive(.delegate(.unsupportedServerResolved))
+        await store.finish()
+    }
 }
 
 private func makeStampPage(
@@ -503,7 +534,8 @@ private func stubAddArchiveStamp(
     page: Int,
     content: String,
     position: String,
-    success: Int = 1
+    success: Int = 1,
+    requestDelay: TimeInterval = 0
 ) {
     stub(condition: isHost("localhost")
             && isPath("/api/archives/\(archiveId)/stamps/\(page)")
@@ -524,6 +556,7 @@ private func stubAddArchiveStamp(
             statusCode: 200,
             headers: ["Content-Type": "application/json"]
         )
+        .requestTime(requestDelay, responseTime: 0)
     }
 }
 
