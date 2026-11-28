@@ -91,7 +91,7 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
             response.requestTime = 0.3
             return response
         }
-        var library = ArchiveListFeature.State(
+        let library = ArchiveListFeature.State(
             filter: SearchFilter(category: nil, filter: nil), loadOnAppear: false, currentTab: .library
         )
         library.$lastTagRefresh.withLock { $0 = Date().timeIntervalSince1970 }
@@ -160,13 +160,13 @@ final class ArchiveListFeatureTests: LANreaderTestCase {
     @MainActor
     func testGoToPageIsIgnoredWhenPaginationIsInactive() async {
         // Pagination is off when the setting is off, and also for random sort, which has no stable pages.
-        var disabled = ArchiveListFeature.State(
+        let disabled = ArchiveListFeature.State(
             filter: SearchFilter(category: nil, filter: nil),
             loadOnAppear: false,
             currentTab: .library
         )
         disabled.$paginateArchiveList = Shared(value: false)
-        var randomSort = makePaginatedArchiveListState()
+        let randomSort = makePaginatedArchiveListState()
         randomSort.$searchSort = Shared(value: SearchSort.random.rawValue)
 
         for var initialState in [disabled, randomSort] {
@@ -549,8 +549,8 @@ struct TwoArchiveLists {
     }
 
     var body: some ReducerOf<Self> {
-        Scope(state: \.library, action: \.library) { ArchiveListFeature() }
-        Scope(state: \.search, action: \.search) { SearchFeature() }
+        Scope(\.library, action: \.library) { ArchiveListFeature() }
+        Scope(\.search, action: \.search) { SearchFeature() }
     }
 }
 

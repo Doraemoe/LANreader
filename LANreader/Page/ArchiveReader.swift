@@ -47,12 +47,12 @@ import Logging
         var lastAutoPageIndex: Int?
         var cached = false
         var currentTankoubonDetails: TankoubonDetailsMetadata?
-        var sliderPreview = ReaderSliderPreviewState()
+        var sliderPreview = ReaderSliderPreviewFeature.State()
         /// Median aspect ratio of the pages measured so far, used to size pages that have not been
         /// measured yet. Pages within an archive are near-uniform, so this converges almost immediately.
         var estimatedPageAspectRatio: Double = ReaderPageLayout.defaultAspectRatio
         var stamp = ReaderStampFeature.State()
-        var chapter = ReaderChapterState()
+        var chapter = ReaderChapterFeature.State()
 
         var allArchives: IdentifiedArrayOf<Shared<ArchiveItem>> = []
 
@@ -70,8 +70,7 @@ import Logging
         }
     }
 
-    public enum Action: Equatable, BindableAction {
-        case binding(BindingAction<State>)
+    public enum Action: Equatable {
         case alert(PresentationAction<Alert>)
 
         case autoPage(AutomaticPageFeature.Action)
@@ -89,6 +88,7 @@ import Logging
         case toggleStampsVisibility
         case stamp(ReaderStampFeature.Action)
         case visiblePageChanged(Int)
+        case chapterSelected(Int)
         case chapter(ReaderChapterFeature.Action)
         case requestJump(Int, source: ReaderNavigationSource)
         case navigate(ReaderNavigationDirection, source: ReaderNavigationSource)
@@ -127,12 +127,9 @@ import Logging
     }
 
     public var body: some ReducerOf<Self> {
-        BindingReducer()
-
         Scope(\.autoPage, action: \.autoPage) { AutomaticPageFeature() }
-        Scope(\.sliderPreviewScope, action: \.sliderPreview) { ReaderSliderPreviewFeature() }
         Scope(\.stamp, action: \.stamp) { ReaderStampFeature() }
-        Scope(\.chapterScope, action: \.chapter) { ReaderChapterFeature() }
+        Scope(\.chapter, action: \.chapter) { ReaderChapterFeature() }
 
         Reduce<State, Action> { (state: inout State, action: Action) -> Effect<Action> in
             switch action {
@@ -179,6 +176,11 @@ import Logging
                 return .none
             case let .visiblePageChanged(index):
                 return handleVisiblePageChanged(index, state: &state)
+            case let .chapterSelected(pageNumber):
+                guard let pageIndex = state.pages.firstIndex(where: { $0.pageNumber == pageNumber }) else {
+                    return .none
+                }
+                return .send(.requestJump(pageIndex, source: .chapter))
             case let .requestJump(index, source):
                 guard !state.pages.isEmpty else { return .none }
                 let clampedIndex = ReaderPositioning.clampedPageIndex(index, pageCount: state.pages.count)
@@ -196,10 +198,8 @@ import Logging
                 state.collectionScrolling = false
                 ReaderSplitPageCoordinator.applyPendingSplitResolutions(state: &state)
                 return .none
-            case let .sliderPreview(.delegate(.jumpRequested(index))):
-                return .send(.requestJump(index, source: .slider))
-            case .sliderPreview:
-                return .none
+            case let .sliderPreview(previewAction):
+                return reduceSliderPreview(previewAction, state: &state)
             case let .navigate(direction, source):
                 guard let targetIndex = ReaderPositioning.adjacentPageIndex(
                     from: state.currentPageIndex,
@@ -235,8 +235,6 @@ import Logging
                 return .none
             case let .setError(message):
                 state.errorMessage = message
-                return .none
-            case .binding:
                 return .none
             case .page(.element(id: _, action: .stampsLoadFailed(endpointUnavailable: true))):
                 return .send(.stamp(.supportResolved(false)))
@@ -314,6 +312,7 @@ import Logging
         state.scrollRequest = nil
         state.collectionScrolling = false
         state.pendingSplitResolutions = [:]
+        state.lastAutoPageIndex = nil
         state.errorMessage = ""
         state.successMessage = ""
         state.currentTankoubonDetails = nil
@@ -350,34 +349,32 @@ extension ArchiveReaderFeature.State {
         archivePageNumbers.count
     }
 
-    var sliderPreviewScope: ReaderSliderPreviewFeature.State {
-        get {
-            ReaderSliderPreviewFeature.State(
-                archiveId: currentArchiveId,
-                cached: cached,
-                pages: pages.map(ReaderSliderPreviewPage.init),
-                currentPageIndex: currentPageIndex,
-                stored: sliderPreview
-            )
-        }
-        set { if sliderPreview != newValue.stored { sliderPreview = newValue.stored } }
+    var sliderPreviewContext: ReaderSliderPreviewContext {
+        ReaderSliderPreviewContext(state: self)
     }
 
-    var chapterScope: ReaderChapterFeature.State {
-        get {
-            ReaderChapterFeature.State(
-                context: ReaderChapterContext(
-                    archiveId: currentArchiveId,
-                    cached: cached,
-                    pages: pages.map(ReaderChapterPage.init),
-                    currentPageIndex: currentPageIndex,
-                    chapters: chapters,
-                    automaticChapterPages: currentTankoubonDetails?.automaticChapterPages
-                ),
-                stored: chapter
-            )
+    func chapterCreationTarget() -> ChapterMutationTarget? {
+        guard let page = currentPage else { return nil }
+        return ChapterMutationTarget(
+            readerArchiveId: currentArchiveId,
+            readerPageNumber: page.pageNumber,
+            sourceArchiveId: page.sourceArchiveId,
+            sourcePageNumber: page.sourcePageNumber
+        )
+    }
+
+    func chapterEditingTarget(for pageNumber: Int) -> (target: ChapterMutationTarget, title: String)? {
+        guard let chapter = chapters.first(where: { $0.page == pageNumber }),
+              let page = pages.first(where: { $0.pageNumber == pageNumber }) else {
+            return nil
         }
-        set { if chapter != newValue.stored { chapter = newValue.stored } }
+        let target = ChapterMutationTarget(
+            readerArchiveId: currentArchiveId,
+            readerPageNumber: pageNumber,
+            sourceArchiveId: page.sourceArchiveId,
+            sourcePageNumber: page.sourcePageNumber
+        )
+        return (target, chapter.name)
     }
 
     var chapters: [ArchiveChapter] {
@@ -685,11 +682,11 @@ private extension ArchiveReaderFeature {
 
         return .run { [idx, canAdvance, interval = state.autoPageInterval] send in
             if canAdvance {
-                try? await clock.sleep(for: .seconds(interval))
+                try await clock.sleep(for: .seconds(interval))
                 await send(.navigate(.next, source: .autoPage))
                 await send(.setLastAutoPageIndex(idx))
             } else {
-                try? await clock.sleep(for: .milliseconds(300))
+                try await clock.sleep(for: .milliseconds(300))
             }
             await send(.autoPageTick)
         }.cancellable(id: CancelId.autoPage)
@@ -732,6 +729,21 @@ private extension ArchiveReaderFeature {
         }
     }
 
+    func reduceSliderPreview(
+        _ action: ReaderSliderPreviewFeature.Action,
+        state: inout State
+    ) -> Effect<Action> {
+        if case let .delegate(.jumpRequested(index)) = action {
+            return .send(.requestJump(index, source: .slider))
+        }
+        return ReaderSliderPreviewFeature().reduce(
+            state: &state.sliderPreview,
+            action: action,
+            context: state.sliderPreviewContext,
+            embed: Action.sliderPreview
+        )
+    }
+
     func switchArchive(offset: Int, state: inout State) -> Effect<Action> {
         guard let currentIndex = state.allArchives.firstIndex(where: { $0.id == state.currentArchiveId }),
               state.allArchives.indices.contains(currentIndex + offset) else {
@@ -740,6 +752,8 @@ private extension ArchiveReaderFeature {
         state.currentArchiveId = state.allArchives[currentIndex + offset].wrappedValue.id
         resetState(state: &state)
         return .merge(
+            .cancel(id: CancelId.autoPage),
+            .cancel(id: CancelId.primePageAspectRatios),
             ReaderSliderPreviewFeature.cancelEffects(),
             ReaderStampFeature.cancelEffects(),
             ReaderChapterFeature.cancelEffects(),

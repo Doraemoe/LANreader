@@ -214,7 +214,7 @@ final class ReaderPullNavigationOverlay {
         )
         let progress = min(1, overscroll / pullThreshold)
         let edgeInset = 16 + progress * 14
-        pullStatusBackground.frame = pullCardFrame(
+        let cardFrame = pullCardFrame(
             CardPlacement(
                 edge: edge,
                 axis: axis,
@@ -224,6 +224,8 @@ final class ReaderPullNavigationOverlay {
             ),
             in: hostView
         )
+        pullStatusBackground.bounds = CGRect(origin: .zero, size: cardFrame.size)
+        pullStatusBackground.center = CGPoint(x: cardFrame.midX, y: cardFrame.midY)
         pullStatusBackground.layer.cornerRadius = cardHeight / 2
         layoutPullCardContent(
             cardWidth: cardWidth,

@@ -9,100 +9,31 @@ public struct ChapterMutationTarget: Equatable, Sendable {
     let sourcePageNumber: Int
 }
 
-public struct ReaderChapterPage: Equatable, Sendable {
-    public let pageNumber: Int
-    public let sourceArchiveId: String
-    public let sourcePageNumber: Int
-
-    public init(pageNumber: Int, sourceArchiveId: String, sourcePageNumber: Int) {
-        self.pageNumber = pageNumber
-        self.sourceArchiveId = sourceArchiveId
-        self.sourcePageNumber = sourcePageNumber
-    }
-
-    init(page: PageFeature.State) {
-        self.pageNumber = page.pageNumber
-        self.sourceArchiveId = page.sourceArchiveId
-        self.sourcePageNumber = page.sourcePageNumber
-    }
-}
-
-public struct ReaderChapterContext: Equatable, Sendable {
-    var archiveId = ""
-    var cached = false
-    var pages: [ReaderChapterPage] = []
-    var currentPageIndex = 0
-    var chapters: [ArchiveChapter] = []
-    var automaticChapterPages: Set<Int>?
-}
-
-public struct ReaderChapterState: Equatable, Sendable {
-    var creationTarget: ChapterMutationTarget?
-    var editingTarget: ChapterMutationTarget?
-    var title = ""
-    var requestInFlight = false
-    var mutationsSupported: Bool?
-
-    public init() {}
-
-    mutating func resetTransientState() {
-        creationTarget = nil
-        editingTarget = nil
-        title = ""
-        requestInFlight = false
-    }
-}
-
 @Reducer public struct ReaderChapterFeature: Sendable {
     private let logger = Logger(label: "ReaderChapterFeature")
 
     @ObservableState
     public struct State: Equatable, Sendable {
-        var archiveId = ""
-        var cached = false
-        var pages: [ReaderChapterPage] = []
-        var currentPageIndex = 0
-        var chapters: [ArchiveChapter] = []
-        var automaticChapterPages: Set<Int>?
-        var stored = ReaderChapterState()
+        var creationTarget: ChapterMutationTarget?
+        var editingTarget: ChapterMutationTarget?
+        var title = ""
+        var requestInFlight = false
+        var mutationsSupported: Bool?
 
-        init(
-            context: ReaderChapterContext = ReaderChapterContext(),
-            stored: ReaderChapterState = ReaderChapterState()
-        ) {
-            self.archiveId = context.archiveId
-            self.cached = context.cached
-            self.pages = context.pages
-            self.currentPageIndex = context.currentPageIndex
-            self.chapters = context.chapters
-            self.automaticChapterPages = context.automaticChapterPages
-            self.stored = stored
-        }
+        public init() {}
 
-        var currentPage: ReaderChapterPage? {
-            guard !pages.isEmpty else { return nil }
-            return pages[ReaderPositioning.clampedPageIndex(currentPageIndex, pageCount: pages.count)]
-        }
-
-        var canAddChapter: Bool {
-            !cached && stored.mutationsSupported != false && currentPage != nil
-        }
-
-        var editableChapterPages: Set<Int> {
-            ReaderChapterFeature.editableChapterPages(
-                archiveId: archiveId,
-                cached: cached,
-                mutationsSupported: stored.mutationsSupported,
-                chapters: chapters,
-                automaticChapterPages: automaticChapterPages
-            )
+        mutating func resetTransientState() {
+            creationTarget = nil
+            editingTarget = nil
+            title = ""
+            requestInFlight = false
         }
     }
 
     public enum Action: Equatable {
         case mutationSupportResolved(Bool?)
-        case creationRequested
-        case editingRequested(Int)
+        case creationRequested(target: ChapterMutationTarget, cached: Bool)
+        case editingRequested(target: ChapterMutationTarget, title: String, editable: Bool)
         case titleChanged(String)
         case cancelMutation
         case confirmMutation
@@ -111,12 +42,10 @@ public struct ReaderChapterState: Equatable, Sendable {
         case saveFailed(target: ChapterMutationTarget, title: String, isEditing: Bool)
         case deleted(target: ChapterMutationTarget)
         case deleteFailed(target: ChapterMutationTarget, title: String)
-        case selected(Int)
         case delegate(Delegate)
 
         @CasePathable
         public enum Delegate: Equatable, Sendable {
-            case jumpRequested(Int)
             case saved(target: ChapterMutationTarget, title: String)
             case deleted(target: ChapterMutationTarget)
             case errorOccurred(String)
@@ -188,44 +117,39 @@ private extension ReaderChapterFeature {
     func reduce(state: inout State, action: Action) -> Effect<Action> {
         switch action {
         case let .mutationSupportResolved(isSupported):
-            state.stored.mutationsSupported = isSupported
+            state.mutationsSupported = isSupported
             guard isSupported == false else { return .none }
-            state.stored.resetTransientState()
+            state.resetTransientState()
             return Self.cancelEffects()
-        case .creationRequested:
-            return handleCreationRequested(state: &state)
-        case let .editingRequested(pageNumber):
-            return handleEditingRequested(pageNumber: pageNumber, state: &state)
+        case let .creationRequested(target, cached):
+            return handleCreationRequested(target: target, cached: cached, state: &state)
+        case let .editingRequested(target, title, editable):
+            return handleEditingRequested(target: target, title: title, editable: editable, state: &state)
         case let .titleChanged(title):
-            state.stored.title = title
+            state.title = title
             return .none
         case .cancelMutation:
-            state.stored.creationTarget = nil
-            state.stored.editingTarget = nil
-            state.stored.title = ""
+            state.creationTarget = nil
+            state.editingTarget = nil
+            state.title = ""
             return .none
         case .confirmMutation:
             return handleConfirmMutation(state: &state)
         case .confirmDeletion:
             return handleConfirmDeletion(state: &state)
         case let .saved(target, title):
-            state.stored.requestInFlight = false
+            state.requestInFlight = false
             return .send(.delegate(.saved(target: target, title: title)))
         case let .saveFailed(target, title, isEditing):
             return handleSaveFailed(target: target, title: title, isEditing: isEditing, state: &state)
         case let .deleted(target):
-            state.stored.requestInFlight = false
+            state.requestInFlight = false
             return .send(.delegate(.deleted(target: target)))
         case let .deleteFailed(target, title):
-            state.stored.requestInFlight = false
-            state.stored.editingTarget = target
-            state.stored.title = title
+            state.requestInFlight = false
+            state.editingTarget = target
+            state.title = title
             return .send(.delegate(.errorOccurred(String(localized: "archive.reader.chapter.delete.failed"))))
-        case let .selected(pageNumber):
-            guard let pageIndex = state.pages.firstIndex(where: { $0.pageNumber == pageNumber }) else {
-                return .none
-            }
-            return .send(.delegate(.jumpRequested(pageIndex)))
         case .delegate:
             return .none
         }
@@ -237,62 +161,62 @@ private extension ReaderChapterFeature {
         isEditing: Bool,
         state: inout State
     ) -> Effect<Action> {
-        state.stored.requestInFlight = false
+        state.requestInFlight = false
         if isEditing {
-            state.stored.editingTarget = target
+            state.editingTarget = target
         } else {
-            state.stored.creationTarget = target
+            state.creationTarget = target
         }
-        state.stored.title = title
-        let key = isEditing ? "archive.reader.chapter.edit.failed" : "archive.reader.chapter.add.failed"
-        return .send(.delegate(.errorOccurred(String(localized: String.LocalizationValue(key)))))
+        state.title = title
+        let message = isEditing
+            ? String(localized: "archive.reader.chapter.edit.failed")
+            : String(localized: "archive.reader.chapter.add.failed")
+        return .send(.delegate(.errorOccurred(message)))
     }
 
-    func handleCreationRequested(state: inout State) -> Effect<Action> {
-        guard state.canAddChapter,
-              !state.stored.requestInFlight,
-              state.stored.editingTarget == nil,
-              let page = state.currentPage else {
+    func handleCreationRequested(
+        target: ChapterMutationTarget,
+        cached: Bool,
+        state: inout State
+    ) -> Effect<Action> {
+        guard !cached,
+              state.mutationsSupported != false,
+              !state.requestInFlight,
+              state.editingTarget == nil else {
             return .none
         }
-        state.stored.creationTarget = ChapterMutationTarget(
-            readerArchiveId: state.archiveId,
-            readerPageNumber: page.pageNumber,
-            sourceArchiveId: page.sourceArchiveId,
-            sourcePageNumber: page.sourcePageNumber
-        )
-        state.stored.title = ""
+        state.creationTarget = target
+        state.title = ""
         return .none
     }
 
-    func handleEditingRequested(pageNumber: Int, state: inout State) -> Effect<Action> {
-        guard state.editableChapterPages.contains(pageNumber),
-              !state.stored.requestInFlight,
-              state.stored.creationTarget == nil,
-              let chapter = state.chapters.first(where: { $0.page == pageNumber }),
-              let page = state.pages.first(where: { $0.pageNumber == pageNumber }) else {
+    func handleEditingRequested(
+        target: ChapterMutationTarget,
+        title: String,
+        editable: Bool,
+        state: inout State
+    ) -> Effect<Action> {
+        guard editable,
+              state.mutationsSupported != false,
+              !state.requestInFlight,
+              state.creationTarget == nil else {
             return .none
         }
-        state.stored.editingTarget = ChapterMutationTarget(
-            readerArchiveId: state.archiveId,
-            readerPageNumber: pageNumber,
-            sourceArchiveId: page.sourceArchiveId,
-            sourcePageNumber: page.sourcePageNumber
-        )
-        state.stored.title = chapter.name
+        state.editingTarget = target
+        state.title = title
         return .none
     }
 
     func handleConfirmMutation(state: inout State) -> Effect<Action> {
-        let isEditing = state.stored.editingTarget != nil
-        guard let target = state.stored.editingTarget ?? state.stored.creationTarget else { return .none }
-        let draft = state.stored.title
+        let isEditing = state.editingTarget != nil
+        guard let target = state.editingTarget ?? state.creationTarget else { return .none }
+        let draft = state.title
         let title = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return .none }
-        state.stored.creationTarget = nil
-        state.stored.editingTarget = nil
-        state.stored.title = ""
-        state.stored.requestInFlight = true
+        state.creationTarget = nil
+        state.editingTarget = nil
+        state.title = ""
+        state.requestInFlight = true
         return .run { send in
             await performChapterSave(target: target, draft: draft, title: title, isEditing: isEditing, send: send)
         }
@@ -318,6 +242,7 @@ private extension ReaderChapterFeature {
             }
             await send(.saved(target: target, title: title))
         } catch {
+            if error is CancellationError || Task.isCancelled { return }
             let source = "\(target.sourceArchiveId):\(target.sourcePageNumber)"
             logger.warning("failed to save chapter. source=\(source) \(error.localizedDescription)")
             await send(.saveFailed(target: target, title: draft, isEditing: isEditing))
@@ -325,11 +250,11 @@ private extension ReaderChapterFeature {
     }
 
     func handleConfirmDeletion(state: inout State) -> Effect<Action> {
-        guard let target = state.stored.editingTarget else { return .none }
-        let title = state.stored.title
-        state.stored.editingTarget = nil
-        state.stored.title = ""
-        state.stored.requestInFlight = true
+        guard let target = state.editingTarget else { return .none }
+        let title = state.title
+        state.editingTarget = nil
+        state.title = ""
+        state.requestInFlight = true
         return .run { send in
             await performChapterDeletion(target: target, title: title, send: send)
         }
@@ -352,6 +277,7 @@ private extension ReaderChapterFeature {
             }
             await send(.deleted(target: target))
         } catch {
+            if error is CancellationError || Task.isCancelled { return }
             let source = "\(target.sourceArchiveId):\(target.sourcePageNumber)"
             logger.warning("failed to delete chapter. source=\(source) \(error.localizedDescription)")
             await send(.deleteFailed(target: target, title: title))

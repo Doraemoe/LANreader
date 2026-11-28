@@ -99,8 +99,6 @@ extension ArchiveReaderFeature {
         state: inout State
     ) -> Effect<Action> {
         switch action {
-        case let .jumpRequested(pageIndex):
-            return .send(.requestJump(pageIndex, source: .chapter))
         case let .saved(target, title):
             applySavedChapter(target: target, title: title, state: &state)
             return .none

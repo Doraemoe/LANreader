@@ -183,6 +183,27 @@ final class ReaderPageCollectionPeripheralTests: LANreaderTestCase {
     }
 
     @MainActor
+    func testPullNavigationOverlayKeepsUnscaledCardBoundsAcrossProgressiveOverscroll() async throws {
+        let (_, controller) = try makeReaderController(currentPageIndex: 1)
+        await waitForSnapshotApplied(on: controller, expectedCount: 2)
+
+        let card = try XCTUnwrap(
+            controller.view.subviews.first { $0 is UIVisualEffectView } as? UIVisualEffectView
+        )
+        let maxX = max(0, controller.collectionView.contentSize.width - controller.collectionView.bounds.width)
+
+        for (offset, expectsScaledTransform) in [(20.0, true), (50.0, true), (85.0, false)] {
+            controller.collectionView.contentOffset = CGPoint(x: maxX + offset, y: 0)
+            controller.scrollViewDidScroll(controller.collectionView)
+
+            XCTAssertFalse(card.isHidden)
+            XCTAssertEqual(card.bounds.origin, .zero)
+            XCTAssertEqual(card.bounds.size.height, 52, accuracy: 0.01)
+            XCTAssertEqual(card.transform != .identity, expectsScaledTransform)
+        }
+    }
+
+    @MainActor
     func testKeyboardInputUsesConfiguredTapControls() throws {
         let suite = "ReaderPageCollectionPeripheralTests-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!

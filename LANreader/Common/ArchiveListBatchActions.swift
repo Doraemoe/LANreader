@@ -188,10 +188,10 @@ extension ArchiveListFeature {
                 await send(.createTankoubonSucceeded)
             } catch {
                 logger.error("failed to create or populate Tankoubon. \(error)")
-                let key = createdTankoubon
-                    ? "archive.selected.tankoubon.contents.error"
-                    : "archive.selected.tankoubon.create.error"
-                await send(.createTankoubonFailed(String(localized: String.LocalizationValue(key))))
+                let message = createdTankoubon
+                    ? String(localized: "archive.selected.tankoubon.contents.error")
+                    : String(localized: "archive.selected.tankoubon.create.error")
+                await send(.createTankoubonFailed(message))
             }
         }
     }

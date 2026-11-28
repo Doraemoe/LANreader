@@ -317,7 +317,7 @@ final class DeepLinkTests: LANreaderTestCase {
                 isNew: false, progress: 7, pagecount: 20, dateAdded: nil
             )
             withUITransaction(\.uiKit.disablesAnimations, true) {
-                store.send(.deepLinkArchiveLoaded(archive, cached: false))
+                _ = store.send(.deepLinkArchiveLoaded(archive, cached: false))
             }
             await waitUntil {
                 store.pendingDeepLink == nil && libraryNav.topViewController is UIArchiveReaderController
@@ -441,7 +441,7 @@ final class DeepLinkTests: LANreaderTestCase {
             }
 
             withUITransaction(\.uiKit.disablesAnimations, true) {
-                store.send(.destination(.dismiss))
+                _ = store.send(.destination(.dismiss))
             }
             await waitUntil {
                 store.pendingDeepLink == nil && libraryNav.topViewController is UIArchiveReaderController
@@ -462,7 +462,7 @@ final class DeepLinkTests: LANreaderTestCase {
         let database = try makeDeepLinkThumbnailDatabase(archiveIds: ["deepHit"])
         var popularTag = TagItem(tag: "female:b", count: 10)
         try database.saveTag(tagItem: &popularTag)
-        var initialState = SearchFeature.State()
+        let initialState = SearchFeature.State()
         initialState.archiveList.$lastTagRefresh = Shared(value: Date().timeIntervalSince1970)
         initialState.archiveList.$searchSort = Shared(value: SearchSort.name.rawValue)
         let store = withDependencies {

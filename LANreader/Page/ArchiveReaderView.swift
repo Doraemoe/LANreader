@@ -37,7 +37,7 @@ struct ArchiveReader: View {
             isPresented: Binding(
                 get: { store.chapter.creationTarget != nil || store.chapter.editingTarget != nil },
                 set: { isPresented in
-                    if !isPresented {
+                    if !isPresented, store.chapter.creationTarget != nil || store.chapter.editingTarget != nil {
                         store.send(.chapter(.cancelMutation))
                     }
                 }

@@ -328,7 +328,7 @@ struct ReaderBottomToolbar: View {
         return Menu {
             ForEach(store.chapters) { chapter in
                 Button(chapter.name) {
-                    store.send(.chapter(.selected(chapter.page)))
+                    store.send(.chapterSelected(chapter.page))
                 }
             }
             if !store.chapters.isEmpty, !editablePages.isEmpty || store.canAddChapter {
@@ -338,7 +338,12 @@ struct ReaderBottomToolbar: View {
                 Menu {
                     ForEach(store.chapters.filter { editablePages.contains($0.page) }) { chapter in
                         Button(chapter.name) {
-                            store.send(.chapter(.editingRequested(chapter.page)))
+                            guard let edit = store.state.chapterEditingTarget(for: chapter.page) else { return }
+                            store.send(.chapter(.editingRequested(
+                                target: edit.target,
+                                title: edit.title,
+                                editable: editablePages.contains(chapter.page)
+                            )))
                         }
                         .disabled(store.chapter.requestInFlight)
                     }
@@ -348,7 +353,8 @@ struct ReaderBottomToolbar: View {
             }
             if store.canAddChapter {
                 Button {
-                    store.send(.chapter(.creationRequested))
+                    guard let target = store.state.chapterCreationTarget() else { return }
+                    store.send(.chapter(.creationRequested(target: target, cached: store.cached)))
                 } label: {
                     Label("archive.reader.chapter.add", systemImage: "plus")
                 }

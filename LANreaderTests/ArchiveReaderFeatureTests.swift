@@ -195,10 +195,15 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         XCTAssertFalse(store.state.canAddChapter)
         XCTAssertTrue(store.state.editableChapterPages.isEmpty)
 
-        await store.send(.chapter(.creationRequested))
-        await store.send(.chapter(.editingRequested(chapter.page)))
-        await store.send(.chapter(.selected(chapter.page)))
-        await store.receive(.chapter(.delegate(.jumpRequested(0))))
+        let target = ChapterMutationTarget(
+            readerArchiveId: "archive",
+            readerPageNumber: chapter.page,
+            sourceArchiveId: "archive",
+            sourcePageNumber: chapter.page
+        )
+        await store.send(.chapter(.creationRequested(target: target, cached: false)))
+        await store.send(.chapter(.editingRequested(target: target, title: chapter.name, editable: true)))
+        await store.send(.chapterSelected(chapter.page))
         await store.receive(.requestJump(0, source: .chapter)) {
             $0.scrollRequest = makeScrollRequest(
                 id: 0,
@@ -321,7 +326,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         ]
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.chapter(.creationRequested)) {
+        await store.send(.chapter(.creationRequested(target: target, cached: false))) {
             $0.chapter.creationTarget = target
         }
         await store.send(.chapter(.titleChanged("  New chapter\n"))) {
@@ -374,7 +379,9 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         )
         let store = makeTestStore(initialState: initialState)
 
-        await store.send(.chapter(.editingRequested(manualChapter.page))) {
+        await store.send(
+            .chapter(.editingRequested(target: target, title: manualChapter.name, editable: true))
+        ) {
             $0.chapter.editingTarget = target
             $0.chapter.title = manualChapter.name
         }
@@ -1592,8 +1599,7 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
 
         XCTAssertEqual(store.state.chapters, chapters)
 
-        await store.send(.chapter(.selected(3)))
-        await store.receive(.chapter(.delegate(.jumpRequested(3))))
+        await store.send(.chapterSelected(3))
         await store.receive(.requestJump(3, source: .chapter)) {
             $0.scrollRequest = makeScrollRequest(
                 id: 0,
@@ -3064,15 +3070,170 @@ final class ArchiveReaderFeatureTests: LANreaderTestCase {
         XCTAssertEqual(state.spreadPairingOffset, 0)
         XCTAssertFalse(state.fromStart)
         XCTAssertNil(state.scrollRequest)
+        XCTAssertNil(state.lastAutoPageIndex)
         XCTAssertEqual(state.errorMessage, "")
         XCTAssertEqual(state.successMessage, "")
-        XCTAssertEqual(state.sliderPreview, ReaderSliderPreviewState())
+        XCTAssertEqual(state.sliderPreview, ReaderSliderPreviewFeature.State())
         XCTAssertNil(state.spreadAnchorPageIndex)
         XCTAssertFalse(state.collectionScrolling)
         XCTAssertTrue(state.pendingSplitResolutions.isEmpty)
         XCTAssertEqual(state.estimatedPageAspectRatio, ReaderPageLayout.defaultAspectRatio)
         XCTAssertEqual(state.stamp, ReaderStampFeature.State())
-        XCTAssertEqual(state.chapter, ReaderChapterState())
+        XCTAssertEqual(state.chapter, ReaderChapterFeature.State())
+    }
+
+    @MainActor
+    func testSwitchingArchiveCancelsActiveAutoPage() async throws {
+        configureReaderDefaults(autoPageInterval: 1)
+        let clock = TestClock()
+        let database = try makeInMemoryDatabase()
+        try await configureReadyThumbnailQueue(archiveId: "two")
+        stubExtractArchive(
+            archiveId: "two",
+            pages: ["./api/archives/two/page?path=1.jpg", "./api/archives/two/page?path=2.jpg"]
+        )
+        var state = makeState(
+            archiveId: "one",
+            allArchives: [makeArchive(id: "one", progress: 1), makeArchive(id: "two", progress: 1)],
+            autoPageInterval: 1
+        )
+        state.pages = makePageStates(count: 2, archiveId: "one")
+        state.pages[0].imageLoaded = true
+        let store = makeTestStore(initialState: state) {
+            $0.continuousClock = clock
+            $0.appDatabase = database
+        }
+        store.exhaustivity = .off(showSkippedAssertions: false)
+
+        await store.send(.autoPageTick)
+        await store.send(.loadNextArchive)
+        await store.receive(.extractArchive)
+        await store.receive(\.finishExtracting)
+        await finishSliderPreviewPrefetch(store)
+        await clock.advance(by: .seconds(5))
+
+        XCTAssertEqual(store.state.currentArchiveId, "two")
+        XCTAssertNil(store.state.lastAutoPageIndex)
+        XCTAssertEqual(store.state.currentPageIndex, 0)
+        XCTAssertNotEqual(store.state.scrollRequest?.source, .autoPage)
+    }
+
+    @MainActor
+    func testEditChapterUpdatesArchiveAndTankoubonTOC() async throws {
+        configureReaderDefaults()
+        try await configureTestServer()
+
+        let tankId = "TANK_test"
+        let originalChapter = ArchiveChapter(name: "Original", page: 8)
+        stubAddArchiveChapter(archiveId: "source", page: 4, title: "Updated")
+        var initialState = makeState(
+            archiveId: tankId,
+            allArchives: [makeArchive(id: tankId, toc: [originalChapter])]
+        )
+        initialState.pages = [
+            PageFeature.State(
+                archiveId: tankId,
+                pageId: "page",
+                pageNumber: 8,
+                sourceArchiveId: "source",
+                sourcePageNumber: 4
+            )
+        ]
+        initialState.currentTankoubonDetails = makeTankoubonDetailsMetadata(tankId: tankId, toc: [originalChapter])
+        let target = ChapterMutationTarget(
+            readerArchiveId: tankId,
+            readerPageNumber: 8,
+            sourceArchiveId: "source",
+            sourcePageNumber: 4
+        )
+        let updatedChapters = [ArchiveChapter(name: "Updated", page: 8)]
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.chapter(.editingRequested(
+            target: target,
+            title: originalChapter.name,
+            editable: true
+        ))) {
+            $0.chapter.editingTarget = target
+            $0.chapter.title = "Original"
+        }
+        await store.send(.chapter(.titleChanged("  Updated\n"))) {
+            $0.chapter.title = "  Updated\n"
+        }
+        await store.send(.chapter(.confirmMutation)) {
+            $0.chapter.editingTarget = nil
+            $0.chapter.title = ""
+            $0.chapter.requestInFlight = true
+        }
+        await store.receive(.chapter(.saved(target: target, title: "Updated"))) {
+            $0.chapter.requestInFlight = false
+        }
+        await store.receive(.chapter(.delegate(.saved(target: target, title: "Updated")))) {
+            $0.allArchives[id: tankId]?.withLock { $0.toc = updatedChapters }
+            $0.currentTankoubonDetails?.toc = updatedChapters
+        }
+    }
+
+    @MainActor
+    func testDeleteLastChapterClearsArchiveTOC() async throws {
+        configureReaderDefaults()
+        try await configureTestServer()
+
+        let onlyChapter = ArchiveChapter(name: "Only", page: 2)
+        stubDeleteArchiveChapter(archiveId: "archive", page: 2)
+        var initialState = makeState(
+            archiveId: "archive",
+            allArchives: [makeArchive(id: "archive", toc: [onlyChapter])]
+        )
+        initialState.pages = [
+            PageFeature.State(
+                archiveId: "archive",
+                pageId: "page-2",
+                pageNumber: 2,
+                sourceArchiveId: "archive",
+                sourcePageNumber: 2
+            )
+        ]
+        let target = ChapterMutationTarget(
+            readerArchiveId: "archive",
+            readerPageNumber: 2,
+            sourceArchiveId: "archive",
+            sourcePageNumber: 2
+        )
+        let store = makeTestStore(initialState: initialState)
+
+        await store.send(.chapter(.editingRequested(
+            target: target,
+            title: onlyChapter.name,
+            editable: true
+        ))) {
+            $0.chapter.editingTarget = target
+            $0.chapter.title = "Only"
+        }
+        await store.send(.chapter(.confirmDeletion)) {
+            $0.chapter.editingTarget = nil
+            $0.chapter.title = ""
+            $0.chapter.requestInFlight = true
+        }
+        await store.receive(.chapter(.deleted(target: target))) {
+            $0.chapter.requestInFlight = false
+        }
+        await store.receive(.chapter(.delegate(.deleted(target: target))))
+        XCTAssertNil(store.state.allArchives[id: "archive"]?.wrappedValue.toc)
+        XCTAssertTrue(store.state.chapters.isEmpty)
+    }
+
+    @MainActor
+    func testChildFeatureErrorsPropagateToReaderErrorMessage() async {
+        configureReaderDefaults()
+        let store = makeTestStore(initialState: makeState())
+
+        await store.send(.chapter(.delegate(.errorOccurred("chapter error")))) {
+            $0.errorMessage = "chapter error"
+        }
+        await store.send(.stamp(.delegate(.errorOccurred("stamp error")))) {
+            $0.errorMessage = "stamp error"
+        }
     }
 
     @MainActor
@@ -3985,6 +4146,7 @@ private func stubDeleteArchiveStamp(stampId: String, success: Int = 1) {
     }
 }
 
+@MainActor
 private func allGestureRecognizers(in view: UIView) -> [UIGestureRecognizer] {
     (view.gestureRecognizers ?? []) + view.subviews.flatMap(allGestureRecognizers(in:))
 }
@@ -4012,6 +4174,7 @@ private func makeDirtyReaderState() -> ArchiveReaderFeature.State {
     state.spreadPairingOffset = 1
     state.fromStart = true
     state.scrollRequest = ScrollRequest(targetPageIndex: 2, source: .slider, animated: false)
+    state.lastAutoPageIndex = 1
     state.errorMessage = "error"
     state.successMessage = "success"
     state.sliderPreview.draftIndex = 1
@@ -4137,7 +4300,7 @@ private func makeLoadedSplitPageFixture(
     var leading = loadedPageState(archiveId: archiveId, pageId: "1", pageNumber: 1, pageMode: .normal)
     leading.pageMode = PageMode.preferredSplitMode(priorityLeft: priorityLeft)
     leading.$splitImage = SharedReader(value: true)
-    var trailing = loadedPageState(
+    let trailing = loadedPageState(
         archiveId: archiveId,
         pageId: "1",
         pageNumber: 1,

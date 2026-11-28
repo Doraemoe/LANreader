@@ -46,76 +46,121 @@ public struct ReaderSliderPreviewPage: Equatable, Sendable {
     }
 }
 
-public struct ReaderSliderPreviewState: Equatable, Sendable {
-    var draftIndex: Int?
-    var dragging = false
-    var previewVisible = false
-    var previewPageIndex: Int?
-    var previewImageURL: URL?
-    var previewLoading = false
-    var thumbnailJobsById: [Int: String] = [:]
-    var readyThumbnailPages: Set<Int> = []
-    /// Keyed by reader page number. A page with no entry has not been tried yet.
-    var previewStatus: [Int: SliderPreviewStatus] = [:]
-    /// Set once Low Data Mode blocks a background preview download. After that, only the page
-    /// under the slider is fetched.
-    var prefetchStopped = false
-    var prefetchInFlight = false
+public struct ReaderSliderPreviewContext: Sendable {
+    public let archiveId: String
+    public let cached: Bool
+    public let currentPageIndex: Int
+    public let pageCount: Int
+    private let pageAtIndex: @Sendable (Int) -> ReaderSliderPreviewPage
 
-    public init() {}
-
-    mutating func resetDisplayState() {
-        draftIndex = nil
-        dragging = false
-        previewVisible = false
-        previewPageIndex = nil
-        previewImageURL = nil
-        previewLoading = false
+    public init(
+        archiveId: String = "",
+        cached: Bool = false,
+        pages: [ReaderSliderPreviewPage] = [],
+        currentPageIndex: Int = 0
+    ) {
+        self.archiveId = archiveId
+        self.cached = cached
+        self.currentPageIndex = currentPageIndex
+        self.pageCount = pages.count
+        self.pageAtIndex = { pages[$0] }
     }
 
-    mutating func resetArchiveState() {
-        resetDisplayState()
-        thumbnailJobsById = [:]
-        readyThumbnailPages = []
-        previewStatus = [:]
-        prefetchStopped = false
-        prefetchInFlight = false
+    init(state: ArchiveReaderFeature.State) {
+        let pages = state.pages
+        self.archiveId = state.currentArchiveId
+        self.cached = state.cached
+        self.currentPageIndex = state.currentPageIndex
+        self.pageCount = pages.count
+        self.pageAtIndex = { ReaderSliderPreviewPage(page: pages[$0]) }
     }
-}
 
-private struct SliderPreviewTarget: Sendable {
-    let pageNumber: Int
-    let sourceArchiveId: String
-    let sourcePageNumber: Int
+    var isEmpty: Bool { pageCount == 0 }
+    var indices: Range<Int> { 0..<pageCount }
+
+    func page(at index: Int) -> ReaderSliderPreviewPage {
+        pageAtIndex(index)
+    }
+
+    func containsPageNumber(_ pageNumber: Int) -> Bool {
+        for index in indices where pageAtIndex(index).pageNumber == pageNumber {
+            return true
+        }
+        return false
+    }
+
+    var archivePageCount: Int {
+        var pageNumbers: Set<Int> = []
+        for index in indices {
+            pageNumbers.insert(pageAtIndex(index).pageNumber)
+        }
+        return pageNumbers.count
+    }
+
+    var sourceArchiveIds: [String] {
+        var ids = OrderedSet<String>()
+        for index in indices {
+            ids.append(pageAtIndex(index).sourceArchiveId)
+        }
+        return Array(ids)
+    }
+
+    func readerPageNumbers(
+        sourceArchiveId: String,
+        sourcePageNumbers: Set<Int>? = nil
+    ) -> Set<Int> {
+        var result: Set<Int> = []
+        for index in indices {
+            let page = pageAtIndex(index)
+            guard page.sourceArchiveId == sourceArchiveId else { continue }
+            if let sourcePageNumbers, !sourcePageNumbers.contains(page.sourcePageNumber) {
+                continue
+            }
+            result.insert(page.pageNumber)
+        }
+        return result
+    }
 }
 
 @Reducer public struct ReaderSliderPreviewFeature: Sendable {
-    private let logger = Logger(label: "ReaderSliderPreviewFeature")
+    private static let logger = Logger(label: "ReaderSliderPreviewFeature")
+    private let staticContext: ReaderSliderPreviewContext?
 
     @ObservableState
     public struct State: Equatable, Sendable {
-        var archiveId = ""
-        var cached = false
-        var pages: [ReaderSliderPreviewPage] = []
-        var currentPageIndex = 0
-        var stored = ReaderSliderPreviewState()
+        var draftIndex: Int?
+        var dragging = false
+        var previewVisible = false
+        var previewPageIndex: Int?
+        var previewImageURL: URL?
+        var previewLoading = false
+        var thumbnailJobsById: [Int: String] = [:]
+        var readyThumbnailPages: Set<Int> = []
+        /// Keyed by reader page number. A page with no entry has not been tried yet.
+        var previewStatus: [Int: SliderPreviewStatus] = [:]
+        /// Set once Low Data Mode blocks a background preview download. After that, only the page
+        /// under the slider is fetched.
+        var prefetchStopped = false
+        var prefetchInFlight = false
 
-        public init(
-            archiveId: String = "",
-            cached: Bool = false,
-            pages: [ReaderSliderPreviewPage] = [],
-            currentPageIndex: Int = 0,
-            stored: ReaderSliderPreviewState = ReaderSliderPreviewState()
-        ) {
-            self.archiveId = archiveId
-            self.cached = cached
-            self.pages = pages
-            self.currentPageIndex = currentPageIndex
-            self.stored = stored
+        public init() {}
+
+        mutating func resetDisplayState() {
+            draftIndex = nil
+            dragging = false
+            previewVisible = false
+            previewPageIndex = nil
+            previewImageURL = nil
+            previewLoading = false
         }
 
-        var archivePageCount: Int {
-            Set(pages.map(\.pageNumber)).count
+        mutating func resetArchiveState() {
+            resetDisplayState()
+            thumbnailJobsById = [:]
+            readyThumbnailPages = []
+            previewStatus = [:]
+            prefetchStopped = false
+            prefetchInFlight = false
         }
     }
 
@@ -159,11 +204,62 @@ private struct SliderPreviewTarget: Sendable {
         )
     }
 
-    public init() {}
+    public init() {
+        self.staticContext = nil
+    }
+
+    public init(context: ReaderSliderPreviewContext) {
+        self.staticContext = context
+    }
 
     public var body: some ReducerOf<Self> {
         Reduce { state, action in
-            reduce(state: &state, action: action)
+            reduce(
+                state: &state,
+                action: action,
+                context: staticContext ?? ReaderSliderPreviewContext(),
+                embed: { $0 }
+            )
+        }
+    }
+
+    func reduce<ParentAction>(
+        state: inout State,
+        action: Action,
+        context: ReaderSliderPreviewContext,
+        embed: @escaping @Sendable (Action) -> ParentAction
+    ) -> Effect<ParentAction> {
+        switch action {
+        case .prepareThumbnails:
+            return prepareThumbnails(state: &state, context: context, embed: embed)
+        case let .thumbnailsQueued(results):
+            return handleThumbnailsQueued(results, state: &state, context: context, embed: embed)
+        case let .pollThumbnailJob(jobId, archiveId):
+            return pollThumbnailJob(jobId: jobId, archiveId: archiveId, embed: embed)
+        case let .thumbnailJobStatus(jobId, archiveId, status):
+            handleThumbnailJobStatus(
+                jobId: jobId, archiveId: archiveId, status: status, state: &state, context: context
+            )
+            return advancePreviews(state: &state, context: context, embed: embed)
+        case let .thumbnailPollingFailed(jobId, _):
+            state.thumbnailJobsById[jobId] = nil
+            return advancePreviews(state: &state, context: context, embed: embed)
+        case .dragStarted:
+            return handleDragStarted(state: &state, context: context, embed: embed)
+        case let .dragChanged(newValue):
+            return handleDragChanged(newValue, state: &state, context: context, embed: embed)
+        case .dragEnded:
+            return handleDragEnded(state: &state, context: context, embed: embed)
+        case let .previewFetched(pageNumber, result):
+            handlePreviewFetched(pageNumber: pageNumber, result: result, state: &state, context: context)
+            return .none
+        case .prefetchFinished:
+            state.prefetchInFlight = false
+            return startPrefetchIfNeeded(state: &state, context: context, embed: embed)
+        case .startPrefetchIfNeeded:
+            return startPrefetchIfNeeded(state: &state, context: context, embed: embed)
+        case .delegate:
+            return .none
         }
     }
 
@@ -178,45 +274,18 @@ private struct SliderPreviewTarget: Sendable {
 }
 
 private extension ReaderSliderPreviewFeature {
-    func reduce(state: inout State, action: Action) -> Effect<Action> {
-        switch action {
-        case .prepareThumbnails:
-            return prepareThumbnails(state: &state)
-        case let .thumbnailsQueued(results):
-            return handleThumbnailsQueued(results, state: &state)
-        case let .pollThumbnailJob(jobId, archiveId):
-            return pollThumbnailJob(jobId: jobId, archiveId: archiveId)
-        case let .thumbnailJobStatus(jobId, archiveId, status):
-            return handleThumbnailJobStatus(jobId: jobId, archiveId: archiveId, status: status, state: &state)
-        case let .thumbnailPollingFailed(jobId, _):
-            state.stored.thumbnailJobsById[jobId] = nil
-            return advancePreviews(state: &state)
-        case .dragStarted:
-            return handleDragStarted(state: &state)
-        case let .dragChanged(newValue):
-            return handleDragChanged(newValue, state: &state)
-        case .dragEnded:
-            return handleDragEnded(state: &state)
-        case let .previewFetched(pageNumber, result):
-            return handlePreviewFetched(pageNumber: pageNumber, result: result, state: &state)
-        case .prefetchFinished:
-            state.stored.prefetchInFlight = false
-            return startPrefetchIfNeeded(state: &state)
-        case .startPrefetchIfNeeded:
-            return startPrefetchIfNeeded(state: &state)
-        case .delegate:
-            return .none
-        }
-    }
-
-    func prepareThumbnails(state: inout State) -> Effect<Action> {
-        guard !state.cached, !state.pages.isEmpty else { return .none }
-        guard state.stored.thumbnailJobsById.isEmpty,
-              state.stored.readyThumbnailPages.count < state.archivePageCount else {
+    func prepareThumbnails<ParentAction>(
+        state: inout State,
+        context: ReaderSliderPreviewContext,
+        embed: @escaping @Sendable (Action) -> ParentAction
+    ) -> Effect<ParentAction> {
+        guard !context.cached, !context.isEmpty else { return .none }
+        guard state.thumbnailJobsById.isEmpty,
+              state.readyThumbnailPages.count < context.archivePageCount else {
             return .none
         }
 
-        let sourceArchiveIds = Array(OrderedSet(state.pages.map(\.sourceArchiveId)))
+        let sourceArchiveIds = context.sourceArchiveIds
         return .run { send in
             var results: [SliderPreviewThumbnailQueueResult] = []
             for archiveId in sourceArchiveIds {
@@ -225,49 +294,55 @@ private extension ReaderSliderPreviewFeature {
                     SliderPreviewThumbnailQueueResult(archiveId: archiveId, response: response)
                 )
             }
-            await send(.thumbnailsQueued(results))
-        } catch: { [archiveId = state.archiveId] error, _ in
-            logger.warning("failed to queue slider preview thumbnails. id=\(archiveId) \(error)")
+            await send(embed(.thumbnailsQueued(results)))
+        } catch: { [archiveId = context.archiveId] error, _ in
+            Self.logger.warning("failed to queue slider preview thumbnails. id=\(archiveId) \(error)")
         }
         .cancellable(id: CancelId.thumbnailQueue, cancelInFlight: true)
     }
 
-    func handleThumbnailsQueued(
+    func handleThumbnailsQueued<ParentAction>(
         _ results: [SliderPreviewThumbnailQueueResult],
-        state: inout State
-    ) -> Effect<Action> {
-        state.stored.thumbnailJobsById = [:]
-        var effect: Effect<Action> = .none
+        state: inout State,
+        context: ReaderSliderPreviewContext,
+        embed: @escaping @Sendable (Action) -> ParentAction
+    ) -> Effect<ParentAction> {
+        state.thumbnailJobsById = [:]
+        var effect: Effect<ParentAction> = .none
 
         for result in results {
             if let jobId = result.response.job {
-                state.stored.thumbnailJobsById[jobId] = result.archiveId
+                state.thumbnailJobsById[jobId] = result.archiveId
                 effect = .merge(
                     effect,
-                    .send(.pollThumbnailJob(jobId, archiveId: result.archiveId))
+                    .send(embed(.pollThumbnailJob(jobId, archiveId: result.archiveId)))
                 )
             } else {
-                state.stored.readyThumbnailPages.formUnion(
-                    Self.readerPageNumbers(in: state.pages, sourceArchiveId: result.archiveId)
+                state.readyThumbnailPages.formUnion(
+                    context.readerPageNumbers(sourceArchiveId: result.archiveId)
                 )
             }
         }
-        return .merge(effect, advancePreviews(state: &state))
+        return .merge(effect, advancePreviews(state: &state, context: context, embed: embed))
     }
 
-    func pollThumbnailJob(jobId: Int, archiveId: String) -> Effect<Action> {
+    func pollThumbnailJob<ParentAction>(
+        jobId: Int,
+        archiveId: String,
+        embed: @escaping @Sendable (Action) -> ParentAction
+    ) -> Effect<ParentAction> {
         .run { send in
             while true {
                 let status = try await service.checkBasicJobStatus(id: jobId).value
-                await send(.thumbnailJobStatus(jobId, archiveId, status))
+                await send(embed(.thumbnailJobStatus(jobId, archiveId, status)))
                 if status.state == "finished" || status.state == "failed" {
                     return
                 }
                 try await clock.sleep(for: .seconds(1))
             }
         } catch: { error, send in
-            logger.warning("failed to poll slider preview thumbnail job. id=\(archiveId) \(error)")
-            await send(.thumbnailPollingFailed(jobId, archiveId))
+            Self.logger.warning("failed to poll slider preview thumbnail job. id=\(archiveId) \(error)")
+            await send(embed(.thumbnailPollingFailed(jobId, archiveId)))
         }
         .cancellable(id: CancelId.thumbnailPolling)
     }
@@ -276,225 +351,236 @@ private extension ReaderSliderPreviewFeature {
         jobId: Int,
         archiveId: String,
         status: BasicJobStatus,
-        state: inout State
-    ) -> Effect<Action> {
-        state.stored.readyThumbnailPages.formUnion(
-            Self.readerPageNumbers(
-                in: state.pages,
+        state: inout State,
+        context: ReaderSliderPreviewContext
+    ) {
+        state.readyThumbnailPages.formUnion(
+            context.readerPageNumbers(
                 sourceArchiveId: archiveId,
                 sourcePageNumbers: status.processedPages
             )
         )
         if status.state == "finished" {
-            state.stored.readyThumbnailPages.formUnion(
-                Self.readerPageNumbers(in: state.pages, sourceArchiveId: archiveId)
+            state.readyThumbnailPages.formUnion(
+                context.readerPageNumbers(sourceArchiveId: archiveId)
             )
-            state.stored.thumbnailJobsById[jobId] = nil
+            state.thumbnailJobsById[jobId] = nil
         } else if status.state == "failed" {
-            state.stored.thumbnailJobsById[jobId] = nil
+            state.thumbnailJobsById[jobId] = nil
         }
-        return advancePreviews(state: &state)
     }
 
-    func handleDragStarted(state: inout State) -> Effect<Action> {
-        state.stored.dragging = true
+    func handleDragStarted<ParentAction>(
+        state: inout State,
+        context: ReaderSliderPreviewContext,
+        embed: @escaping @Sendable (Action) -> ParentAction
+    ) -> Effect<ParentAction> {
+        state.dragging = true
         let previewIndex = ReaderPositioning.clampedPageIndex(
-            state.stored.draftIndex ?? state.currentPageIndex,
-            pageCount: state.pages.count
+            state.draftIndex ?? context.currentPageIndex,
+            pageCount: context.pageCount
         )
-        state.stored.previewVisible = !state.pages.isEmpty
-        guard !state.pages.isEmpty else { return .none }
-        return updatePreview(state: &state, pageIndex: previewIndex)
+        state.previewVisible = !context.isEmpty
+        guard !context.isEmpty else { return .none }
+        return updatePreview(state: &state, pageIndex: previewIndex, context: context, embed: embed)
     }
 
-    func handleDragChanged(_ newValue: Int, state: inout State) -> Effect<Action> {
-        guard state.stored.dragging, !state.pages.isEmpty else { return .none }
-        let targetIndex = ReaderPositioning.clampedPageIndex(newValue, pageCount: state.pages.count)
-        return updatePreview(state: &state, pageIndex: targetIndex)
+    func handleDragChanged<ParentAction>(
+        _ newValue: Int,
+        state: inout State,
+        context: ReaderSliderPreviewContext,
+        embed: @escaping @Sendable (Action) -> ParentAction
+    ) -> Effect<ParentAction> {
+        guard state.dragging, !context.isEmpty else { return .none }
+        let targetIndex = ReaderPositioning.clampedPageIndex(newValue, pageCount: context.pageCount)
+        return updatePreview(state: &state, pageIndex: targetIndex, context: context, embed: embed)
     }
 
-    func handleDragEnded(state: inout State) -> Effect<Action> {
-        state.stored.dragging = false
-        guard !state.pages.isEmpty else {
-            state.stored.resetDisplayState()
+    func handleDragEnded<ParentAction>(
+        state: inout State,
+        context: ReaderSliderPreviewContext,
+        embed: @escaping @Sendable (Action) -> ParentAction
+    ) -> Effect<ParentAction> {
+        state.dragging = false
+        guard !context.isEmpty else {
+            state.resetDisplayState()
             return .none
         }
         let targetIndex = ReaderPositioning.clampedPageIndex(
-            state.stored.draftIndex ?? state.currentPageIndex,
-            pageCount: state.pages.count
+            state.draftIndex ?? context.currentPageIndex,
+            pageCount: context.pageCount
         )
-        state.stored.resetDisplayState()
-        return .send(.delegate(.jumpRequested(targetIndex)))
+        state.resetDisplayState()
+        return .send(embed(.delegate(.jumpRequested(targetIndex))))
     }
 
     func handlePreviewFetched(
         pageNumber: Int,
         result: SliderPreviewFetchResult,
-        state: inout State
-    ) -> Effect<Action> {
-        guard state.pages.contains(where: { $0.pageNumber == pageNumber }) else {
-            return .none
+        state: inout State,
+        context: ReaderSliderPreviewContext
+    ) {
+        guard context.containsPageNumber(pageNumber) else {
+            return
         }
         switch result {
         case .stored:
-            state.stored.previewStatus[pageNumber] = .stored
+            state.previewStatus[pageNumber] = .stored
         case .failed:
-            if state.stored.previewStatus[pageNumber] != .stored {
-                state.stored.previewStatus[pageNumber] = .failed
+            if state.previewStatus[pageNumber] != .stored {
+                state.previewStatus[pageNumber] = .failed
             }
         case .networkConstrained:
-            if state.stored.previewStatus[pageNumber] == .fetching {
-                state.stored.previewStatus[pageNumber] = nil
+            if state.previewStatus[pageNumber] == .fetching {
+                state.previewStatus[pageNumber] = nil
             }
-            state.stored.prefetchStopped = true
+            state.prefetchStopped = true
         }
         if result != .networkConstrained,
-           state.stored.previewVisible,
-           let previewIndex = state.stored.previewPageIndex,
-           state.pages.indices.contains(previewIndex),
-           state.pages[previewIndex].pageNumber == pageNumber {
-            let stored = state.stored.previewStatus[pageNumber] == .stored
-            state.stored.previewImageURL = stored
-                ? Self.sliderPreviewFileURL(archiveId: state.archiveId, pageNumber: pageNumber)
+           state.previewVisible,
+           let previewIndex = state.previewPageIndex,
+           context.indices.contains(previewIndex),
+           context.page(at: previewIndex).pageNumber == pageNumber {
+            let stored = state.previewStatus[pageNumber] == .stored
+            state.previewImageURL = stored
+                ? Self.sliderPreviewFileURL(archiveId: context.archiveId, pageNumber: pageNumber)
                 : nil
-            state.stored.previewLoading = false
+            state.previewLoading = false
         }
-        return .none
     }
 
-    static func readerPageNumbers(
-        in pages: [ReaderSliderPreviewPage],
-        sourceArchiveId: String,
-        sourcePageNumbers: Set<Int>? = nil
-    ) -> Set<Int> {
-        Set(
-            pages.compactMap { page in
-                guard page.sourceArchiveId == sourceArchiveId else { return nil }
-                if let sourcePageNumbers, !sourcePageNumbers.contains(page.sourcePageNumber) {
-                    return nil
-                }
-                return page.pageNumber
-            }
-        )
-    }
-
-    func updatePreview(state: inout State, pageIndex: Int) -> Effect<Action> {
-        let clampedIndex = ReaderPositioning.clampedPageIndex(pageIndex, pageCount: state.pages.count)
-        guard clampedIndex < state.pages.count else {
+    func updatePreview<ParentAction>(
+        state: inout State,
+        pageIndex: Int,
+        context: ReaderSliderPreviewContext,
+        embed: @escaping @Sendable (Action) -> ParentAction
+    ) -> Effect<ParentAction> {
+        let clampedIndex = ReaderPositioning.clampedPageIndex(pageIndex, pageCount: context.pageCount)
+        guard clampedIndex < context.pageCount else {
             return .none
         }
 
         // The drag gesture reports every finger movement, so most calls land on the page already shown.
-        let pageChanged = state.stored.previewPageIndex != clampedIndex
-        state.stored.draftIndex = clampedIndex
-        state.stored.previewVisible = true
-        state.stored.previewPageIndex = clampedIndex
+        let pageChanged = state.previewPageIndex != clampedIndex
+        state.draftIndex = clampedIndex
+        state.previewVisible = true
+        state.previewPageIndex = clampedIndex
         guard pageChanged else { return .none }
-        return showPreview(pageIndex: clampedIndex, state: &state)
+        return showPreview(pageIndex: clampedIndex, state: &state, context: context, embed: embed)
     }
 
     /// Shows the page's preview if it is on disk. Otherwise the bubble shows a spinner and the page is
     /// fetched ahead of the background queue.
-    func showPreview(pageIndex: Int, state: inout State) -> Effect<Action> {
-        let page = state.pages[pageIndex]
-        let fileURL = Self.sliderPreviewFileURL(archiveId: state.archiveId, pageNumber: page.pageNumber)
-        if state.stored.previewStatus[page.pageNumber] == nil, Self.fileExists(fileURL) {
-            state.stored.previewStatus[page.pageNumber] = .stored
+    func showPreview<ParentAction>(
+        pageIndex: Int,
+        state: inout State,
+        context: ReaderSliderPreviewContext,
+        embed: @escaping @Sendable (Action) -> ParentAction
+    ) -> Effect<ParentAction> {
+        let page = context.page(at: pageIndex)
+        let fileURL = Self.sliderPreviewFileURL(archiveId: context.archiveId, pageNumber: page.pageNumber)
+        if state.previewStatus[page.pageNumber] == nil, Self.fileExists(fileURL) {
+            state.previewStatus[page.pageNumber] = .stored
         }
 
-        let status = state.stored.previewStatus[page.pageNumber]
-        state.stored.previewImageURL = status == .stored ? fileURL : nil
+        let status = state.previewStatus[page.pageNumber]
+        state.previewImageURL = status == .stored ? fileURL : nil
         switch status {
         case .stored:
-            state.stored.previewLoading = false
+            state.previewLoading = false
             return .none
         case .fetching:
-            state.stored.previewLoading = true
+            state.previewLoading = true
             return .none
         case .failed, nil:
-            guard state.cached || state.stored.readyThumbnailPages.contains(page.pageNumber) else {
+            guard context.cached || state.readyThumbnailPages.contains(page.pageNumber) else {
                 // The server has not generated this page's thumbnail yet.
-                state.stored.previewLoading = !state.stored.thumbnailJobsById.isEmpty
+                state.previewLoading = !state.thumbnailJobsById.isEmpty
                 return .none
             }
-            state.stored.previewLoading = true
-            return fetchForegroundPreview(page, state: &state)
+            state.previewLoading = true
+            return fetchForegroundPreview(page, state: &state, context: context, embed: embed)
         }
     }
 
     /// Runs after more thumbnails become available: fetches the page under the slider if it was waiting,
     /// and starts the background prefetch wave if none is active.
-    func advancePreviews(state: inout State) -> Effect<Action> {
-        var waitingPreview: Effect<Action> = .none
-        if state.stored.previewVisible,
-           let previewIndex = state.stored.previewPageIndex,
-           state.pages.indices.contains(previewIndex),
-           state.stored.previewStatus[state.pages[previewIndex].pageNumber] == nil {
-            waitingPreview = showPreview(pageIndex: previewIndex, state: &state)
+    func advancePreviews<ParentAction>(
+        state: inout State,
+        context: ReaderSliderPreviewContext,
+        embed: @escaping @Sendable (Action) -> ParentAction
+    ) -> Effect<ParentAction> {
+        var waitingPreview: Effect<ParentAction> = .none
+        if state.previewVisible,
+           let previewIndex = state.previewPageIndex,
+           context.indices.contains(previewIndex),
+           state.previewStatus[context.page(at: previewIndex).pageNumber] == nil {
+            waitingPreview = showPreview(pageIndex: previewIndex, state: &state, context: context, embed: embed)
         }
-        return .merge(waitingPreview, startPrefetchIfNeeded(state: &state))
+        return .merge(waitingPreview, startPrefetchIfNeeded(state: &state, context: context, embed: embed))
     }
 
     /// Starts one background prefetch wave for all ready, untried preview pages, nearest first.
-    func startPrefetchIfNeeded(state: inout State) -> Effect<Action> {
-        guard !state.stored.prefetchStopped,
-              !state.stored.prefetchInFlight,
-              !state.pages.isEmpty else {
+    func startPrefetchIfNeeded<ParentAction>(
+        state: inout State,
+        context: ReaderSliderPreviewContext,
+        embed: @escaping @Sendable (Action) -> ParentAction
+    ) -> Effect<ParentAction> {
+        guard !state.prefetchStopped,
+              !state.prefetchInFlight,
+              !context.isEmpty else {
             return .none
         }
 
-        let targets = prefetchTargets(state: state)
+        let targets = prefetchTargets(state: state, context: context)
         guard !targets.isEmpty else { return .none }
 
-        state.stored.prefetchInFlight = true
-        let archiveId = state.archiveId
-        let cached = state.cached
-        let limit = cached ? Self.previewGenerationLimit : Self.previewDownloadLimit
+        state.prefetchInFlight = true
+        let archiveId = context.archiveId
+        let cached = context.cached
         return .run(priority: .utility) { [targets] send in
             await runPrefetch(
                 targets: targets,
                 archiveId: archiveId,
                 cached: cached,
-                limit: limit,
-                send: send
+                send: send,
+                embed: embed
             )
         }
         .cancellable(id: CancelId.prefetch, cancelInFlight: true)
     }
 
-    func prefetchTargets(state: State) -> [SliderPreviewTarget] {
+    func prefetchTargets(
+        state: State,
+        context: ReaderSliderPreviewContext
+    ) -> [ReaderSliderPreviewPage] {
         let anchor = ReaderPositioning.clampedPageIndex(
-            (state.stored.previewVisible ? state.stored.previewPageIndex : nil) ?? state.currentPageIndex,
-            pageCount: state.pages.count
+            (state.previewVisible ? state.previewPageIndex : nil) ?? context.currentPageIndex,
+            pageCount: context.pageCount
         )
         var seenPages: Set<Int> = []
-        var targets: [SliderPreviewTarget] = []
-        for index in Self.pageIndicesNearestFirst(from: anchor, count: state.pages.count) {
-            let page = state.pages[index]
+        var targets: [ReaderSliderPreviewPage] = []
+        for index in Self.pageIndicesNearestFirst(from: anchor, count: context.pageCount) {
+            let page = context.page(at: index)
             guard seenPages.insert(page.pageNumber).inserted else { continue }
-            guard state.stored.previewStatus[page.pageNumber] == nil,
-                  state.cached || state.stored.readyThumbnailPages.contains(page.pageNumber) else {
+            guard state.previewStatus[page.pageNumber] == nil,
+                  context.cached || state.readyThumbnailPages.contains(page.pageNumber) else {
                 continue
             }
-            targets.append(
-                SliderPreviewTarget(
-                    pageNumber: page.pageNumber,
-                    sourceArchiveId: page.sourceArchiveId,
-                    sourcePageNumber: page.sourcePageNumber
-                )
-            )
+            targets.append(page)
         }
         return targets
     }
 
-    func runPrefetch(
-        targets: [SliderPreviewTarget],
+    func runPrefetch<ParentAction>(
+        targets: [ReaderSliderPreviewPage],
         archiveId: String,
         cached: Bool,
-        limit: Int,
-        send: Send<Action>
+        send: Send<ParentAction>,
+        embed: @escaping @Sendable (Action) -> ParentAction
     ) async {
         guard !Task.isCancelled else { return }
+        let limit = cached ? Self.previewGenerationLimit : Self.previewDownloadLimit
         await withTaskGroup(of: (Int, SliderPreviewFetchResult?).self) { group in
             var nextIndex = min(limit, targets.count)
             for target in targets.prefix(nextIndex) {
@@ -508,7 +594,7 @@ private extension ReaderSliderPreviewFeature {
                     return
                 }
                 if let result {
-                    await send(.previewFetched(pageNumber: pageNumber, result))
+                    await send(embed(.previewFetched(pageNumber: pageNumber, result)))
                     if result == .networkConstrained {
                         constrained = true
                     }
@@ -520,12 +606,12 @@ private extension ReaderSliderPreviewFeature {
             }
         }
         guard !Task.isCancelled else { return }
-        await send(.prefetchFinished)
+        await send(embed(.prefetchFinished))
     }
 
     func addPrefetchTask(
         to group: inout TaskGroup<(Int, SliderPreviewFetchResult?)>,
-        target: SliderPreviewTarget,
+        target: ReaderSliderPreviewPage,
         archiveId: String,
         cached: Bool
     ) {
@@ -540,34 +626,31 @@ private extension ReaderSliderPreviewFeature {
         }
     }
 
-    func fetchForegroundPreview(
+    func fetchForegroundPreview<ParentAction>(
         _ page: ReaderSliderPreviewPage,
-        state: inout State
-    ) -> Effect<Action> {
-        state.stored.previewStatus[page.pageNumber] = .fetching
-        let archiveId = state.archiveId
-        let cached = state.cached
-        let target = SliderPreviewTarget(
-            pageNumber: page.pageNumber,
-            sourceArchiveId: page.sourceArchiveId,
-            sourcePageNumber: page.sourcePageNumber
-        )
+        state: inout State,
+        context: ReaderSliderPreviewContext,
+        embed: @escaping @Sendable (Action) -> ParentAction
+    ) -> Effect<ParentAction> {
+        state.previewStatus[page.pageNumber] = .fetching
+        let archiveId = context.archiveId
+        let cached = context.cached
         return .run(priority: .userInitiated) { send in
             guard let result = await fetchPreviewResult(
-                target: target,
+                target: page,
                 archiveId: archiveId,
                 cached: cached,
                 background: false
             ), !Task.isCancelled else {
                 return
             }
-            await send(.previewFetched(pageNumber: target.pageNumber, result))
+            await send(embed(.previewFetched(pageNumber: page.pageNumber, result)))
         }
         .cancellable(id: CancelId.fetch)
     }
 
     func fetchPreviewResult(
-        target: SliderPreviewTarget,
+        target: ReaderSliderPreviewPage,
         archiveId: String,
         cached: Bool,
         background: Bool
@@ -598,13 +681,13 @@ private extension ReaderSliderPreviewFeature {
         }
         guard !Task.isCancelled else { return nil }
         if !stored {
-            logger.warning("failed to generate cached slider preview. id=\(archiveId) page=\(pageNumber)")
+            Self.logger.warning("failed to generate cached slider preview. id=\(archiveId) page=\(pageNumber)")
         }
         return stored ? .stored : .failed
     }
 
     func downloadPreview(
-        target: SliderPreviewTarget,
+        target: ReaderSliderPreviewPage,
         fileURL: URL,
         background: Bool
     ) async -> SliderPreviewFetchResult? {
@@ -627,7 +710,7 @@ private extension ReaderSliderPreviewFeature {
             }
             let message = "failed to fetch slider preview thumbnail. id=\(target.sourceArchiveId) "
                 + "page=\(target.sourcePageNumber) \(error)"
-            logger.warning("\(message)")
+            Self.logger.warning("\(message)")
             return .failed
         }
     }
